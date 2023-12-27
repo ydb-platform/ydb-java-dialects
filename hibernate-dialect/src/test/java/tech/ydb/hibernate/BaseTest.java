@@ -4,14 +4,13 @@ import jakarta.persistence.EntityManager;
 import org.hibernate.SessionFactory;
 import org.hibernate.cfg.Configuration;
 import org.hibernate.cfg.Environment;
-import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.extension.RegisterExtension;
 import tech.ydb.hibernate.dialect.YdbDialect;
 import tech.ydb.hibernate.entity.Group;
 import tech.ydb.hibernate.entity.Student;
 import tech.ydb.jdbc.YdbDriver;
-import tech.ydb.test.integration.YdbHelper;
-import tech.ydb.test.integration.YdbHelperFactory;
-import tech.ydb.test.junit5.GrpcTransportExtension;
+import tech.ydb.test.junit5.YdbHelperExtension;
 
 import java.util.Properties;
 import java.util.stream.Stream;
@@ -19,21 +18,22 @@ import java.util.stream.Stream;
 /**
  * @author Kirill Kurdyukov
  */
-@ExtendWith(GrpcTransportExtension.class)
 public abstract class BaseTest {
 
-    protected static final SessionFactory SESSION_FACTORY;
+    @RegisterExtension
+    public static final YdbHelperExtension YDB_HELPER_EXTENSION = new YdbHelperExtension();
 
-    static {
-        YdbHelper ydb = YdbHelperFactory.getInstance().createHelper();
+    protected static SessionFactory SESSION_FACTORY;
 
+    @BeforeAll
+    static void beforeAll() {
         StringBuilder jdbc = new StringBuilder("jdbc:ydb:")
-                .append(ydb.useTls() ? "grpcs://" : "grpc://")
-                .append(ydb.endpoint())
-                .append(ydb.database());
+                .append(YDB_HELPER_EXTENSION.useTls() ? "grpcs://" : "grpc://")
+                .append(YDB_HELPER_EXTENSION.endpoint())
+                .append(YDB_HELPER_EXTENSION.database());
 
-        if (ydb.authToken() != null) {
-            jdbc.append("?").append("token=").append(ydb.authToken());
+        if (YDB_HELPER_EXTENSION.authToken() != null) {
+            jdbc.append("?").append("token=").append(YDB_HELPER_EXTENSION.authToken());
         }
 
         Properties properties = new Properties();
