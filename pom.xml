@@ -10,8 +10,8 @@
     <artifactId>ydb-java-dialects</artifactId>
 
     <modules>
+        <module>hibernate-dialect</module>
         <module>hibernate-dialect-v5</module>
-        <module>hibernate-dialect-v6</module>
     </modules>
 
     <licenses>
