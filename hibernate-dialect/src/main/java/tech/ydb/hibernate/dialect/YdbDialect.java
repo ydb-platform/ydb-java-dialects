@@ -5,8 +5,10 @@ import org.hibernate.dialect.pagination.LimitHandler;
 import org.hibernate.dialect.pagination.LimitOffsetLimitHandler;
 import org.hibernate.engine.jdbc.dialect.spi.DialectResolutionInfo;
 import org.hibernate.mapping.ForeignKey;
+import org.hibernate.sql.ast.SqlAstTranslatorFactory;
 import org.hibernate.tool.schema.spi.Exporter;
 import tech.ydb.hibernate.dialect.exporter.EmptyExporter;
+import tech.ydb.hibernate.dialect.translator.YdbSqlAstTranslatorFactory;
 
 import static org.hibernate.type.SqlTypes.BIGINT;
 import static org.hibernate.type.SqlTypes.BINARY;
@@ -144,5 +146,15 @@ public class YdbDialect extends Dialect {
     @Override
     public boolean supportsExistsInSelect() {
         return false;
+    }
+
+    @Override
+    public String toBooleanValueString(boolean bool) {
+        return String.valueOf(bool);
+    }
+
+    @Override
+    public SqlAstTranslatorFactory getSqlAstTranslatorFactory() {
+        return YdbSqlAstTranslatorFactory.YDB_SQL_AST_TRANSLATOR_FACTORY;
     }
 }

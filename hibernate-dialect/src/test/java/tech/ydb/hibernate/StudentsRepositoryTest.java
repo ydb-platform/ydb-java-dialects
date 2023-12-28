@@ -42,18 +42,30 @@ public class StudentsRepositoryTest extends BaseTest {
     }
 
     @Test
-    @Disabled
-    void studentsOrderByStudentNameAndLimit2AndOffset2() {
+    void studentsOrderByStudentNameTest() {
         SESSION_FACTORY.inTransaction(
                 session -> {
                     Query<Student> studentQuery = session
                             .createQuery("FROM Student ORDER BY name", Student.class);
-                    studentQuery.setMaxResults(2);
-                    studentQuery.setFirstResult(2);
 
                     List<Student> students = studentQuery.list();
 
-                    assertEquals(2, students.size());
+                    assertEquals("Безымянный Б.Б", students.get(0).getName());
+                    assertEquals("Иванов И.И.", students.get(1).getName());
+                }
+        );
+    }
+
+    @Test
+    void studentsLimitAndOffsetTest() {
+        SESSION_FACTORY.inTransaction(
+                session -> {
+                    Query<Student> studentQuery = session.createQuery("FROM Student", Student.class)
+                            .setMaxResults(2)
+                            .setFirstResult(2);
+
+                    List<Student> students = studentQuery.list();
+
                     assertEquals("Безымянный Б.Б", students.get(0).getName());
                     assertEquals("Иванов И.И.", students.get(1).getName());
                 }
