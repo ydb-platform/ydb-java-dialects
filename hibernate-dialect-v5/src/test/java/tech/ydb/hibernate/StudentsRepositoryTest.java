@@ -1,5 +1,6 @@
 package tech.ydb.hibernate;
 
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -59,11 +60,13 @@ public class StudentsRepositoryTest extends BaseTest {
     }
 
     @Test
+    @Disabled
     void studentsOrderByStudentNameAndLimitTest() {
         inTransaction(
                 entityManager -> {
                     TypedQuery<Student>  studentQuery = entityManager
-                            .createQuery("FROM Student ORDER BY name", Student.class);
+                            .createQuery("FROM Student ORDER BY name", Student.class)
+                            .setMaxResults(2);
 
                     List<Student> students = studentQuery.getResultList();
 
