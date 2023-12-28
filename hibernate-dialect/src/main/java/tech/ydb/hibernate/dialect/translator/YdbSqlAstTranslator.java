@@ -1,8 +1,6 @@
 package tech.ydb.hibernate.dialect.translator;
 
-import org.hibernate.dialect.pagination.LimitOffsetLimitHandler;
 import org.hibernate.engine.spi.SessionFactoryImplementor;
-import org.hibernate.query.spi.Limit;
 import org.hibernate.query.sqm.FetchClauseType;
 import org.hibernate.sql.ast.Clause;
 import org.hibernate.sql.ast.spi.AbstractSqlAstTranslator;
