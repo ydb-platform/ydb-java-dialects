@@ -84,7 +84,7 @@ public abstract class BaseTest {
                 makeStudent(1, "Иванов И.И.", 1),
                 makeStudent(2, "Петров П.П.", 1),
                 makeStudent(3, "Петров П.П.", 2),
-                makeStudent(4, "Сидров С.С.", 2),
+                makeStudent(4, "Сидоров С.С.", 2),
                 makeStudent(5, "Неизвестный Н.Н.", 3),
                 makeStudent(6, "Безымянный Б.Б", 4)
         );
