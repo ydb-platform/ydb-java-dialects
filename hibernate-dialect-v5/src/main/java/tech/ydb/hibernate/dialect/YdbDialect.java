@@ -139,9 +139,4 @@ public class YdbDialect extends Dialect {
     public int getInExpressionCountLimit() {
         return IN_EXPRESSION_COUNT_LIMIT;
     }
-
-    @Override
-    public boolean replaceResultVariableInOrderByClauseWithPosition() {
-        return true;
-    }
 }

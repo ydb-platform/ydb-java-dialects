@@ -28,7 +28,7 @@ public class YdbSqlAstTranslator<T extends JdbcOperation> extends AbstractSqlAst
             appendSql(" limit ");
             getClauseStack().push(Clause.FETCH);
             try {
-                offsetExpression.accept(this);
+                fetchExpression.accept(this);
             } finally {
                 getClauseStack().pop();
             }

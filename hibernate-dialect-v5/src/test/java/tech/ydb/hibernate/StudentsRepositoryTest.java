@@ -1,11 +1,11 @@
 package tech.ydb.hibernate;
 
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 import tech.ydb.hibernate.entity.Student;
 
+import javax.persistence.Query;
 import javax.persistence.TypedQuery;
 import java.util.List;
 
@@ -60,16 +60,17 @@ public class StudentsRepositoryTest extends BaseTest {
     }
 
     @Test
-    @Disabled
+    @SuppressWarnings("unchecked")
     void studentsOrderByStudentNameAndLimitTest() {
         inTransaction(
                 entityManager -> {
-                    TypedQuery<Student>  studentQuery = entityManager
-                            .createQuery("FROM Student ORDER BY name", Student.class)
+                    Query studentQuery = entityManager
+                            .createNativeQuery("SELECT * FROM Students ORDER BY name", Student.class)
                             .setMaxResults(2);
 
                     List<Student> students = studentQuery.getResultList();
 
+                    assertEquals(2, students.size());
                     assertEquals("Безымянный Б.Б", students.get(0).getName());
                     assertEquals("Иванов И.И.", students.get(1).getName());
                 }

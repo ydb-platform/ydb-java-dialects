@@ -1,20 +1,19 @@
 package tech.ydb.hibernate;
 
-import tech.ydb.hibernate.entity.Group;
-import tech.ydb.hibernate.entity.Student;
 import org.hibernate.SessionFactory;
 import org.hibernate.cfg.Configuration;
 import org.hibernate.cfg.Environment;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import tech.ydb.hibernate.dialect.YdbDialect;
+import tech.ydb.hibernate.entity.Group;
+import tech.ydb.hibernate.entity.Student;
 import tech.ydb.jdbc.YdbDriver;
 import tech.ydb.test.junit5.YdbHelperExtension;
 
 import javax.persistence.EntityManager;
 import java.util.Properties;
 import java.util.function.Consumer;
-import java.util.function.Function;
 import java.util.stream.Stream;
 
 /**
