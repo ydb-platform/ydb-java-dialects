@@ -13,6 +13,7 @@
     <modules>
         <module>hibernate-dialect</module>
         <module>hibernate-dialect-v5</module>
+        <module>jooq-support-module</module>
     </modules>
 
     <licenses>
