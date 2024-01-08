@@ -73,4 +73,44 @@ public class StudentsRepositoryTest extends BaseTest {
                 }
         );
     }
+
+    @Test
+    void escapeLiteralTest() {
+        SESSION_FACTORY.inTransaction(
+                session -> {
+                    Query<Student> studentQuery = session
+                            .createQuery("FROM Student WHERE name LIKE '%Иван%' ESCAPE '\\'", Student.class);
+
+                    Student student = studentQuery.getSingleResult();
+                    assertEquals("Иванов И.И.", student.getName());
+                }
+        );
+
+        SESSION_FACTORY.inTransaction(
+                session -> {
+                    session.persist(makeStudent(7, "Вопрос?", 1));
+                    session.persist(makeStudent(8, "Подчеркивание_", 2));
+                }
+        );
+
+        SESSION_FACTORY.inTransaction(
+                session -> {
+                    Query<Student> studentQuery = session
+                            .createQuery("FROM Student WHERE name LIKE '%??%' ESCAPE '\\'", Student.class);
+
+                    Student student = studentQuery.getSingleResult();
+                    assertEquals("Вопрос?", student.getName());
+
+                    session.remove(student);
+
+                    studentQuery = session
+                            .createQuery("FROM Student WHERE name LIKE '%?_%' ESCAPE '?'", Student.class);
+
+                    student = studentQuery.getSingleResult();
+                    assertEquals("Подчеркивание_", student.getName());
+
+                    session.remove(student);
+                }
+        );
+    }
 }

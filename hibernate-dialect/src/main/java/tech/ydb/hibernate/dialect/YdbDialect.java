@@ -87,17 +87,6 @@ public class YdbDialect extends Dialect {
     public Exporter<ForeignKey> getForeignKeyExporter() {
         return FOREIGN_KEY_EMPTY_EXPORTER;
     }
-
-    @Override
-    public boolean supportsCaseInsensitiveLike() {
-        return true;
-    }
-
-    @Override
-    public String getCaseInsensitiveLike() {
-        return "ilike";
-    }
-
     @Override
     public char openQuote() {
         return '`';

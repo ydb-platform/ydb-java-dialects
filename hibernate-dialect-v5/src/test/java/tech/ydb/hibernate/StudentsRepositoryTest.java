@@ -76,4 +76,17 @@ public class StudentsRepositoryTest extends BaseTest {
                 }
         );
     }
+    
+    @Test
+    void escapeLiteralTest() {
+        inTransaction(
+                entityManager -> {
+                    TypedQuery<Student> studentQuery = entityManager
+                            .createQuery("FROM Student WHERE name LIKE '%Иван%' ESCAPE '?'", Student.class);
+
+                    Student student = studentQuery.getSingleResult();
+                    assertEquals("Иванов И.И.", student.getName());
+                }
+        );
+    }
 }
