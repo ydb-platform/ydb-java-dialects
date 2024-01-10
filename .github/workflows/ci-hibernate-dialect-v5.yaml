@@ -3,13 +3,13 @@ name: YDB Java Hibernate Dialect V5 CI with Maven
 on:
   push:
     paths:
-      - './hibernate-dialect-v5/**'
+      - 'hibernate-dialect-v5/**'
     branches:
       - main
   pull_request:
     paths:
-      - './hibernate-dialect-v5/**'
-      - './.github/**'
+      - 'hibernate-dialect-v5/**'
+      - 'github/**'
     types:
       - opened
       - reopened
