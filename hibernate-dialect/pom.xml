@@ -5,8 +5,29 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>tech.ydb.dialects</groupId>
-    <artifactId>hibernate-dialect</artifactId>
-    <version>1.0.0-SNAPSHOT</version>
+    <artifactId>hibernate-ydb-dialect</artifactId>
+    <version>0.9.0-SNAPSHOT</version>
+
+    <packaging>jar</packaging>
+
+    <name>Hibernate YDB Dialect</name>
+    <description>Support Hibernate YDB (YQL) Dialect</description>
+    <url>https://github.com/ydb-platform/ydb-java-dialects</url>
+
+    <developers>
+        <developer>
+            <name>Kirill Kurdyukov</name>
+            <email>kurdyukov-kir@ydb.tech</email>
+            <organization>YDB</organization>
+            <organizationUrl>https://ydb.tech/</organizationUrl>
+        </developer>
+    </developers>
+
+    <scm>
+        <url>https://github.com/ydb-platform/ydb-java-dialects</url>
+        <connection>scm:git:https://github.com/ydb-platform/ydb-java-dialects.git</connection>
+        <developerConnection>scm:git:https://github.com/ydb-platform/ydb-java-dialects.git</developerConnection>
+    </scm>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -18,14 +39,12 @@
         <log4j2.version>2.17.2</log4j2.version>
     </properties>
 
-    <developers>
-        <developer>
-            <name>Kirill Kurdyukov</name>
-            <email>kurdyukov-kir@ydb.tech</email>
-            <organization>YDB</organization>
-            <organizationUrl>https://ydb.tech/</organizationUrl>
-        </developer>
-    </developers>
+    <licenses>
+        <license>
+            <name>Apache License, Version 2.0</name>
+            <url>https://www.apache.org/licenses/LICENSE-2.0</url>
+        </license>
+    </licenses>
 
     <dependencyManagement>
         <dependencies>
@@ -44,6 +63,7 @@
             <groupId>org.hibernate.orm</groupId>
             <artifactId>hibernate-core</artifactId>
             <version>${hibernate.version}</version>
+            <scope>provided</scope>
         </dependency>
 
         <!-- Test dependencies -->
@@ -88,4 +108,49 @@
             <scope>test</scope>
         </dependency>
     </dependencies>
+
+    <profiles>
+        <profile>
+            <id>ossrh-s01</id>
+            <activation>
+                <activeByDefault>false</activeByDefault>
+            </activation>
+
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-gpg-plugin</artifactId>
+                        <version>1.6</version>
+                        <executions>
+                            <execution>
+                                <id>sign-artifacts</id>
+                                <phase>verify</phase>
+                                <goals>
+                                    <goal>sign</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                        <configuration>
+                            <gpgArguments>
+                                <arg>--pinentry-mode</arg>
+                                <arg>loopback</arg>
+                            </gpgArguments>
+                        </configuration>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.sonatype.plugins</groupId>
+                        <artifactId>nexus-staging-maven-plugin</artifactId>
+                        <version>1.6.8</version>
+                        <extensions>true</extensions>
+                        <configuration>
+                            <serverId>ossrh-s01</serverId>
+                            <nexusUrl>https://s01.oss.sonatype.org/</nexusUrl>
+                            <autoReleaseAfterClose>false</autoReleaseAfterClose>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
 </project>

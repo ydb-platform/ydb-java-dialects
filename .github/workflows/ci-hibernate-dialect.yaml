@@ -1,4 +1,4 @@
-name: YDB Java Hibernate Dialect CI with Maven
+name: YDB Hibernate Dialect CI with Maven
 
 on:
   push:
@@ -33,6 +33,7 @@ jobs:
         uses: actions/setup-java@v3
         with:
           java-version: ${{matrix.java}}
+          distribution: 'temurin'
           cache: maven
 
       - name: Run tests with Maven
