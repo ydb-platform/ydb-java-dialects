@@ -3,7 +3,7 @@ name: Publish YDB Hibernate Dialect
 on:
   push:
     tags:
-      - 'v[0-9]+.[0-9]+.[0-9]+'
+      - 'hibernate-ydb-dialect-v[0-9]+.[0-9]+.[0-9]+'
 
 env:
   MAVEN_ARGS: --batch-mode --no-transfer-progress -Dstyle.color=always
