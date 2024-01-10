@@ -9,7 +9,7 @@ on:
   pull_request:
     paths:
       - 'hibernate-dialect/**'
-      - 'github/workflows/**'
+      - '.github/workflows/**'
     types:
       - opened
       - reopened
