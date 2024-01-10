@@ -26,10 +26,10 @@ jobs:
         if: endsWith(env.HIBERNATE_DIALECT_VERSION, 'SNAPSHOT')
         uses: actions/github-script@v6
         with:
-          script: core.setFailed('SNAPSHOT version can''t be published')
+          script: core.setFailed('SNAPSHOT version cannot be published')
 
       - name: Fail workflow if version is not equal to tag name
-        if: format('v{0}', env.HIBERNATE_DIALECT_VERSION) != github.ref_name
+        if: format('hibernate-ydb/v{0}', env.HIBERNATE_DIALECT_VERSION) != github.ref_name
         uses: actions/github-script@v6
         with:
           script: core.setFailed('Release name must be equal to project version')
