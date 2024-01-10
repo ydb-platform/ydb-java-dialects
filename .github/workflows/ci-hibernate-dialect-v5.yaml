@@ -1,4 +1,4 @@
-name: YDB Java Hibernate Dialect V5 CI with Maven
+name: YDB Hibernate Dialect V5 CI with Maven
 
 on:
   push:
