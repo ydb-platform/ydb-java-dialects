@@ -38,6 +38,7 @@ jobs:
         uses: actions/setup-java@v3
         with:
           java-version: 8
+          distribution: 'temurin'
           cache: 'maven'
 
       - name: Download dependencies
@@ -69,6 +70,7 @@ jobs:
         uses: actions/setup-java@v3
         with:
           java-version: 8
+          distribution: 'temurin'
           cache: 'maven'
           server-id: ossrh-s01
           server-username: MAVEN_USERNAME
