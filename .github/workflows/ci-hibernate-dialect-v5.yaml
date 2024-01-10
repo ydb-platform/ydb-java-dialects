@@ -9,6 +9,7 @@ on:
   pull_request:
     paths:
       - './hibernate-dialect-v5/**'
+      - './.github/**'
     types:
       - opened
       - reopened
