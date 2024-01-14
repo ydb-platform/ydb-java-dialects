@@ -1,4 +1,4 @@
-package tech.ydb.hibernate;
+package tech.ydb.hibernate.student;
 
 import org.hibernate.SessionFactory;
 import org.hibernate.cfg.Configuration;
@@ -6,8 +6,8 @@ import org.hibernate.cfg.Environment;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import tech.ydb.hibernate.dialect.YdbDialect;
-import tech.ydb.hibernate.entity.Group;
-import tech.ydb.hibernate.entity.Student;
+import tech.ydb.hibernate.student.entity.Group;
+import tech.ydb.hibernate.student.entity.Student;
 import tech.ydb.jdbc.YdbDriver;
 import tech.ydb.test.junit5.YdbHelperExtension;
 

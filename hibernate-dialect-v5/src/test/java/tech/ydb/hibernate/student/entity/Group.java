@@ -1,4 +1,4 @@
-package tech.ydb.hibernate.entity;
+package tech.ydb.hibernate.student.entity;
 
 import lombok.Getter;
 import lombok.NoArgsConstructor;

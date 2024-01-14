@@ -4,10 +4,13 @@ import org.hibernate.dialect.Dialect;
 import org.hibernate.dialect.pagination.LimitHandler;
 import org.hibernate.dialect.pagination.LimitOffsetLimitHandler;
 import org.hibernate.engine.jdbc.dialect.spi.DialectResolutionInfo;
+import org.hibernate.mapping.Constraint;
 import org.hibernate.mapping.ForeignKey;
+import org.hibernate.mapping.Index;
 import org.hibernate.sql.ast.SqlAstTranslatorFactory;
 import org.hibernate.tool.schema.spi.Exporter;
 import tech.ydb.hibernate.dialect.exporter.EmptyExporter;
+import tech.ydb.hibernate.dialect.exporter.YdbIndexExporter;
 import tech.ydb.hibernate.dialect.translator.YdbSqlAstTranslatorFactory;
 
 import static org.hibernate.type.SqlTypes.BIGINT;
@@ -49,6 +52,7 @@ import static org.hibernate.type.SqlTypes.VARCHAR;
 public class YdbDialect extends Dialect {
 
     private static final Exporter<ForeignKey> FOREIGN_KEY_EMPTY_EXPORTER = new EmptyExporter<>();
+    private static final Exporter<Constraint> UNIQUE_KEY_EMPTY_EXPORTER = new EmptyExporter<>();
 
     public YdbDialect(DialectResolutionInfo dialectResolutionInfo) {
         super(dialectResolutionInfo);
@@ -81,11 +85,6 @@ public class YdbDialect extends Dialect {
     @Override
     public LimitHandler getLimitHandler() {
         return LimitOffsetLimitHandler.INSTANCE;
-    }
-
-    @Override
-    public Exporter<ForeignKey> getForeignKeyExporter() {
-        return FOREIGN_KEY_EMPTY_EXPORTER;
     }
 
     @Override
@@ -156,5 +155,65 @@ public class YdbDialect extends Dialect {
     @Override
     public SqlAstTranslatorFactory getSqlAstTranslatorFactory() {
         return YdbSqlAstTranslatorFactory.YDB_SQL_AST_TRANSLATOR_FACTORY;
+    }
+
+    @Override
+    public Exporter<Index> getIndexExporter() {
+        return YdbIndexExporter.INSTANCE;
+    }
+
+    @Override
+    public String currentDate() {
+        return "CurrentUtcDate";
+    }
+
+    @Override
+    public String currentTime() {
+        return "CurrentUtcDatetime";
+    }
+
+    @Override
+    public String currentTimestamp() {
+        return "CurrentUtcTimestamp";
+    }
+
+    @Override
+    public String currentTimestampWithTimeZone() {
+        return "CurrentTzTimestamp";
+    }
+
+    @Override
+    public boolean isCurrentTimestampSelectStringCallable() {
+        return false;
+    }
+
+    @Override
+    public String getCurrentTimestampSelectString() {
+        return "select " + currentTimestamp();
+    }
+
+    @Override
+    public String getForUpdateString() {
+        throw new UnsupportedOperationException("YDB don't support FOR UPDATE statement");
+    }
+
+    @Override
+    public boolean supportsOuterJoinForUpdate() {
+        return false;
+    }
+
+    @Override
+    public boolean dropConstraints() {
+        return false;
+    }
+
+    @Override
+    public Exporter<Constraint> getUniqueKeyExporter() {
+        return UNIQUE_KEY_EMPTY_EXPORTER;
+    }
+
+    @Override
+    public Exporter<ForeignKey> getForeignKeyExporter() {
+        return FOREIGN_KEY_EMPTY_EXPORTER;
     }
 }

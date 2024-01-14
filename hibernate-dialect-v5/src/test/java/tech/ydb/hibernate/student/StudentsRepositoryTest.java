@@ -1,9 +1,9 @@
-package tech.ydb.hibernate;
+package tech.ydb.hibernate.student;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
-import tech.ydb.hibernate.entity.Student;
+import tech.ydb.hibernate.student.entity.Student;
 
 import javax.persistence.Query;
 import javax.persistence.TypedQuery;
