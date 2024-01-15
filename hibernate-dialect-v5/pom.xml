@@ -6,7 +6,7 @@
 
     <groupId>tech.ydb.dialects</groupId>
     <artifactId>hibernate-ydb-dialect-v5</artifactId>
-    <version>0.9.0</version>
+    <version>0.9.1</version>
 
     <name>Hibernate V5 YDB Dialect</name>
     <description>Support Hibernate version 5 YDB (YQL) Dialect</description>
