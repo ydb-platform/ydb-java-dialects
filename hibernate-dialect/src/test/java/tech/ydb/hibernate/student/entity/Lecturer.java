@@ -1,26 +1,25 @@
-package tech.ydb.hibernate.entity;
+package tech.ydb.hibernate.student.entity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 /**
  * @author Kirill Kurdyukov
  */
-@Entity
 @Getter
 @Setter
-@NoArgsConstructor
-@Table(name = "Groups")
-public class Group {
+@Entity
+@Table(name = "Lecturers")
+public class Lecturer {
 
     @Id
-    private int groupId;
+    @Column(name = "LecturerId")
+    private int id;
 
-    @Column(name = "name", unique = true)
+    @Column(name = "LecturerName")
     private String name;
 }

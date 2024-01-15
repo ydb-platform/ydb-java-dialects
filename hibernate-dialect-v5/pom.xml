@@ -76,13 +76,6 @@
         </dependency>
 
         <dependency>
-            <groupId>org.junit.jupiter</groupId>
-            <artifactId>junit-jupiter-params</artifactId>
-            <version>${junit5.version}</version>
-            <scope>test</scope>
-        </dependency>
-
-        <dependency>
             <groupId>tech.ydb.test</groupId>
             <artifactId>ydb-junit5-support</artifactId>
             <scope>test</scope>
@@ -140,6 +133,16 @@
                         </goals>
                     </execution>
                 </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>3.1.0</version>
+                <configuration>
+                    <environmentVariables>
+                        <TESTCONTAINERS_REUSE_ENABLE>true</TESTCONTAINERS_REUSE_ENABLE>
+                    </environmentVariables>
+                </configuration>
             </plugin>
         </plugins>
     </build>

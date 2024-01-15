@@ -3,9 +3,12 @@ package tech.ydb.hibernate.dialect;
 import org.hibernate.dialect.Dialect;
 import org.hibernate.dialect.pagination.LimitHandler;
 import org.hibernate.engine.jdbc.env.spi.NameQualifierSupport;
+import org.hibernate.mapping.Constraint;
 import org.hibernate.mapping.ForeignKey;
+import org.hibernate.mapping.Index;
 import org.hibernate.tool.schema.spi.Exporter;
 import tech.ydb.hibernate.dialect.exporter.EmptyExporter;
+import tech.ydb.hibernate.dialect.exporter.YdbIndexExporter;
 import tech.ydb.hibernate.dialect.pagination.LimitOffsetLimitHandler;
 
 import java.sql.Types;
@@ -18,6 +21,7 @@ public class YdbDialect extends Dialect {
     private static final int IN_EXPRESSION_COUNT_LIMIT = 10_000;
 
     private static final Exporter<ForeignKey> FOREIGN_KEY_EMPTY_EXPORTER = new EmptyExporter<>();
+    private static final Exporter<Constraint> UNIQUE_KEY_EMPTY_EXPORTER = new EmptyExporter<>();
 
     public YdbDialect() {
         registerColumnType(Types.BIT, "Bool");
@@ -138,5 +142,40 @@ public class YdbDialect extends Dialect {
     @Override
     public int getInExpressionCountLimit() {
         return IN_EXPRESSION_COUNT_LIMIT;
+    }
+
+    @Override
+    public Exporter<Index> getIndexExporter() {
+        return YdbIndexExporter.INSTANCE;
+    }
+
+    @Override
+    public String getCurrentTimestampSQLFunctionName() {
+        return "CurrentUtcTimestamp";
+    }
+
+    @Override
+    public boolean isCurrentTimestampSelectStringCallable() {
+        return false;
+    }
+
+    @Override
+    public String getCurrentTimestampSelectString() {
+        return "select " + getCurrentTimestampSQLFunctionName() + "()";
+    }
+
+    @Override
+    public String getForUpdateString() {
+        throw new UnsupportedOperationException("YDB don't support FOR UPDATE statement");
+    }
+
+    @Override
+    public boolean dropConstraints() {
+        return false;
+    }
+
+    @Override
+    public Exporter<Constraint> getUniqueKeyExporter() {
+        return UNIQUE_KEY_EMPTY_EXPORTER;
     }
 }
