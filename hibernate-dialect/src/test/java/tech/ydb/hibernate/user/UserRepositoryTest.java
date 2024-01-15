@@ -3,7 +3,9 @@ package tech.ydb.hibernate.user;
 import org.hibernate.cfg.AvailableSettings;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import tech.ydb.hibernate.BaseTest;
+import org.junit.jupiter.api.extension.RegisterExtension;
+import tech.ydb.hibernate.TestUtils;
+import tech.ydb.test.junit5.YdbHelperExtension;
 
 import java.sql.Date;
 import java.sql.Time;
@@ -13,17 +15,23 @@ import java.time.Instant;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static tech.ydb.hibernate.TestUtils.basedConfiguration;
+import static tech.ydb.hibernate.TestUtils.inTransaction;
+import static tech.ydb.hibernate.TestUtils.jdbcUrl;
 
 /**
  * @author Kirill Kurdyukov
  */
-public class UserRepositoryTest extends BaseTest {
+public class UserRepositoryTest {
+
+    @RegisterExtension
+    private static final YdbHelperExtension ydb = new YdbHelperExtension();
 
     @BeforeAll
     static void beforeAll() {
-        SESSION_FACTORY = basedConfiguration()
+        TestUtils.SESSION_FACTORY = basedConfiguration()
                 .addAnnotatedClass(User.class)
-                .setProperty(AvailableSettings.URL, jdbcUrl())
+                .setProperty(AvailableSettings.URL, jdbcUrl(ydb))
                 .buildSessionFactory();
     }
 

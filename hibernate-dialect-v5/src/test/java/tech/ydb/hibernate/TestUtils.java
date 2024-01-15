@@ -5,7 +5,6 @@ import org.hibernate.SessionFactory;
 import org.hibernate.Transaction;
 import org.hibernate.cfg.AvailableSettings;
 import org.hibernate.cfg.Configuration;
-import org.junit.jupiter.api.extension.RegisterExtension;
 import tech.ydb.hibernate.dialect.YdbDialect;
 import tech.ydb.jdbc.YdbDriver;
 import tech.ydb.test.junit5.YdbHelperExtension;
@@ -15,14 +14,11 @@ import java.util.function.Consumer;
 /**
  * @author Kirill Kurdyukov
  */
-public abstract class BaseTest {
+public class TestUtils {
 
-    @RegisterExtension
-    private static final YdbHelperExtension YDB_HELPER_EXTENSION = new YdbHelperExtension();
+    public static SessionFactory SESSION_FACTORY;
 
-    protected static SessionFactory SESSION_FACTORY;
-
-    protected static Configuration basedConfiguration() {
+    public static Configuration basedConfiguration() {
         return new Configuration()
                 .setProperty(AvailableSettings.DRIVER, YdbDriver.class.getName())
                 .setProperty(AvailableSettings.DIALECT, YdbDialect.class.getName())
@@ -32,20 +28,20 @@ public abstract class BaseTest {
                 .setProperty(AvailableSettings.HIGHLIGHT_SQL, Boolean.TRUE.toString());
     }
 
-    protected static String jdbcUrl() {
+    public static String jdbcUrl(YdbHelperExtension ydb) {
         StringBuilder jdbc = new StringBuilder("jdbc:ydb:")
-                .append(YDB_HELPER_EXTENSION.useTls() ? "grpcs://" : "grpc://")
-                .append(YDB_HELPER_EXTENSION.endpoint())
-                .append(YDB_HELPER_EXTENSION.database());
+                .append(ydb.useTls() ? "grpcs://" : "grpc://")
+                .append(ydb.endpoint())
+                .append(ydb.database());
 
-        if (YDB_HELPER_EXTENSION.authToken() != null) {
-            jdbc.append("?").append("token=").append(YDB_HELPER_EXTENSION.authToken());
+        if (ydb.authToken() != null) {
+            jdbc.append("?").append("token=").append(ydb.authToken());
         }
 
         return jdbc.toString();
     }
 
-    protected static void inTransaction(Consumer<Session> work) {
+    public static void inTransaction(Consumer<Session> work) {
         Session session = SESSION_FACTORY.openSession();
 
         Transaction transaction = session.getTransaction();
@@ -62,5 +58,8 @@ public abstract class BaseTest {
         } finally {
             session.close();
         }
+    }
+
+    private TestUtils() {
     }
 }

@@ -5,27 +5,35 @@ import org.hibernate.cfg.Configuration;
 import org.hibernate.query.Query;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import tech.ydb.hibernate.BaseTest;
+import org.junit.jupiter.api.extension.RegisterExtension;
+import tech.ydb.hibernate.TestUtils;
 import tech.ydb.hibernate.student.entity.Course;
 import tech.ydb.hibernate.student.entity.Group;
 import tech.ydb.hibernate.student.entity.Lecturer;
 import tech.ydb.hibernate.student.entity.Mark;
 import tech.ydb.hibernate.student.entity.Plan;
 import tech.ydb.hibernate.student.entity.Student;
+import tech.ydb.test.junit5.YdbHelperExtension;
 
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static tech.ydb.hibernate.TestUtils.basedConfiguration;
+import static tech.ydb.hibernate.TestUtils.inTransaction;
+import static tech.ydb.hibernate.TestUtils.jdbcUrl;
 
 /**
  * @author Kirill Kurdyukov
  */
-public class StudentsRepositoryTest extends BaseTest {
+public class StudentsRepositoryTest {
+
+    @RegisterExtension
+    private static final YdbHelperExtension ydb = new YdbHelperExtension();
 
     @BeforeAll
     static void beforeAll() {
         Configuration configuration = basedConfiguration()
-                .setProperty(AvailableSettings.URL, jdbcUrl())
+                .setProperty(AvailableSettings.URL, jdbcUrl(ydb))
                 .setProperty(AvailableSettings.HBM2DDL_IMPORT_FILES, "import-university.sql");
 
         for (Class<?> entity : new Class<?>[]
@@ -34,9 +42,9 @@ public class StudentsRepositoryTest extends BaseTest {
             configuration.addAnnotatedClass(entity);
         }
 
-        SESSION_FACTORY = configuration.buildSessionFactory();
+        TestUtils.SESSION_FACTORY = configuration.buildSessionFactory();
 
-        SESSION_FACTORY.getCache().evictAllRegions();
+        TestUtils.SESSION_FACTORY.getCache().evictAllRegions();
     }
 
 
