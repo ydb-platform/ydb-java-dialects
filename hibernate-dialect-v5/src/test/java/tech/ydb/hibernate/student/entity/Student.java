@@ -1,32 +1,36 @@
 package tech.ydb.hibernate.student.entity;
 
-import lombok.EqualsAndHashCode;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.Data;
 
 import javax.persistence.Column;
 import javax.persistence.Entity;
+import javax.persistence.FetchType;
 import javax.persistence.Id;
+import javax.persistence.JoinColumn;
+import javax.persistence.ManyToMany;
+import javax.persistence.ManyToOne;
 import javax.persistence.Table;
+import java.util.List;
 
 /**
  * @author Kirill Kurdyukov
  */
+@Data
 @Entity
-@Getter
-@Setter
-@NoArgsConstructor
-@EqualsAndHashCode
 @Table(name = "Students")
 public class Student {
 
     @Id
-    private int studentId;
+    @Column(name = "StudentId")
+    private int id;
 
-    @Column(name = "name")
+    @Column(name = "StudentName")
     private String name;
 
-    @Column(name = "groupId")
-    private int groupId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "GroupId")
+    private Group group;
+
+    @ManyToMany(mappedBy = "students")
+    private List<Course> courses;
 }

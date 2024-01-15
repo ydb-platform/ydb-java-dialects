@@ -164,22 +164,22 @@ public class YdbDialect extends Dialect {
 
     @Override
     public String currentDate() {
-        return "CurrentUtcDate";
+        return "CurrentUtcDate()";
     }
 
     @Override
     public String currentTime() {
-        return "CurrentUtcDatetime";
+        return "CurrentUtcDatetime()";
     }
 
     @Override
     public String currentTimestamp() {
-        return "CurrentUtcTimestamp";
+        return "CurrentUtcTimestamp()";
     }
 
     @Override
     public String currentTimestampWithTimeZone() {
-        return "CurrentTzTimestamp";
+        return "CurrentTzTimestamp()";
     }
 
     @Override

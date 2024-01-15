@@ -2,6 +2,7 @@ package tech.ydb.hibernate;
 
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
+import org.hibernate.Transaction;
 import org.hibernate.cfg.AvailableSettings;
 import org.hibernate.cfg.Configuration;
 import org.junit.jupiter.api.extension.RegisterExtension;
@@ -25,7 +26,7 @@ public abstract class BaseTest {
         return new Configuration()
                 .setProperty(AvailableSettings.DRIVER, YdbDriver.class.getName())
                 .setProperty(AvailableSettings.DIALECT, YdbDialect.class.getName())
-                .setProperty(AvailableSettings.JAKARTA_HBM2DDL_DATABASE_ACTION, "create")
+                .setProperty(AvailableSettings.HBM2DDL_AUTO, "create")
                 .setProperty(AvailableSettings.SHOW_SQL, Boolean.TRUE.toString())
                 .setProperty(AvailableSettings.FORMAT_SQL, Boolean.TRUE.toString())
                 .setProperty(AvailableSettings.HIGHLIGHT_SQL, Boolean.TRUE.toString());
@@ -45,6 +46,21 @@ public abstract class BaseTest {
     }
 
     protected static void inTransaction(Consumer<Session> work) {
-        SESSION_FACTORY.inTransaction(work);
+        Session session = SESSION_FACTORY.openSession();
+
+        Transaction transaction = session.getTransaction();
+        try {
+            transaction.begin();
+            work.accept(session);
+            transaction.commit();
+        } catch (Exception e) {
+            if (transaction.isActive()) {
+                transaction.rollback();
+            }
+
+            throw e;
+        } finally {
+            session.close();
+        }
     }
 }
