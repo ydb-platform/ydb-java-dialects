@@ -14,6 +14,7 @@ import java.time.Instant;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static tech.ydb.hibernate.TestUtils.basedConfiguration;
 import static tech.ydb.hibernate.TestUtils.inTransaction;
@@ -59,6 +60,22 @@ public class UserRepositoryTest {
                     assertTrue(Instant.now().compareTo(findUser.getUpdatedAt()) >= 0);
                 }
         );
+
+        User rollbackUser = new User();
+
+        user.setId(10);
+        user.setName("Kirill");
+
+        try {
+            inTransaction(session -> {
+                session.persist(rollbackUser);
+
+                throw new RuntimeException();
+            });
+        } catch (RuntimeException ignored) {
+        }
+
+        inTransaction(session -> assertNull(session.find(User.class, 10)));
     }
 
     @Test
