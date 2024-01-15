@@ -15,7 +15,7 @@ import java.time.Instant;
  */
 @Data
 @Entity
-@Table(name = "Users")
+@Table(name = "`backup/Users`")
 public class User {
 
     @Id

@@ -22,7 +22,7 @@ import java.util.concurrent.ThreadLocalRandom;
  */
 @Data
 @Entity
-@Table(name = "Users")
+@Table(name = "backup/Users")
 public class User {
 
     @Id
