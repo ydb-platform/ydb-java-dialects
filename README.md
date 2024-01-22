@@ -1,6 +1,6 @@
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://github.com/ydb-platform/ydb-java-dialects/blob/main/LICENSE.md)
 
-# ORM Java Dialects for YDB
+# YDB Dialects for Java ORM Frameworks
 
 This repository contains the dialects required for using Java-based ORM
 frameworks with Yandex Database (YDB). It allows Java applications
