@@ -36,7 +36,30 @@ jobs:
           distribution: 'temurin'
           cache: maven
 
-      - name: Run tests with Maven
+      - name: Extract Hibernate Dialect version
+        working-directory: ./hibernate-dialect
         run: |
-          cd hibernate-dialect
-          mvn $MAVEN_ARGS test
+          VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
+          echo "HIBERNATE_DIALECT_VERSION=$VERSION" >> "$GITHUB_ENV"
+
+      - name: Download Hibernate Dialect dependencies
+        working-directory: ./hibernate-dialect
+        run: mvn $MAVEN_ARGS dependency:go-offline
+
+      - name: Build Hibernate Dialect
+        working-directory: ./hibernate-dialect
+        run: mvn $MAVEN_ARGS install
+
+      - uses: actions/checkout@v3
+        with:
+          repository: ydb-platform/ydb-java-examples
+          ref: master
+          path: examples
+
+      - name: Download dependencies
+        working-directory: ./examples/jdbc/spring-data-jpa
+        run: mvn $MAVEN_ARGS -Dhibernate.ydb.dialect.version=$HIBERNATE_DIALECT_VERSION dependency:go-offline
+
+      - name: Test examples with Maven
+        working-directory: ./examples/jdbc/spring-data-jpa
+        run: mvn $MAVEN_ARGS -Dhibernate.ydb.dialect.version=$HIBERNATE_DIALECT_VERSION test
