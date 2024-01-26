@@ -76,18 +76,14 @@ public class CreateIndexGeneratorYdb extends CreateIndexGenerator {
         while (iterator.hasNext()) {
             AddColumnConfig column = iterator.next();
 
-            if (column.getComputed() != null && column.getComputed()) {
-                yqlCreateIndex.append(column.getName());
-            } else {
-                yqlCreateIndex.append(
-                        database.escapeColumnName(
-                                statement.getTableCatalogName(),
-                                statement.getTableSchemaName(),
-                                statement.getTableName(),
-                                column.getName()
-                        )
-                );
-            }
+            yqlCreateIndex.append(
+                    database.escapeColumnName(
+                            statement.getTableCatalogName(),
+                            statement.getTableSchemaName(),
+                            statement.getTableName(),
+                            column.getName()
+                    )
+            );
 
             if (iterator.hasNext()) {
                 yqlCreateIndex.append(", ");
@@ -116,12 +112,21 @@ public class CreateIndexGeneratorYdb extends CreateIndexGenerator {
         for (AddColumnConfig column : createIndexStatement.getColumns()) {
             if (column.getDescending() != null && column.getDescending()) {
                 errors.addError("YDB don't support descending column in index! " +
-                        "[table name = " + createIndexStatement.getTableName() + ", " +
-                        "index name = " + createIndexStatement.getIndexName() + ", " +
-                        "column name = " + column.getName() + "]");
+                        badColumnStrPointer(createIndexStatement, column));
             }
+
+           if (column.getComputed() != null && column.getComputed()) {
+               errors.addError("YDB don't support computed column in index! " +
+                       badColumnStrPointer(createIndexStatement, column));
+           }
         }
 
         return errors;
+    }
+
+    private static String badColumnStrPointer(CreateIndexStatement createIndexStatement, AddColumnConfig column) {
+        return "[table name = " + createIndexStatement.getTableName() + ", " +
+                "index name = " + createIndexStatement.getIndexName() + ", " +
+                "column name = " + column.getName() + "]";
     }
 }
