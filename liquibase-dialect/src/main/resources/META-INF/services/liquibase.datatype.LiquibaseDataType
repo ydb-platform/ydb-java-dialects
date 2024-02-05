@@ -1,0 +1,12 @@
+tech.ydb.liquibase.type.BoolTypeYdb
+tech.ydb.liquibase.type.BytesTypeYdb
+tech.ydb.liquibase.type.DateTypeYdb
+tech.ydb.liquibase.type.DecimalTypeYdb
+tech.ydb.liquibase.type.DoubleTypeYdb
+tech.ydb.liquibase.type.FloatTypeYdb
+tech.ydb.liquibase.type.IntTypeYdb
+tech.ydb.liquibase.type.LongTypeYdb
+tech.ydb.liquibase.type.OtherTypeYdb
+tech.ydb.liquibase.type.TextTypeYdb
+tech.ydb.liquibase.type.TimestampTypeYdb
+tech.ydb.liquibase.type.TimeTypeYdb
