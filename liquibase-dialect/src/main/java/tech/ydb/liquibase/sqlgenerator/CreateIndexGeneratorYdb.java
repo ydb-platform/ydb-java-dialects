@@ -1,4 +1,4 @@
-package tech.ydb.liquebase.sqlgenerator;
+package tech.ydb.liquibase.sqlgenerator;
 
 import java.util.Arrays;
 import java.util.Iterator;
@@ -13,7 +13,7 @@ import liquibase.sqlgenerator.core.CreateIndexGenerator;
 import liquibase.statement.core.CreateIndexStatement;
 import liquibase.structure.core.Index;
 import liquibase.util.StringUtil;
-import tech.ydb.liquebase.database.YdbDatabase;
+import tech.ydb.liquibase.database.YdbDatabase;
 
 /**
  * @author Kirill Kurdyukov
@@ -46,8 +46,7 @@ public class CreateIndexGeneratorYdb extends CreateIndexGenerator {
     ) {
         List<String> associatedWith = StringUtil.splitAndTrim(statement.getAssociatedWith(), ",");
         if (associatedWith != null && (associatedWith.contains(Index.MARK_PRIMARY_KEY) ||
-                associatedWith.contains(Index.MARK_UNIQUE_CONSTRAINT) ||
-                associatedWith.contains(Index.MARK_FOREIGN_KEY))
+                associatedWith.contains(Index.MARK_UNIQUE_CONSTRAINT))
         ) {
             return EMPTY_SQL;
         }
@@ -104,19 +103,19 @@ public class CreateIndexGeneratorYdb extends CreateIndexGenerator {
         errors.checkRequiredField("name", createIndexStatement.getIndexName());
 
         if (createIndexStatement.isUnique()) {
-            errors.addError("YDB don't support UNIQUE INDEX! " +
+            errors.addError("YDB doesn't support UNIQUE INDEX! " +
                     "[table name = " + createIndexStatement.getTableName() + ", " +
                     "index name = " + createIndexStatement.getIndexName() + "]");
         }
 
         for (AddColumnConfig column : createIndexStatement.getColumns()) {
             if (column.getDescending() != null && column.getDescending()) {
-                errors.addError("YDB don't support descending column in index! " +
+                errors.addError("YDB doesn't support descending column in index! " +
                         badColumnStrPointer(createIndexStatement, column));
             }
 
            if (column.getComputed() != null && column.getComputed()) {
-               errors.addError("YDB don't support computed column in index! " +
+               errors.addError("YDB doesn't support computed column in index! " +
                        badColumnStrPointer(createIndexStatement, column));
            }
         }
