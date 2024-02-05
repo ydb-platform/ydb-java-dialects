@@ -119,8 +119,13 @@ public class CreateTableGeneratorYdb extends CreateTableGenerator {
         ValidationErrors errors = super.validate(createTableStatement, database, sqlGeneratorChain);
 
         if (createTableStatement.getPrimaryKeyConstraint() == null) {
-            errors.addError("Table YDB needs to have a primary key. " +
+            errors.addError("Table YDB needs to have a PRIMARY KEY. " +
                     badTableStrPointer(createTableStatement));
+        } else {
+            if (createTableStatement.getPrimaryKeyConstraint().getConstraintName() != null) {
+                errors.addWarning("YDB doesn't use PRIMARY KEY constraint name! " +
+                        badTableStrPointer(createTableStatement));
+            }
         }
 
         if (createTableStatement.getUniqueConstraints() != null) {
