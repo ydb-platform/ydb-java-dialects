@@ -1,1 +1,2 @@
 tech.ydb.liquibase.sqlgenerator.CreateIndexGeneratorYdb
+tech.ydb.liquibase.sqlgenerator.CreateTableGeneratorYdb
