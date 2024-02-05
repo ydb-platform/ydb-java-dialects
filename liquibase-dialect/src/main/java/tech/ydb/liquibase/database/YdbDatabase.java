@@ -1,4 +1,4 @@
-package tech.ydb.liquebase.database;
+package tech.ydb.liquibase.database;
 
 import liquibase.database.AbstractJdbcDatabase;
 import liquibase.database.DatabaseConnection;
