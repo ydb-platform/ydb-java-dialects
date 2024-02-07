@@ -35,8 +35,6 @@ public class CreateTableGeneratorYdb extends CreateTableGenerator {
      * column2 type2 NOT NULL,
      * ...
      * columnN typeN,
-     * INDEX index1_name GLOBAL ON ( column ),
-     * INDEX index2_name GLOBAL ON ( column1, column2, ... ),
      * PRIMARY KEY ( column, ... )
      * )
      * </code>
@@ -128,22 +126,30 @@ public class CreateTableGeneratorYdb extends CreateTableGenerator {
             }
         }
 
-        if (createTableStatement.getUniqueConstraints() != null) {
+        if (createTableStatement.getUniqueConstraints() != null &&
+                !createTableStatement.getUniqueConstraints().isEmpty()
+        ) {
             errors.addError("YDB doesn't support UNIQUE CONSTRAINTS! " +
                     badTableStrPointer(createTableStatement));
         }
 
-        if (createTableStatement.getAutoIncrementConstraints() != null) {
+        if (createTableStatement.getAutoIncrementConstraints() != null &&
+                !createTableStatement.getAutoIncrementConstraints().isEmpty()
+        ) {
             errors.addError("YDB doesn't support AUTO INCREMENT! " +
                     badTableStrPointer(createTableStatement));
         }
 
-        if (createTableStatement.getDefaultValues() != null) {
+        if (createTableStatement.getDefaultValues() != null &&
+                !createTableStatement.getDefaultValues().isEmpty()
+        ) {
             errors.addError("YDB doesn't support DEFAULT VALUE! " +
                     badTableStrPointer(createTableStatement));
         }
 
-        if (createTableStatement.getForeignKeyConstraints() != null) {
+        if (createTableStatement.getForeignKeyConstraints() != null &&
+                !createTableStatement.getForeignKeyConstraints().isEmpty()
+        ) {
             errors.addError("YDB doesn't support FOREIGN KEY CONSTRAINTS! " +
                     badTableStrPointer(createTableStatement));
         }

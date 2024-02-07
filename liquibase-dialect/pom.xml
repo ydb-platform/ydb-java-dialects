@@ -30,7 +30,7 @@
     <dependencies>
         <dependency>
             <groupId>tech.ydb.jdbc</groupId>
-            <artifactId>ydb-jdbc-driver-shaded</artifactId>
+            <artifactId>ydb-jdbc-driver</artifactId>
             <version>${ydb.jdbc.version}</version>
         </dependency>
     </dependencies>
