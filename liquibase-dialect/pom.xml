@@ -22,16 +22,4 @@
             <organizationUrl>https://ydb.tech/</organizationUrl>
         </developer>
     </developers>
-
-    <properties>
-        <ydb.jdbc.version>2.0.5</ydb.jdbc.version>
-    </properties>
-
-    <dependencies>
-        <dependency>
-            <groupId>tech.ydb.jdbc</groupId>
-            <artifactId>ydb-jdbc-driver</artifactId>
-            <version>${ydb.jdbc.version}</version>
-        </dependency>
-    </dependencies>
 </project>

@@ -3,7 +3,6 @@ package tech.ydb.liquibase.database;
 import liquibase.database.AbstractJdbcDatabase;
 import liquibase.database.DatabaseConnection;
 import liquibase.exception.DatabaseException;
-import tech.ydb.jdbc.YdbDriver;
 
 /**
  * @author Kirill Kurdyukov
@@ -13,6 +12,7 @@ public class YdbDatabase extends AbstractJdbcDatabase {
     private final static String DATABASE_PRODUCT_NAME = "YDB";
     private final static String DATABASE_QUOTING_CHARACTER = "`";
     private final static int DATABASE_DEFAULT_PORT = 2136;
+    private final static String DRIVER_NAME = "tech.ydb.jdbc.YdbDriver";
 
     @Override
     protected String getDefaultDatabaseProductName() {
@@ -27,7 +27,7 @@ public class YdbDatabase extends AbstractJdbcDatabase {
     @Override
     public String getDefaultDriver(String url) {
         if (url.startsWith("jdbc:ydb")) {
-            return YdbDriver.class.getName();
+            return DRIVER_NAME;
         }
 
         return null;
