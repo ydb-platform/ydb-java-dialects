@@ -72,6 +72,7 @@ public class CreateIndexGeneratorYdb extends CreateIndexGenerator {
                 .append(" GLOBAL ON (");
 
         Iterator<AddColumnConfig> iterator = Arrays.asList(statement.getColumns()).iterator();
+
         while (iterator.hasNext()) {
             AddColumnConfig column = iterator.next();
 

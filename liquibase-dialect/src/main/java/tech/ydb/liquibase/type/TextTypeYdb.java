@@ -1,8 +1,11 @@
 package tech.ydb.liquibase.type;
 
+import java.util.Locale;
 import liquibase.change.core.LoadDataChange;
+import liquibase.database.Database;
 import liquibase.datatype.DataTypeInfo;
 import liquibase.datatype.LiquibaseDataType;
+import liquibase.statement.DatabaseFunction;
 
 /**
  * @author Kirill Kurdyukov
@@ -29,5 +32,18 @@ public class TextTypeYdb extends CommonTypeYdb {
     @Override
     public LoadDataChange.LOAD_DATA_TYPE getLoadTypeName() {
         return LoadDataChange.LOAD_DATA_TYPE.STRING;
+    }
+
+    @Override
+    public String objectToSql(Object value, Database database) {
+        if ((value == null) || "null".equals(value.toString().toLowerCase(Locale.US))) {
+            return "NULL";
+        }
+
+        if (value instanceof DatabaseFunction) {
+            return value.toString();
+        }
+
+        return "'" + database.escapeStringForDatabase(String.valueOf(value)) + "'";
     }
 }

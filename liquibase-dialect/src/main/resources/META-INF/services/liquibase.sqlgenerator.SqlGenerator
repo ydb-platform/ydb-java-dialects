@@ -1,2 +1,4 @@
+tech.ydb.liquibase.sqlgenerator.CreateDatabaseChangeLogLockTableGeneratorYdb
+tech.ydb.liquibase.sqlgenerator.CreateDatabaseChangeLogTableGeneratorYdb
 tech.ydb.liquibase.sqlgenerator.CreateIndexGeneratorYdb
 tech.ydb.liquibase.sqlgenerator.CreateTableGeneratorYdb
