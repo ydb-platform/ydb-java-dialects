@@ -27,7 +27,7 @@ import liquibase.statement.DatabaseFunction;
         maxParameters = 0,
         priority = LiquibaseDataType.PRIORITY_DATABASE
 )
-public class TextTypeYdb extends CommonTypeYdb {
+public class TextTypeYdb extends BaseTypeYdb {
 
     @Override
     public LoadDataChange.LOAD_DATA_TYPE getLoadTypeName() {
@@ -44,6 +44,6 @@ public class TextTypeYdb extends CommonTypeYdb {
             return value.toString();
         }
 
-        return "'" + database.escapeStringForDatabase(String.valueOf(value)) + "'";
+        return "'" + database.escapeStringForDatabase(value.toString()) + "'";
     }
 }

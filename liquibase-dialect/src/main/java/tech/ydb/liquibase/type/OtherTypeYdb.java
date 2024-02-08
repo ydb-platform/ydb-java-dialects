@@ -16,7 +16,7 @@ import liquibase.datatype.LiquibaseDataType;
         maxParameters = 0,
         priority = LiquibaseDataType.PRIORITY_DATABASE
 )
-public class OtherTypeYdb extends CommonTypeYdb {
+public class OtherTypeYdb extends BaseTypeYdb {
 
     @Override
     public DatabaseDataType toDatabaseDataType(Database database) {

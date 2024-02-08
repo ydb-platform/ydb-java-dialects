@@ -8,7 +8,7 @@ import tech.ydb.liquibase.database.YdbDatabase;
 /**
  * @author Kirill Kurdyukov
  */
-abstract class CommonTypeYdb extends LiquibaseDataType {
+abstract class BaseTypeYdb extends LiquibaseDataType {
 
     @Override
     public boolean supports(Database database) {

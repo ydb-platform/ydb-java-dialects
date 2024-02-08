@@ -2,39 +2,17 @@ package tech.ydb.liquibase.sqlgenerator;
 
 import liquibase.database.Database;
 import liquibase.datatype.DataTypeFactory;
-import liquibase.exception.ValidationErrors;
 import liquibase.sql.Sql;
 import liquibase.sql.UnparsedSql;
 import liquibase.sqlgenerator.SqlGeneratorChain;
-import liquibase.sqlgenerator.core.AbstractSqlGenerator;
 import liquibase.statement.core.CreateDatabaseChangeLogTableStatement;
 import liquibase.structure.core.Relation;
 import liquibase.structure.core.Table;
-import tech.ydb.liquibase.database.YdbDatabase;
 
 /**
  * @author Kirill Kurdyukov
  */
-public class CreateDatabaseChangeLogTableGeneratorYdb extends AbstractSqlGenerator<CreateDatabaseChangeLogTableStatement> {
-
-    @Override
-    public boolean supports(CreateDatabaseChangeLogTableStatement statement, Database database) {
-        return database instanceof YdbDatabase;
-    }
-
-    @Override
-    public int getPriority() {
-        return PRIORITY_DATABASE;
-    }
-
-    @Override
-    public ValidationErrors validate(
-            CreateDatabaseChangeLogTableStatement statement,
-            Database database,
-            SqlGeneratorChain<CreateDatabaseChangeLogTableStatement> sqlGeneratorChain
-    ) {
-        return new ValidationErrors();
-    }
+public class CreateDatabaseChangeLogTableGeneratorYdb extends BaseSqlGeneratorYdb<CreateDatabaseChangeLogTableStatement> {
 
     @Override
     public Sql[] generateSql(

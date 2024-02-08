@@ -11,6 +11,11 @@ import liquibase.sqlgenerator.core.CreateTableGenerator;
 import liquibase.statement.PrimaryKeyConstraint;
 import liquibase.statement.core.CreateTableStatement;
 import tech.ydb.liquibase.database.YdbDatabase;
+import tech.ydb.liquibase.exception.YdbMessageException;
+import static tech.ydb.liquibase.exception.YdbMessageException.DOES_NOT_SUPPORT_AUTO_INCREMENT;
+import static tech.ydb.liquibase.exception.YdbMessageException.DOES_NOT_SUPPORT_DEFAULT_VALUE;
+import static tech.ydb.liquibase.exception.YdbMessageException.DOES_NOT_SUPPORT_FOREIGN_KEY_CONSTRAINTS;
+import static tech.ydb.liquibase.exception.YdbMessageException.DOES_NOT_SUPPORT_UNIQUE_CONSTRAINTS;
 
 /**
  * @author Kirill Kurdyukov
@@ -71,13 +76,8 @@ public class CreateTableGeneratorYdb extends CreateTableGenerator {
                             )
                     )
                     .append(" ")
-                    .append(columnType);
-
-            if (statement.getNotNullColumns().containsKey(columnName)) {
-                yqlCreateTable.append(" NOT NULL");
-            }
-
-            yqlCreateTable.append(", ");
+                    .append(columnType)
+                    .append(", ");
         }
 
         yqlCreateTable.append("PRIMARY KEY (");
@@ -118,46 +118,42 @@ public class CreateTableGeneratorYdb extends CreateTableGenerator {
 
         if (createTableStatement.getPrimaryKeyConstraint() == null) {
             errors.addError("Table YDB needs to have a PRIMARY KEY. " +
-                    badTableStrPointer(createTableStatement));
+                    YdbMessageException.badTableStrPointer(createTableStatement::getTableName));
         } else {
             if (createTableStatement.getPrimaryKeyConstraint().getConstraintName() != null) {
                 errors.addWarning("YDB doesn't use PRIMARY KEY constraint name! " +
-                        badTableStrPointer(createTableStatement));
+                        YdbMessageException.badTableStrPointer(createTableStatement::getTableName));
             }
         }
 
         if (createTableStatement.getUniqueConstraints() != null &&
                 !createTableStatement.getUniqueConstraints().isEmpty()
         ) {
-            errors.addError("YDB doesn't support UNIQUE CONSTRAINTS! " +
-                    badTableStrPointer(createTableStatement));
+            errors.addError(DOES_NOT_SUPPORT_UNIQUE_CONSTRAINTS +
+                    YdbMessageException.badTableStrPointer(createTableStatement::getTableName));
         }
 
         if (createTableStatement.getAutoIncrementConstraints() != null &&
                 !createTableStatement.getAutoIncrementConstraints().isEmpty()
         ) {
-            errors.addError("YDB doesn't support AUTO INCREMENT! " +
-                    badTableStrPointer(createTableStatement));
+            errors.addError(DOES_NOT_SUPPORT_AUTO_INCREMENT +
+                    YdbMessageException.badTableStrPointer(createTableStatement::getTableName));
         }
 
         if (createTableStatement.getDefaultValues() != null &&
                 !createTableStatement.getDefaultValues().isEmpty()
         ) {
-            errors.addError("YDB doesn't support DEFAULT VALUE! " +
-                    badTableStrPointer(createTableStatement));
+            errors.addError(DOES_NOT_SUPPORT_DEFAULT_VALUE +
+                    YdbMessageException.badTableStrPointer(createTableStatement::getTableName));
         }
 
         if (createTableStatement.getForeignKeyConstraints() != null &&
                 !createTableStatement.getForeignKeyConstraints().isEmpty()
         ) {
-            errors.addError("YDB doesn't support FOREIGN KEY CONSTRAINTS! " +
-                    badTableStrPointer(createTableStatement));
+            errors.addError(DOES_NOT_SUPPORT_FOREIGN_KEY_CONSTRAINTS +
+                    YdbMessageException.badTableStrPointer(createTableStatement::getTableName));
         }
 
         return errors;
-    }
-
-    private static String badTableStrPointer(CreateTableStatement createTableStatement) {
-        return "[table_name = " + createTableStatement.getTableName() + "]";
     }
 }
