@@ -33,7 +33,7 @@ public class YdbMessageException {
     public static <T extends SqlStatement> ValidationErrors ydbDoesNotSupportStatement(T statement) {
         ValidationErrors validationErrors = new ValidationErrors();
 
-        validationErrors.addError("YDB doesn't support this statement: " + statement.getClass().getName());
+        validationErrors.addError("YDB doesn't support this statement: " + statement.getClass().getTypeName());
 
         return validationErrors;
     }

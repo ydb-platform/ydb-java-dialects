@@ -10,5 +10,7 @@ tech.ydb.liquibase.sqlgenerator.CreateProcedureGeneratorYdb
 tech.ydb.liquibase.sqlgenerator.CreateTableGeneratorYdb
 tech.ydb.liquibase.sqlgenerator.CreateViewGeneratorYdb
 tech.ydb.liquibase.sqlgenerator.DropIndexGeneratorYdb
+tech.ydb.liquibase.sqlgenerator.DropPrimaryKeyGeneratorSql
+tech.ydb.liquibase.sqlgenerator.GetViewDefinitionGeneratorYdb
 tech.ydb.liquibase.sqlgenerator.RenameColumnGeneratorYdb
 tech.ydb.liquibase.sqlgenerator.RenameTableGeneratorYdb
