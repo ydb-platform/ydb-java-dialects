@@ -1,4 +1,16 @@
+tech.ydb.liquibase.sqlgenerator.AddColumnGeneratorYdb
+tech.ydb.liquibase.sqlgenerator.AddDefaultValueGeneratorYdb
+tech.ydb.liquibase.sqlgenerator.AddForeignKeyConstraintGeneratorYdb
+tech.ydb.liquibase.sqlgenerator.AddPrimaryKeyGeneratorYdb
+tech.ydb.liquibase.sqlgenerator.AddUniqueConstraintGeneratorYdb
 tech.ydb.liquibase.sqlgenerator.CreateDatabaseChangeLogLockTableGeneratorYdb
 tech.ydb.liquibase.sqlgenerator.CreateDatabaseChangeLogTableGeneratorYdb
 tech.ydb.liquibase.sqlgenerator.CreateIndexGeneratorYdb
+tech.ydb.liquibase.sqlgenerator.CreateProcedureGeneratorYdb
 tech.ydb.liquibase.sqlgenerator.CreateTableGeneratorYdb
+tech.ydb.liquibase.sqlgenerator.CreateViewGeneratorYdb
+tech.ydb.liquibase.sqlgenerator.DropIndexGeneratorYdb
+tech.ydb.liquibase.sqlgenerator.DropPrimaryKeyGeneratorSql
+tech.ydb.liquibase.sqlgenerator.GetViewDefinitionGeneratorYdb
+tech.ydb.liquibase.sqlgenerator.RenameColumnGeneratorYdb
+tech.ydb.liquibase.sqlgenerator.RenameTableGeneratorYdb

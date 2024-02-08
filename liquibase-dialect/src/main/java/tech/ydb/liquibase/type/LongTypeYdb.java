@@ -18,7 +18,7 @@ import liquibase.datatype.LiquibaseDataType;
         maxParameters = 0,
         priority = LiquibaseDataType.PRIORITY_DATABASE
 )
-public class LongTypeYdb extends CommonTypeYdb {
+public class LongTypeYdb extends BaseTypeYdb {
 
     @Override
     public LoadDataChange.LOAD_DATA_TYPE getLoadTypeName() {

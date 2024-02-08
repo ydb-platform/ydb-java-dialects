@@ -15,7 +15,7 @@ import liquibase.datatype.LiquibaseDataType;
         maxParameters = 2,
         priority = LiquibaseDataType.PRIORITY_DATABASE
 )
-public class DecimalTypeYdb extends CommonTypeYdb {
+public class DecimalTypeYdb extends BaseTypeYdb {
 
     @Override
     public boolean validate(Database database) {

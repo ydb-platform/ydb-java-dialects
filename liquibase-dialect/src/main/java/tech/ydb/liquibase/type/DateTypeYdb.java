@@ -17,7 +17,7 @@ import liquibase.datatype.LiquibaseDataType;
         },
         priority = LiquibaseDataType.PRIORITY_DATABASE
 )
-public class DateTypeYdb extends CommonTypeYdb {
+public class DateTypeYdb extends BaseTypeYdb {
 
     @Override
     public LoadDataChange.LOAD_DATA_TYPE getLoadTypeName() {
