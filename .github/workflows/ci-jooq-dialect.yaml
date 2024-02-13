@@ -1,0 +1,65 @@
+name: YDB JOOQ Dialect CI with Maven
+
+on:
+  push:
+    paths:
+      - 'jooq-dialect/**'
+    branches:
+      - main
+  pull_request:
+    paths:
+      - 'jooq-dialect/**'
+    types:
+      - opened
+      - reopened
+      - edited
+
+env:
+  MAVEN_ARGS: --batch-mode --update-snapshots -Dstyle.color=always
+
+jobs:
+  build:
+    name: YDB Java JOOQ Dialect
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        java: [ '11', '17' ]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK ${{matrix.java}}
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{matrix.java}}
+          distribution: 'temurin'
+          cache: maven
+
+      - name: Extract JOOQ Dialect version
+        working-directory: ./jooq-dialect
+        run: |
+          VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
+          echo "JOOQ_DIALECT_VERSION=$VERSION" >> "$GITHUB_ENV"
+
+      - name: Download JOOQ Dialect dependencies
+        working-directory: ./jooq-dialect
+        run: mvn $MAVEN_ARGS dependency:go-offline
+
+      - name: Build JOOQ Dialect
+        working-directory: ./jooq-dialect
+        run: mvn $MAVEN_ARGS install
+
+#      - uses: actions/checkout@v4
+#        with:
+#          repository: ydb-platform/ydb-java-examples
+#          ref: master
+#          path: examples
+#
+#      - name: Download dependencies
+#        working-directory: ./examples/jdbc/spring-data-jpa
+#        run: mvn $MAVEN_ARGS -Dhibernate.ydb.dialect.version=$HIBERNATE_DIALECT_VERSION dependency:go-offline
+#
+#      - name: Test examples with Maven
+#        working-directory: ./examples/jdbc/spring-data-jpa
+#        run: mvn $MAVEN_ARGS -Dhibernate.ydb.dialect.version=$HIBERNATE_DIALECT_VERSION test

@@ -1,35 +1,35 @@
-name: Publish YDB Hibernate Dialect
+name: Publish YDB JOOQ Dialect
 
 on:
   push:
     tags:
-      - 'hibernate-ydb/v[0-9]+.[0-9]+.[0-9]+'
+      - 'jooq-ydb/v[0-9]+.[0-9]+.[0-9]+'
 
 env:
   MAVEN_ARGS: --batch-mode --no-transfer-progress -Dstyle.color=always
 
 jobs:
   validate:
-    name: Validate YDB Hibernate Dialect
+    name: Validate YDB JOOQ Dialect
     runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: Extract hibernate dialect version
+      - name: Extract JOOQ dialect version
         run: |
-          cd hibernate-dialect
-          HIBERNATE_DIALECT_VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
-          echo "HIBERNATE_DIALECT_VERSION=$HIBERNATE_DIALECT_VERSION" >> "$GITHUB_ENV"
+          cd jooq-dialect
+          JOOQ_DIALECT_VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
+          echo "JOOQ_DIALECT_VERSION=$JOOQ_DIALECT_VERSION" >> "$GITHUB_ENV"
 
       - name: Fail workflow if version is snapshot
-        if: endsWith(env.HIBERNATE_DIALECT_VERSION, 'SNAPSHOT')
+        if: endsWith(env.JOOQ_DIALECT_VERSION, 'SNAPSHOT')
         uses: actions/github-script@v6
         with:
           script: core.setFailed('SNAPSHOT version cannot be published')
 
       - name: Fail workflow if version is not equal to tag name
-        if: format('hibernate-ydb/v{0}', env.HIBERNATE_DIALECT_VERSION) != github.ref_name
+        if: format('jooq-ydb/v{0}', env.JOOQ_DIALECT_VERSION) != github.ref_name
         uses: actions/github-script@v6
         with:
           script: core.setFailed('Release name must be equal to project version')
@@ -43,16 +43,16 @@ jobs:
 
       - name: Download dependencies
         run: |
-          cd hibernate-dialect
+          cd jooq-dialect
           mvn $MAVEN_ARGS dependency:go-offline
 
       - name: Build with Maven
         run: |
-          cd hibernate-dialect
+          cd jooq-dialect
           mvn $MAVEN_ARGS package
 
   publish:
-    name: Publish YDB Hibernate Dialect
+    name: Publish YDB JOOQ Dialect
     runs-on: ubuntu-latest
     needs: validate
 
@@ -78,7 +78,7 @@ jobs:
 
       - name: Publish package
         run: |
-          cd hibernate-dialect
+          cd jooq-dialect
           mvn $MAVEN_ARGS -Possrh-s01 -Dgpg.passphrase=${{ secrets.MAVEN_OSSRH_GPG_PASSWORD }} clean deploy
         env:
           MAVEN_USERNAME: ${{ secrets.MAVEN_OSSRH_USERNAME }}
