@@ -1,8 +1,11 @@
 package tech.ydb.liquibase.database;
 
+import java.sql.Date;
+import java.sql.Timestamp;
 import liquibase.database.AbstractJdbcDatabase;
 import liquibase.database.DatabaseConnection;
 import liquibase.exception.DatabaseException;
+import liquibase.util.ISODateFormat;
 
 /**
  * @author Kirill Kurdyukov
@@ -13,6 +16,10 @@ public class YdbDatabase extends AbstractJdbcDatabase {
     private final static String DATABASE_QUOTING_CHARACTER = "`";
     private final static int DATABASE_DEFAULT_PORT = 2136;
     private final static String DRIVER_NAME = "tech.ydb.jdbc.YdbDriver";
+
+    public YdbDatabase() {
+        super.setCurrentDateTimeFunction("CurrentUtcDatetime()");
+    }
 
     @Override
     protected String getDefaultDatabaseProductName() {
@@ -49,8 +56,30 @@ public class YdbDatabase extends AbstractJdbcDatabase {
     }
 
     @Override
+    public String escapeStringForDatabase(String string) {
+        if (string == null) {
+            return null;
+        }
+
+        return string.replace("\\", "\\\\").replace("'", "\\'");
+    }
+
+    @Override
     public boolean requiresUsername() {
         return false;
+    }
+
+    @Override
+    public String getDateLiteral(Date date) {
+        return "DATE(" + super.getDateLiteral(date) + ")";
+    }
+
+    @Override
+    public String getDateTimeLiteral(Timestamp date) {
+        return "DATETIME('" + new ISODateFormat().format(date)
+                .replaceFirst("^'", "")
+                .replaceFirst("'$", "")
+                + "Z" + "')";
     }
 
     @Override

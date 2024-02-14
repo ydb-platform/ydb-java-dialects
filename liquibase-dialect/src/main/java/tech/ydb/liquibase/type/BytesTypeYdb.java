@@ -10,7 +10,7 @@ import liquibase.datatype.LiquibaseDataType;
 @DataTypeInfo(
         name = "Bytes",
         aliases = {
-                "blob", "longblob", "longvarbinary",
+                "blob", "longblob", "longvarbinary", "String",
                 "java.sql.Types.BLOB", "java.sql.Types.LONGBLOB",
                 "java.sql.Types.LONGVARBINARY", "java.sql.Types.VARBINARY",
                 "java.sql.Types.BINARY", "varbinary", "binary", "image",

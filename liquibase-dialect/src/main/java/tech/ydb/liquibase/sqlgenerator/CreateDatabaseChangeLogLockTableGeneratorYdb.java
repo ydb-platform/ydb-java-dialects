@@ -27,13 +27,18 @@ public class CreateDatabaseChangeLogLockTableGeneratorYdb extends BaseSqlGenerat
                                         database.getLiquibaseCatalogName(),
                                         database.getLiquibaseSchemaName(),
                                         database.getDatabaseChangeLogLockTableName()
-                                ) + " (ID Int32, " +
+                                ) + " (ID " + DataTypeFactory.getInstance()
+                                .fromDescription("int", database)
+                                .toDatabaseDataType(database) + ", " +
                                 "LOCKED " + DataTypeFactory.getInstance()
-                                .fromDescription("boolean", database) + ", " +
+                                .fromDescription("boolean", database)
+                                .toDatabaseDataType(database) + ", " +
                                 "LOCKGRANTED " + DataTypeFactory.getInstance()
                                 .fromDescription("datetime", database)
                                 .toDatabaseDataType(database) + ", " +
-                                "LOCKEDBY Text, " +
+                                "LOCKEDBY " + DataTypeFactory.getInstance()
+                                .fromDescription("text", database)
+                                .toDatabaseDataType(database) + ", " +
                                 "PRIMARY KEY(ID))",
                         getAffectedTable(database)
                 )

@@ -14,6 +14,7 @@ import liquibase.statement.core.CreateIndexStatement;
 import liquibase.structure.core.Index;
 import liquibase.util.StringUtil;
 import tech.ydb.liquibase.database.YdbDatabase;
+import static tech.ydb.liquibase.exception.YdbMessageException.DOES_NOT_SUPPORT_UNIQUE_CONSTRAINT;
 
 /**
  * @author Kirill Kurdyukov
@@ -104,7 +105,7 @@ public class CreateIndexGeneratorYdb extends CreateIndexGenerator {
         errors.checkRequiredField("name", createIndexStatement.getIndexName());
 
         if (createIndexStatement.isUnique()) {
-            errors.addError("YDB doesn't support UNIQUE INDEX! " +
+            errors.addError(DOES_NOT_SUPPORT_UNIQUE_CONSTRAINT +
                     "[table name = " + createIndexStatement.getTableName() + ", " +
                     "index name = " + createIndexStatement.getIndexName() + "]");
         }

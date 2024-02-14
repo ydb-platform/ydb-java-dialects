@@ -22,4 +22,37 @@
             <organizationUrl>https://ydb.tech/</organizationUrl>
         </developer>
     </developers>
+
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>tech.ydb</groupId>
+                <artifactId>ydb-sdk-bom</artifactId>
+                <version>2.1.9</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
+    <dependencies>
+        <dependency>
+            <groupId>tech.ydb.jdbc</groupId>
+            <artifactId>ydb-jdbc-driver-shaded</artifactId>
+            <version>2.0.5</version>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>tech.ydb.test</groupId>
+            <artifactId>ydb-junit5-support</artifactId>
+            <scope>test</scope>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.junit.jupiter</groupId>
+                    <artifactId>junit-jupiter-api</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+    </dependencies>
 </project>

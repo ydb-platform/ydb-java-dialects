@@ -19,7 +19,7 @@ public class AddUniqueConstraintGeneratorYdb extends BaseSqlGeneratorYdb<AddUniq
     ) {
         ValidationErrors validationErrors = new ValidationErrors();
 
-        validationErrors.addError(YdbMessageException.DOES_NOT_SUPPORT_UNIQUE_CONSTRAINTS +
+        validationErrors.addError(YdbMessageException.DOES_NOT_SUPPORT_UNIQUE_CONSTRAINT +
                 YdbMessageException.badTableStrPointer(statement::getTableName));
 
         return validationErrors;
