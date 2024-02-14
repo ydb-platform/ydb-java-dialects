@@ -2,10 +2,10 @@ package tech.ydb.liquibase.database;
 
 import java.sql.Date;
 import java.sql.Timestamp;
+import java.time.format.DateTimeFormatter;
 import liquibase.database.AbstractJdbcDatabase;
 import liquibase.database.DatabaseConnection;
 import liquibase.exception.DatabaseException;
-import liquibase.util.ISODateFormat;
 
 /**
  * @author Kirill Kurdyukov
@@ -76,10 +76,7 @@ public class YdbDatabase extends AbstractJdbcDatabase {
 
     @Override
     public String getDateTimeLiteral(Timestamp date) {
-        return "DATETIME('" + new ISODateFormat().format(date)
-                .replaceFirst("^'", "")
-                .replaceFirst("'$", "")
-                + "Z" + "')";
+        return "DATETIME('" + DateTimeFormatter.ISO_INSTANT.format(date.toInstant()) + "')";
     }
 
     @Override
