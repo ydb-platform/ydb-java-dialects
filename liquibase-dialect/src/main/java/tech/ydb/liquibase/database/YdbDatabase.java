@@ -2,7 +2,6 @@ package tech.ydb.liquibase.database;
 
 import java.sql.Date;
 import java.sql.Timestamp;
-import java.time.format.DateTimeFormatter;
 import liquibase.database.AbstractJdbcDatabase;
 import liquibase.database.DatabaseConnection;
 import liquibase.exception.DatabaseException;
@@ -76,7 +75,7 @@ public class YdbDatabase extends AbstractJdbcDatabase {
 
     @Override
     public String getDateTimeLiteral(Timestamp date) {
-        return "DATETIME('" + DateTimeFormatter.ISO_INSTANT.format(date.toInstant()) + "')";
+        return "CAST(" + date.toInstant().getEpochSecond() + " AS DATETIME)";
     }
 
     @Override
