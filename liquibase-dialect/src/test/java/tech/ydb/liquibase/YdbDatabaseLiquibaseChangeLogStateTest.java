@@ -78,8 +78,6 @@ public class YdbDatabaseLiquibaseChangeLogStateTest extends BaseTest {
 
         String outputMigration = migrationStr(changeLogFile);
 
-        System.out.println(outputMigration);
-
         // not create meta tables
         assertFalse(outputMigration.contains(DATABASECHANGELOGLOCK));
         assertFalse(outputMigration.contains(DATABASECHANGELOG));
