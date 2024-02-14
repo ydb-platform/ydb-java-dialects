@@ -82,8 +82,6 @@ public class YdbDatabaseLiquibaseChangeLogStateTest extends BaseTest {
         assertFalse(outputMigration.contains(DATABASECHANGELOGLOCK));
         assertFalse(outputMigration.contains(DATABASECHANGELOG));
 
-        System.out.println(outputMigration);
-
         assertTrue(
                 outputMigration.contains(
                         "-- Changeset changelogs/migration/seasons_and_episodes.xml::seasons::kurdyukov-kir\n" +
