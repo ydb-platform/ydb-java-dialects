@@ -44,7 +44,7 @@ public class AddColumnGeneratorYdb extends AddColumnGenerator {
 
     private static void checkAddColumnStatement(ValidationErrors validationErrors, AddColumnStatement statement) {
         if (statement.isUnique()) {
-            validationErrors.addError(YdbMessageException.DOES_NOT_SUPPORT_UNIQUE_CONSTRAINTS +
+            validationErrors.addError(YdbMessageException.DOES_NOT_SUPPORT_UNIQUE_CONSTRAINT +
                     YdbMessageException.badTableStrPointer(statement::getTableName));
         }
 
@@ -54,7 +54,7 @@ public class AddColumnGeneratorYdb extends AddColumnGenerator {
         }
 
         if (statement.isAutoIncrement()) {
-            validationErrors.addError(YdbMessageException.DOES_NOT_SUPPORT_AUTO_INCREMENT +
+            validationErrors.addError(YdbMessageException.DOES_NOT_SUPPORT_AUTO_INCREMENT_CONSTRAINT +
                     YdbMessageException.badTableStrPointer(statement::getTableName));
         }
 
@@ -64,7 +64,7 @@ public class AddColumnGeneratorYdb extends AddColumnGenerator {
         }
 
         if (statement.getDefaultValue() != null) {
-            validationErrors.addError(YdbMessageException.DOES_NOT_SUPPORT_DEFAULT_VALUE +
+            validationErrors.addError(YdbMessageException.DOES_NOT_SUPPORT_DEFAULT_VALUE_CONSTRAINT +
                     YdbMessageException.badTableStrPointer(statement::getTableName));
         }
     }

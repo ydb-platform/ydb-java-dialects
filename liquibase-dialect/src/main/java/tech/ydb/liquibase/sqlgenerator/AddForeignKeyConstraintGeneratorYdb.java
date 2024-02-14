@@ -19,7 +19,7 @@ public class AddForeignKeyConstraintGeneratorYdb extends BaseSqlGeneratorYdb<Add
     ) {
         ValidationErrors validationErrors = new ValidationErrors();
 
-        validationErrors.addError(YdbMessageException.DOES_NOT_SUPPORT_FOREIGN_KEY_CONSTRAINTS +
+        validationErrors.addError(YdbMessageException.DOES_NOT_SUPPORT_FOREIGN_KEY_CONSTRAINT +
                 YdbMessageException.badTableStrPointer(statement::getBaseTableName));
 
         return validationErrors;

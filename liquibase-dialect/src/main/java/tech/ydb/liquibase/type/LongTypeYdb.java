@@ -12,7 +12,7 @@ import liquibase.datatype.LiquibaseDataType;
         aliases = {
                 "bigint", "java.sql.Types.BIGINT",
                 "java.math.BigInteger", "java.lang.Long",
-                "integer8", "bigserial", "serial8", "int8"
+                "integer8", "bigserial", "long", "int8"
         },
         minParameters = 0,
         maxParameters = 0,

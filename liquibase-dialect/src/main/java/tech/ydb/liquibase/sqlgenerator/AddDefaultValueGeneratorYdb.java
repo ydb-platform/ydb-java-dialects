@@ -19,7 +19,7 @@ public class AddDefaultValueGeneratorYdb extends BaseSqlGeneratorYdb<AddDefaultV
     ) {
         ValidationErrors validationErrors = new ValidationErrors();
 
-        validationErrors.addError(YdbMessageException.DOES_NOT_SUPPORT_DEFAULT_VALUE +
+        validationErrors.addError(YdbMessageException.DOES_NOT_SUPPORT_DEFAULT_VALUE_CONSTRAINT +
                 YdbMessageException.badTableStrPointer(statement::getTableName));
 
         return validationErrors;

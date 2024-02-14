@@ -17,6 +17,6 @@ abstract class BaseTypeYdb extends LiquibaseDataType {
 
     @Override
     public DatabaseDataType toDatabaseDataType(Database database) {
-        return new DatabaseDataType(getName());
+        return new DatabaseDataType(getName().toUpperCase());
     }
 }

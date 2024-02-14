@@ -12,10 +12,10 @@ import liquibase.statement.PrimaryKeyConstraint;
 import liquibase.statement.core.CreateTableStatement;
 import tech.ydb.liquibase.database.YdbDatabase;
 import tech.ydb.liquibase.exception.YdbMessageException;
-import static tech.ydb.liquibase.exception.YdbMessageException.DOES_NOT_SUPPORT_AUTO_INCREMENT;
-import static tech.ydb.liquibase.exception.YdbMessageException.DOES_NOT_SUPPORT_DEFAULT_VALUE;
-import static tech.ydb.liquibase.exception.YdbMessageException.DOES_NOT_SUPPORT_FOREIGN_KEY_CONSTRAINTS;
-import static tech.ydb.liquibase.exception.YdbMessageException.DOES_NOT_SUPPORT_UNIQUE_CONSTRAINTS;
+import static tech.ydb.liquibase.exception.YdbMessageException.DOES_NOT_SUPPORT_AUTO_INCREMENT_CONSTRAINT;
+import static tech.ydb.liquibase.exception.YdbMessageException.DOES_NOT_SUPPORT_DEFAULT_VALUE_CONSTRAINT;
+import static tech.ydb.liquibase.exception.YdbMessageException.DOES_NOT_SUPPORT_FOREIGN_KEY_CONSTRAINT;
+import static tech.ydb.liquibase.exception.YdbMessageException.DOES_NOT_SUPPORT_UNIQUE_CONSTRAINT;
 
 /**
  * @author Kirill Kurdyukov
@@ -129,28 +129,28 @@ public class CreateTableGeneratorYdb extends CreateTableGenerator {
         if (createTableStatement.getUniqueConstraints() != null &&
                 !createTableStatement.getUniqueConstraints().isEmpty()
         ) {
-            errors.addError(DOES_NOT_SUPPORT_UNIQUE_CONSTRAINTS +
+            errors.addError(DOES_NOT_SUPPORT_UNIQUE_CONSTRAINT +
                     YdbMessageException.badTableStrPointer(createTableStatement::getTableName));
         }
 
         if (createTableStatement.getAutoIncrementConstraints() != null &&
                 !createTableStatement.getAutoIncrementConstraints().isEmpty()
         ) {
-            errors.addError(DOES_NOT_SUPPORT_AUTO_INCREMENT +
+            errors.addError(DOES_NOT_SUPPORT_AUTO_INCREMENT_CONSTRAINT +
                     YdbMessageException.badTableStrPointer(createTableStatement::getTableName));
         }
 
         if (createTableStatement.getDefaultValues() != null &&
                 !createTableStatement.getDefaultValues().isEmpty()
         ) {
-            errors.addError(DOES_NOT_SUPPORT_DEFAULT_VALUE +
+            errors.addError(DOES_NOT_SUPPORT_DEFAULT_VALUE_CONSTRAINT +
                     YdbMessageException.badTableStrPointer(createTableStatement::getTableName));
         }
 
         if (createTableStatement.getForeignKeyConstraints() != null &&
                 !createTableStatement.getForeignKeyConstraints().isEmpty()
         ) {
-            errors.addError(DOES_NOT_SUPPORT_FOREIGN_KEY_CONSTRAINTS +
+            errors.addError(DOES_NOT_SUPPORT_FOREIGN_KEY_CONSTRAINT +
                     YdbMessageException.badTableStrPointer(createTableStatement::getTableName));
         }
 

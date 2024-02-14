@@ -24,7 +24,6 @@ public class DropIndexGeneratorYdb extends DropIndexGenerator {
         return PRIORITY_DATABASE;
     }
 
-
     @Override
     public ValidationErrors validate(DropIndexStatement statement, Database database, SqlGeneratorChain sqlGeneratorChain) {
         ValidationErrors validationErrors = super.validate(statement, database, sqlGeneratorChain);

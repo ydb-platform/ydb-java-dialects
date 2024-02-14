@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                      http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.8.xsd">
+
+    <changeSet id="failed-migration" author="kurdyukov-kir">
+        <comment>Table without primary key.</comment>
+
+        <createTable tableName="table">
+            <column name="series_id" type="Int64">
+                <constraints primaryKey="true"/>
+            </column>
+            <column name="title" type="text">
+                <constraints nullable="false" foreignKeyName="fk_order_customer" references="customer(id)" />
+            </column>
+            <column name="series_info" type="text"/>
+            <column name="release_date" type="date"/>
+        </createTable>
+    </changeSet>
+</databaseChangeLog>

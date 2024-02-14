@@ -3,6 +3,7 @@ package tech.ydb.liquibase.type;
 import liquibase.change.core.LoadDataChange;
 import liquibase.database.Database;
 import liquibase.datatype.DataTypeInfo;
+import liquibase.datatype.DatabaseDataType;
 import liquibase.datatype.LiquibaseDataType;
 
 /**
@@ -21,6 +22,11 @@ public class DecimalTypeYdb extends BaseTypeYdb {
     public boolean validate(Database database) {
         return super.validate(database) &&
                 getParameters()[0].equals(22) && getParameters()[1].equals(9); // Fixed Decimal(22, 9)
+    }
+
+    @Override
+    public DatabaseDataType toDatabaseDataType(Database database) {
+        return new DatabaseDataType(getRawDefinition().toUpperCase());
     }
 
     @Override

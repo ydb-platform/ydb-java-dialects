@@ -11,7 +11,7 @@ import liquibase.datatype.LiquibaseDataType;
  */
 @DataTypeInfo(
         name = "Json", // It doesn't matter what type it is.
-        aliases = {"Json", "JsonDocument", "json", "jsondocument", "Interval", "interval"},
+        aliases = {"Json", "JsonDocument", "Interval"},
         minParameters = 0,
         maxParameters = 0,
         priority = LiquibaseDataType.PRIORITY_DATABASE
@@ -20,7 +20,7 @@ public class OtherTypeYdb extends BaseTypeYdb {
 
     @Override
     public DatabaseDataType toDatabaseDataType(Database database) {
-        return new DatabaseDataType(getRawDefinition());
+        return new DatabaseDataType(getRawDefinition().toUpperCase());
     }
 
     @Override

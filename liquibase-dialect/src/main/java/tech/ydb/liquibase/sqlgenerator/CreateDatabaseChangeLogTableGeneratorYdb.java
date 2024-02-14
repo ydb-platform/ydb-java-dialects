@@ -20,30 +20,38 @@ public class CreateDatabaseChangeLogTableGeneratorYdb extends BaseSqlGeneratorYd
             Database database,
             SqlGeneratorChain<CreateDatabaseChangeLogTableStatement> sqlGeneratorChain
     ) {
+        String textType = DataTypeFactory.getInstance()
+                .fromDescription("text", database)
+                .toDatabaseDataType(database)
+                .toSql() + ", ";
+
         return new Sql[]{
                 new UnparsedSql(
                         "CREATE TABLE " +
-                        database.escapeTableName(
-                                database.getLiquibaseCatalogName(),
-                                database.getLiquibaseSchemaName(),
-                                database.getDatabaseChangeLogTableName()
-                        ) + " (ID Text, " +
-                        "AUTHOR Text, " +
-                        "FILENAME Text, " +
-                        "DATEEXECUTED " + DataTypeFactory.getInstance()
-                        .fromDescription("datetime", database)
-                        .toDatabaseDataType(database) + ", " +
-                        "ORDEREXECUTED Int32, " +
-                        "EXECTYPE Text, " +
-                        "MD5SUM Text, " +
-                        "DESCRIPTION Text, " +
-                        "COMMENTS Text, " +
-                        "TAG Text, " +
-                        "LIQUIBASE Text, " +
-                        "CONTEXTS Text, " +
-                        "LABELS Text, " +
-                        "DEPLOYMENT_ID Text, " +
-                        "PRIMARY KEY(ID, AUTHOR, FILENAME))",
+                                database.escapeTableName(
+                                        database.getLiquibaseCatalogName(),
+                                        database.getLiquibaseSchemaName(),
+                                        database.getDatabaseChangeLogTableName()
+                                ) + " (ID " + textType +
+                                "AUTHOR " + textType +
+                                "FILENAME " + textType +
+                                "DATEEXECUTED " + DataTypeFactory.getInstance()
+                                .fromDescription("datetime", database)
+                                .toDatabaseDataType(database) + ", " +
+                                "ORDEREXECUTED " + DataTypeFactory.getInstance()
+                                .fromDescription("int", database)
+                                .toDatabaseDataType(database) + ", " +
+                                "EXECTYPE " + textType +
+                                "MD5SUM " + textType +
+                                "DESCRIPTION " + textType +
+                                "COMMENTS " + textType +
+                                "TAG " + textType +
+                                "LIQUIBASE " + textType +
+                                "CONTEXTS " + textType +
+                                "LABELS " + textType +
+                                "DEPLOYMENT_ID " + textType +
+                                "PRIMARY KEY(ID, AUTHOR, FILENAME)" +
+                                ")",
                         getAffectedTable(database)
                 )
         };
