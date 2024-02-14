@@ -1,0 +1,66 @@
+name: YDB Liquibase Dialect CI with Maven
+
+on:
+  push:
+    paths:
+      - 'liquibase-dialect/**'
+    branches:
+      - main
+  pull_request:
+    paths:
+      - 'liquibase-dialect/**'
+    types:
+      - opened
+      - reopened
+      - edited
+
+env:
+  MAVEN_ARGS: --batch-mode --update-snapshots -Dstyle.color=always
+
+jobs:
+  build:
+    name: YDB Liquibase Dialect
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        java: [ '17' ]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK ${{matrix.java}}
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{matrix.java}}
+          distribution: 'temurin'
+          cache: maven
+
+      - name: Extract Liquibase Dialect version
+        working-directory: ./liquibase-dialect
+        run: |
+          VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
+          echo "LIQUIBASE_DIALECT_VERSION=$VERSION" >> "$GITHUB_ENV"
+
+      - name: Download Liquibase Dialect dependencies
+        working-directory: ./liquibase-dialect
+        run: mvn $MAVEN_ARGS dependency:go-offline
+
+      - name: Build Liquibase Dialect
+        working-directory: ./liquibase-dialect
+        run: mvn $MAVEN_ARGS install
+
+# TODO Run example
+#      - uses: actions/checkout@v4
+#        with:
+#          repository: ydb-platform/ydb-java-examples
+#          ref: master
+#          path: examples
+#
+#      - name: Download dependencies
+#        working-directory: ./examples/jdbc/spring-data-jpa
+#        run: mvn $MAVEN_ARGS -Dhibernate.ydb.dialect.version=$HIBERNATE_DIALECT_VERSION dependency:go-offline
+#
+#      - name: Test examples with Maven
+#        working-directory: ./examples/jdbc/spring-data-jpa
+#        run: mvn $MAVEN_ARGS -Dhibernate.ydb.dialect.version=$HIBERNATE_DIALECT_VERSION test

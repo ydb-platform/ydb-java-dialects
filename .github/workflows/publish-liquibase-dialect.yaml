@@ -1,0 +1,82 @@
+name: Publish YDB Liquibase Dialect
+
+on:
+  push:
+    tags:
+      - 'liquibase-ydb/v[0-9]+.[0-9]+.[0-9]+'
+
+env:
+  MAVEN_ARGS: --batch-mode --no-transfer-progress -Dstyle.color=always
+
+jobs:
+  validate:
+    name: Validate YDB Liquibase Dialect
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Extract Liquibase dialect version
+        working-directory: ./liquibase-dialect
+        run: |
+          LIQUIBASE_DIALECT_VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
+          echo "LIQUIBASE_DIALECT_VERSION=$LIQUIBASE_DIALECT_VERSION" >> "$GITHUB_ENV"
+
+      - name: Fail workflow if version is snapshot
+        if: endsWith(env.LIQUIBASE_DIALECT_VERSION, 'SNAPSHOT')
+        uses: actions/github-script@v6
+        with:
+          script: core.setFailed('SNAPSHOT version cannot be published')
+
+      - name: Fail workflow if version is not equal to tag name
+        if: format('liquibase-ydb/v{0}', env.LIQUIBASE_DIALECT_VERSION) != github.ref_name
+        uses: actions/github-script@v6
+        with:
+          script: core.setFailed('Release name must be equal to project version')
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          java-version: 17
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: Download dependencies
+        working-directory: ./liquibase-dialect
+        run: mvn $MAVEN_ARGS dependency:go-offline
+
+      - name: Build with Maven
+        working-directory: ./liquibase-dialect
+        run: mvn $MAVEN_ARGS package
+
+  publish:
+    name: Publish YDB Liquibase Dialect
+    runs-on: ubuntu-latest
+    needs: validate
+
+    steps:
+      - name: Install gpg secret key
+        run: |
+          # Install gpg secret key
+          cat <(echo -e "${{ secrets.MAVEN_OSSRH_GPG_SECRET_KEY }}") | gpg --batch --import
+          # Verify gpg secret key
+          gpg --list-secret-keys --keyid-format LONG
+
+      - uses: actions/checkout@v4
+
+      - name: Set up Maven Central Repository
+        uses: actions/setup-java@v4
+        with:
+          java-version: 17
+          distribution: 'temurin'
+          cache: 'maven'
+          server-id: ossrh-s01
+          server-username: MAVEN_USERNAME
+          server-password: MAVEN_PASSWORD
+
+      - name: Publish package
+        working-directory: ./liquibase-dialect
+        run: mvn $MAVEN_ARGS -Possrh-s01 -Dgpg.passphrase=${{ secrets.MAVEN_OSSRH_GPG_PASSWORD }} clean deploy
+        env:
+          MAVEN_USERNAME: ${{ secrets.MAVEN_OSSRH_USERNAME }}
+          MAVEN_PASSWORD: ${{ secrets.MAVEN_OSSRH_TOKEN }}
