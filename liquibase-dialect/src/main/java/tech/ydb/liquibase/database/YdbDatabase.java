@@ -76,7 +76,13 @@ public class YdbDatabase extends AbstractJdbcDatabase {
 
     @Override
     public String getDateTimeLiteral(Timestamp date) {
-        return "DATETIME('" + DateTimeFormatter.ISO_INSTANT.format(date.toInstant()) + "')";
+        String formatted = DateTimeFormatter.ISO_INSTANT.format(date.toInstant());
+
+        if (date.toInstant().toEpochMilli() % 1000 > 0) {
+            return "TIMESTAMP('" + formatted + "')";
+        } else {
+            return "DATETIME('" + formatted + "')";
+        }
     }
 
     @Override

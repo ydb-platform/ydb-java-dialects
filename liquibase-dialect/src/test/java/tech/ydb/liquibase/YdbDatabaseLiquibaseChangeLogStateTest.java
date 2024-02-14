@@ -1,6 +1,7 @@
 package tech.ydb.liquibase;
 
 import java.sql.SQLException;
+import java.util.TimeZone;
 import liquibase.exception.LiquibaseException;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -31,6 +32,8 @@ public class YdbDatabaseLiquibaseChangeLogStateTest extends BaseTest {
 
     @Test
     void liquibaseIntegrationDataChangeLogStateTest() throws SQLException, LiquibaseException {
+        TimeZone.setDefault(TimeZone.getTimeZone("UTC"));
+
         changeLogStep1();
 
         changeLogStep2();
@@ -75,6 +78,8 @@ public class YdbDatabaseLiquibaseChangeLogStateTest extends BaseTest {
 
         String outputMigration = migrationStr(changeLogFile);
 
+        System.out.println(outputMigration);
+
         // not create meta tables
         assertFalse(outputMigration.contains(DATABASECHANGELOGLOCK));
         assertFalse(outputMigration.contains(DATABASECHANGELOG));
@@ -85,7 +90,7 @@ public class YdbDatabaseLiquibaseChangeLogStateTest extends BaseTest {
                                 "-- Table seasons.\n" +
                                 "CREATE TABLE seasons (series_id INT64, season_id INT64, title TEXT, first_aired DATETIME, last_aired DATETIME, PRIMARY KEY (series_id, season_id) );\n" +
                                 "\n" +
-                                "INSERT INTO seasons (series_id, season_id, title, first_aired, last_aired) VALUES (1, 1, 'Season 1', DATETIME('2019-09-16T07:00:00Z'), DATETIME('2023-09-16T09:30:00Z'));\n" +
+                                "INSERT INTO seasons (series_id, season_id, title, first_aired, last_aired) VALUES (1, 1, 'Season 1', DATETIME('2019-09-16T10:00:00Z'), DATETIME('2023-09-16T12:30:00Z'));\n" +
                                 "\n" +
                                 "INSERT INTO DATABASECHANGELOG (ID, AUTHOR, FILENAME, DATEEXECUTED, ORDEREXECUTED, MD5SUM, DESCRIPTION, COMMENTS, EXECTYPE, CONTEXTS, LABELS, LIQUIBASE, DEPLOYMENT_ID) VALUES ('seasons', 'kurdyukov-kir', 'changelogs/migration/seasons_and_episodes.xml', CurrentUtcDatetime(), 3, '9:431b823cc76cb5d1f7703812c25bd64f', 'createTable tableName=seasons; insert tableName=seasons', 'Table seasons.', 'EXECUTED', NULL, NULL, '4.24.0', NULL);\n" +
                                 "\n" +
@@ -93,9 +98,12 @@ public class YdbDatabaseLiquibaseChangeLogStateTest extends BaseTest {
                                 "-- Table episodes.\n" +
                                 "CREATE TABLE episodes (series_id INT64, season_id INT64, episode_id INT64, title TEXT, air_date TIMESTAMP, PRIMARY KEY (series_id, season_id, episode_id) );\n" +
                                 "\n" +
-                                "INSERT INTO episodes (series_id, season_id, episode_id, title, air_date) VALUES (1, 1, 1, 'Yesterday\\'s Jam', DATETIME('2023-04-01T09:00:00Z'));\n" +
+                                "INSERT INTO episodes (series_id, season_id, episode_id, title, air_date) VALUES (1, 1, 1, 'Yesterday\\'s Jam', TIMESTAMP('2023-04-03T08:46:23.456Z'));\n" +
                                 "\n" +
-                                "INSERT INTO DATABASECHANGELOG (ID, AUTHOR, FILENAME, DATEEXECUTED, ORDEREXECUTED, MD5SUM, DESCRIPTION, COMMENTS, EXECTYPE, CONTEXTS, LABELS, LIQUIBASE, DEPLOYMENT_ID) VALUES ('episodes', 'kurdyukov-kir', 'changelogs/migration/seasons_and_episodes.xml', CurrentUtcDatetime(), 4, '9:35e4ca16ad165b61777356a485eff432', 'createTable tableName=episodes; insert tableName=episodes', 'Table episodes.', 'EXECUTED', NULL, NULL, '4.24.0', NULL);\n"
+                                "INSERT INTO DATABASECHANGELOG (ID, AUTHOR, FILENAME, DATEEXECUTED, ORDEREXECUTED, MD5SUM, DESCRIPTION, COMMENTS, EXECTYPE, CONTEXTS, LABELS, LIQUIBASE, DEPLOYMENT_ID) VALUES ('episodes', 'kurdyukov-kir', 'changelogs/migration/seasons_and_episodes.xml', CurrentUtcDatetime(), 4, '9:f2b1bc3ccfe61dee83a5179dd07ad4ef', 'createTable tableName=episodes; insert tableName=episodes', 'Table episodes.', 'EXECUTED', NULL, NULL, '4.24.0', NULL);\n" +
+                                "\n" +
+                                "-- Release Database Lock\n" +
+                                "UPDATE DATABASECHANGELOGLOCK SET LOCKED = false, LOCKEDBY = NULL, LOCKGRANTED = NULL WHERE ID = 1;"
                 )
         );
 
