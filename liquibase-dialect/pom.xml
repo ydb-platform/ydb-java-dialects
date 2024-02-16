@@ -55,6 +55,21 @@
     </dependencyManagement>
 
     <dependencies>
+        <!-- shaded dependencies from liquibase-parent-pom -->
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+            <version>${slf4j.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-simple</artifactId>
+            <version>${slf4j.version}</version>
+            <scope>provided</scope>
+        </dependency>
+
+
         <dependency>
             <groupId>tech.ydb.jdbc</groupId>
             <artifactId>ydb-jdbc-driver-shaded</artifactId>
