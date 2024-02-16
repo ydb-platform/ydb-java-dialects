@@ -64,3 +64,5 @@ jobs:
       - name: Test examples with Maven
         working-directory: ./examples/jdbc/spring-liquibase-app
         run: mvn $MAVEN_ARGS -Dliquibase.ydb.dialect.version=$LIQUIBASE_DIALECT_VERSION test
+        with:
+          java-version: '17'
