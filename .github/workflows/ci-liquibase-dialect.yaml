@@ -50,17 +50,17 @@ jobs:
         working-directory: ./liquibase-dialect
         run: mvn $MAVEN_ARGS install
 
-# TODO Run example
-#      - uses: actions/checkout@v4
-#        with:
-#          repository: ydb-platform/ydb-java-examples
-#          ref: master
-#          path: examples
-#
-#      - name: Download dependencies
-#        working-directory: ./examples/jdbc/spring-data-jpa
-#        run: mvn $MAVEN_ARGS -Dhibernate.ydb.dialect.version=$HIBERNATE_DIALECT_VERSION dependency:go-offline
-#
-#      - name: Test examples with Maven
-#        working-directory: ./examples/jdbc/spring-data-jpa
-#        run: mvn $MAVEN_ARGS -Dhibernate.ydb.dialect.version=$HIBERNATE_DIALECT_VERSION test
+      - name: Text Spring Boot App Example
+        uses: actions/checkout@v4
+        with:
+          repository: ydb-platform/ydb-java-examples
+          ref: master
+          path: examples
+
+      - name: Download dependencies
+        working-directory: ./examples/jdbc/spring-liquibase-app
+        run: mvn $MAVEN_ARGS -Dliquibase.ydb.dialect.version=LIQUIBASE_DIALECT_VERSION dependency:go-offline
+
+      - name: Test examples with Maven
+        working-directory: ./examples/jdbc/spring-liquibase-app
+        run: mvn $MAVEN_ARGS -Dliquibase.ydb.dialect.version=LIQUIBASE_DIALECT_VERSION test
