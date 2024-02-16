@@ -18,6 +18,10 @@ libraries such as Hibernate, Spring Data and JOOQ.
   Hibernate Dialect for YDB is designed to leverage features of YDB while
   providing a familiar experience to Hibernate users.
   For more information, please visit the appropriate [module](./hibernate-dialect).
+- *Liquibase*:
+  Liquibase Dialect for YDB is designed to leverage features of YDB while
+  providing a familiar experience to Liquibase users.
+  For more information, please visit the appropriate [module](./liquibase-dialect).
 - *JOOQ*:
   Small JOOQ dialect is designed to be used for [code generation](https://www.jooq.org/doc/3.19/manual/code-generation/)
   For more information, please visit the appropriate [module](./jooq-dialect).

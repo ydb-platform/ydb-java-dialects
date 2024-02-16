@@ -4,6 +4,8 @@
 
 # YDB Dialect for Hibernate 5.* version
 
+## Overview
+
 This project provides a custom Hibernate dialect
 that allows you to integrate Hibernate ORM with Yandex Database (YDB). 
 This enables you to take advantage of Hibernate's powerful ORM 
@@ -86,7 +88,7 @@ spring.datasource.url=jdbc:ydb:grpc://localhost:2136/local
 ```
 
 An example of a simple Spring Data JPA repository can be found at the following
-[link](https://github.com/ydb-platform/ydb-java-examples/tree/master/jdbc/spring-data-jpa-v5).
+[link](https://github.com/ydb-platform/ydb-java-examples/tree/master/jdbc/spring-liquibase-app).
 
 ## Known Limitations
 

@@ -4,12 +4,14 @@
 
 # YDB Dialect for Hibernate 6+
 
+## Overview
+
 This project provides a custom Hibernate dialect
 that allows you to integrate Hibernate ORM with Yandex Database (YDB).
 This enables you to take advantage of Hibernate's powerful ORM
 features while using YDB as your underlying database.
 
-## Features
+### Features
 
 - Full CRUD (Create, Read, Update and Delete) support for YDB.
 - Custom type mappings to utilize YDB's data types.
