@@ -57,7 +57,7 @@ public class YdbDatabaseLiquibaseChangeLogStateTest extends BaseTest {
                 outputMigration.contains(
                         "-- Changeset changelogs/migration/series.xml::series::kurdyukov-kir\n" +
                                 "-- Table series.\n" +
-                                "CREATE TABLE series (series_id INT64, title TEXT, series_info TEXT, release_date date, PRIMARY KEY (series_id) );\n" +
+                                "CREATE TABLE series (series_id INT64, title TEXT, series_info TEXT, release_date DATE, PRIMARY KEY (series_id) );\n" +
                                 "\n" +
                                 "ALTER TABLE series ADD INDEX series_index GLOBAL ON (title);\n" +
                                 "\n" +

@@ -12,7 +12,7 @@
 
     <groupId>tech.ydb.dialects</groupId>
     <artifactId>liquibase-ydb-dialect</artifactId>
-    <version>0.9.1</version>
+    <version>0.9.2</version>
 
     <name>Liquibase YDB Dialect</name>
     <description>Support Liquibase YDB Dialect</description>

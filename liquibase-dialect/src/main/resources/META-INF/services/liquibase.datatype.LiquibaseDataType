@@ -1,5 +1,6 @@
 tech.ydb.liquibase.type.BoolTypeYdb
 tech.ydb.liquibase.type.BytesTypeYdb
+tech.ydb.liquibase.type.DateTypeYdb
 tech.ydb.liquibase.type.DecimalTypeYdb
 tech.ydb.liquibase.type.DoubleTypeYdb
 tech.ydb.liquibase.type.FloatTypeYdb

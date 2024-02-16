@@ -104,7 +104,7 @@ public class CreateIndexGeneratorYdb extends CreateIndexGenerator {
         ValidationErrors errors = super.validate(createIndexStatement, database, sqlGeneratorChain);
         errors.checkRequiredField("name", createIndexStatement.getIndexName());
 
-        if (createIndexStatement.isUnique()) {
+        if (createIndexStatement.isUnique() != null && createIndexStatement.isUnique()) {
             errors.addError(DOES_NOT_SUPPORT_UNIQUE_CONSTRAINT +
                     "[table name = " + createIndexStatement.getTableName() + ", " +
                     "index name = " + createIndexStatement.getIndexName() + "]");
@@ -116,10 +116,10 @@ public class CreateIndexGeneratorYdb extends CreateIndexGenerator {
                         badColumnStrPointer(createIndexStatement, column));
             }
 
-           if (column.getComputed() != null && column.getComputed()) {
-               errors.addError("YDB doesn't support computed column in index! " +
-                       badColumnStrPointer(createIndexStatement, column));
-           }
+            if (column.getComputed() != null && column.getComputed()) {
+                errors.addError("YDB doesn't support computed column in index! " +
+                        badColumnStrPointer(createIndexStatement, column));
+            }
         }
 
         return errors;
