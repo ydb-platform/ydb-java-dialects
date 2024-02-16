@@ -50,7 +50,12 @@ jobs:
         working-directory: ./liquibase-dialect
         run: mvn $MAVEN_ARGS install
 
-      - name: Text Spring Boot App Example
+      - name: Switch to JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: 17
+          
+      - name: Test Spring Boot App Example
         uses: actions/checkout@v4
         with:
           repository: ydb-platform/ydb-java-examples
@@ -64,5 +69,3 @@ jobs:
       - name: Test examples with Maven
         working-directory: ./examples/jdbc/spring-liquibase-app
         run: mvn $MAVEN_ARGS -Dliquibase.ydb.dialect.version=$LIQUIBASE_DIALECT_VERSION test
-        with:
-          java-version: '17'
