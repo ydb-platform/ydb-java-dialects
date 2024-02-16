@@ -23,7 +23,7 @@ public class YdbDatabaseLiquibaseAllTypesTableTest extends BaseTest {
                         "float_column FLOAT, double_column DOUBLE, " +
                         "decimal_column DECIMAL(22,9), text_column TEXT, " +
                         "binary_column BYTES, json_column JSON, " +
-                        "jsondocument_column JSONDOCUMENT, date_column date, " +
+                        "jsondocument_column JSONDOCUMENT, date_column DATE, " +
                         "datetime_column DATETIME, timestamp_column TIMESTAMP, " +
                         "interval_column INTERVAL, PRIMARY KEY (id) );"
                 )
