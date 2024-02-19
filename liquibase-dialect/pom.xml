@@ -36,6 +36,16 @@
         </license>
     </licenses>
 
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+
+        <maven.compiler.target>1.8</maven.compiler.target>
+        <maven.compiler.source>1.8</maven.compiler.source>
+
+        <liquibase.core.version>4.24.0</liquibase.core.version>
+        <ydb.jdbc.version>2.0.5</ydb.jdbc.version>
+    </properties>
+
     <dependencyManagement>
         <dependencies>
             <dependency>
@@ -52,14 +62,14 @@
         <dependency>
             <groupId>org.liquibase</groupId>
             <artifactId>liquibase-core</artifactId>
-            <version>4.24.0</version>
+            <version>${liquibase.core.version}</version>
             <scope>provided</scope>
         </dependency>
 
         <dependency>
             <groupId>tech.ydb.jdbc</groupId>
             <artifactId>ydb-jdbc-driver-shaded</artifactId>
-            <version>2.0.5</version>
+            <version>${ydb.jdbc.version}</version>
             <scope>test</scope>
         </dependency>
 
