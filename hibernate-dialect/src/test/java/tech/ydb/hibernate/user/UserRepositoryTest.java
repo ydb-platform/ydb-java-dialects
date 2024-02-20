@@ -1,24 +1,22 @@
 package tech.ydb.hibernate.user;
 
-import org.hibernate.cfg.AvailableSettings;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.RegisterExtension;
-import tech.ydb.hibernate.TestUtils;
-import tech.ydb.test.junit5.YdbHelperExtension;
-
 import java.sql.Date;
-import java.sql.Time;
 import java.sql.Timestamp;
 import java.time.Instant;
-
+import java.time.LocalDateTime;
+import org.hibernate.cfg.AvailableSettings;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.RegisterExtension;
+import tech.ydb.hibernate.TestUtils;
 import static tech.ydb.hibernate.TestUtils.basedConfiguration;
 import static tech.ydb.hibernate.TestUtils.inTransaction;
 import static tech.ydb.hibernate.TestUtils.jdbcUrl;
+import tech.ydb.test.junit5.YdbHelperExtension;
 
 /**
  * @author Kirill Kurdyukov
@@ -88,8 +86,9 @@ public class UserRepositoryTest {
                     Date date = session
                             .createQuery("select current date", Date.class).getSingleResult();
 
-                    Time localDateTime = session
-                            .createQuery("select current time", Time.class).getSingleResult();
+                    LocalDateTime localDateTime = session
+                            .createQuery("select current time", LocalDateTime.class)
+                            .getSingleResult();
                 }
         ));
     }
