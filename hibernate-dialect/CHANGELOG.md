@@ -1,3 +1,7 @@
+## 0.9.2 ##
+
+- Supported LocalDateTime with datetime YDB primitive type and mapped to java.sql.Types.TIME
+
 ## 0.9.1 ##
 
 - Full CRUD operations
