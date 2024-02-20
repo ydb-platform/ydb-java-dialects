@@ -1,17 +1,20 @@
 package tech.ydb.hibernate.dialect;
 
+import org.hibernate.boot.model.TypeContributions;
 import org.hibernate.dialect.Dialect;
 import org.hibernate.dialect.pagination.LimitHandler;
 import org.hibernate.engine.jdbc.env.spi.NameQualifierSupport;
 import org.hibernate.mapping.Constraint;
 import org.hibernate.mapping.ForeignKey;
 import org.hibernate.mapping.Index;
+import org.hibernate.service.ServiceRegistry;
 import org.hibernate.tool.schema.spi.Exporter;
 import tech.ydb.hibernate.dialect.exporter.EmptyExporter;
 import tech.ydb.hibernate.dialect.exporter.YdbIndexExporter;
 import tech.ydb.hibernate.dialect.pagination.LimitOffsetLimitHandler;
 
 import java.sql.Types;
+import tech.ydb.hibernate.dialect.types.LocalDateTimeType;
 
 
 /**
@@ -57,6 +60,13 @@ public class YdbDialect extends Dialect {
 
         registerColumnType(Types.TIME_WITH_TIMEZONE, "TzDateTime");
         registerColumnType(Types.TIMESTAMP_WITH_TIMEZONE, "TzTimestamp");
+    }
+
+    @Override
+    public void contributeTypes(TypeContributions typeContributions, ServiceRegistry serviceRegistry) {
+        super.contributeTypes(typeContributions, serviceRegistry);
+
+        typeContributions.contributeType(LocalDateTimeType.INSTANCE);
     }
 
     @Override

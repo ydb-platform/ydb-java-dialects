@@ -1,18 +1,20 @@
 package tech.ydb.hibernate.dialect;
 
+import java.time.LocalDateTime;
+import org.hibernate.boot.model.FunctionContributions;
+import org.hibernate.boot.model.TypeContributions;
 import org.hibernate.dialect.Dialect;
+import org.hibernate.dialect.function.CurrentFunction;
 import org.hibernate.dialect.pagination.LimitHandler;
 import org.hibernate.dialect.pagination.LimitOffsetLimitHandler;
 import org.hibernate.engine.jdbc.dialect.spi.DialectResolutionInfo;
 import org.hibernate.mapping.Constraint;
 import org.hibernate.mapping.ForeignKey;
 import org.hibernate.mapping.Index;
+import org.hibernate.service.ServiceRegistry;
 import org.hibernate.sql.ast.SqlAstTranslatorFactory;
 import org.hibernate.tool.schema.spi.Exporter;
-import tech.ydb.hibernate.dialect.exporter.EmptyExporter;
-import tech.ydb.hibernate.dialect.exporter.YdbIndexExporter;
-import tech.ydb.hibernate.dialect.translator.YdbSqlAstTranslatorFactory;
-
+import org.hibernate.type.BasicType;
 import static org.hibernate.type.SqlTypes.BIGINT;
 import static org.hibernate.type.SqlTypes.BINARY;
 import static org.hibernate.type.SqlTypes.BIT;
@@ -45,6 +47,12 @@ import static org.hibernate.type.SqlTypes.TIME_WITH_TIMEZONE;
 import static org.hibernate.type.SqlTypes.TINYINT;
 import static org.hibernate.type.SqlTypes.VARBINARY;
 import static org.hibernate.type.SqlTypes.VARCHAR;
+import org.hibernate.type.StandardBasicTypes;
+import tech.ydb.hibernate.dialect.exporter.EmptyExporter;
+import tech.ydb.hibernate.dialect.exporter.YdbIndexExporter;
+import tech.ydb.hibernate.dialect.translator.YdbSqlAstTranslatorFactory;
+import tech.ydb.hibernate.dialect.types.LocalDateTimeJavaType;
+import tech.ydb.hibernate.dialect.types.LocalDateTimeJdbcType;
 
 /**
  * @author Kirill Kurdyukov
@@ -80,6 +88,33 @@ public class YdbDialect extends Dialect {
             case JSON -> "Json";
             default -> super.columnType(sqlTypeCode);
         };
+    }
+
+    @Override
+    public void contributeTypes(TypeContributions typeContributions, ServiceRegistry serviceRegistry) {
+        super.contributeTypes(typeContributions, serviceRegistry);
+
+        typeContributions.contributeJavaType(LocalDateTimeJavaType.INSTANCE);
+        typeContributions.contributeJdbcType(LocalDateTimeJdbcType.INSTANCE);
+    }
+
+    @Override
+    public void initializeFunctionRegistry(FunctionContributions functionContributions) {
+        super.initializeFunctionRegistry(functionContributions);
+
+        final BasicType<LocalDateTime> localDateTimeType = functionContributions
+                .getTypeConfiguration()
+                .getBasicTypeRegistry()
+                .resolve(StandardBasicTypes.LOCAL_DATE_TIME);
+
+        functionContributions.getFunctionRegistry().register(
+                "current_time",
+                new CurrentFunction(
+                        "current_time",
+                        currentTime(),
+                        localDateTimeType
+                )
+        );
     }
 
     @Override
