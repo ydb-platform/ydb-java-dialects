@@ -39,6 +39,12 @@ For Maven, add the following dependency to your pom.xml:
 </dependency>
 
 <dependency>
+    <groupId>tech.ydb.jdbc</groupId>
+    <artifactId>ydb-jdbc-driver-shaded</artifactId>
+    <version>${ydb.jdbc.version}</version>
+</dependency>
+
+<dependency>
     <groupId>tech.ydb.dialects</groupId>
     <artifactId>liquibase-ydb-dialect</artifactId>
     <!-- Set actual version -->
