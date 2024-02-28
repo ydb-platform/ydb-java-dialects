@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                      http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.8.xsd">
+
+    <changeSet id="init-test-table" author="kurdyukov-kir">
+        <createTable tableName="test">
+            <column name="id" type="text">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="flag" type="bool"/>
+            <column name="code" type="text"/>
+        </createTable>
+    </changeSet>
+    <changeSet id="init-data-from-csv-0.1" author="kurdyukov-kir" context="all">
+        <loadUpdateData tableName="test" primaryKey="code"
+                        file="./csv/test.csv" relativeToChangelogFile="true"/>
+    </changeSet>
+</databaseChangeLog>
