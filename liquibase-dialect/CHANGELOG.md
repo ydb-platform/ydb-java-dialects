@@ -1,3 +1,7 @@
+## 0.9.6 ##
+
+* Fixed NullPointerException when load csv file
+
 ## 0.9.5 ##
 
 * Supported loadData and loadUpdateData from CSV file.
