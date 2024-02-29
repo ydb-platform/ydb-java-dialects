@@ -27,4 +27,13 @@ public class OtherTypeYdb extends BaseTypeYdb {
     public LoadDataChange.LOAD_DATA_TYPE getLoadTypeName() {
         return LoadDataChange.LOAD_DATA_TYPE.OTHER;
     }
+
+    @Override
+    public String objectToSql(Object value, Database database) {
+        if (getRawDefinition().toUpperCase().equals("INTERVAL")) {
+            return "CAST(" + value + " AS " + getRawDefinition() + ")";
+        }
+
+        return "CAST('" + value + "' AS " + getRawDefinition() + ")";
+    }
 }
