@@ -1,3 +1,7 @@
+## 0.9.5 ##
+
+* Supported loadData and loadUpdateData from CSV file.
+
 ## 0.9.4 ##
 
 * Change liquibase-parent-pom on liquibase-core dependency
