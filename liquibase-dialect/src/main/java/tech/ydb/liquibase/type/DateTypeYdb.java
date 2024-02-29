@@ -24,6 +24,10 @@ public class DateTypeYdb extends BaseTypeYdb {
 
     @Override
     public String objectToSql(Object value, Database database) {
+        if ((value == null) || "null".equalsIgnoreCase(value.toString())) {
+            return "NULL";
+        }
+
         return "DATE('" + value + "')";
     }
 }

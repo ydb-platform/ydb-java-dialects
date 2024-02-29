@@ -28,6 +28,10 @@ public class FloatTypeYdb extends BaseTypeYdb {
 
     @Override
     public String objectToSql(Object value, Database database) {
-        return "CAST('" + value.toString() + "' AS FLOAT)";
+        if ((value == null) || "null".equalsIgnoreCase(value.toString())) {
+            return "NULL";
+        }
+
+        return "CAST('" + value + "' AS FLOAT)";
     }
 }

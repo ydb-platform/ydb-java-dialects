@@ -27,6 +27,10 @@ public class TimestampTypeYdb extends BaseTypeYdb {
 
     @Override
     public String objectToSql(Object value, Database database) {
+        if ((value == null) || "null".equalsIgnoreCase(value.toString())) {
+            return "NULL";
+        }
+
         return "TIMESTAMP('" + value + "')";
     }
 }

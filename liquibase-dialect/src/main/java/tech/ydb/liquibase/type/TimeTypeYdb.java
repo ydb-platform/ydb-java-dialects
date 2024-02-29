@@ -31,6 +31,10 @@ public class TimeTypeYdb extends BaseTypeYdb {
 
     @Override
     public String objectToSql(Object value, Database database) {
+        if ((value == null) || "null".equalsIgnoreCase(value.toString())) {
+            return "NULL";
+        }
+
         return "DATETIME('" + LocalDateTime.parse(value.toString())
                 .atZone(ZoneId.of("UTC"))
                 .format(DateTimeFormatter.ISO_INSTANT) + "')";

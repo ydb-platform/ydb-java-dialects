@@ -30,6 +30,10 @@ public class BytesTypeYdb extends BaseTypeYdb {
 
     @Override
     public String objectToSql(Object value, Database database) {
+        if ((value == null) || "null".equalsIgnoreCase(value.toString())) {
+            return "NULL";
+        }
+
         return "'" + value + "'";
     }
 }
