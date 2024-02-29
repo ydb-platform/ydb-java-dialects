@@ -36,6 +36,10 @@ public class DecimalTypeYdb extends BaseTypeYdb {
 
     @Override
     public String objectToSql(Object value, Database database) {
+        if ((value == null) || "null".equalsIgnoreCase(value.toString())) {
+            return "NULL";
+        }
+
         return "CAST('" + value + "' AS DECIMAL(22,9))";
     }
 }

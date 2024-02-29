@@ -30,7 +30,11 @@ public class OtherTypeYdb extends BaseTypeYdb {
 
     @Override
     public String objectToSql(Object value, Database database) {
-        if (getRawDefinition().toUpperCase().equals("INTERVAL")) {
+        if ((value == null) || "null".equalsIgnoreCase(value.toString())) {
+            return "NULL";
+        }
+
+        if (getRawDefinition().equalsIgnoreCase("INTERVAL")) {
             return "CAST(" + value + " AS " + getRawDefinition() + ")";
         }
 
