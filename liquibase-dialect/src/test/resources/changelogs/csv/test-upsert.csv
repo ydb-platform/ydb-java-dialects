@@ -1,0 +1,2 @@
+id,bool_column,bigint_column,float_column,double_column,decimal_column,text_column,binary_column,json_column,jsondocument_column,date_column,datetime_column,timestamp_column,interval_column
+1,true,123123,1.123,1.123123,1.123123,Кирилл Курдюков Алексеевич,binary,{"asd": "asd"},{"asd": "asd"},2014-04-06,2023-09-16T12:30,2023-07-31T17:00:00.000000Z,123

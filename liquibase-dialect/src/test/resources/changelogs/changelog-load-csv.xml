@@ -5,17 +5,12 @@
         xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
                       http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.8.xsd">
 
-    <changeSet id="init-test-table" author="kurdyukov-kir">
-        <createTable tableName="test">
-            <column name="id" type="text">
-                <constraints primaryKey="true" nullable="false"/>
-            </column>
-            <column name="flag" type="bool"/>
-            <column name="code" type="text"/>
-        </createTable>
-    </changeSet>
+    <include file="/migration/all_types_table.xml" relativeToChangelogFile="true"/>
     <changeSet id="init-data-from-csv-0.1" author="kurdyukov-kir" context="all">
-        <loadUpdateData tableName="test" primaryKey="code"
-                        file="./csv/test.csv" relativeToChangelogFile="true"/>
+        <loadUpdateData tableName="all_types_table" primaryKey="id"
+                        file="./csv/test-upsert.csv" relativeToChangelogFile="true"/>
+    </changeSet>
+    <changeSet id="init-data-from-csv-0.2" author="kurdyukov-kir" context="all">
+        <loadData tableName="all_types_table" file="./csv/test-insert.csv" relativeToChangelogFile="true"/>
     </changeSet>
 </databaseChangeLog>
