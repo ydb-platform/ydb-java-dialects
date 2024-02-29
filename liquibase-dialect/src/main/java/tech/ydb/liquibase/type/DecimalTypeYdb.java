@@ -33,4 +33,9 @@ public class DecimalTypeYdb extends BaseTypeYdb {
     public LoadDataChange.LOAD_DATA_TYPE getLoadTypeName() {
         return LoadDataChange.LOAD_DATA_TYPE.NUMERIC;
     }
+
+    @Override
+    public String objectToSql(Object value, Database database) {
+        return "CAST('" + value + "' AS DECIMAL(22,9))";
+    }
 }

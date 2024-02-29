@@ -79,6 +79,11 @@ public class YdbDatabase extends AbstractJdbcDatabase {
     }
 
     @Override
+    public boolean supportsBatchUpdates() {
+        return true;
+    }
+
+    @Override
     public boolean requiresPassword() {
         return false;
     }
