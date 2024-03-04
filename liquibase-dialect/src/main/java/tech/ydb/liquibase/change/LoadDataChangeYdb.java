@@ -3,9 +3,11 @@ package tech.ydb.liquibase.change;
 import com.opencsv.exceptions.CsvMalformedLineException;
 import java.io.IOException;
 import java.sql.ResultSet;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import liquibase.Scope;
 import liquibase.change.ChangeMetaData;
@@ -35,6 +37,7 @@ import tech.ydb.liquibase.database.YdbDatabase;
 )
 public class LoadDataChangeYdb extends LoadDataChange {
 
+    private static final int BATCH_SIZE = 20;
     private static final Logger LOG = Scope.getCurrentScope().getLog(LoadDataChange.class);
 
     protected final Map<String, LiquibaseDataType> columnToLiquibaseDataType = new LinkedHashMap<>();
@@ -85,54 +88,59 @@ public class LoadDataChangeYdb extends LoadDataChange {
     }
 
     protected SqlStatement[] getSqlStatements(Database database, CSVReader reader, String[] headers) throws IOException {
-        StringBuilder yqlInsert = new StringBuilder();
+        List<SqlStatement> sqlStatements = new ArrayList<>();
+        String[] line = reader.readNext();
 
-        yqlInsert.append("INSERT INTO ")
-                .append(database.escapeTableName(getCatalogName(), getSchemaName(), tableName))
-                .append(" (");
+        while (line != null) {
+            StringBuilder yqlInsert = new StringBuilder();
 
-        Iterator<String> iteratorColumnNames = Arrays.stream(headers).iterator();
-        while (iteratorColumnNames.hasNext()) {
-            yqlInsert.append(iteratorColumnNames.next());
+            yqlInsert.append("INSERT INTO ")
+                    .append(database.escapeTableName(getCatalogName(), getSchemaName(), tableName))
+                    .append(" (");
 
-            if (iteratorColumnNames.hasNext()) {
-                yqlInsert.append(", ");
-            }
-        }
+            Iterator<String> iteratorColumnNames = Arrays.stream(headers).iterator();
+            while (iteratorColumnNames.hasNext()) {
+                yqlInsert.append(iteratorColumnNames.next());
 
-        yqlInsert.append(") VALUES (");
-
-        String[] line;
-        boolean havePrev = false;
-
-        while ((line = reader.readNext()) != null) {
-            if (havePrev) {
-                yqlInsert.append("), (");
-            }
-
-            for (int i = 0; i < line.length; i++) {
-                String columnName = headers[i];
-
-                yqlInsert.append(
-                        columnToLiquibaseDataType.getOrDefault(
-                                columnName,
-                                DataTypeFactory.getInstance().fromDescription("text", database)
-                        ).objectToSql(line[i], database)
-                );
-
-                if (i < line.length - 1) {
+                if (iteratorColumnNames.hasNext()) {
                     yqlInsert.append(", ");
                 }
             }
 
-            havePrev = true;
+            yqlInsert.append(") VALUES (");
+
+            int batchI;
+            boolean havePrev = false;
+
+            for (batchI = 0; batchI < BATCH_SIZE && line != null; batchI++, line = reader.readNext()) {
+                if (havePrev) {
+                    yqlInsert.append("), (");
+                }
+
+                for (int i = 0; i < line.length; i++) {
+                    String columnName = headers[i];
+
+                    yqlInsert.append(
+                            columnToLiquibaseDataType.getOrDefault(
+                                    columnName,
+                                    DataTypeFactory.getInstance().fromDescription("text", database)
+                            ).objectToSql(line[i], database)
+                    );
+
+                    if (i < line.length - 1) {
+                        yqlInsert.append(", ");
+                    }
+                }
+
+                havePrev = true;
+            }
+
+            yqlInsert.append(")");
+
+            sqlStatements.add(new RawSqlStatement(yqlInsert.toString()));
         }
 
-        yqlInsert.append(")");
-
-        return new SqlStatement[]{
-                new RawSqlStatement(yqlInsert.toString())
-        };
+        return sqlStatements.toArray(new SqlStatement[0]);
     }
 
     @Override
