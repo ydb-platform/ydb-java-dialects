@@ -150,13 +150,13 @@ public class YdbDatabaseCSVLoadTest extends BaseTest {
                         "('2', '5', '8', 'Fifty-OnePercent', '2018-05-13');\n"
         ));
 
+        migrateChangeFile(changeLogFile);
+
         try (PreparedStatement select = DriverManager.getConnection(jdbcUrl())
-                .prepareStatement("select count() as cnt from episodes")) {
+                .prepareStatement("select count(1) as cnt from episodes")) {
             ResultSet rs = select.executeQuery();
             rs.next();
             Assertions.assertEquals(70, rs.getLong("cnt"));
         }
-
-        migrateChangeFile(changeLogFile);
     }
 }
