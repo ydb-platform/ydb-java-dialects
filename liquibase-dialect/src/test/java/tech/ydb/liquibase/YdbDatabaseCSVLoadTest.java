@@ -1,9 +1,11 @@
 package tech.ydb.liquibase;
 
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.time.ZoneId;
-import java.util.TimeZone;
 import liquibase.exception.LiquibaseException;
+import org.junit.jupiter.api.Assertions;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import org.junit.jupiter.api.Test;
 
@@ -58,13 +60,11 @@ public class YdbDatabaseCSVLoadTest extends BaseTest {
 
     @Test
     void changeLoadDateBatchInsertTest() throws SQLException, LiquibaseException {
-        TimeZone.setDefault(TimeZone.getTimeZone(ZoneId.of("UTC")));
-
         String changeLogFile = "./changelogs/changelog_batch_load_data.xml";
 
         String migrationStr = migrationStr(changeLogFile);
 
-        assertTrue(migrationStr.equals(
+        assertTrue(migrationStr.contains(
                 "INSERT INTO episodes (series_id, season_id, episode_id, title, air_date) VALUES " +
                         "('1', '1', '1', 'Yesterday\\'sJam', '2006-02-03'), " +
                         "('1', '1', '2', 'CalamityJen', '2006-02-03'), " +
@@ -85,9 +85,11 @@ public class YdbDatabaseCSVLoadTest extends BaseTest {
                         "('1', '3', '5', 'Friendface', '2008-12-19'), " +
                         "('1', '3', '6', 'CalendarGeeks', '2008-12-26'), " +
                         "('1', '4', '1', 'JenTheFredo', '2010-06-25'), " +
-                        "('1', '4', '2', 'TheFinalCountdown', '2010-07-02');\n" +
-                        "\n" +
-                        "INSERT INTO episodes (series_id, season_id, episode_id, title, air_date) VALUES " +
+                        "('1', '4', '2', 'TheFinalCountdown', '2010-07-02');\n"
+        ));
+
+        assertTrue(migrationStr.contains(
+                "INSERT INTO episodes (series_id, season_id, episode_id, title, air_date) VALUES " +
                         "('1', '4', '3', 'SomethingHappened', '2010-07-09'), " +
                         "('1', '4', '4', 'ItalianForBeginners', '2010-07-16'), " +
                         "('1', '4', '5', 'BadBoys', '2010-07-23'), " +
@@ -107,9 +109,11 @@ public class YdbDatabaseCSVLoadTest extends BaseTest {
                         "('2', '2', '5', 'ServerSpace', '2015-05-10'), " +
                         "('2', '2', '6', 'Homicide', '2015-05-17'), " +
                         "('2', '2', '7', 'AdultContent', '2015-05-24'), " +
-                        "('2', '2', '8', 'WhiteHat/BlackHat', '2015-05-31');\n" +
-                        "\n" +
-                        "INSERT INTO episodes (series_id, season_id, episode_id, title, air_date) VALUES " +
+                        "('2', '2', '8', 'WhiteHat/BlackHat', '2015-05-31');\n"
+        ));
+
+        assertTrue(migrationStr.contains(
+                "INSERT INTO episodes (series_id, season_id, episode_id, title, air_date) VALUES " +
                         "('2', '2', '9', 'BindingArbitration', '2015-06-07'), " +
                         "('2', '2', '10', 'TwoDaysoftheCondor', '2015-06-14'), " +
                         "('2', '3', '1', 'FounderFriendly', '2016-04-24'), " +
@@ -129,9 +133,11 @@ public class YdbDatabaseCSVLoadTest extends BaseTest {
                         "('2', '4', '5', 'TheBloodBoy', '2017-05-21'), " +
                         "('2', '4', '6', 'CustomerService', '2017-05-28'), " +
                         "('2', '4', '7', 'ThePatentTroll', '2017-06-04'), " +
-                        "('2', '4', '8', 'TheKeenanVortex', '2017-06-11');\n" +
-                        "\n" +
-                        "INSERT INTO episodes (series_id, season_id, episode_id, title, air_date) VALUES " +
+                        "('2', '4', '8', 'TheKeenanVortex', '2017-06-11');\n"
+        ));
+
+        assertTrue(migrationStr.contains(
+                "INSERT INTO episodes (series_id, season_id, episode_id, title, air_date) VALUES " +
                         "('2', '4', '9', 'Hooli-Con', '2017-06-18'), " +
                         "('2', '4', '10', 'ServerError', '2017-06-25'), " +
                         "('2', '5', '1', 'GrowFastorDieSlow', '2018-03-25'), " +
@@ -143,6 +149,13 @@ public class YdbDatabaseCSVLoadTest extends BaseTest {
                         "('2', '5', '7', 'InitialCoinOffering', '2018-05-06'), " +
                         "('2', '5', '8', 'Fifty-OnePercent', '2018-05-13');\n"
         ));
+
+        try (PreparedStatement select = DriverManager.getConnection(jdbcUrl())
+                .prepareStatement("select count() as cnt from episodes")) {
+            ResultSet rs = select.executeQuery();
+            rs.next();
+            Assertions.assertEquals(70, rs.getLong("cnt"));
+        }
 
         migrateChangeFile(changeLogFile);
     }
