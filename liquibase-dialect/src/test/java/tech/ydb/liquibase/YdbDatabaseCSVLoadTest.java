@@ -1,6 +1,8 @@
 package tech.ydb.liquibase;
 
 import java.sql.SQLException;
+import java.time.ZoneId;
+import java.util.TimeZone;
 import liquibase.exception.LiquibaseException;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import org.junit.jupiter.api.Test;
@@ -56,6 +58,8 @@ public class YdbDatabaseCSVLoadTest extends BaseTest {
 
     @Test
     void changeLoadDateBatchInsertTest() throws SQLException, LiquibaseException {
+        TimeZone.setDefault(TimeZone.getTimeZone(ZoneId.of("UTC")));
+
         String changeLogFile = "./changelogs/changelog_batch_load_data.xml";
 
         String migrationStr = migrationStr(changeLogFile);
