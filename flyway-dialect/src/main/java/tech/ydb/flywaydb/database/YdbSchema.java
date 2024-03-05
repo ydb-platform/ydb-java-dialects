@@ -46,11 +46,6 @@ public class YdbSchema extends Schema<YdbDatabase, YdbTable> {
 
     @Override
     protected YdbTable[] doAllTables() throws SQLException {
-
-
-        jdbcTemplate.getConnection().getMetaData()
-                .getTables(null, null, null, null)
-
         return new YdbTable[0];
     }
 
