@@ -4,6 +4,7 @@ import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 import liquibase.exception.LiquibaseException;
 import org.junit.jupiter.api.Assertions;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -157,6 +158,10 @@ public class YdbDatabaseCSVLoadTest extends BaseTest {
             ResultSet rs = select.executeQuery();
             rs.next();
             Assertions.assertEquals(70, rs.getLong("cnt"));
+        }
+
+        try (Statement statement = DriverManager.getConnection(jdbcUrl()).createStatement()) {
+            statement.execute("DROP TABLE episodes");
         }
     }
 }
