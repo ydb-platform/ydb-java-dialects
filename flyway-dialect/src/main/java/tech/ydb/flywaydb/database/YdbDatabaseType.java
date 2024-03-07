@@ -45,7 +45,7 @@ public class YdbDatabaseType extends BaseDatabaseType {
             String databaseProductVersion,
             Connection connection
     ) {
-        return databaseProductName.equalsIgnoreCase(YDB_NAME);
+        return databaseProductName.startsWith(YDB_NAME);
     }
 
     @Override

@@ -51,10 +51,11 @@ public class YdbDatabase extends Database<YdbConnection> {
 
     @Override
     public String getRawCreateScript(Table table, boolean baseline) {
-        return "CREATE TABLE " + table + " (\n" +
+        return "CREATE TABLE " + doQuote(table.getName()) + " (\n" +
                 "    installed_rank INT32 NOT NULL,\n" +
                 "    version TEXT,\n" +
                 "    description TEXT,\n" +
+                "    type TEXT,\n" +
                 "    script TEXT,\n" +
                 "    checksum INT32,\n" +
                 "    installed_by TEXT,\n" +
@@ -63,6 +64,40 @@ public class YdbDatabase extends Database<YdbConnection> {
                 "    success BOOL,\n" +
                 "    PRIMARY KEY (installed_rank)" +
                 ")";
+    }
+
+    @Override
+    public String getSelectStatement(Table table) {
+        return "SELECT " + quote("installed_rank")
+                + "," + quote("version")
+                + "," + quote("description")
+                + "," + quote("type")
+                + "," + quote("script")
+                + "," + quote("checksum")
+                + "," + quote("installed_on")
+                + "," + quote("installed_by")
+                + "," + quote("execution_time")
+                + "," + quote("success")
+                + " FROM " + quote(table.getName())
+                + " WHERE " + quote("installed_rank") + " > ?"
+                + " ORDER BY " + quote("installed_rank");
+    }
+
+    @Override
+    public String getInsertStatement(Table table) {
+        return "INSERT INTO " + quote(table.getName())
+                + " (" + quote("installed_rank")
+                + ", " + quote("version")
+                + ", " + quote("description")
+                + ", " + quote("type")
+                + ", " + quote("script")
+                + ", " + quote("checksum")
+                + ", " + quote("installed_by")
+                + ", " + quote("execution_time")
+                + ", " + quote("success")
+                + ", " + quote("installed_on")
+                + ")"
+                + " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, CurrentUtcTimestamp())";
     }
 
     @Override

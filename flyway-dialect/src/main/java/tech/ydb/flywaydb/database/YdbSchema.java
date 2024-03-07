@@ -1,7 +1,5 @@
 package tech.ydb.flywaydb.database;
 
-import java.sql.SQLException;
-import org.flywaydb.core.api.FlywayException;
 import org.flywaydb.core.internal.database.base.Schema;
 import org.flywaydb.core.internal.jdbc.JdbcTemplate;
 
@@ -25,27 +23,25 @@ public class YdbSchema extends Schema<YdbDatabase, YdbTable> {
     }
 
     @Override
-    protected boolean doEmpty() throws SQLException {
+    protected boolean doEmpty() {
         return doAllTables().length == 0;
     }
 
     @Override
-    protected void doCreate() throws SQLException {
-        throw new FlywayException("YDB doesn't support SCHEMA");
+    protected void doCreate() {
     }
 
     @Override
-    protected void doDrop() throws SQLException {
-        throw new FlywayException("YDB doesn't support SCHEMA");
+    protected void doDrop() {
     }
 
     @Override
-    protected void doClean() throws SQLException {
+    protected void doClean() {
 
     }
 
     @Override
-    protected YdbTable[] doAllTables() throws SQLException {
+    protected YdbTable[] doAllTables() {
         return new YdbTable[0];
     }
 
