@@ -5,6 +5,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.TimeZone;
 import liquibase.exception.LiquibaseException;
 import org.junit.jupiter.api.Assertions;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -17,6 +18,8 @@ public class YdbDatabaseCSVLoadTest extends BaseTest {
 
     @Test
     void changeLogLoadCSVFileTest() throws SQLException, LiquibaseException {
+        TimeZone.setDefault(TimeZone.getTimeZone("UTC"));
+
         String changeLogFile = "./changelogs/changelog-load-csv.xml";
 
         String migrationStr = migrationStr(changeLogFile);
