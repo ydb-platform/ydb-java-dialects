@@ -24,7 +24,6 @@ public class YdbDatabaseCSVLoadTest extends BaseTest {
 
         String migrationStr = migrationStr(changeLogFile);
 
-        System.out.println(migrationStr);
         assertTrue(migrationStr.contains(
                 "UPSERT INTO all_types_table (id, bool_column, bigint_column, float_column, " +
                         "double_column, decimal_column, text_column, binary_column, json_column, " +
