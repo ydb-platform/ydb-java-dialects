@@ -12,6 +12,7 @@ import liquibase.database.jvm.JdbcConnection;
 import liquibase.exception.CommandExecutionException;
 import liquibase.exception.LiquibaseException;
 import liquibase.resource.ClassLoaderResourceAccessor;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import org.junit.jupiter.api.extension.RegisterExtension;
@@ -74,6 +75,14 @@ public abstract class BaseTest {
             liquibase.update(new Contexts(), stringWriter);
 
             return stringWriter.toString();
+        }
+    }
+
+    @AfterAll
+    static void afterAll() throws SQLException {
+        try (Statement statement = DriverManager.getConnection(jdbcUrl()).createStatement()) {
+            statement.execute("DROP TABLE DATABASECHANGELOG");
+            statement.execute("DROP TABLE DATABASECHANGELOGLOCK");
         }
     }
 }

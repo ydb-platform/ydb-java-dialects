@@ -16,7 +16,6 @@ public class YdbDatabaseLiquibaseAllTypesTableTest extends BaseTest {
 
         String outputMigration = migrationStr(changeLogFile);
 
-        System.out.println(outputMigration);
         assertTrue(
                 outputMigration.contains("CREATE TABLE all_types_table (" +
                         "id INT32, bool_column BOOL, bigint_column INT64, " +
