@@ -141,4 +141,9 @@ public class YdbDatabase extends AbstractJdbcDatabase {
     public boolean supportsAutoIncrement() {
         return false;
     }
+
+    @Override
+    public boolean supportsDDLInTransaction() {
+        return false;
+    }
 }
