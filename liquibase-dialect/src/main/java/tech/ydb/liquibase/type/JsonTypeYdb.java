@@ -10,17 +10,16 @@ import liquibase.datatype.LiquibaseDataType;
  * @author Kirill Kurdyukov
  */
 @DataTypeInfo(
-        name = "Json", // It doesn't matter what type it is.
-        aliases = {"Json", "JsonDocument", "Interval"},
+        name = "Json",
         minParameters = 0,
         maxParameters = 0,
         priority = LiquibaseDataType.PRIORITY_DATABASE
 )
-public class OtherTypeYdb extends BaseTypeYdb {
+public class JsonTypeYdb extends BaseTypeYdb {
 
     @Override
     public DatabaseDataType toDatabaseDataType(Database database) {
-        return new DatabaseDataType(getRawDefinition().toUpperCase());
+        return new DatabaseDataType("JSON");
     }
 
     @Override
@@ -30,14 +29,10 @@ public class OtherTypeYdb extends BaseTypeYdb {
 
     @Override
     public String objectToSql(Object value, Database database) {
-        if ((value == null) || "null".equalsIgnoreCase(value.toString())) {
+        if (value == null || "null".equalsIgnoreCase(value.toString())) {
             return "NULL";
         }
 
-        if (getRawDefinition().equalsIgnoreCase("INTERVAL")) {
-            return "CAST(" + value + " AS " + getRawDefinition() + ")";
-        }
-
-        return "CAST('" + value + "' AS " + getRawDefinition() + ")";
+        return "CAST('" + value + "' AS JSON)";
     }
 }

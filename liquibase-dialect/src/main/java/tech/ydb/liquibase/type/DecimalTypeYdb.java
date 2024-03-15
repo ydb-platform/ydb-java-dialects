@@ -26,7 +26,7 @@ public class DecimalTypeYdb extends BaseTypeYdb {
 
     @Override
     public DatabaseDataType toDatabaseDataType(Database database) {
-        return new DatabaseDataType(getRawDefinition().toUpperCase());
+        return new DatabaseDataType("DECIMAL(22, 9)");
     }
 
     @Override
