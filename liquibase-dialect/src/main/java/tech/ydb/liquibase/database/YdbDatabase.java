@@ -146,4 +146,9 @@ public class YdbDatabase extends AbstractJdbcDatabase {
     public boolean supportsDDLInTransaction() {
         return false;
     }
+
+    @Override
+    public boolean supportsPrimaryKeyNames() {
+        return false;
+    }
 }
