@@ -52,6 +52,7 @@ public class YdbDatabaseLiquibaseChangeLogStateTest extends BaseTest {
         assertTrue(outputMigration.contains(DATABASECHANGELOGLOCK));
         assertTrue(outputMigration.contains(DATABASECHANGELOG));
 
+        System.out.println(outputMigration);
         // migration changelog
         assertTrue(
                 outputMigration.contains(
@@ -61,7 +62,7 @@ public class YdbDatabaseLiquibaseChangeLogStateTest extends BaseTest {
                                 "\n" +
                                 "ALTER TABLE series ADD INDEX series_index GLOBAL ON (title);\n" +
                                 "\n" +
-                                "INSERT INTO DATABASECHANGELOG (ID, AUTHOR, FILENAME, DATEEXECUTED, ORDEREXECUTED, MD5SUM, DESCRIPTION, COMMENTS, EXECTYPE, CONTEXTS, LABELS, LIQUIBASE, DEPLOYMENT_ID) VALUES ('series', 'kurdyukov-kir', 'changelogs/migration/series.xml', CurrentUtcDatetime(), 1, '9:3287e35e2e830e42ff9c816618d512aa', 'createTable tableName=series; createIndex indexName=series_index, tableName=series', 'Table series.', 'EXECUTED', NULL, NULL, '4.24.0', NULL);\n" +
+                                "INSERT INTO DATABASECHANGELOG (ID, AUTHOR, FILENAME, DATEEXECUTED, ORDEREXECUTED, MD5SUM, DESCRIPTION, COMMENTS, EXECTYPE, CONTEXTS, LABELS, LIQUIBASE, DEPLOYMENT_ID) VALUES ('series', 'kurdyukov-kir', 'changelogs/migration/series.xml', CurrentUtcDatetime(), 1, '9:5809802102bcd74f1d8bc0f1d874463f', 'createTable tableName=series; createIndex indexName=series_index, tableName=series', 'Table series.', 'EXECUTED', NULL, NULL, '4.24.0', NULL);\n" +
                                 "\n" +
                                 "-- Changeset changelogs/migration/series.xml::added_data_into_series::kurdyukov-kir\n" +
                                 "INSERT INTO series (series_id, title, series_info, release_date) VALUES (1, 'IT Crowd', 'The IT Crowd is a British sitcom produced by Channel 4, written by Graham Linehan, produced by Ash Atalla and starring Chris O\\'Dowd, Richard Ayoade, Katherine Parkinson, and Matt Berry.', DATE('2006-02-03'));\n" +
