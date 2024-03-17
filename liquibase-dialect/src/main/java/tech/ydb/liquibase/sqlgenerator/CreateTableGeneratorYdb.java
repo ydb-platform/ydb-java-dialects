@@ -1,6 +1,7 @@
 package tech.ydb.liquibase.sqlgenerator;
 
 import java.util.Iterator;
+import java.util.Map;
 import liquibase.database.Database;
 import liquibase.datatype.DatabaseDataType;
 import liquibase.exception.ValidationErrors;
@@ -8,6 +9,7 @@ import liquibase.sql.Sql;
 import liquibase.sql.UnparsedSql;
 import liquibase.sqlgenerator.SqlGeneratorChain;
 import liquibase.sqlgenerator.core.CreateTableGenerator;
+import liquibase.statement.NotNullConstraint;
 import liquibase.statement.PrimaryKeyConstraint;
 import liquibase.statement.core.CreateTableStatement;
 import tech.ydb.liquibase.database.YdbDatabase;
@@ -62,6 +64,8 @@ public class CreateTableGeneratorYdb extends CreateTableGenerator {
                 )
                 .append(" (");
 
+        Map<String, NotNullConstraint> nullConstraintMap = statement.getNotNullColumns();
+
         for (String columnName : statement.getColumns()) {
             DatabaseDataType columnType = statement.getColumnTypes().get(columnName)
                     .toDatabaseDataType(database);
@@ -76,8 +80,13 @@ public class CreateTableGeneratorYdb extends CreateTableGenerator {
                             )
                     )
                     .append(" ")
-                    .append(columnType)
-                    .append(", ");
+                    .append(columnType);
+
+            if (nullConstraintMap.containsKey(columnName)) {
+                yqlCreateTable.append(" NOT NULL");
+            }
+
+            yqlCreateTable.append(", ");
         }
 
         yqlCreateTable.append("PRIMARY KEY (");

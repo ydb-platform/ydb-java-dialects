@@ -57,11 +57,11 @@ public class YdbDatabaseLiquibaseChangeLogStateTest extends BaseTest {
                 outputMigration.contains(
                         "-- Changeset changelogs/migration/series.xml::series::kurdyukov-kir\n" +
                                 "-- Table series.\n" +
-                                "CREATE TABLE series (series_id INT64, title TEXT, series_info TEXT, release_date DATE, PRIMARY KEY (series_id) );\n" +
+                                "CREATE TABLE series (series_id INT64 NOT NULL, title TEXT, series_info TEXT, release_date DATE, PRIMARY KEY (series_id) );\n" +
                                 "\n" +
                                 "ALTER TABLE series ADD INDEX series_index GLOBAL ON (title);\n" +
                                 "\n" +
-                                "INSERT INTO DATABASECHANGELOG (ID, AUTHOR, FILENAME, DATEEXECUTED, ORDEREXECUTED, MD5SUM, DESCRIPTION, COMMENTS, EXECTYPE, CONTEXTS, LABELS, LIQUIBASE, DEPLOYMENT_ID) VALUES ('series', 'kurdyukov-kir', 'changelogs/migration/series.xml', CurrentUtcDatetime(), 1, '9:5809802102bcd74f1d8bc0f1d874463f', 'createTable tableName=series; createIndex indexName=series_index, tableName=series', 'Table series.', 'EXECUTED', NULL, NULL, '4.24.0', NULL);\n" +
+                                "INSERT INTO DATABASECHANGELOG (ID, AUTHOR, FILENAME, DATEEXECUTED, ORDEREXECUTED, MD5SUM, DESCRIPTION, COMMENTS, EXECTYPE, CONTEXTS, LABELS, LIQUIBASE, DEPLOYMENT_ID) VALUES ('series', 'kurdyukov-kir', 'changelogs/migration/series.xml', CurrentUtcDatetime(), 1, '9:3287e35e2e830e42ff9c816618d512aa', 'createTable tableName=series; createIndex indexName=series_index, tableName=series', 'Table series.', 'EXECUTED', NULL, NULL, '4.24.0', NULL);\n" +
                                 "\n" +
                                 "-- Changeset changelogs/migration/series.xml::added_data_into_series::kurdyukov-kir\n" +
                                 "INSERT INTO series (series_id, title, series_info, release_date) VALUES (1, 'IT Crowd', 'The IT Crowd is a British sitcom produced by Channel 4, written by Graham Linehan, produced by Ash Atalla and starring Chris O\\'Dowd, Richard Ayoade, Katherine Parkinson, and Matt Berry.', DATE('2006-02-03'));\n" +
@@ -86,7 +86,7 @@ public class YdbDatabaseLiquibaseChangeLogStateTest extends BaseTest {
                 outputMigration.contains(
                         "-- Changeset changelogs/migration/seasons_and_episodes.xml::seasons::kurdyukov-kir\n" +
                                 "-- Table seasons.\n" +
-                                "CREATE TABLE seasons (series_id INT64, season_id INT64, title TEXT, first_aired DATETIME, last_aired DATETIME, PRIMARY KEY (series_id, season_id) );\n" +
+                                "CREATE TABLE seasons (series_id INT64 NOT NULL, season_id INT64 NOT NULL, title TEXT, first_aired DATETIME, last_aired DATETIME, PRIMARY KEY (series_id, season_id) );\n" +
                                 "\n" +
                                 "INSERT INTO seasons (series_id, season_id, title, first_aired, last_aired) VALUES (1, 1, 'Season 1', CAST(1568628000 AS DATETIME), CAST(1694867400 AS DATETIME));\n" +
                                 "\n" +
@@ -94,7 +94,7 @@ public class YdbDatabaseLiquibaseChangeLogStateTest extends BaseTest {
                                 "\n" +
                                 "-- Changeset changelogs/migration/seasons_and_episodes.xml::episodes::kurdyukov-kir\n" +
                                 "-- Table episodes.\n" +
-                                "CREATE TABLE episodes (series_id INT64, season_id INT64, episode_id INT64, title TEXT, air_date TIMESTAMP, PRIMARY KEY (series_id, season_id, episode_id) );\n" +
+                                "CREATE TABLE episodes (series_id INT64 NOT NULL, season_id INT64 NOT NULL, episode_id INT64 NOT NULL, title TEXT, air_date TIMESTAMP, PRIMARY KEY (series_id, season_id, episode_id) );\n" +
                                 "\n" +
                                 "INSERT INTO episodes (series_id, season_id, episode_id, title, air_date) VALUES (1, 1, 1, 'Yesterday\\'s Jam', CAST(1680511583 AS DATETIME));\n" +
                                 "\n" +

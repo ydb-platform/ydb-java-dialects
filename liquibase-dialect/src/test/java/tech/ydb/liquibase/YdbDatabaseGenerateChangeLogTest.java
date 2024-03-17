@@ -82,7 +82,7 @@ public class YdbDatabaseGenerateChangeLogTest extends BaseTest {
 
         assertTrue(changelog.contains(
                 "CREATE TABLE all_types_table (" +
-                        "id INT32, " +
+                        "id INT32 NOT NULL, " +
                         "bool_column BOOL, " +
                         "bigint_column INT64, " +
                         "float_column FLOAT, " +
@@ -102,9 +102,9 @@ public class YdbDatabaseGenerateChangeLogTest extends BaseTest {
 
         assertTrue(changelog.contains(
                 "CREATE TABLE episodes (" +
-                        "series_id INT64, " +
-                        "season_id INT64, " +
-                        "episode_id INT64, " +
+                        "series_id INT64 NOT NULL, " +
+                        "season_id INT64 NOT NULL, " +
+                        "episode_id INT64 NOT NULL, " +
                         "title TEXT, " +
                         "air_date DATE, " +
                         "PRIMARY KEY (series_id, season_id, episode_id) " +
