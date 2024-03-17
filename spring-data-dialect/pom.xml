@@ -24,9 +24,27 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 
-        <springdata.jdbc.version>3.2.3</springdata.jdbc.version>
+        <maven.compiler.release>17</maven.compiler.release>
+
+        <maven.compiler.target>17</maven.compiler.target>
+        <maven.compiler.source>17</maven.compiler.source>
+
+        <springdata.jdbc.version>3.2.4</springdata.jdbc.version>
         <ydb.jdbc.version>2.0.5</ydb.jdbc.version>
+        <junit5.version>5.10.2</junit5.version>
     </properties>
+
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>tech.ydb</groupId>
+                <artifactId>ydb-sdk-bom</artifactId>
+                <version>2.1.9</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
 
     <dependencies>
         <dependency>
@@ -38,6 +56,36 @@
             <groupId>tech.ydb.jdbc</groupId>
             <artifactId>ydb-jdbc-driver-shaded</artifactId>
             <version>${ydb.jdbc.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>tech.ydb.test</groupId>
+            <artifactId>ydb-junit5-support</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-api</artifactId>
+            <version>${junit5.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <version>1.18.30</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <version>3.2.3</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-jdbc</artifactId>
+            <version>3.2.3</version>
+            <scope>test</scope>
         </dependency>
     </dependencies>
 </project>

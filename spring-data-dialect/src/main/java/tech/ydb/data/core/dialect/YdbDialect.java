@@ -1,8 +1,13 @@
-package tech.ydb.data.relational.core.dialect;
+package tech.ydb.data.core.dialect;
+
+import java.util.Collections;
+import java.util.Set;
 
 import org.springframework.data.relational.core.dialect.AbstractDialect;
+import org.springframework.data.relational.core.dialect.InsertRenderContext;
 import org.springframework.data.relational.core.dialect.LimitClause;
 import org.springframework.data.relational.core.dialect.LockClause;
+import org.springframework.data.relational.core.dialect.OrderByNullPrecedence;
 import org.springframework.data.relational.core.sql.IdentifierProcessing;
 import org.springframework.data.relational.core.sql.LockOptions;
 
@@ -10,6 +15,8 @@ import org.springframework.data.relational.core.sql.LockOptions;
  * @author Madiyar Nurgazin
  */
 public class YdbDialect extends AbstractDialect {
+
+    public static final YdbDialect INSTANCE = new YdbDialect();
 
     private static final LimitClause LIMIT_CLAUSE = new LimitClause() {
 
@@ -25,7 +32,7 @@ public class YdbDialect extends AbstractDialect {
 
         @Override
         public String getLimitOffset(long limit, long offset) {
-            return String.format("LIMIT %s OFFSET %s", offset, limit);
+            return String.format("LIMIT %s OFFSET %s", limit, offset);
         }
 
         @Override
@@ -36,7 +43,7 @@ public class YdbDialect extends AbstractDialect {
 
     private static final LockClause LOCK_CLAUSE = new LockClause() {
         public String getLock(LockOptions lockOptions) {
-            return "";
+            throw new UnsupportedOperationException("YDB don't support FOR UPDATE statement");
         }
 
         public LockClause.Position getClausePosition() {
@@ -54,12 +61,29 @@ public class YdbDialect extends AbstractDialect {
         return LOCK_CLAUSE;
     }
 
+    @Override
     public IdentifierProcessing getIdentifierProcessing() {
         return IdentifierProcessing.create(
                 new IdentifierProcessing.Quoting("`"),
-                IdentifierProcessing.LetterCasing.UPPER_CASE
+                IdentifierProcessing.LetterCasing.AS_IS
         );
     }
 
+    @Override
+    public Set<Class<?>> simpleTypes() {
+        return Collections.emptySet();
+    }
+
+    @Override
+    public InsertRenderContext getInsertRenderContext() {
+        return () -> {
+            throw new UnsupportedOperationException("YDB don't support VALUES (DEFAULT) statement");
+        };
+    }
+
+    @Override
+    public OrderByNullPrecedence orderByNullHandling() {
+        return OrderByNullPrecedence.NONE;
+    }
 
 }
