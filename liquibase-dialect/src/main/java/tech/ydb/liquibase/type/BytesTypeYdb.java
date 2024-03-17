@@ -1,6 +1,7 @@
 package tech.ydb.liquibase.type;
 
 import liquibase.change.core.LoadDataChange;
+import liquibase.database.Database;
 import liquibase.datatype.DataTypeInfo;
 import liquibase.datatype.LiquibaseDataType;
 
@@ -25,5 +26,14 @@ public class BytesTypeYdb extends BaseTypeYdb {
     @Override
     public LoadDataChange.LOAD_DATA_TYPE getLoadTypeName() {
         return LoadDataChange.LOAD_DATA_TYPE.BLOB;
+    }
+
+    @Override
+    public String objectToSql(Object value, Database database) {
+        if ((value == null) || "null".equalsIgnoreCase(value.toString())) {
+            return "NULL";
+        }
+
+        return "'" + value + "'";
     }
 }

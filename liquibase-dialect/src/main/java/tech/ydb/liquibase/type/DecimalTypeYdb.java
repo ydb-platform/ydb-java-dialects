@@ -26,11 +26,20 @@ public class DecimalTypeYdb extends BaseTypeYdb {
 
     @Override
     public DatabaseDataType toDatabaseDataType(Database database) {
-        return new DatabaseDataType(getRawDefinition().toUpperCase());
+        return new DatabaseDataType("DECIMAL(22, 9)");
     }
 
     @Override
     public LoadDataChange.LOAD_DATA_TYPE getLoadTypeName() {
         return LoadDataChange.LOAD_DATA_TYPE.NUMERIC;
+    }
+
+    @Override
+    public String objectToSql(Object value, Database database) {
+        if ((value == null) || "null".equalsIgnoreCase(value.toString())) {
+            return "NULL";
+        }
+
+        return "CAST('" + value + "' AS DECIMAL(22,9))";
     }
 }

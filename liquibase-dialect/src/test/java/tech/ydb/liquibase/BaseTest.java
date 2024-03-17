@@ -3,6 +3,7 @@ package tech.ydb.liquibase;
 import java.io.StringWriter;
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import liquibase.Contexts;
@@ -42,12 +43,14 @@ public abstract class BaseTest {
     @AfterEach
     public void clearMetaLiquibaseTables() {
         try (Connection connection = DriverManager.getConnection(jdbcUrl())) {
-            Statement statement = connection.createStatement();
+            ResultSet resultSet = connection.getMetaData()
+                    .getTables(null, null, null, null);
 
-            statement.execute("" +
-                    "DROP TABLE DATABASECHANGELOGLOCK;" +
-                    "DROP TABLE DATABASECHANGELOG;"
-            );
+            while (resultSet.next()) {
+                Statement statement = connection.createStatement();
+
+                statement.execute("DROP TABLE " + resultSet.getString("TABLE_NAME"));
+            }
         } catch (Exception e) {
             // do nothing
         }

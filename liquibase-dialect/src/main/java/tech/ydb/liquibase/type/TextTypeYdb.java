@@ -1,6 +1,5 @@
 package tech.ydb.liquibase.type;
 
-import java.util.Locale;
 import liquibase.change.core.LoadDataChange;
 import liquibase.database.Database;
 import liquibase.datatype.DataTypeInfo;
@@ -36,7 +35,7 @@ public class TextTypeYdb extends BaseTypeYdb {
 
     @Override
     public String objectToSql(Object value, Database database) {
-        if ((value == null) || "null".equals(value.toString().toLowerCase(Locale.US))) {
+        if ((value == null) || "null".equalsIgnoreCase(value.toString())) {
             return "NULL";
         }
 

@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                      http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.8.xsd">
+
+    <include file="/migration/all_types_table.xml" relativeToChangelogFile="true"/>
+    <changeSet id="init-data-from-csv-0.1" author="kurdyukov-kir" context="all">
+        <loadUpdateData tableName="all_types_table" primaryKey="id"
+                        file="./csv/test-upsert.csv" relativeToChangelogFile="true"/>
+    </changeSet>
+    <changeSet id="init-data-from-csv-0.2" author="kurdyukov-kir" context="all">
+        <loadData tableName="all_types_table" file="./csv/test-insert.csv" relativeToChangelogFile="true"/>
+    </changeSet>
+</databaseChangeLog>

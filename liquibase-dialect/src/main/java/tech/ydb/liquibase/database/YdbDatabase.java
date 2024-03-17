@@ -79,6 +79,11 @@ public class YdbDatabase extends AbstractJdbcDatabase {
     }
 
     @Override
+    public boolean supportsBatchUpdates() {
+        return true;
+    }
+
+    @Override
     public boolean requiresPassword() {
         return false;
     }
@@ -134,6 +139,16 @@ public class YdbDatabase extends AbstractJdbcDatabase {
      */
     @Override
     public boolean supportsAutoIncrement() {
+        return false;
+    }
+
+    @Override
+    public boolean supportsDDLInTransaction() {
+        return false;
+    }
+
+    @Override
+    public boolean supportsPrimaryKeyNames() {
         return false;
     }
 }

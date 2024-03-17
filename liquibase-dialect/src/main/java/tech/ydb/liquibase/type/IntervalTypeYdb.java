@@ -3,34 +3,36 @@ package tech.ydb.liquibase.type;
 import liquibase.change.core.LoadDataChange;
 import liquibase.database.Database;
 import liquibase.datatype.DataTypeInfo;
+import liquibase.datatype.DatabaseDataType;
 import liquibase.datatype.LiquibaseDataType;
 
 /**
  * @author Kirill Kurdyukov
  */
 @DataTypeInfo(
-        name = "Bool",
-        aliases = {
-                "boolean", "java.sql.Types.BOOLEAN",
-                "java.lang.Boolean", "bit", "bool",
-        },
+        name = "Interval",
         minParameters = 0,
         maxParameters = 0,
         priority = LiquibaseDataType.PRIORITY_DATABASE
 )
-public class BoolTypeYdb extends BaseTypeYdb {
+public class IntervalTypeYdb extends LiquibaseDataType {
 
     @Override
-    public LoadDataChange.LOAD_DATA_TYPE getLoadTypeName() {
-        return LoadDataChange.LOAD_DATA_TYPE.BOOLEAN;
+    public DatabaseDataType toDatabaseDataType(Database database) {
+        return new DatabaseDataType("INTERVAL");
     }
 
     @Override
     public String objectToSql(Object value, Database database) {
-        if ((value == null) || "null".equalsIgnoreCase(value.toString())) {
+        if (value == null || "null".equalsIgnoreCase(value.toString())) {
             return "NULL";
         }
 
-        return super.objectToSql(value, database);
+        return "CAST(" + value + " AS INTERVAL)";
+    }
+
+    @Override
+    public LoadDataChange.LOAD_DATA_TYPE getLoadTypeName() {
+        return LoadDataChange.LOAD_DATA_TYPE.OTHER;
     }
 }
