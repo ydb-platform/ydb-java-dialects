@@ -18,7 +18,7 @@ public class YdbDatabaseLiquibaseAllTypesTableTest extends BaseTest {
 
         assertTrue(
                 outputMigration.contains("CREATE TABLE all_types_table (" +
-                        "id INT32, bool_column BOOL, bigint_column INT64, " +
+                        "id INT32 NOT NULL, bool_column BOOL, bigint_column INT64, " +
                         "float_column FLOAT, double_column DOUBLE, " +
                         "decimal_column DECIMAL(22, 9), text_column TEXT, " +
                         "binary_column BYTES, json_column JSON, " +
