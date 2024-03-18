@@ -1,9 +1,6 @@
 package tech.ydb.liquibase.type;
 
-import liquibase.change.core.LoadDataChange;
-import liquibase.database.Database;
 import liquibase.datatype.DataTypeInfo;
-import liquibase.datatype.DatabaseDataType;
 import liquibase.datatype.LiquibaseDataType;
 
 /**
@@ -18,21 +15,7 @@ import liquibase.datatype.LiquibaseDataType;
 public class JsonTypeYdb extends BaseTypeYdb {
 
     @Override
-    public DatabaseDataType toDatabaseDataType(Database database) {
-        return new DatabaseDataType("JSON");
-    }
-
-    @Override
-    public LoadDataChange.LOAD_DATA_TYPE getLoadTypeName() {
-        return LoadDataChange.LOAD_DATA_TYPE.OTHER;
-    }
-
-    @Override
-    public String objectToSql(Object value, Database database) {
-        if (value == null || "null".equalsIgnoreCase(value.toString())) {
-            return "NULL";
-        }
-
+    protected String objectToSql(Object value) {
         return "CAST('" + value + "' AS JSON)";
     }
 }

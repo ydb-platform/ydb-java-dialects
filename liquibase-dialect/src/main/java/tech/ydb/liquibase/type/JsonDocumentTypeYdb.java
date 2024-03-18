@@ -1,9 +1,6 @@
 package tech.ydb.liquibase.type;
 
-import liquibase.change.core.LoadDataChange;
-import liquibase.database.Database;
 import liquibase.datatype.DataTypeInfo;
-import liquibase.datatype.DatabaseDataType;
 import liquibase.datatype.LiquibaseDataType;
 
 /**
@@ -15,24 +12,10 @@ import liquibase.datatype.LiquibaseDataType;
         maxParameters = 0,
         priority = LiquibaseDataType.PRIORITY_DATABASE
 )
-public class JsonDocumentTypeYdb extends LiquibaseDataType {
+public class JsonDocumentTypeYdb extends BaseTypeYdb {
 
     @Override
-    public DatabaseDataType toDatabaseDataType(Database database) {
-        return new DatabaseDataType("JSONDOCUMENT");
-    }
-
-    @Override
-    public String objectToSql(Object value, Database database) {
-        if (value == null || "null".equalsIgnoreCase(value.toString())) {
-            return "NULL";
-        }
-
+    protected String objectToSql(Object value) {
         return "CAST('" + value + "' AS JSONDOCUMENT)";
-    }
-
-    @Override
-    public LoadDataChange.LOAD_DATA_TYPE getLoadTypeName() {
-        return LoadDataChange.LOAD_DATA_TYPE.OTHER;
     }
 }

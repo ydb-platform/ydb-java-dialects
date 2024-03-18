@@ -9,6 +9,12 @@ tech.ydb.liquibase.type.IntTypeYdb
 tech.ydb.liquibase.type.JsonDocumentTypeYdb
 tech.ydb.liquibase.type.JsonTypeYdb
 tech.ydb.liquibase.type.LongTypeYdb
+tech.ydb.liquibase.type.SmallIntTypeYdb
 tech.ydb.liquibase.type.TextTypeYdb
 tech.ydb.liquibase.type.TimestampTypeYdb
 tech.ydb.liquibase.type.TimeTypeYdb
+tech.ydb.liquibase.type.TinyIntTypeYdb
+tech.ydb.liquibase.type.Uint8TypeYdb
+tech.ydb.liquibase.type.Uint16TypeYdb
+tech.ydb.liquibase.type.Uint32TypeYdb
+tech.ydb.liquibase.type.Uint64TypeYdb

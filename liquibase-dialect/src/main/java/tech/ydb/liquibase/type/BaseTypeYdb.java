@@ -1,5 +1,6 @@
 package tech.ydb.liquibase.type;
 
+import liquibase.change.core.LoadDataChange;
 import liquibase.database.Database;
 import liquibase.datatype.DatabaseDataType;
 import liquibase.datatype.LiquibaseDataType;
@@ -18,5 +19,22 @@ abstract class BaseTypeYdb extends LiquibaseDataType {
     @Override
     public DatabaseDataType toDatabaseDataType(Database database) {
         return new DatabaseDataType(getName().toUpperCase());
+    }
+
+    protected abstract String objectToSql(Object value);
+
+    @Override
+    public String objectToSql(Object value, Database database) {
+        if ((value == null) || "null".equalsIgnoreCase(value.toString())) {
+            return "NULL";
+        }
+
+        return objectToSql(value);
+    }
+
+    // un using
+    @Override
+    public LoadDataChange.LOAD_DATA_TYPE getLoadTypeName() {
+        return LoadDataChange.LOAD_DATA_TYPE.OTHER;
     }
 }

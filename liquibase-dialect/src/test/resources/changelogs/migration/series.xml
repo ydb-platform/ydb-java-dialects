@@ -13,7 +13,9 @@
                 <constraints primaryKey="true"/>
             </column>
 
-            <column name="title" type="text"/>
+            <column name="title" type="text">
+                <constraints nullable="false"/>
+            </column>
             <column name="series_info" type="text"/>
             <column name="release_date" type="date"/>
         </createTable>
