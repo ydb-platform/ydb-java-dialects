@@ -1,6 +1,5 @@
 package tech.ydb.liquibase.type;
 
-import liquibase.change.core.LoadDataChange;
 import liquibase.database.Database;
 import liquibase.datatype.DataTypeInfo;
 import liquibase.datatype.LiquibaseDataType;
@@ -29,11 +28,6 @@ import liquibase.statement.DatabaseFunction;
 public class TextTypeYdb extends BaseTypeYdb {
 
     @Override
-    public LoadDataChange.LOAD_DATA_TYPE getLoadTypeName() {
-        return LoadDataChange.LOAD_DATA_TYPE.STRING;
-    }
-
-    @Override
     public String objectToSql(Object value, Database database) {
         if ((value == null) || "null".equalsIgnoreCase(value.toString())) {
             return "NULL";
@@ -44,5 +38,11 @@ public class TextTypeYdb extends BaseTypeYdb {
         }
 
         return "'" + database.escapeStringForDatabase(value.toString()) + "'";
+    }
+
+    // un use
+    @Override
+    protected String objectToSql(Object value) {
+        return null;
     }
 }

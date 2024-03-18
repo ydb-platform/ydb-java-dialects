@@ -130,6 +130,7 @@
                 <configuration>
                     <environmentVariables>
                         <TESTCONTAINERS_REUSE_ENABLE>true</TESTCONTAINERS_REUSE_ENABLE>
+                        <YDB_DOCKER_IMAGE>cr.yandex/yc/yandex-docker-local-ydb:trunk</YDB_DOCKER_IMAGE>
                     </environmentVariables>
                 </configuration>
             </plugin>

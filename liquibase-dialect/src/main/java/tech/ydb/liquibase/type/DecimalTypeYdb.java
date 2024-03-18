@@ -1,6 +1,5 @@
 package tech.ydb.liquibase.type;
 
-import liquibase.change.core.LoadDataChange;
 import liquibase.database.Database;
 import liquibase.datatype.DataTypeInfo;
 import liquibase.datatype.DatabaseDataType;
@@ -30,16 +29,7 @@ public class DecimalTypeYdb extends BaseTypeYdb {
     }
 
     @Override
-    public LoadDataChange.LOAD_DATA_TYPE getLoadTypeName() {
-        return LoadDataChange.LOAD_DATA_TYPE.NUMERIC;
-    }
-
-    @Override
-    public String objectToSql(Object value, Database database) {
-        if ((value == null) || "null".equalsIgnoreCase(value.toString())) {
-            return "NULL";
-        }
-
+    protected String objectToSql(Object value) {
         return "CAST('" + value + "' AS DECIMAL(22,9))";
     }
 }
