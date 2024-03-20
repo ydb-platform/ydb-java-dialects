@@ -1,7 +1,6 @@
 package tech.ydb.liquibase.type;
 
 import liquibase.change.core.LoadDataChange;
-import liquibase.database.Database;
 import liquibase.datatype.DataTypeInfo;
 import liquibase.datatype.LiquibaseDataType;
 
@@ -26,11 +25,7 @@ public class TimestampTypeYdb extends BaseTypeYdb {
     }
 
     @Override
-    public String objectToSql(Object value, Database database) {
-        if ((value == null) || "null".equalsIgnoreCase(value.toString())) {
-            return "NULL";
-        }
-
+    protected String objectToSql(Object value) {
         return "TIMESTAMP('" + value + "')";
     }
 }

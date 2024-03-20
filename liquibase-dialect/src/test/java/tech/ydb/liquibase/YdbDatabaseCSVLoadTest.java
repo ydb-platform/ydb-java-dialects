@@ -21,39 +21,35 @@ public class YdbDatabaseCSVLoadTest extends BaseTest {
 
         String migrationStr = migrationStr(changeLogFile);
 
-        assertTrue(migrationStr.contains(
-                "UPSERT INTO all_types_table (id, bool_column, bigint_column, float_column, " +
-                        "double_column, decimal_column, text_column, binary_column, json_column, " +
-                        "jsondocument_column, date_column, datetime_column, timestamp_column, " +
-                        "interval_column) VALUES ('1', 'true', '123123', '1.123', '1.123123', " +
-                        "'1.123123', 'Кирилл Курдюков Алексеевич', 'binary', '{\"asd\": \"asd\"}'," +
-                        " '{\"asd\": \"asd\"}', '2014-04-06', '2023-09-16T12:30', '2023-07-31T17:00:00.000000Z', '123');\n"
+        assertTrue(migrationStr.contains("UPSERT INTO all_types_table (id, bool_column, bigint_column, smallint_column, " +
+                "tinyint_column, float_column, double_column, decimal_column, uint8_column, " +
+                "uint16_column, unit32_column, unit64_column, text_column, binary_column, json_column, " +
+                "jsondocument_column, date_column, datetime_column, timestamp_column, interval_column) VALUES " +
+                "('1', 'true', '123123', '13000', '223', '1.123', '1.123123', '1.123123', '12', '13', '14', " +
+                "'15', 'Кирилл Курдюков Алексеевич', 'binary', '{\"asd\": \"asd\"}', '{\"asd\": \"asd\"}', " +
+                "'2014-04-06', '2023-09-16T12:30', '2023-07-31T17:00:00.000000Z', '123');"
         ));
 
-        assertTrue(migrationStr.contains(
-                "UPSERT INTO all_types_table" +
-                        " (id, bool_column, bigint_column, float_column," +
-                        " double_column, decimal_column, text_column, binary_column," +
-                        " json_column, jsondocument_column, date_column, datetime_column, " +
-                        "timestamp_column, interval_column) VALUES " +
-                        "('5', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, " +
-                        "NULL, NULL, NULL, NULL, NULL);\n"
+        assertTrue(migrationStr.contains("UPSERT INTO all_types_table (id, bool_column, bigint_column, smallint_column, " +
+                "tinyint_column, float_column, double_column, decimal_column, uint8_column, " +
+                "uint16_column, unit32_column, unit64_column, text_column, binary_column, json_column, " +
+                "jsondocument_column, date_column, datetime_column, timestamp_column, interval_column) VALUES " +
+                "('5', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, " +
+                "NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL);"
         ));
 
-        assertTrue(migrationStr.contains(
-                "INSERT INTO all_types_table " +
-                        "(id, bool_column, bigint_column, float_column, " +
-                        "double_column, decimal_column, text_column, " +
-                        "binary_column, json_column, jsondocument_column, " +
-                        "date_column, datetime_column, timestamp_column, interval_column) " +
-                        "VALUES ('2', 'true', '123123', '1.123', '1.123123', '1.123123', " +
-                        "'Кирилл Курдюков Алексеевич', 'binary', '{\"asd\": \"asd\"}', " +
-                        "'{\"asd\": \"asd\"}', '2014-04-06', '2023-09-16T12:30'," +
-                        " '2023-07-31T17:00:00.000000Z', '123'), ('3', 'true', '123123', " +
-                        "'1.123', '1.123123', '1.123123', 'Кирилл Курдюков Алексеевич', " +
-                        "'binary', '{\"asd\": \"asd\"}', '{\"asd\": \"asd\"}', '2014-04-06', " +
-                        "'2023-09-16T12:30', '2023-07-31T17:00:00.000000Z', '123'), " +
-                        "('6', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL);\n"
+        assertTrue(migrationStr.contains("INSERT INTO all_types_table (id, bool_column, bigint_column, smallint_column, " +
+                "tinyint_column, float_column, double_column, decimal_column, uint8_column, uint16_column, " +
+                "unit32_column, unit64_column, text_column, binary_column, json_column, jsondocument_column, " +
+                "date_column, datetime_column, timestamp_column, interval_column) VALUES " +
+                "('2', 'true', '123123', '13000', '223', '1.123', '1.123123', '1.123123', '12', '13', " +
+                "'14', '15', 'Кирилл Курдюков Алексеевич', 'binary', '{\"asd\": \"asd\"}', '{\"asd\": \"asd\"}', " +
+                "'2014-04-06', '2023-09-16T12:30', '2023-07-31T17:00:00.000000Z', '123'), " +
+                "('3', 'true', '123123', '13000', '223', '1.123', '1.123123', '1.123123', '12', " +
+                "'13', '14', '15', 'Кирилл Курдюков Алексеевич', 'binary', '{\"asd\": \"asd\"}', " +
+                "'{\"asd\": \"asd\"}', '2014-04-06', '2023-09-16T12:30', '2023-07-31T17:00:00.000000Z', '123'), " +
+                "('6', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, " +
+                "NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL);"
         ));
 
         migrateChangeFile(changeLogFile);
@@ -148,7 +144,7 @@ public class YdbDatabaseCSVLoadTest extends BaseTest {
                         "('2', '5', '5', 'FacialRecognition', '2018-04-22'), " +
                         "('2', '5', '6', 'ArtificialEmotionalIntelligence', '2018-04-29'), " +
                         "('2', '5', '7', 'InitialCoinOffering', '2018-05-06'), " +
-                        "('2', '5', '8', 'Fifty-OnePercent', '2018-05-13');\n"
+                        "('2', '5000000000', '8', 'Fifty-OnePercent', '2018-05-13');\n"
         ));
 
         migrateChangeFile(changeLogFile);

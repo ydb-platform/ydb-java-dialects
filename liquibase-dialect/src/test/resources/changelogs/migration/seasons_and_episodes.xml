@@ -16,7 +16,9 @@
                 <constraints primaryKey="true"/>
             </column>
 
-            <column name="title" type="text"/>
+            <column name="title" type="text">
+                <constraints nullable="false"/>
+            </column>
             <column name="first_aired" type="datetime"/>
             <column name="last_aired" type="datetime"/>
         </createTable>
@@ -47,7 +49,9 @@
                 <constraints primaryKey="true"/>
             </column>
 
-            <column name="title" type="text"/>
+            <column name="title" type="text">
+                <constraints nullable="false"/>
+            </column>
             <column name="air_date" type="timestamp"/>
         </createTable>
 

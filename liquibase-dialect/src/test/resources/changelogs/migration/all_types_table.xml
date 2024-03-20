@@ -10,19 +10,35 @@
 
         <createTable tableName="all_types_table" remarks="The table shows all possible types of YDB data.">
 
-            <!-- Numeric types -->
+            <!-- Signed integer -->
             <column name="id" type="int" remarks="A signed integer. Acceptable values: from -2^31 to 2^31–1.">
                 <constraints primaryKey="true"/>
             </column>
             <column name="bool_column" type="bool" remarks="Boolean value."/>
             <column name="bigint_column" type="bigint"
                     remarks="A signed integer. Acceptable values: from –2^63 to 2^63–1."/>
+            <column name="smallint_column" type="smallint"
+                    remarks="A signed integer. Acceptable values: from –2^15 to 2^15–1."/>
+            <column name="tinyint_column" type="tinyint"
+                    remarks="A signed integer. Acceptable values: from -2^7 to 2^7–1."/>
+
+            <!-- Real number -->
             <column name="float_column" type="float"
                     remarks="A real number with variable precision, 4 bytes in size."/>
             <column name="double_column" type="double"
                     remarks="A real number with variable precision, 8 bytes in size."/>
             <column name="decimal_column" type="decimal(22,9)"
                     remarks="A real number with the specified precision, up to 35 decimal digits"/>
+
+            <!-- Unsigned integer -->
+            <column name="uint8_column" type="uint8"
+                    remarks="An unsigned integer. Acceptable values: from 0 to 2^8–1."/>
+            <column name="uint16_column" type="uint16"
+                    remarks="An unsigned integer. Acceptable values: from 0 to 2^16–1."/>
+            <column name="unit32_column" type="uint32"
+                    remarks="An unsigned integer. Acceptable values: from 0 to 2^32–1."/>
+            <column name="unit64_column" type="uint64"
+                    remarks="An unsigned integer. Acceptable values: from 0 to 2^64–1."/>
 
             <!-- String types -->
             <column name="text_column" type="varchar" remarks="Text encoded in UTF-8."/>

@@ -1,3 +1,8 @@
+## 0.9.7 ##
+
+* Supported NOT NULL statement
+* Added support for YDB unsigned integer types
+
 ## 0.9.6 ##
 
 * Fixed NullPointerException when load csv file

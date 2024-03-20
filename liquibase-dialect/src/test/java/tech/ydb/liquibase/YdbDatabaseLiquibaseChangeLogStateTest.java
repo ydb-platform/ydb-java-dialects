@@ -57,11 +57,11 @@ public class YdbDatabaseLiquibaseChangeLogStateTest extends BaseTest {
                 outputMigration.contains(
                         "-- Changeset changelogs/migration/series.xml::series::kurdyukov-kir\n" +
                                 "-- Table series.\n" +
-                                "CREATE TABLE series (series_id INT64, title TEXT, series_info TEXT, release_date DATE, PRIMARY KEY (series_id) );\n" +
+                                "CREATE TABLE series (series_id INT64 NOT NULL, title TEXT NOT NULL, series_info TEXT, release_date DATE, PRIMARY KEY (series_id) );\n" +
                                 "\n" +
                                 "ALTER TABLE series ADD INDEX series_index GLOBAL ON (title);\n" +
                                 "\n" +
-                                "INSERT INTO DATABASECHANGELOG (ID, AUTHOR, FILENAME, DATEEXECUTED, ORDEREXECUTED, MD5SUM, DESCRIPTION, COMMENTS, EXECTYPE, CONTEXTS, LABELS, LIQUIBASE, DEPLOYMENT_ID) VALUES ('series', 'kurdyukov-kir', 'changelogs/migration/series.xml', CurrentUtcDatetime(), 1, '9:5809802102bcd74f1d8bc0f1d874463f', 'createTable tableName=series; createIndex indexName=series_index, tableName=series', 'Table series.', 'EXECUTED', NULL, NULL, '4.24.0', NULL);\n" +
+                                "INSERT INTO DATABASECHANGELOG (ID, AUTHOR, FILENAME, DATEEXECUTED, ORDEREXECUTED, MD5SUM, DESCRIPTION, COMMENTS, EXECTYPE, CONTEXTS, LABELS, LIQUIBASE, DEPLOYMENT_ID) VALUES ('series', 'kurdyukov-kir', 'changelogs/migration/series.xml', CurrentUtcDatetime(), 1, '9:08477601fdecadc3f61df55cc6a6f691', 'createTable tableName=series; createIndex indexName=series_index, tableName=series', 'Table series.', 'EXECUTED', NULL, NULL, '4.24.0', NULL);\n" +
                                 "\n" +
                                 "-- Changeset changelogs/migration/series.xml::added_data_into_series::kurdyukov-kir\n" +
                                 "INSERT INTO series (series_id, title, series_info, release_date) VALUES (1, 'IT Crowd', 'The IT Crowd is a British sitcom produced by Channel 4, written by Graham Linehan, produced by Ash Atalla and starring Chris O\\'Dowd, Richard Ayoade, Katherine Parkinson, and Matt Berry.', DATE('2006-02-03'));\n" +
@@ -86,19 +86,19 @@ public class YdbDatabaseLiquibaseChangeLogStateTest extends BaseTest {
                 outputMigration.contains(
                         "-- Changeset changelogs/migration/seasons_and_episodes.xml::seasons::kurdyukov-kir\n" +
                                 "-- Table seasons.\n" +
-                                "CREATE TABLE seasons (series_id INT64, season_id INT64, title TEXT, first_aired DATETIME, last_aired DATETIME, PRIMARY KEY (series_id, season_id) );\n" +
+                                "CREATE TABLE seasons (series_id INT64 NOT NULL, season_id INT64 NOT NULL, title TEXT NOT NULL, first_aired DATETIME, last_aired DATETIME, PRIMARY KEY (series_id, season_id) );\n" +
                                 "\n" +
                                 "INSERT INTO seasons (series_id, season_id, title, first_aired, last_aired) VALUES (1, 1, 'Season 1', CAST(1568628000 AS DATETIME), CAST(1694867400 AS DATETIME));\n" +
                                 "\n" +
-                                "INSERT INTO DATABASECHANGELOG (ID, AUTHOR, FILENAME, DATEEXECUTED, ORDEREXECUTED, MD5SUM, DESCRIPTION, COMMENTS, EXECTYPE, CONTEXTS, LABELS, LIQUIBASE, DEPLOYMENT_ID) VALUES ('seasons', 'kurdyukov-kir', 'changelogs/migration/seasons_and_episodes.xml', CurrentUtcDatetime(), 3, '9:431b823cc76cb5d1f7703812c25bd64f', 'createTable tableName=seasons; insert tableName=seasons', 'Table seasons.', 'EXECUTED', NULL, NULL, '4.24.0', NULL);\n" +
+                                "INSERT INTO DATABASECHANGELOG (ID, AUTHOR, FILENAME, DATEEXECUTED, ORDEREXECUTED, MD5SUM, DESCRIPTION, COMMENTS, EXECTYPE, CONTEXTS, LABELS, LIQUIBASE, DEPLOYMENT_ID) VALUES ('seasons', 'kurdyukov-kir', 'changelogs/migration/seasons_and_episodes.xml', CurrentUtcDatetime(), 3, '9:b101af683a3d98ffa702d0c0f2595d9b', 'createTable tableName=seasons; insert tableName=seasons', 'Table seasons.', 'EXECUTED', NULL, NULL, '4.24.0', NULL);\n" +
                                 "\n" +
                                 "-- Changeset changelogs/migration/seasons_and_episodes.xml::episodes::kurdyukov-kir\n" +
                                 "-- Table episodes.\n" +
-                                "CREATE TABLE episodes (series_id INT64, season_id INT64, episode_id INT64, title TEXT, air_date TIMESTAMP, PRIMARY KEY (series_id, season_id, episode_id) );\n" +
+                                "CREATE TABLE episodes (series_id INT64 NOT NULL, season_id INT64 NOT NULL, episode_id INT64 NOT NULL, title TEXT NOT NULL, air_date TIMESTAMP, PRIMARY KEY (series_id, season_id, episode_id) );\n" +
                                 "\n" +
                                 "INSERT INTO episodes (series_id, season_id, episode_id, title, air_date) VALUES (1, 1, 1, 'Yesterday\\'s Jam', CAST(1680511583 AS DATETIME));\n" +
                                 "\n" +
-                                "INSERT INTO DATABASECHANGELOG (ID, AUTHOR, FILENAME, DATEEXECUTED, ORDEREXECUTED, MD5SUM, DESCRIPTION, COMMENTS, EXECTYPE, CONTEXTS, LABELS, LIQUIBASE, DEPLOYMENT_ID) VALUES ('episodes', 'kurdyukov-kir', 'changelogs/migration/seasons_and_episodes.xml', CurrentUtcDatetime(), 4, '9:f2b1bc3ccfe61dee83a5179dd07ad4ef', 'createTable tableName=episodes; insert tableName=episodes', 'Table episodes.', 'EXECUTED', NULL, NULL, '4.24.0', NULL);\n" +
+                                "INSERT INTO DATABASECHANGELOG (ID, AUTHOR, FILENAME, DATEEXECUTED, ORDEREXECUTED, MD5SUM, DESCRIPTION, COMMENTS, EXECTYPE, CONTEXTS, LABELS, LIQUIBASE, DEPLOYMENT_ID) VALUES ('episodes', 'kurdyukov-kir', 'changelogs/migration/seasons_and_episodes.xml', CurrentUtcDatetime(), 4, '9:8eb9a542e36690d22f4ba58727e5cdd1', 'createTable tableName=episodes; insert tableName=episodes', 'Table episodes.', 'EXECUTED', NULL, NULL, '4.24.0', NULL);\n" +
                                 "\n" +
                                 "-- Release Database Lock\n" +
                                 "UPDATE DATABASECHANGELOGLOCK SET LOCKED = false, LOCKEDBY = NULL, LOCKGRANTED = NULL WHERE ID = 1;"

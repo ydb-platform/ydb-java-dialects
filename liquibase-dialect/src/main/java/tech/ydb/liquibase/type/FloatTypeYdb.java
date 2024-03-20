@@ -1,7 +1,5 @@
 package tech.ydb.liquibase.type;
 
-import liquibase.change.core.LoadDataChange;
-import liquibase.database.Database;
 import liquibase.datatype.DataTypeInfo;
 import liquibase.datatype.LiquibaseDataType;
 
@@ -10,10 +8,7 @@ import liquibase.datatype.LiquibaseDataType;
  */
 @DataTypeInfo(
         name = "Float",
-        aliases = {
-                "float", "java.sql.Types.FLOAT", "java.lang.Float",
-                "real", "java.sql.Types.REAL"
-        },
+        aliases = {"java.sql.Types.FLOAT", "java.lang.Float", "real", "java.sql.Types.REAL"},
         minParameters = 0,
         maxParameters = 0,
         priority = LiquibaseDataType.PRIORITY_DATABASE
@@ -22,16 +17,7 @@ import liquibase.datatype.LiquibaseDataType;
 public class FloatTypeYdb extends BaseTypeYdb {
 
     @Override
-    public LoadDataChange.LOAD_DATA_TYPE getLoadTypeName() {
-        return LoadDataChange.LOAD_DATA_TYPE.NUMERIC;
-    }
-
-    @Override
-    public String objectToSql(Object value, Database database) {
-        if ((value == null) || "null".equalsIgnoreCase(value.toString())) {
-            return "NULL";
-        }
-
+    protected String objectToSql(Object value) {
         return "CAST('" + value + "' AS FLOAT)";
     }
 }
