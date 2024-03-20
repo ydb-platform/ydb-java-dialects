@@ -1,4 +1,4 @@
-package tech.ydb.data.repository.config;
+package tech.ydb.data.config;
 
 import java.sql.Connection;
 import java.sql.SQLException;

@@ -1,4 +1,4 @@
-package tech.ydb.data.repository.config;
+package tech.ydb.data.config;
 
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Lazy;
