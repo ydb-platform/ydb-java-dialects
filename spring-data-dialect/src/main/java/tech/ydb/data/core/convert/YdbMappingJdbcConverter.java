@@ -1,5 +1,7 @@
 package tech.ydb.data.core.convert;
 
+import java.sql.SQLType;
+
 import org.springframework.data.convert.CustomConversions;
 import org.springframework.data.jdbc.core.convert.JdbcTypeFactory;
 import org.springframework.data.jdbc.core.convert.MappingJdbcConverter;
@@ -9,6 +11,7 @@ import org.springframework.data.relational.core.mapping.RelationalPersistentEnti
 import org.springframework.data.relational.core.mapping.RelationalPersistentProperty;
 import org.springframework.data.util.TypeInformation;
 import org.springframework.lang.Nullable;
+import tech.ydb.data.support.YdbJdbcUtil;
 
 /**
  * @author Madiyar Nurgazin
@@ -17,6 +20,11 @@ public class YdbMappingJdbcConverter extends MappingJdbcConverter {
     public YdbMappingJdbcConverter(RelationalMappingContext context, RelationResolver relationResolver,
                                 CustomConversions conversions, JdbcTypeFactory typeFactory) {
         super(context, relationResolver, conversions, typeFactory);
+    }
+
+    @Override
+    public SQLType getTargetSqlType(RelationalPersistentProperty property) {
+        return YdbJdbcUtil.targetSqlTypeFor(getColumnType(property));
     }
 
     @Override
