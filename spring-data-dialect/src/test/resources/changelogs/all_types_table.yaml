@@ -1,0 +1,56 @@
+databaseChangeLog:
+  - changeSet:
+      id: "all_types_table"
+      author: "Madiyar Nurgazin"
+      changes:
+        - createTable:
+            tableName: "all_types_table"
+            columns:
+              - column:
+                  name: id
+                  type: int
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: text_column
+                  type: varchar
+              - column:
+                  name: bool_column
+                  type: bool
+              - column:
+                  name: tinyint_column
+                  type: tinyint
+              - column:
+                  name: smallint_column
+                  type: smallint
+              - column:
+                  name: bigint_column
+                  type: bigint
+              - column:
+                  name: float_column
+                  type: float
+              - column:
+                  name: double_column
+                  type: double
+              - column:
+                  name: decimal_column
+                  type: decimal(22,9)
+              - column:
+                  name: binary_column
+                  type: binary
+              - column:
+                  name: date_column
+                  type: date
+              - column:
+                  name: datetime_column
+                  type: datetime
+              - column:
+                  name: created
+                  type: datetime
+              - column:
+                  name: timestamp_column
+                  type: timestamp
+      rollback:
+        - dropTable:
+            tableName: all_types_table

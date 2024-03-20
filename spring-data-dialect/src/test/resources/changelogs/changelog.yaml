@@ -1,0 +1,16 @@
+databaseChangeLog:
+  - include:
+      file: "all_types_table.yaml"
+      relativeToChangelogFile: true
+  - include:
+      file: "books.yaml"
+      relativeToChangelogFile: true
+  - changeSet:
+      id: "insert-all-types-table"
+      author: "Madiyar Nurgazin"
+      context: all
+      changes:
+        - loadData:
+            tableName: "all_types_table"
+            file: "insert_all_types_table.csv"
+            relativeToChangelogFile: true
