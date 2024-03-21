@@ -1,0 +1,274 @@
+databaseChangeLog:
+  - changeSet:
+      id: "authors"
+      author: "Madiyar Nurgazin"
+      changes:
+        - createTable:
+            tableName: authors
+            columns:
+              - column:
+                  name: id
+                  type: bigint
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: name
+                  type: varchar
+        - insert:
+            tableName: authors
+            columns:
+              - column:
+                  name: id
+                  valueNumeric: 1
+              - column:
+                  name: name
+                  value: "Leo Tolstoy"
+      rollback:
+        - dropTable:
+            tableName: authors
+  - changeSet:
+      id: "books"
+      author: "Madiyar Nurgazin"
+      changes:
+        - createTable:
+            tableName: books
+            columns:
+              - column:
+                  name: id
+                  type: bigint
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: title
+                  type: varchar
+              - column:
+                  name: isbn
+                  type: varchar
+              - column:
+                  name: year
+                  type: bigint
+        - insert:
+            tableName: books
+            columns:
+              - column:
+                  name: id
+                  valueNumeric: 1
+              - column:
+                  name: title
+                  value: "War and Peace"
+              - column:
+                  name: isbn
+                  value: "1234"
+              - column:
+                  name: year
+                  valueNumeric: 1869
+        - insert:
+            tableName: books
+            columns:
+              - column:
+                  name: id
+                  valueNumeric: 2
+              - column:
+                  name: title
+                  value: "Anna Karenina"
+              - column:
+                  name: isbn
+                  value: "5678"
+              - column:
+                  name: year
+                  valueNumeric: 1878
+      rollback:
+        - dropTable:
+            tableName: books
+  - changeSet:
+      id: "books_authors"
+      author: "Madiyar Nurgazin"
+      changes:
+        - createTable:
+            tableName: books_authors
+            columns:
+              - column:
+                  name: author_id
+                  type: bigint
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: book_id
+                  type: bigint
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+        - insert:
+            tableName: books_authors
+            columns:
+              - column:
+                  name: author_id
+                  valueNumeric: 1
+              - column:
+                  name: book_id
+                  valueNumeric: 1
+        - insert:
+            tableName: books_authors
+            columns:
+              - column:
+                  name: author_id
+                  valueNumeric: 1
+              - column:
+                  name: book_id
+                  valueNumeric: 2
+      rollback:
+        - dropTable:
+            tableName: books_authors
+  - changeSet:
+      id: "readers"
+      author: "Madiyar Nurgazin"
+      changes:
+        - createTable:
+            tableName: readers
+            columns:
+              - column:
+                  name: id
+                  type: bigint
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: name
+                  type: varchar
+        - insert:
+            tableName: readers
+            columns:
+              - column:
+                  name: id
+                  valueNumeric: 1
+              - column:
+                  name: name
+                  value: "Ivan Ivanov"
+        - insert:
+            tableName: readers
+            columns:
+              - column:
+                  name: id
+                  valueNumeric: 2
+              - column:
+                  name: name
+                  value: "Sergey Petrov"
+      rollback:
+        - dropTable:
+            tableName: readers
+  - changeSet:
+      id: "reviews"
+      author: "Madiyar Nurgazin"
+      changes:
+        - createTable:
+            tableName: reviews
+            columns:
+              - column:
+                  name: id
+                  type: bigint
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: text
+                  type: varchar
+              - column:
+                  name: rating
+                  type: bigint
+              - column:
+                  name: created
+                  type: datetime
+              - column:
+                  name: book_id
+                  type: bigint
+              - column:
+                  name: reader_id
+                  type: bigint
+        - insert:
+            tableName: reviews
+            columns:
+              - column:
+                  name: id
+                  valueNumeric: 1
+              - column:
+                  name: text
+                  value: "Masterpiece!"
+              - column:
+                  name: rating
+                  valueNumeric: 10
+              - column:
+                  name: created
+                  valueDate: "2024-03-19T18:52:26.123"
+              - column:
+                  name: book_id
+                  valueNumeric: 1
+              - column:
+                  name: reader_id
+                  valueNumeric: 1
+        - insert:
+            tableName: reviews
+            columns:
+              - column:
+                  name: id
+                  valueNumeric: 2
+              - column:
+                  name: text
+                  value: "Complex work, but I liked it"
+              - column:
+                  name: rating
+                  valueNumeric: 9
+              - column:
+                  name: created
+                  valueDate: "2024-03-19T19:14:05.456"
+              - column:
+                  name: book_id
+                  valueNumeric: 1
+              - column:
+                  name: reader_id
+                  valueNumeric: 2
+      rollback:
+        - dropTable:
+            tableName: reviews
+  - changeSet:
+      id: "readers_reviews"
+      author: "Madiyar Nurgazin"
+      changes:
+        - createTable:
+            tableName: readers_reviews
+            columns:
+              - column:
+                  name: reader_id
+                  type: bigint
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: review_id
+                  type: bigint
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+        - insert:
+            tableName: readers_reviews
+            columns:
+              - column:
+                  name: reader_id
+                  valueNumeric: 1
+              - column:
+                  name: review_id
+                  valueNumeric: 1
+        - insert:
+            tableName: readers_reviews
+            columns:
+              - column:
+                  name: reader_id
+                  valueNumeric: 2
+              - column:
+                  name: review_id
+                  valueNumeric: 2
+      rollback:
+        - dropTable:
+            tableName: reviews
