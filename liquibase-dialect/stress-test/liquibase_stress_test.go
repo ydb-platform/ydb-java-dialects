@@ -11,9 +11,9 @@ import (
 )
 
 func TestLiquibaseUpdateStressTest(t *testing.T) {
-	wg := sync.WaitGroup{}
-
 	for changelogNum := 1; changelogNum <= 5; changelogNum++ {
+		wg := sync.WaitGroup{}
+
 		for i := 0; i < 10; i++ {
 			curIteration := i
 
