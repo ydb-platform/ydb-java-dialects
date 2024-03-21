@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                      http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.8.xsd">
+
+    <changeSet id="episodes" author="kurdyukov-kir">
+        <comment>Table episodes.</comment>
+
+        <createTable tableName="episodes">
+            <column name="series_id" type="bigint">
+                <constraints primaryKey="true"/>
+            </column>
+            <column name="season_id" type="bigint">
+                <constraints primaryKey="true"/>
+            </column>
+            <column name="episode_id" type="bigint">
+                <constraints primaryKey="true"/>
+            </column>
+
+            <column name="title" type="text"/>
+            <column name="air_date" type="timestamp"/>
+        </createTable>
+        <rollback>
+            <dropTable tableName="episodes"/>
+        </rollback>
+    </changeSet>
+</databaseChangeLog>
