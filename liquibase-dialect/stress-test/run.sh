@@ -35,4 +35,4 @@ echo Start Go test
 
 go test
 
-rm liquibase-cli
+rm -rf liquibase-cli
