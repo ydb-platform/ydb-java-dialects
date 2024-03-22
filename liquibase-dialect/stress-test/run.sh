@@ -9,33 +9,30 @@ mvn clean package -DskipTests=true
 
 LIQUIBASE_DIALECT_VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
 
+LIQUIBASE_CORE_VERSION=$(mvn help:evaluate -Dexpression=liquibase.core.version -q -DforceStdout)
+
 cd stress-test
 
 echo Stress test using liquibase-ydb-dialect:"$LIQUIBASE_DIALECT_VERSION"
 
+echo Stress test using liquibase-core:"$LIQUIBASE_CORE_VERSION"
+
 cp ../target/liquibase-ydb-dialect-"$LIQUIBASE_DIALECT_VERSION".jar ./liquibase-ydb-dialect.jar
 
-docker build -t liquibase-ydb .
+mkdir liquibase-cli
+cd liquibase-cli
 
-docker network create stress-test-network
+curl -L "https://github.com/liquibase/liquibase/releases/download/v$LIQUIBASE_CORE_VERSION/liquibase-$LIQUIBASE_CORE_VERSION.zip" -o liquibase.zip
 
-docker run -d --rm --network stress-test-network -h ydb.local \
---name ydb-local \
--p 2135:2135 -p 8765:8765 -p 2136:2136 \
--e YDB_DEFAULT_LOG_LEVEL=NOTICE \
--e GRPC_TLS_PORT=2135 -e GRPC_PORT=2136 -e MON_PORT=8765 \
-cr.yandex/yc/yandex-docker-local-ydb:latest
+unzip liquibase.zip
 
-while [[ "${'$'}(docker inspect --format='{{json .State.Health.Status}}' ydb-local)" != '"healthy"' ]]
-do
-    echo "awaiting ydb-local healthy..."
-    sleep 1
-done
+cd ..
+
+cp liquibase-ydb-dialect.jar ./liquibase-cli/internal/lib/
+cp ydb-jdbc-driver.jar ./liquibase-cli/internal/lib/
 
 echo Start Go test
 
 go test
 
-docker stop ydb-local
-
-docker network rm stress-test-network
+rm liquibase-cli
