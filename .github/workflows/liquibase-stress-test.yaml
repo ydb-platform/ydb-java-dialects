@@ -1,0 +1,54 @@
+name: YDB Liquibase Dialect CI with Maven
+
+on:
+  push:
+    tags:
+      - 'liquibase-ydb/v[0-9]+.[0-9]+.[0-9]+'
+    paths:
+      - 'liquibase-dialect/**'
+    branches:
+      - main
+  pull_request:
+    paths:
+      - 'liquibase-dialect/**'
+
+jobs:
+  stress-test:
+    name: YDB Liquibase Dialect
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        java: [ '8', '11', '17' ]
+        ydb-version: [ 'latest' ]
+
+    services:
+      ydb:
+        image: ydbplatform/local-ydb:${{ matrix.ydb-version }}
+        ports:
+          - 2135:2135
+          - 2136:2136
+          - 8765:8765
+        volumes:
+          - /tmp/ydb_certs:/ydb_certs
+        env:
+          YDB_LOCAL_SURVIVE_RESTART: true
+          YDB_TABLE_ENABLE_PREPARED_DDL: true
+        options: '-h localhost'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK ${{matrix.java}}
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{matrix.java}}
+          distribution: 'temurin'
+          cache: maven
+
+      - name: Install Go
+        uses: actions/setup-go@v3
+
+      - name: Run stress test
+        working-directory: ./liquibase-dialect/stress-test
+        script: bash run.sh

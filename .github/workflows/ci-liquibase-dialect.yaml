@@ -9,10 +9,6 @@ on:
   pull_request:
     paths:
       - 'liquibase-dialect/**'
-    types:
-      - opened
-      - reopened
-      - edited
 
 env:
   MAVEN_ARGS: --batch-mode --update-snapshots -Dstyle.color=always
