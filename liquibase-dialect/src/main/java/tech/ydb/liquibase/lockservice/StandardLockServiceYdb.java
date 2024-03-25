@@ -39,7 +39,6 @@ public class StandardLockServiceYdb extends StandardLockService {
             try {
                 super.releaseLock();
 
-                Scope.getCurrentScope().getLog(getClass()).info("Release lock!");
                 return;
             } catch (LockException e) {
                 if (i == RELEASE_MAX_ATTEMPT - 1) {
