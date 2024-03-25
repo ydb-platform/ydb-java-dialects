@@ -9,10 +9,6 @@ on:
   pull_request:
     paths:
       - 'hibernate-dialect-v5/**'
-    types:
-      - opened
-      - reopened
-      - edited
 
 env:
   MAVEN_ARGS: --batch-mode --update-snapshots -Dstyle.color=always
