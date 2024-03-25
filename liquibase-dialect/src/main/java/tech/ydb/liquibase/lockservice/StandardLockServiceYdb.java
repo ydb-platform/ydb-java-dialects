@@ -14,22 +14,21 @@ public class StandardLockServiceYdb extends StandardLockService {
     private static final int RELEASE_MAX_ATTEMPT = 10;
 
     @Override
-    public void waitForLock() throws LockException {
+    public boolean acquireLock() throws LockException {
         try {
-            database.getConnection().setAutoCommit(false);
-        } catch (DatabaseException e) {
+            boolean originalAutoCommit = database.getConnection().getAutoCommit();
+
+            try {
+                database.getConnection().setAutoCommit(false);
+
+                return super.acquireLock();
+            } catch (LockException e) {
+                return false;
+            } finally {
+                database.getConnection().setAutoCommit(originalAutoCommit);
+            }
+        } catch (DatabaseException e) { // getAutoCommit / setAutoCommit throws this exception
             throw new LockException(e);
-        }
-
-        super.waitForLock();
-    }
-
-    @Override
-    public boolean acquireLock() {
-        try {
-            return super.acquireLock();
-        } catch (LockException e) {
-            return false;
         }
     }
 
@@ -50,7 +49,7 @@ public class StandardLockServiceYdb extends StandardLockService {
                 try {
                     Thread.sleep(ThreadLocalRandom.current().nextLong(1000));
                 } catch (InterruptedException exception) {
-                    throw new RuntimeException(exception);
+                    throw new LockException(exception);
                 }
             }
         }
