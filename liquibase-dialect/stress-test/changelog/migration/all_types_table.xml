@@ -59,7 +59,7 @@
             <column name="bool_column" value="true"/>
             <column name="bigint_column" value="123123"/>
             <column name="smallint_column" value="13000"/>
-            <column name="tinyint_column" value="223"/>
+            <column name="tinyint_column" value="112"/>
 
             <!-- Real number -->
             <column name="float_column" value="1.123"/>

@@ -14,7 +14,7 @@
             <column name="bool_column" valueBoolean="true"/>
             <column name="bigint_column" valueNumeric="123123"/>
             <column name="smallint_column" valueNumeric="13000"/>
-            <column name="tinyint_column" valueNumeric="223"/>
+            <column name="tinyint_column" valueNumeric="113"/>
 
             <!-- Real number -->
             <column name="float_column" valueNumeric="1.123"/>
@@ -46,7 +46,7 @@
             <column name="bool_column" value="true"/>
             <column name="bigint_column" value="123123"/>
             <column name="smallint_column" value="13000"/>
-            <column name="tinyint_column" value="223"/>
+            <column name="tinyint_column" value="113"/>
 
             <!-- Real number -->
             <column name="float_column" value="1.123"/>

@@ -13,7 +13,7 @@ import (
 func TestLiquibaseUpdateStressTest(t *testing.T) {
 	migrate(0, t) // init DATABASECHANGELOG, DATABASECHANGELOGLOCK
 
-	for changelogNum := 1; changelogNum <= 5; changelogNum++ {
+	for changelogNum := 1; changelogNum <= 6; changelogNum++ {
 		wg := sync.WaitGroup{}
 
 		for i := 0; i < 10; i++ {
