@@ -13,9 +13,4 @@ import liquibase.datatype.LiquibaseDataType;
         priority = LiquibaseDataType.PRIORITY_DATABASE
 )
 public class Uint8TypeYdb extends BaseTypeYdb {
-
-    @Override
-    protected String objectToSql(Object value) {
-        return "CAST(" + value + " AS UINT8)";
-    }
 }

@@ -10,4 +10,5 @@
     <include file="/migration/create-index-episodes.xml" relativeToChangelogFile="true"/>
     <include file="/migration/add-column-episodes.xml" relativeToChangelogFile="true"/>
     <include file="/migration/rename-table-episodes.xml" relativeToChangelogFile="true"/>
+    <include file="/migration/all_types_table.xml" relativeToChangelogFile="true"/>
 </databaseChangeLog>

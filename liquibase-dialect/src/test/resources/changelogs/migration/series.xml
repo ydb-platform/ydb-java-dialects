@@ -9,7 +9,7 @@
         <comment>Table series.</comment>
 
         <createTable tableName="series">
-            <column name="series_id" type="Int64">
+            <column name="series_id" type="Uint64">
                 <constraints primaryKey="true"/>
             </column>
 
@@ -28,22 +28,5 @@
             <dropTable tableName="series"/>
             <dropIndex tableName="series" indexName="series_index"/>
         </rollback>
-    </changeSet>
-
-    <changeSet id="added_data_into_series" author="kurdyukov-kir">
-        <insert tableName="series">
-            <column name="series_id" valueNumeric="1"/>
-            <column name="title" value="IT Crowd"/>
-            <column name="series_info"
-                    value="The IT Crowd is a British sitcom produced by Channel 4, written by Graham Linehan, produced by Ash Atalla and starring Chris O'Dowd, Richard Ayoade, Katherine Parkinson, and Matt Berry."/>
-            <column name="release_date" valueDate="2006-02-03"/>
-        </insert>
-        <insert tableName="series">
-            <column name="series_id" valueNumeric="2"/>
-            <column name="title" value="Silicon Valley"/>
-            <column name="series_info"
-                    value="Silicon Valley is an American comedy television series created by Mike Judge, John Altschuler and Dave Krinsky. The series focuses on five young men who founded a startup company in Silicon Valley."/>
-            <column name="release_date" valueDate="2014-04-06"/>
-        </insert>
     </changeSet>
 </databaseChangeLog>
