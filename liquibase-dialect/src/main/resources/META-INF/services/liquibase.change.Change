@@ -1,2 +1,3 @@
+tech.ydb.liquibase.change.InsertDataChangeYdb
 tech.ydb.liquibase.change.LoadDataChangeYdb
 tech.ydb.liquibase.change.LoadUpdateDataChangeYdb

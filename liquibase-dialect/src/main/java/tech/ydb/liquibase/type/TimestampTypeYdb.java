@@ -1,6 +1,6 @@
 package tech.ydb.liquibase.type;
 
-import liquibase.change.core.LoadDataChange;
+import java.sql.Timestamp;
 import liquibase.datatype.DataTypeInfo;
 import liquibase.datatype.LiquibaseDataType;
 
@@ -20,12 +20,11 @@ import liquibase.datatype.LiquibaseDataType;
 public class TimestampTypeYdb extends BaseTypeYdb {
 
     @Override
-    public LoadDataChange.LOAD_DATA_TYPE getLoadTypeName() {
-        return LoadDataChange.LOAD_DATA_TYPE.DATE;
-    }
-
-    @Override
     protected String objectToSql(Object value) {
+        if (value instanceof Timestamp) {
+            return "TIMESTAMP('" + ((Timestamp) value).toInstant() + "')";
+        }
+
         return "TIMESTAMP('" + value + "')";
     }
 }
