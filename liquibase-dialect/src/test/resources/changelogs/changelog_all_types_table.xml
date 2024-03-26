@@ -24,8 +24,8 @@
             <!-- Unsigned integer -->
             <column name="uint8_column" valueNumeric="12"/>
             <column name="uint16_column" valueNumeric="13"/>
-            <column name="unit32_column" valueNumeric="14"/>
-            <column name="unit64_column" valueNumeric="15"/>
+            <column name="uint32_column" valueNumeric="14"/>
+            <column name="uint64_column" valueNumeric="15"/>
 
             <!-- String types -->
             <column name="text_column" value="Кирилл Курдюков Алексеевич"/>
@@ -56,8 +56,8 @@
             <!-- Unsigned integer -->
             <column name="uint8_column" value="12"/>
             <column name="uint16_column" value="13"/>
-            <column name="unit32_column" value="14"/>
-            <column name="unit64_column" value="15"/>
+            <column name="uint32_column" value="14"/>
+            <column name="uint64_column" value="15"/>
 
             <!-- String types -->
             <column name="text_column" value="Кирилл Курдюков Алексеевич"/>
