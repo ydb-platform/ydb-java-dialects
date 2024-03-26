@@ -40,14 +40,14 @@ For Maven, add the following dependency to your pom.xml:
 
 <dependency>
     <groupId>tech.ydb.jdbc</groupId>
-    <artifactId>ydb-jdbc-driver-shaded</artifactId>
+    <artifactId>ydb-jdbc-driver</artifactId>
     <version>${ydb.jdbc.version}</version>
 </dependency>
 
 <dependency>
     <groupId>tech.ydb.dialects</groupId>
     <artifactId>liquibase-ydb-dialect</artifactId>
-    <!-- Set actual version -->
+    <!-- Set an actual version -->
     <version>${liquibase.ydb.dialect.version}</version>
 </dependency>
 ```
@@ -56,8 +56,9 @@ For Gradle, add the following to your build.gradle (or build.gradle.kts):
 
 ```groovy
 dependencies {
-    implementation 'org.liquibase:liquibase-core:4.24.0' // Set actual version
-    implementation 'tech.ydb.dialects:liquibase-ydb-dialect:$version' // Set actual version
+    implementation "org.liquibase:liquibase-core:$liquibaseCoreVersion" // Set actual version
+    implementation "tech.ydb.dialects:liquibase-ydb-dialect:$liquibaseYdbDialecVersion" // Set actual version
+    implementation "tech.ydb.jdbc:ydb-jdbc-driver:${ydbJdbcVersion}" // Set actual version
 }
 ```
 
@@ -91,6 +92,10 @@ An example of a simple Spring Boot Liquibase can be found at the following
 
 To understand what SQL constructs YDB can perform, 
 see the [documentation](https://ydb.tech/docs/en/yql/reference/) for the query language.
+
+## Authorization
+
+See [connect to YDB](../README.md/#connect-to-ydb).
 
 ## Support and Contact
 
