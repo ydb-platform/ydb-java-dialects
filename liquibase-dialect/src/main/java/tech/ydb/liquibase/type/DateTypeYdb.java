@@ -17,11 +17,6 @@ import liquibase.datatype.LiquibaseDataType;
 public class DateTypeYdb extends BaseTypeYdb {
 
     @Override
-    public LoadDataChange.LOAD_DATA_TYPE getLoadTypeName() {
-        return LoadDataChange.LOAD_DATA_TYPE.DATE;
-    }
-
-    @Override
     protected String objectToSql(Object value) {
         return "DATE('" + value + "')";
     }

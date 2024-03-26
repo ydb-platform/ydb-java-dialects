@@ -25,7 +25,7 @@ public class YdbDatabaseCSVLoadTest extends BaseTest {
                 "tinyint_column, float_column, double_column, decimal_column, uint8_column, " +
                 "uint16_column, unit32_column, unit64_column, text_column, binary_column, json_column, " +
                 "jsondocument_column, date_column, datetime_column, timestamp_column, interval_column) VALUES " +
-                "('1', 'true', '123123', '13000', '223', '1.123', '1.123123', '1.123123', '12', '13', '14', " +
+                "('1', 'true', '123123', '13000', '113', '1.123', '1.123123', '1.123123', '12', '13', '14', " +
                 "'15', 'Кирилл Курдюков Алексеевич', 'binary', '{\"asd\": \"asd\"}', '{\"asd\": \"asd\"}', " +
                 "'2014-04-06', '2023-09-16T12:30', '2023-07-31T17:00:00.000000Z', '123');"
         ));
@@ -42,10 +42,10 @@ public class YdbDatabaseCSVLoadTest extends BaseTest {
                 "tinyint_column, float_column, double_column, decimal_column, uint8_column, uint16_column, " +
                 "unit32_column, unit64_column, text_column, binary_column, json_column, jsondocument_column, " +
                 "date_column, datetime_column, timestamp_column, interval_column) VALUES " +
-                "('2', 'true', '123123', '13000', '223', '1.123', '1.123123', '1.123123', '12', '13', " +
+                "('2', 'true', '123123', '13000', '112', '1.123', '1.123123', '1.123123', '12', '13', " +
                 "'14', '15', 'Кирилл Курдюков Алексеевич', 'binary', '{\"asd\": \"asd\"}', '{\"asd\": \"asd\"}', " +
                 "'2014-04-06', '2023-09-16T12:30', '2023-07-31T17:00:00.000000Z', '123'), " +
-                "('3', 'true', '123123', '13000', '223', '1.123', '1.123123', '1.123123', '12', " +
+                "('3', 'true', '123123', '13000', '112', '1.123', '1.123123', '1.123123', '12', " +
                 "'13', '14', '15', 'Кирилл Курдюков Алексеевич', 'binary', '{\"asd\": \"asd\"}', " +
                 "'{\"asd\": \"asd\"}', '2014-04-06', '2023-09-16T12:30', '2023-07-31T17:00:00.000000Z', '123'), " +
                 "('6', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, " +

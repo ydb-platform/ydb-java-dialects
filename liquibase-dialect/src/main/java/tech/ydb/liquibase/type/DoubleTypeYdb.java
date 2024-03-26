@@ -14,9 +14,4 @@ import liquibase.datatype.LiquibaseDataType;
         priority = LiquibaseDataType.PRIORITY_DATABASE
 )
 public class DoubleTypeYdb extends BaseTypeYdb {
-
-    @Override
-    protected String objectToSql(Object value) {
-        return value.toString();
-    }
 }

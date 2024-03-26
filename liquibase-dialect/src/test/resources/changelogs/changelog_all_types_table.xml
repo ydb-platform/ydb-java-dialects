@@ -6,4 +6,70 @@
                       http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.8.xsd">
 
     <include file="/migration/all_types_table.xml" relativeToChangelogFile="true"/>
+    <changeSet id="insert-changeset" author="kurdyukov-kir">
+
+        <!-- Test simple value declare -->
+        <insert tableName="all_types_table">
+            <column name="id" valueNumeric="2"/>
+            <column name="bool_column" valueBoolean="true"/>
+            <column name="bigint_column" valueNumeric="123123"/>
+            <column name="smallint_column" valueNumeric="13000"/>
+            <column name="tinyint_column" valueNumeric="113"/>
+
+            <!-- Real number -->
+            <column name="float_column" valueNumeric="1.123"/>
+            <column name="double_column" valueNumeric="1.123123"/>
+            <column name="decimal_column" valueNumeric="1.123123"/>
+
+            <!-- Unsigned integer -->
+            <column name="uint8_column" valueNumeric="12"/>
+            <column name="uint16_column" valueNumeric="13"/>
+            <column name="unit32_column" valueNumeric="14"/>
+            <column name="unit64_column" valueNumeric="15"/>
+
+            <!-- String types -->
+            <column name="text_column" value="Кирилл Курдюков Алексеевич"/>
+            <column name="binary_column" value="binary"/>
+            <column name="json_column" value="[1, 2, 3]"/>
+            <column name="jsondocument_column" value="[1, 2, 3]"/>
+
+            <!-- Date and time -->
+            <column name="date_column" valueDate="2014-04-06"/>
+            <column name="datetime_column" valueDate="2023-09-16T12:30"/>
+            <column name="timestamp_column" value="2023-07-31T17:00:00.000000Z"/>
+            <column name="interval_column" valueNumeric="123"/>
+        </insert>
+
+        <!-- Test simple value declare -->
+        <insert tableName="all_types_table">
+            <column name="id" value="3"/>
+            <column name="bool_column" value="true"/>
+            <column name="bigint_column" value="123123"/>
+            <column name="smallint_column" value="13000"/>
+            <column name="tinyint_column" value="113"/>
+
+            <!-- Real number -->
+            <column name="float_column" value="1.123"/>
+            <column name="double_column" value="1.123123"/>
+            <column name="decimal_column" value="1.123123"/>
+
+            <!-- Unsigned integer -->
+            <column name="uint8_column" value="12"/>
+            <column name="uint16_column" value="13"/>
+            <column name="unit32_column" value="14"/>
+            <column name="unit64_column" value="15"/>
+
+            <!-- String types -->
+            <column name="text_column" value="Кирилл Курдюков Алексеевич"/>
+            <column name="binary_column" value="binary"/>
+            <column name="json_column" value="[1, 2, 3]"/>
+            <column name="jsondocument_column" value="[1, 2, 3]"/>
+
+            <!-- Date and time -->
+            <column name="date_column" value="2014-04-06"/>
+            <column name="datetime_column" value="2023-09-16T12:30"/>
+            <column name="timestamp_column" value="2023-07-31T17:00:00.000000Z"/>
+            <column name="interval_column" value="123"/>
+        </insert>
+    </changeSet>
 </databaseChangeLog>
