@@ -24,7 +24,7 @@ func TestLiquibaseUpdateStressTest(t *testing.T) {
 			go func() {
 				defer wg.Done()
 
-				log.Println("Execute goroutine with num: %i", curIteration)
+				log.Println("Execute goroutine with num: ", curIteration)
 
 				migrate(changelogNum, t)
 			}()
