@@ -51,4 +51,4 @@ jobs:
 
       - name: Run stress test
         working-directory: ./liquibase-dialect/stress-test
-        script: bash run.sh
+        run: bash run.sh
