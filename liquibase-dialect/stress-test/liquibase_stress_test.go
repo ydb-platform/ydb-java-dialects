@@ -194,23 +194,23 @@ func migrate(changelogNum int, t *testing.T) {
 		fmt.Sprintf("--changelog-file=changelog/changelog-%v.xml", changelogNum),
 		"--url=jdbc:ydb:grpc://localhost:2136/local")
 
-	var stdout bytes.Buffer
+	var stderr bytes.Buffer
 
-	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
 
 	err := cmd.Run()
 
 	if err != nil {
 		t.Errorf("liquibase update failed: %v", err)
 
-		log.Println(stdout.String())
+		log.Println(stderr.String())
 
 		return
 	}
 
-	out := stdout.String()
+	out := stderr.String()
 
 	if !strings.Contains(out, "Liquibase command 'update' was executed successfully.") {
-		t.Errorf(out)
+		t.Fatal(out)
 	}
 }
