@@ -38,7 +38,7 @@ public class YdbDatabaseGenerateChangeLogTest extends BaseTest {
                         "            <column name=\"tinyint_column\" type=\"INT8\"/>\n" +
                         "            <column name=\"float_column\" type=\"FLOAT\"/>\n" +
                         "            <column name=\"double_column\" type=\"DOUBLE\"/>\n" +
-                        "            <column name=\"decimal_column\" type=\"DECIMAL(22, 9)\"/>\n" +
+                        "            <column name=\"decimal_column\" type=\"DECIMAL(22,9)\"/>\n" +
                         "            <column name=\"uint8_column\" type=\"UINT8\"/>\n" +
                         "            <column name=\"uint16_column\" type=\"UINT16\"/>\n" +
                         "            <column name=\"unit32_column\" type=\"UINT32\"/>\n" +
@@ -149,7 +149,7 @@ public class YdbDatabaseGenerateChangeLogTest extends BaseTest {
                             "tinyint_column INT8, " +
                             "float_column FLOAT, " +
                             "double_column DOUBLE, " +
-                            "decimal_column DECIMAL(22, 9), " +
+                            "decimal_column DECIMAL(22,9), " +
                             "uint8_column UINT8, " +
                             "uint16_column UINT16, " +
                             "unit32_column UINT32, " +

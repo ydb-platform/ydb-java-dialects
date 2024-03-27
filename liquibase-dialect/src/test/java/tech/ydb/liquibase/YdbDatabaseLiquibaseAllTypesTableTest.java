@@ -25,7 +25,7 @@ public class YdbDatabaseLiquibaseAllTypesTableTest extends BaseTest {
                         "tinyint_column INT8, " +
                         "float_column FLOAT, " +
                         "double_column DOUBLE, " +
-                        "decimal_column DECIMAL(22, 9), " +
+                        "decimal_column DECIMAL(22,9), " +
                         "uint8_column UINT8, " +
                         "uint16_column UINT16, " +
                         "uint32_column UINT32, " +
