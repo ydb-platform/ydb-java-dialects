@@ -2,10 +2,11 @@
 
 # YDB Dialects for Java ORM frameworks and migration tools
 
-This repository contains the dialects required for using Java-based ORM
-frameworks with Yandex Database (YDB). It allows Java applications
-to interact with YDB using popular Object-Relational Mapping (ORM)
-libraries such as Hibernate, Spring Data and JOOQ.
+This repository contains dialects required for using Java-based Object-Relational 
+Mapper (ORM) frameworks and popular migration tools for Yandex Database (YDB). 
+It allows Java applications to interact with YDB using popular ORM libraries 
+such as Hibernate, Spring Data, and JOOQ, as well as migration 
+tools like Flyway and Liquibase.
 
 ## Supports ORM Frameworks
 

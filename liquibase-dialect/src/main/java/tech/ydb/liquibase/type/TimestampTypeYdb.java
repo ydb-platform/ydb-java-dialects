@@ -9,10 +9,7 @@ import liquibase.datatype.LiquibaseDataType;
  */
 @DataTypeInfo(
         name = "Timestamp",
-        aliases = {
-                "timestamp", "java.sql.Types.TIMESTAMP", "java.sql.TIMESTAMP",
-                "java.sql.Types.TIMESTAMP_WITH_TIMEZONE", "timestamptz"
-        },
+        aliases = {"java.sql.Types.TIMESTAMP", "java.sql.TIMESTAMP"},
         minParameters = 0,
         maxParameters = 0,
         priority = LiquibaseDataType.PRIORITY_DATABASE

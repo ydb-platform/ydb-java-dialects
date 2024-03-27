@@ -8,7 +8,7 @@ import liquibase.datatype.LiquibaseDataType;
  */
 @DataTypeInfo(
         name = "Int32",
-        aliases = {"int", "integer", "java.sql.Types.INTEGER", "java.lang.Integer", "int4", "int32"},
+        aliases = {"int", "integer", "java.sql.Types.INTEGER", "java.lang.Integer", "int4"},
         minParameters = 0,
         maxParameters = 0,
         priority = LiquibaseDataType.PRIORITY_DATABASE

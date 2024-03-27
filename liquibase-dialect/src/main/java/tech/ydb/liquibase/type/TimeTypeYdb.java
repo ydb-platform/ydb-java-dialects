@@ -13,10 +13,7 @@ import liquibase.datatype.LiquibaseDataType;
  */
 @DataTypeInfo(
         name = "Datetime",
-        aliases = {
-                "java.util.Date", "time", "java.sql.Types.TIME", "java.sql.Time",
-                "timetz", "java.sql.Types.TIME_WITH_TIMEZONE"
-        },
+        aliases = {"java.util.Date", "time", "java.sql.Types.TIME", "java.sql.Time"},
         minParameters = 0,
         maxParameters = 0,
         priority = LiquibaseDataType.PRIORITY_DATABASE
