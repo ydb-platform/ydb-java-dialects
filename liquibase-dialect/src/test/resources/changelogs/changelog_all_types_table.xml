@@ -36,7 +36,7 @@
             <!-- Date and time -->
             <column name="date_column" valueDate="2014-04-06"/>
             <column name="datetime_column" valueDate="2023-09-16T12:30"/>
-            <column name="timestamp_column" value="2023-07-31T17:00:00.000000Z"/>
+            <column name="timestamp_column" valueDate="2023-07-31T17:00:00.000000Z"/>
             <column name="interval_column" valueNumeric="123"/>
         </insert>
 
