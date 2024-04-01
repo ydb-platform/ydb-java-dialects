@@ -1,7 +1,13 @@
+## 1.0.1 ##
+
+* Scan select databasechangelog
+
 ## 1.0.0 ##
 
 * Fixed bug with distributed lock (setAutoCommit = false)
 * Supported insert changeset with all YDB types
+
+---
 
 ## 0.9.7 ##
 
