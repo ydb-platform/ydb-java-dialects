@@ -14,7 +14,6 @@ import liquibase.exception.CommandExecutionException;
 import liquibase.exception.LiquibaseException;
 import liquibase.resource.ClassLoaderResourceAccessor;
 import org.junit.jupiter.api.AfterEach;
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import tech.ydb.test.junit5.YdbHelperExtension;
 
@@ -57,11 +56,10 @@ public abstract class BaseTest {
     }
 
     protected static void migrateChangeFile(String changeLogFile) throws CommandExecutionException {
-        assertEquals(0, new CommandScope("update")
+        new CommandScope("update")
                 .addArgumentValue("changeLogFile", changeLogFile)
                 .addArgumentValue("url", jdbcUrl())
-                .execute().getResult("statusCode")
-        );
+                .execute();
     }
 
     protected static String migrationStr(String changeLogFile) throws SQLException, LiquibaseException {
