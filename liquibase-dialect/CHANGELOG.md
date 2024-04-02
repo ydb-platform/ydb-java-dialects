@@ -1,3 +1,7 @@
+## 1.0.2 ##
+
+* Added duration format for `Interval` type and ISO for time types when loading data into tables.
+
 ## 1.0.1 ##
 
 * Scan select databasechangelog
