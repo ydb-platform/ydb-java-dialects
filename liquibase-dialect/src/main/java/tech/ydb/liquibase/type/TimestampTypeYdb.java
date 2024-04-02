@@ -1,6 +1,7 @@
 package tech.ydb.liquibase.type;
 
 import java.sql.Timestamp;
+import java.time.Instant;
 import liquibase.datatype.DataTypeInfo;
 import liquibase.datatype.LiquibaseDataType;
 
@@ -22,6 +23,6 @@ public class TimestampTypeYdb extends BaseTypeYdb {
             return "TIMESTAMP('" + ((Timestamp) value).toInstant() + "')";
         }
 
-        return "TIMESTAMP('" + value + "')";
+        return "TIMESTAMP('" + Instant.parse(value.toString()) + "')";
     }
 }

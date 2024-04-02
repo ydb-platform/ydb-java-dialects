@@ -1,6 +1,6 @@
 package tech.ydb.liquibase.type;
 
-import liquibase.change.core.LoadDataChange;
+import java.time.LocalDate;
 import liquibase.datatype.DataTypeInfo;
 import liquibase.datatype.LiquibaseDataType;
 
@@ -18,6 +18,6 @@ public class DateTypeYdb extends BaseTypeYdb {
 
     @Override
     protected String objectToSql(Object value) {
-        return "DATE('" + value + "')";
+        return "DATE('" + LocalDate.parse(value.toString()) + "')";
     }
 }
