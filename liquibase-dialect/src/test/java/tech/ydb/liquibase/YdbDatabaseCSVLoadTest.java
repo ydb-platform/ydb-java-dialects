@@ -27,7 +27,7 @@ public class YdbDatabaseCSVLoadTest extends BaseTest {
                 "jsondocument_column, date_column, datetime_column, timestamp_column, interval_column) VALUES " +
                 "('1', 'true', '123123', '13000', '113', '1.123', '1.123123', '1.123123', '12', '13', '14', " +
                 "'15', 'Кирилл Курдюков Алексеевич', 'binary', '{\"asd\": \"asd\"}', '{\"asd\": \"asd\"}', " +
-                "'2014-04-06', '2023-09-16T12:30', '2023-07-31T17:00:00.000000Z', '123');"
+                "'2014-04-06', '2023-09-16T12:30', '2023-07-31T17:00:00.000000Z', '10s');"
         ));
 
         assertTrue(migrationStr.contains("UPSERT INTO all_types_table (id, bool_column, bigint_column, smallint_column, " +
@@ -44,10 +44,10 @@ public class YdbDatabaseCSVLoadTest extends BaseTest {
                 "date_column, datetime_column, timestamp_column, interval_column) VALUES " +
                 "('2', 'true', '123123', '13000', '112', '1.123', '1.123123', '1.123123', '12', '13', " +
                 "'14', '15', 'Кирилл Курдюков Алексеевич', 'binary', '{\"asd\": \"asd\"}', '{\"asd\": \"asd\"}', " +
-                "'2014-04-06', '2023-09-16T12:30', '2023-07-31T17:00:00.000000Z', '123'), " +
+                "'2014-04-06', '2023-09-16T12:30', '2023-07-31T17:00:00.000000Z', '10s'), " +
                 "('3', 'true', '123123', '13000', '112', '1.123', '1.123123', '1.123123', '12', " +
                 "'13', '14', '15', 'Кирилл Курдюков Алексеевич', 'binary', '{\"asd\": \"asd\"}', " +
-                "'{\"asd\": \"asd\"}', '2014-04-06', '2023-09-16T12:30', '2023-07-31T17:00:00.000000Z', '123'), " +
+                "'{\"asd\": \"asd\"}', '2014-04-06', '2023-09-16T12:30', '2023-07-31T17:00:00.000000Z', '10s'), " +
                 "('6', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, " +
                 "NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL);"
         ));
