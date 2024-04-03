@@ -26,7 +26,6 @@
 
         <rollback>
             <dropTable tableName="series"/>
-            <dropIndex tableName="series" indexName="series_index"/>
         </rollback>
     </changeSet>
 </databaseChangeLog>
