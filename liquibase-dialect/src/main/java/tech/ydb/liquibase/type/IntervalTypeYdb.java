@@ -18,14 +18,7 @@ public class IntervalTypeYdb extends BaseTypeYdb {
 
     @Override
     public String objectToSql(Object value) {
-        String valueStr = value.toString();
-        Duration interval;
-
-        if (valueStr.startsWith("PT")) {
-            interval = Duration.parse(valueStr);
-        } else {
-            interval = Duration.parse("PT" + valueStr.toUpperCase());
-        }
+        Duration interval = Duration.parse(value.toString());
 
         return "CAST(" + TimeUnit.NANOSECONDS.toMicros(interval.toNanos()) + " AS INTERVAL)";
     }
