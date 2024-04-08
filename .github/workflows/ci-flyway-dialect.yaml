@@ -1,0 +1,47 @@
+name: YDB Flyway Dialect CI with Maven
+
+on:
+  push:
+    paths:
+      - 'flyway-dialect/**'
+    branches:
+      - main
+  pull_request:
+    paths:
+      - 'flyway-dialect/**'
+
+env:
+  MAVEN_ARGS: --batch-mode --update-snapshots -Dstyle.color=always
+
+jobs:
+  build:
+    name: YDB Flyway Dialect
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        java: [ '8', '11', '17' ]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK ${{matrix.java}}
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{matrix.java}}
+          distribution: 'temurin'
+          cache: maven
+
+      - name: Extract Flyway Dialect version
+        working-directory: ./flyway-dialect
+        run: |
+          VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
+          echo "FLYWAY_DIALECT_VERSION=$VERSION" >> "$GITHUB_ENV"
+
+      - name: Download Flyway Dialect dependencies
+        working-directory: ./flyway-dialect
+        run: mvn $MAVEN_ARGS dependency:go-offline
+
+      - name: Build Flyway Dialect
+        working-directory: ./flyway-dialect
+        run: mvn $MAVEN_ARGS clean test
