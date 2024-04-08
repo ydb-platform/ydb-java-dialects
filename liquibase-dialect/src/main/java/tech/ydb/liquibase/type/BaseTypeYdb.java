@@ -21,7 +21,9 @@ abstract class BaseTypeYdb extends LiquibaseDataType {
         return new DatabaseDataType(getName().toUpperCase());
     }
 
-    protected abstract String objectToSql(Object value);
+    protected String objectToSql(Object value) {
+        return value.toString();
+    }
 
     @Override
     public String objectToSql(Object value, Database database) {

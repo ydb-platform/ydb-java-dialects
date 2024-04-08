@@ -1,6 +1,7 @@
 package tech.ydb.liquibase.type;
 
-import liquibase.change.core.LoadDataChange;
+import java.sql.Timestamp;
+import java.time.Instant;
 import liquibase.datatype.DataTypeInfo;
 import liquibase.datatype.LiquibaseDataType;
 
@@ -9,10 +10,7 @@ import liquibase.datatype.LiquibaseDataType;
  */
 @DataTypeInfo(
         name = "Timestamp",
-        aliases = {
-                "timestamp", "java.sql.Types.TIMESTAMP", "java.sql.TIMESTAMP",
-                "java.sql.Types.TIMESTAMP_WITH_TIMEZONE", "timestamptz"
-        },
+        aliases = {"java.sql.Types.TIMESTAMP", "java.sql.TIMESTAMP"},
         minParameters = 0,
         maxParameters = 0,
         priority = LiquibaseDataType.PRIORITY_DATABASE
@@ -20,12 +18,11 @@ import liquibase.datatype.LiquibaseDataType;
 public class TimestampTypeYdb extends BaseTypeYdb {
 
     @Override
-    public LoadDataChange.LOAD_DATA_TYPE getLoadTypeName() {
-        return LoadDataChange.LOAD_DATA_TYPE.DATE;
-    }
-
-    @Override
     protected String objectToSql(Object value) {
-        return "TIMESTAMP('" + value + "')";
+        if (value instanceof Timestamp) {
+            return "TIMESTAMP('" + ((Timestamp) value).toInstant() + "')";
+        }
+
+        return "TIMESTAMP('" + Instant.parse(value.toString()) + "')";
     }
 }

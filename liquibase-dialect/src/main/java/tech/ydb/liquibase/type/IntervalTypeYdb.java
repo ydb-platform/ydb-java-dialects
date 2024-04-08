@@ -1,6 +1,7 @@
 package tech.ydb.liquibase.type;
 
-import liquibase.change.core.LoadDataChange;
+import java.time.Duration;
+import java.util.concurrent.TimeUnit;
 import liquibase.datatype.DataTypeInfo;
 import liquibase.datatype.LiquibaseDataType;
 
@@ -16,12 +17,9 @@ import liquibase.datatype.LiquibaseDataType;
 public class IntervalTypeYdb extends BaseTypeYdb {
 
     @Override
-    public LoadDataChange.LOAD_DATA_TYPE getLoadTypeName() {
-        return LoadDataChange.LOAD_DATA_TYPE.OTHER;
-    }
-    
-    @Override
     public String objectToSql(Object value) {
-        return "CAST(" + value + " AS INTERVAL)";
+        Duration interval = Duration.parse(value.toString());
+
+        return "CAST(" + TimeUnit.NANOSECONDS.toMicros(interval.toNanos()) + " AS INTERVAL)";
     }
 }
