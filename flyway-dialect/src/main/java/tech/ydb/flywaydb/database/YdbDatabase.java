@@ -59,7 +59,7 @@ public class YdbDatabase extends Database<YdbConnection> {
                 "    script TEXT,\n" +
                 "    checksum INT32,\n" +
                 "    installed_by TEXT,\n" +
-                "    installed_on TIMESTAMP,\n" +
+                "    installed_on DATETIME,\n" +
                 "    execution_time INT32,\n" +
                 "    success BOOL,\n" +
                 "    PRIMARY KEY (installed_rank)" +
@@ -68,7 +68,7 @@ public class YdbDatabase extends Database<YdbConnection> {
 
     @Override
     public String getSelectStatement(Table table) {
-        return "SELECT " + quote("installed_rank")
+        return "SCAN SELECT " + quote("installed_rank")
                 + "," + quote("version")
                 + "," + quote("description")
                 + "," + quote("type")
@@ -97,7 +97,7 @@ public class YdbDatabase extends Database<YdbConnection> {
                 + ", " + quote("success")
                 + ", " + quote("installed_on")
                 + ")"
-                + " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, CurrentUtcTimestamp())";
+                + " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, CurrentUtcDatetime())";
     }
 
     @Override

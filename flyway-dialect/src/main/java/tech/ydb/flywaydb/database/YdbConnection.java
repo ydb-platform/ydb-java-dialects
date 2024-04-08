@@ -17,7 +17,7 @@ public class YdbConnection extends Connection<YdbDatabase> {
 
     @Override
     protected String getCurrentSchemaNameOrSearchPath() {
-        return DUMMY_SCHEMA_NAME; // schema isn't supported
+        return null; // schema isn't supported
     }
 
     @Override
