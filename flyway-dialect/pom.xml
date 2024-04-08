@@ -6,7 +6,7 @@
 
     <groupId>tech.ydb</groupId>
     <artifactId>flyway-dialect</artifactId>
-    <version>1.0-SNAPSHOT</version>
+    <version>0.9.1-SNAPSHOT</version>
 
     <properties>
         <maven.compiler.source>1.8</maven.compiler.source>
@@ -35,18 +35,13 @@
             <version>${flyway.version}</version>
             <scope>provided</scope>
         </dependency>
+
         <dependency>
             <groupId>tech.ydb.jdbc</groupId>
             <artifactId>ydb-jdbc-driver</artifactId>
             <version>${jdbc.ydb.driver.version}</version>
-            <scope>provided</scope>
+            <scope>test</scope>
         </dependency>
-        <dependency>
-            <groupId>tech.ydb</groupId>
-            <artifactId>ydb-sdk-coordination</artifactId>
-            <scope>provided</scope>
-        </dependency>
-
         <dependency>
             <groupId>tech.ydb.test</groupId>
             <artifactId>ydb-junit5-support</artifactId>

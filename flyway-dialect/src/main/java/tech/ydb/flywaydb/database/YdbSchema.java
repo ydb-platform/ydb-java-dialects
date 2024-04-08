@@ -37,7 +37,6 @@ public class YdbSchema extends Schema<YdbDatabase, YdbTable> {
 
     @Override
     protected void doClean() {
-
     }
 
     @Override
