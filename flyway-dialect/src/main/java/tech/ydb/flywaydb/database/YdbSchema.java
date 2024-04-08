@@ -19,7 +19,7 @@ public class YdbSchema extends Schema<YdbDatabase, YdbTable> {
 
     @Override
     protected boolean doExists() {
-        return false;
+        return true; // Dummy schema exists
     }
 
     @Override
@@ -29,10 +29,12 @@ public class YdbSchema extends Schema<YdbDatabase, YdbTable> {
 
     @Override
     protected void doCreate() {
+        // Do nothing, YDB doesn't support schemas
     }
 
     @Override
     protected void doDrop() {
+        // Do nothing, YDB doesn't support schemas
     }
 
     @Override

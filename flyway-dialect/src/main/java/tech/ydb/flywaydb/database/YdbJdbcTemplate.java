@@ -21,10 +21,6 @@ public class YdbJdbcTemplate extends JdbcTemplate  {
 
     @Override
     protected PreparedStatement prepareStatement(String sql, Object[] params) throws SQLException {
-        if (sql.startsWith("SCAN")) { // Scan query cannot be executed inside active transaction.
-            connection.commit();
-        }
-
         PreparedStatement statement = connection.prepareStatement(sql);
         for (int i = 0; i < params.length; i++) {
             if (params[i] == StringNull) {

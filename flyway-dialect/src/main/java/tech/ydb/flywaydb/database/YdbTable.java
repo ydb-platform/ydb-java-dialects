@@ -37,7 +37,7 @@ public class YdbTable extends Table<YdbDatabase, YdbSchema> {
     }
 
     @Override
-    protected void doLock() {
+    protected void doLock() throws SQLException {
         Instant startLock = Instant.now();
 
         do {
@@ -90,8 +90,14 @@ public class YdbTable extends Table<YdbDatabase, YdbSchema> {
                         "'', '', 0, '', 0, TRUE, CurrentUtcDatetime())"
         );
 
-        // Succeeded if no errors.
-        return results.getException() == null;
+        try {
+            jdbcTemplate.getConnection().commit();
+
+            // Succeeded if no errors.
+            return results.getException() == null;
+        } catch (SQLException e) {
+            return false;
+        }
     }
 
     @Override
