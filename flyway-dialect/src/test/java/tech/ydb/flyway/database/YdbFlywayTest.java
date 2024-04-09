@@ -125,11 +125,6 @@ public class YdbFlywayTest {
         assertTrue(createFlyway("empty").baseline().successfullyBaselined);
     }
 
-    @Test
-    void schemaHistoryClean() {
-
-    }
-
     void verifyTest() {
         try (Connection connection = DriverManager.getConnection(jdbcUrl())) {
             assertCountTable(2, "SELECT COUNT(*) FROM series", connection);
