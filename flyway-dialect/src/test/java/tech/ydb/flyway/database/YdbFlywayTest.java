@@ -8,6 +8,7 @@ import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -33,16 +34,12 @@ public class YdbFlywayTest {
             "migration-step-3", "migration-step-4",
             "migration-step-5", "migration",
     };
-    private static final HashSet<String> EXPECTED_SCRIPTS = new HashSet<>();
 
-    static {
-        EXPECTED_SCRIPTS.add("V1__create_series.sql");
-        EXPECTED_SCRIPTS.add("V2__create_seasons.sql");
-        EXPECTED_SCRIPTS.add("V3__create_episodes.sql");
-        EXPECTED_SCRIPTS.add("V4__load_data.sql");
-        EXPECTED_SCRIPTS.add("V5__create_series_title_index.sql");
-        EXPECTED_SCRIPTS.add("V6__rename_index_title_index.sql");
-    }
+    private static final Set<String> EXPECTED_SCRIPTS = Set.of(
+            "V1__create_series.sql", "V2__create_seasons.sql",
+            "V3__create_episodes.sql", "V4__load_data.sql",
+            "V5__create_series_title_index.sql", "V6__rename_index_title_index.sql"
+    );
 
     @Test
     void simpleTest() {
