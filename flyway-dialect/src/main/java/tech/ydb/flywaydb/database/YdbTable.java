@@ -37,7 +37,12 @@ public class YdbTable extends Table<YdbDatabase, YdbSchema> {
     }
 
     @Override
-    protected void doLock() throws SQLException {
+    protected void doLock() {
+        if (lockDepth > 0) {
+            // Lock has already been taken - so the relevant row in the table already exists
+            return;
+        }
+
         Instant startLock = Instant.now();
 
         do {
@@ -49,17 +54,23 @@ public class YdbTable extends Table<YdbDatabase, YdbSchema> {
                 Thread.sleep(100 + random.nextInt(1000)); // pause 0.1s .. 1.1s
             } catch (InterruptedException ignored) {
             }
-        } while (startLock.minus(WAIT_LOCK_TIMEOUT).isAfter(Instant.now()));
+        } while (startLock.isAfter(Instant.now().minus(WAIT_LOCK_TIMEOUT)));
 
         throw new FlywayException("Unable to obtain table lock - another Flyway instance may be running");
     }
 
     @Override
     protected void doUnlock() {
+        if (lockDepth > 1) {
+            // Leave the locking row alone until we get to the final level of unlocking
+
+            return;
+        }
+
         for (int attempt = 0; attempt < RELEASE_MAX_ATTEMPT; attempt++) {
             SQLException sqlException = jdbcTemplate
-                    .executeStatement("DELETE FROM " + this + " WHERE installed_rank = -100")
-                    .getException();
+                    .executeStatement("DELETE FROM " + this +
+                            " WHERE installed_rank = -100 AND version = '" + tableLockId + "'").getException();
 
             if (sqlException == null) {
                 return;

@@ -50,4 +50,9 @@ public class YdbSchema extends Schema<YdbDatabase, YdbTable> {
     public YdbTable getTable(String tableName) {
         return new YdbTable(jdbcTemplate, database, this, tableName);
     }
+
+    @Override
+    public String toString() {
+        return "ydb_schema";
+    }
 }
