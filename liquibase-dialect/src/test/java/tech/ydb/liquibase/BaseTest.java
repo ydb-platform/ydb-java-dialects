@@ -43,7 +43,7 @@ public abstract class BaseTest {
     public void clearMetaLiquibaseTables() {
         try (Connection connection = DriverManager.getConnection(jdbcUrl())) {
             ResultSet resultSet = connection.getMetaData()
-                    .getTables(null, null, null, null);
+                    .getTables(null, null, null, new String[]{"TABLE"});
 
             while (resultSet.next()) {
                 Statement statement = connection.createStatement();
