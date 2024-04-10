@@ -63,7 +63,8 @@ public class YdbDatabase extends Database<YdbConnection> {
                 "    execution_time INT32,\n" +
                 "    success BOOL,\n" +
                 "    PRIMARY KEY (installed_rank)" +
-                ")";
+                ");\n" +
+                (baseline ? getBaselineStatement(table) : "");
     }
 
     @Override

@@ -7,7 +7,7 @@ import org.flywaydb.core.internal.database.base.Connection;
  */
 public class YdbConnection extends Connection<YdbDatabase> {
 
-    private static final String DUMMY_SCHEMA_NAME = "";
+    private static final String YDB_SCHEMA_NAME = "";
 
     protected YdbConnection(YdbDatabase database, java.sql.Connection connection) {
         super(database, connection);
@@ -17,11 +17,11 @@ public class YdbConnection extends Connection<YdbDatabase> {
 
     @Override
     protected String getCurrentSchemaNameOrSearchPath() {
-        return null; // schema isn't supported
+        return YDB_SCHEMA_NAME; // schema isn't supported
     }
 
     @Override
     public YdbSchema getSchema(String name) {
-        return new YdbSchema(jdbcTemplate, database, DUMMY_SCHEMA_NAME);
+        return new YdbSchema(jdbcTemplate, database, YDB_SCHEMA_NAME);
     }
 }
