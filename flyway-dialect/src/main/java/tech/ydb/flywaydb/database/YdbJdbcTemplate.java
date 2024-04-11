@@ -5,15 +5,15 @@ import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Types;
 import org.flywaydb.core.internal.database.DatabaseType;
+import org.flywaydb.core.internal.jdbc.JdbcTemplate;
 import static org.flywaydb.core.internal.jdbc.JdbcNullTypes.BooleanNull;
 import static org.flywaydb.core.internal.jdbc.JdbcNullTypes.IntegerNull;
 import static org.flywaydb.core.internal.jdbc.JdbcNullTypes.StringNull;
-import org.flywaydb.core.internal.jdbc.JdbcTemplate;
 
 /**
  * @author Kirill Kurdyukov
  */
-public class YdbJdbcTemplate extends JdbcTemplate  {
+public class YdbJdbcTemplate extends JdbcTemplate {
 
     public YdbJdbcTemplate(Connection connection, DatabaseType databaseType) {
         super(connection, databaseType);

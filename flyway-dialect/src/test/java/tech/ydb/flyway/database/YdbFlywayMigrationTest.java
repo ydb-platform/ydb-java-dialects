@@ -6,13 +6,18 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import org.junit.jupiter.api.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * @author Kirill Kurdyukov
  */
 public class YdbFlywayMigrationTest extends YdbFlywayBaseTest {
+
+    private static final Logger logger = LoggerFactory.getLogger(YdbFlywayMigrationTest.class);
 
     private static final String[] EVOLUTION_SCHEMA_MIGRATION_DIRS = new String[]{
             "migration-step-1", "migration-step-2",
@@ -56,6 +61,14 @@ public class YdbFlywayMigrationTest extends YdbFlywayBaseTest {
             for (Future<?> taskFuture : taskFutures) {
                 taskFuture.get();
             }
+        }
+
+        threadPool.shutdown();
+
+        try {
+            threadPool.awaitTermination(10, TimeUnit.SECONDS);
+        } catch (InterruptedException e) {
+            threadPool.shutdownNow();
         }
     }
 }
