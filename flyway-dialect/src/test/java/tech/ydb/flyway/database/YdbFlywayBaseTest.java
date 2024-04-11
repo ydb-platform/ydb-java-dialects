@@ -19,6 +19,12 @@ import tech.ydb.test.junit5.YdbHelperExtension;
  */
 abstract class YdbFlywayBaseTest {
 
+    private static final Set<String> EXPECTED_ALL_SCRIPTS = Set.of(
+            "V1__create_series.sql", "V2__create_seasons.sql",
+            "V3__create_episodes.sql", "V4__load_data.sql",
+            "V5__create_series_title_index.sql", "V6__rename_index_title_index.sql"
+    );
+
     @RegisterExtension
     private static final YdbHelperExtension ydb = new YdbHelperExtension();
 
@@ -51,9 +57,7 @@ abstract class YdbFlywayBaseTest {
     protected void verifyTest() throws SQLException {
         try (Connection connection = DriverManager.getConnection(jdbcUrl())) {
             try (Statement statement = connection.createStatement()) {
-                assertCountTable(2, "SELECT COUNT(*) FROM series", statement);
-                assertCountTable(9, "SELECT COUNT(*) FROM seasons", statement);
-                assertCountTable(70, "SELECT COUNT(*) FROM episodes", statement);
+                verifyCountTables(statement);
 
                 ResultSet rs = statement.executeQuery("SELECT script FROM flyway_schema_history;");
                 HashSet<String> scripts = new HashSet<>();
@@ -67,8 +71,14 @@ abstract class YdbFlywayBaseTest {
         }
     }
 
+    protected void verifyCountTables(Statement statement) throws SQLException {
+        assertCountTable(2, "SELECT COUNT(*) FROM series", statement);
+        assertCountTable(9, "SELECT COUNT(*) FROM seasons", statement);
+        assertCountTable(70, "SELECT COUNT(*) FROM episodes", statement);
+    }
+
     protected Set<String> expectedScripts() {
-        return Set.of();
+        return EXPECTED_ALL_SCRIPTS;
     }
 
     @AfterEach
