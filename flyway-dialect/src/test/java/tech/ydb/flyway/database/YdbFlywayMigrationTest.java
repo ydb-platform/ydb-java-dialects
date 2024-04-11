@@ -36,24 +36,26 @@ public class YdbFlywayMigrationTest extends YdbFlywayBaseTest {
     void evolutionConcurrencySchemaTest() throws ExecutionException, InterruptedException {
         int threadPoolSize = 10;
 
-        ExecutorService threadPool = Executors.newFixedThreadPool(threadPoolSize);
+        try (ExecutorService threadPool = Executors.newFixedThreadPool(threadPoolSize)) {
 
-        for (int migrationStep = 0; migrationStep < EVOLUTION_SCHEMA_MIGRATION_DIRS.length; migrationStep++) {
-            List<Future<?>> taskFutures = new ArrayList<>();
+            for (int migrationStep = 0; migrationStep < EVOLUTION_SCHEMA_MIGRATION_DIRS.length; migrationStep++) {
+                List<Future<?>> taskFutures = new ArrayList<>();
 
-            for (int i = 0; i < threadPoolSize * 2; i++) {
-                int finalMigrationStep = migrationStep;
+                for (int i = 0; i < threadPoolSize * 2; i++) {
+                    int finalMigrationStep = migrationStep;
 
-                taskFutures.add(
-                        threadPool.submit(() -> assertTrue(
-                                createFlyway("classpath:db/" + EVOLUTION_SCHEMA_MIGRATION_DIRS[finalMigrationStep])
-                                        .load().migrate().success
-                        ))
-                );
-            }
+                    taskFutures.add(
+                            threadPool.submit(() -> assertTrue(
+                                    createFlyway("classpath:db/" +
+                                                    EVOLUTION_SCHEMA_MIGRATION_DIRS[finalMigrationStep])
+                                            .load().migrate().success
+                            ))
+                    );
+                }
 
-            for (Future<?> taskFuture : taskFutures) {
-                taskFuture.get();
+                for (Future<?> taskFuture : taskFutures) {
+                    taskFuture.get();
+                }
             }
         }
     }
