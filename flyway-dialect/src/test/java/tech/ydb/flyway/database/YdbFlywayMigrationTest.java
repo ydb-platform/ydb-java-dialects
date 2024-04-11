@@ -47,8 +47,8 @@ public class YdbFlywayMigrationTest extends YdbFlywayBaseTest {
                 taskFutures.add(
                         threadPool.submit(() -> assertTrue(
                                 createFlyway("classpath:db/" +
-                                        EVOLUTION_SCHEMA_MIGRATION_DIRS[finalMigrationStep])
-                                        .load().migrate().success
+                                        EVOLUTION_SCHEMA_MIGRATION_DIRS[finalMigrationStep]
+                                ).load().migrate().success
                         ))
                 );
             }
