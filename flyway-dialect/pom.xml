@@ -6,7 +6,7 @@
 
     <groupId>tech.ydb</groupId>
     <artifactId>flyway-dialect</artifactId>
-    <version>0.9.7</version>
+    <version>1.0.0-RC0</version>
 
     <name>Flyway YDB Dialect</name>
     <description>Support Flyway YDB Dialect</description>
