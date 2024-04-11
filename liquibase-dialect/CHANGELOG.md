@@ -1,6 +1,6 @@
 ## 1.0.2 ##
 
-* Added duration format for `Interval` type and ISO for time types when loading data into tables.
+* Added duration format for `Interval` type and ISO for time types when loading data into tables
 
 ## 1.0.1 ##
 
@@ -24,7 +24,7 @@
 
 ## 0.9.5 ##
 
-* Supported loadData and loadUpdateData from CSV file.
+* Supported loadData and loadUpdateData from CSV file
 
 ## 0.9.4 ##
 
@@ -36,10 +36,10 @@
 
 ## 0.9.2 ##
 
-* Fixed bug with NullPointerException in CREATE INDEX generator method.
+* Fixed bug with NullPointerException in CREATE INDEX generator method
 
 ## 0.9.1 ##
 
-* Supported "CREATE TABLE", "ALTER TABLE", "DROP TABLE" and "CREATE INDEX" SQL statements from .xml, .json and .yaml file formats.
-* Added support for YDB primitive data types.
-* Included support for DATABASECHANGELOG and DATABASECHANGELOGLOCK tables.
+* Supported "CREATE TABLE", "ALTER TABLE", "DROP TABLE" and "CREATE INDEX" SQL statements from .xml, .json and .yaml file formats
+* Added support for YDB primitive data types
+* Included support for DATABASECHANGELOG and DATABASECHANGELOGLOCK tables
