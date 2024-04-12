@@ -3,7 +3,8 @@ name: Publish YDB Flyway Dialect
 on:
   push:
     tags:
-      - 'flyway-ydb/v[0-9]+.[0-9]+.[0-9]+(-RC[0-9]+)?'
+      - flyway-ydb/v[0-9]+.[0-9]+.[0-9]+
+      - flyway-ydb/v[0-9]+.[0-9]+.[0-9]+-RC[0-9]+
 
 env:
   MAVEN_ARGS: --batch-mode --no-transfer-progress -Dstyle.color=always
