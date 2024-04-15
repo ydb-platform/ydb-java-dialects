@@ -30,6 +30,8 @@ To use this YDB Flyway Dialect, you'll need:
 For Maven, add the following dependency to your pom.xml:
 
 ```xml
+<!-- Set an actual versions -->
+
 <dependency>
     <groupId>org.flywaydb</groupId>
     <artifactId>flyway-core</artifactId>
@@ -45,7 +47,6 @@ For Maven, add the following dependency to your pom.xml:
 <dependency>
     <groupId>tech.ydb.dialects</groupId>
     <artifactId>flyway-ydb-dialect</artifactId>
-    <!-- Set an actual version -->
     <version>${flyway.ydb.dialect.version}</version>
 </dependency>
 ```
@@ -54,9 +55,10 @@ For Gradle, add the following to your build.gradle (or build.gradle.kts):
 
 ```groovy
 dependencies {
-    implementation "org.flywaydb:flyway-core:$flywayCoreVersion" // Set actual version
-    implementation "tech.ydb.dialects:flyway-ydb-dialect:$flywayYdbDialecVersion" // Set actual version
-    implementation "tech.ydb.jdbc:ydb-jdbc-driver:${ydbJdbcVersion}" // Set actual version
+    // Set actual versions
+    implementation "org.flywaydb:flyway-core:$flywayCoreVersion"
+    implementation "tech.ydb.dialects:flyway-ydb-dialect:$flywayYdbDialecVersion"
+    implementation "tech.ydb.jdbc:ydb-jdbc-driver:$ydbJdbcVersion"
 }
 ```
 
