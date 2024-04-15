@@ -32,6 +32,8 @@ To use this YDB Liquibase Dialect, you'll need:
 For Maven, add the following dependency to your pom.xml:
 
 ```xml
+<!-- Set an actual versions -->
+
 <dependency>
     <groupId>org.liquibase</groupId>
     <artifactId>liquibase-core</artifactId>
@@ -47,7 +49,6 @@ For Maven, add the following dependency to your pom.xml:
 <dependency>
     <groupId>tech.ydb.dialects</groupId>
     <artifactId>liquibase-ydb-dialect</artifactId>
-    <!-- Set an actual version -->
     <version>${liquibase.ydb.dialect.version}</version>
 </dependency>
 ```
@@ -56,9 +57,10 @@ For Gradle, add the following to your build.gradle (or build.gradle.kts):
 
 ```groovy
 dependencies {
-    implementation "org.liquibase:liquibase-core:$liquibaseCoreVersion" // Set actual version
-    implementation "tech.ydb.dialects:liquibase-ydb-dialect:$liquibaseYdbDialecVersion" // Set actual version
-    implementation "tech.ydb.jdbc:ydb-jdbc-driver:${ydbJdbcVersion}" // Set actual version
+    // Set actual versions
+    implementation "org.liquibase:liquibase-core:$liquibaseCoreVersion"
+    implementation "tech.ydb.dialects:liquibase-ydb-dialect:$liquibaseYdbDialecVersion"
+    implementation "tech.ydb.jdbc:ydb-jdbc-driver:$ydbJdbcVersion"
 }
 ```
 
