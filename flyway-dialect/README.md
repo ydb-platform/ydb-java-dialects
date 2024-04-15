@@ -55,7 +55,7 @@ For Gradle, add the following to your build.gradle (or build.gradle.kts):
 
 ```groovy
 dependencies {
-    // Set actual versions
+    // Set an actual versions
     implementation "org.flywaydb:flyway-core:$flywayCoreVersion"
     implementation "tech.ydb.dialects:flyway-ydb-dialect:$flywayYdbDialecVersion"
     implementation "tech.ydb.jdbc:ydb-jdbc-driver:$ydbJdbcVersion"
