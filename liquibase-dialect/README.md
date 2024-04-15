@@ -14,16 +14,16 @@ and applying database schema changes.
 
 ### Features
 
-- Generate SQL (YQL) from .xml .json .yaml changelog files.
-- Apply migration via YDB JDBC Driver.
+- Generate SQL (YQL) from .xml .json .yaml changelog files
+- Apply migration via YDB JDBC Driver
 
 ## Getting Started
 
 ### Requirements
 
-To use this Liquibase YDB Dialect, you'll need:
+To use this YDB Liquibase Dialect, you'll need:
 
-- Java 8 or above.
+- Java 8 or above
 - [YDB JDBC Driver](https://github.com/ydb-platform/ydb-jdbc-driver)
 - Access to a YDB Database instance
 
