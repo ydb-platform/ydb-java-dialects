@@ -17,7 +17,7 @@ public class YdbFlywayBaselineTest extends YdbFlywayBaseTest {
 
     private static final Set<String> EXPECTED_SCRIPTS = Set.of(
             "<< Flyway Baseline >>", "V5__create_series_title_index.sql",
-            "V6__rename_index_title_index.sql", "V4__load_data.sql"
+            "V6__rename_series_title_index.sql", "V4__load_data.sql"
     );
 
     @Test

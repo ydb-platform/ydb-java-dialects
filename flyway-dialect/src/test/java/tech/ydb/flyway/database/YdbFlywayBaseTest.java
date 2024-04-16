@@ -22,7 +22,7 @@ abstract class YdbFlywayBaseTest {
     private static final Set<String> EXPECTED_ALL_SCRIPTS = Set.of(
             "V1__create_series.sql", "V2__create_seasons.sql",
             "V3__create_episodes.sql", "V4__load_data.sql",
-            "V5__create_series_title_index.sql", "V6__rename_index_title_index.sql"
+            "V5__create_series_title_index.sql", "V6__rename_series_title_index.sql"
     );
 
     @RegisterExtension
