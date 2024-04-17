@@ -188,4 +188,9 @@ public class YdbDialect extends Dialect {
     public Exporter<Constraint> getUniqueKeyExporter() {
         return UNIQUE_KEY_EMPTY_EXPORTER;
     }
+
+    @Override
+    public boolean supportsColumnCheck() {
+        return false;
+    }
 }

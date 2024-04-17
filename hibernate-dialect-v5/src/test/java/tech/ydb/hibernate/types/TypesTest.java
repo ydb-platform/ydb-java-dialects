@@ -45,10 +45,16 @@ public class TypesTest {
                 "YDB AppTeam",
                 23,
                 LocalDateTime.parse("2023-09-16T12:30:00"),
-                new byte[]{1, 2, 3, 4, 5}
+                new byte[]{1, 2, 3, 4, 5},
+                Employee.Enum.ONE,
+                Employee.Enum.ONE
         );
 
         inTransaction(session -> session.persist(employee));
+        inTransaction(session -> assertEquals(employee, session.find(Employee.class, employee.getId())));
+
+        employee.setActive(false);
+        inTransaction(session -> session.merge(employee));
         inTransaction(session -> assertEquals(employee, session.find(Employee.class, employee.getId())));
     }
 }

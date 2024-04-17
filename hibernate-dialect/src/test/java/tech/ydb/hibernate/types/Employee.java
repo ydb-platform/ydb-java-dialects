@@ -2,6 +2,8 @@ package tech.ydb.hibernate.types;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import java.math.BigDecimal;
@@ -49,4 +51,13 @@ public class Employee {
     private LocalDateTime limitDomainPassword;
 
     private byte[] bytes;
+
+    private Enum anEnum;
+
+    @Enumerated(EnumType.STRING)
+    private Enum bnEnum;
+
+    public enum Enum {
+        ONE, TWO
+    }
 }

@@ -5,6 +5,8 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import javax.persistence.Column;
 import javax.persistence.Entity;
+import javax.persistence.EnumType;
+import javax.persistence.Enumerated;
 import javax.persistence.Id;
 import javax.persistence.Table;
 import lombok.AllArgsConstructor;
@@ -49,4 +51,13 @@ public class Employee {
     private LocalDateTime limitDomainPassword;
 
     private byte[] bytes;
+
+    private Enum anEnum;
+
+    @Enumerated(EnumType.STRING)
+    private Enum bnEnum;
+
+    public enum Enum {
+        ONE, TWO
+    }
 }

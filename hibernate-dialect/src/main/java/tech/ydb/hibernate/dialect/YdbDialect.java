@@ -251,4 +251,9 @@ public class YdbDialect extends Dialect {
     public Exporter<ForeignKey> getForeignKeyExporter() {
         return FOREIGN_KEY_EMPTY_EXPORTER;
     }
+
+    @Override
+    public boolean supportsColumnCheck() {
+        return false;
+    }
 }
