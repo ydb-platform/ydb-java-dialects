@@ -14,6 +14,9 @@ import javax.sql.DataSource;
 import java.sql.Connection;
 
 public class YdbDslContext extends DefaultDSLContext {
+
+    public static final String YDB_QUOTE = "`";
+
     public YdbDslContext() {
         this(new DefaultConfiguration());
     }
@@ -72,6 +75,6 @@ public class YdbDslContext extends DefaultDSLContext {
     }
 
     private static VisitListener quoteListener() {
-        return new CustomQuoteListener("`");
+        return new CustomQuoteListener(YDB_QUOTE);
     }
 }
