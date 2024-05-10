@@ -2,8 +2,6 @@ package tech.ydb.jooq.codegen;
 
 import org.jooq.*;
 import org.jooq.impl.DSL;
-import org.jooq.impl.DefaultDataType;
-import org.jooq.impl.SQLDataType;
 import org.jooq.meta.*;
 import org.jooq.meta.jaxb.ForcedType;
 import org.jooq.tools.JooqLogger;
@@ -13,6 +11,8 @@ import org.jooq.types.ULong;
 import org.jooq.types.UShort;
 import tech.ydb.jdbc.YdbConnection;
 import tech.ydb.jdbc.context.YdbContext;
+import tech.ydb.jooq.YDB;
+import tech.ydb.jooq.YdbTypes;
 import tech.ydb.jooq.binding.*;
 import tech.ydb.jooq.value.YSON;
 import tech.ydb.proto.scheme.SchemeOperationProtos;
@@ -29,72 +29,39 @@ import java.util.Collections;
 import java.util.List;
 
 public class YdbDatabase extends AbstractDatabase implements ResultQueryDatabase {
-
-    private static final SQLDialect FAMILY = SQLDialect.DEFAULT;
     private static final JooqLogger log = JooqLogger.getLogger(YdbDatabase.class);
 
     public YdbDatabase() {
-        initDataTypes();
-
         addForcedTypeForUnsignedTypes();
         addForcedTypeForStringTypes();
-    }
-
-    private static void initDataTypes() {
-        new DefaultDataType<>(FAMILY, SQLDataType.BOOLEAN, "bool");
-
-        new DefaultDataType<>(FAMILY, SQLDataType.TINYINT, "int8");
-        new DefaultDataType<>(FAMILY, SQLDataType.SMALLINT, "int16");
-        new DefaultDataType<>(FAMILY, SQLDataType.INTEGER, "int32");
-        new DefaultDataType<>(FAMILY, SQLDataType.BIGINT, "int64");
-
-        new DefaultDataType<>(FAMILY, SQLDataType.TINYINTUNSIGNED, "uint8");
-        new DefaultDataType<>(FAMILY, SQLDataType.SMALLINTUNSIGNED, "uint16");
-        new DefaultDataType<>(FAMILY, SQLDataType.INTEGERUNSIGNED, "uint32");
-        new DefaultDataType<>(FAMILY, SQLDataType.BIGINTUNSIGNED, "uint64");
-
-        new DefaultDataType<>(FAMILY, SQLDataType.REAL, "float");
-        new DefaultDataType<>(FAMILY, SQLDataType.DOUBLE, "double");
-
-        new DefaultDataType<>(FAMILY, SQLDataType.VARCHAR, "text");
-        new DefaultDataType<>(FAMILY, SQLDataType.VARBINARY, "bytes");
-        new DefaultDataType<>(FAMILY, SQLDataType.VARCHAR, "json");
-        new DefaultDataType<>(FAMILY, SQLDataType.VARBINARY, "jsondocument");
-        new DefaultDataType<>(FAMILY, SQLDataType.VARBINARY, "yson");
-
-        new DefaultDataType<>(FAMILY, SQLDataType.DATE, "date");
-        new DefaultDataType<>(FAMILY, SQLDataType.LOCALDATETIME, "datetime");
-        new DefaultDataType<>(FAMILY, SQLDataType.TIMESTAMP, "timestamp");
-        new DefaultDataType<>(FAMILY, SQLDataType.INTERVAL, "interval");
-        new DefaultDataType<>(FAMILY, SQLDataType.DECIMAL, "decimal");
     }
 
     private void addForcedTypeForUnsignedTypes() {
         ForcedType uint8 = new ForcedType()
                 .withName("Uint8")
                 .withExpression(".*")
-                .withTypes("Uint8")
+                .withTypes(YdbTypes.UINT8.getTypeName())
                 .withBinding(Uint8Binding.class.getName())
                 .withUserType(UByte.class.getName());
 
         ForcedType uint16 = new ForcedType()
                 .withName("Uint16")
                 .withExpression(".*")
-                .withTypes("Uint16")
+                .withTypes(YdbTypes.UINT16.getTypeName())
                 .withBinding(Uint16Binding.class.getName())
                 .withUserType(UShort.class.getName());
 
         ForcedType uint32 = new ForcedType()
                 .withName("Uint32")
                 .withExpression(".*")
-                .withTypes("Uint32")
+                .withTypes(YdbTypes.UINT32.getTypeName())
                 .withBinding(Uint32Binding.class.getName())
                 .withUserType(UInteger.class.getName());
 
         ForcedType uint64 = new ForcedType()
                 .withName("Uint64")
                 .withExpression(".*")
-                .withTypes("Uint64")
+                .withTypes(YdbTypes.UINT64.getTypeName())
                 .withBinding(Uint64Binding.class.getName())
                 .withUserType(ULong.class.getName());
 
@@ -105,21 +72,21 @@ public class YdbDatabase extends AbstractDatabase implements ResultQueryDatabase
         ForcedType json = new ForcedType()
                 .withName("Json")
                 .withExpression(".*")
-                .withTypes("json")
+                .withTypes(YdbTypes.JSON.getTypeName())
                 .withBinding(JsonBinding.class.getName())
                 .withUserType(JSON.class.getName());
 
         ForcedType jsonDoc = new ForcedType()
                 .withName("JsonDocument")
                 .withExpression(".*")
-                .withTypes("jsondocument")
+                .withTypes(YdbTypes.JSONDOCUMENT.getTypeName())
                 .withBinding(JsonDocumentBinding.class.getName())
                 .withUserType(JSONB.class.getName());
 
         ForcedType yson = new ForcedType()
                 .withName("Yson")
                 .withExpression(".*")
-                .withTypes("yson")
+                .withTypes(YdbTypes.YSON.getTypeName())
                 .withBinding(YsonBinding.class.getName())
                 .withUserType(YSON.class.getName());
 
@@ -128,7 +95,7 @@ public class YdbDatabase extends AbstractDatabase implements ResultQueryDatabase
 
     @Override
     protected DSLContext create0() {
-        return DSL.using(getConnection(), FAMILY);
+        return DSL.using(getConnection(), YDB.DIALECT);
     }
 
     private YdbContext getContext() {

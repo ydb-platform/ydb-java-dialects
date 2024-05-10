@@ -1,12 +1,12 @@
 package tech.ydb.jooq;
 
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.SQLException;
 import java.util.List;
 
-import org.jooq.DSLContext;
+import jooq.generated.ydb.default_schema.tables.records.SeriesRecord;
+import org.jooq.CreateTableElementListStep;
 import org.jooq.Table;
+import org.jooq.types.ULong;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.extension.RegisterExtension;
@@ -14,54 +14,69 @@ import tech.ydb.test.junit5.YdbHelperExtension;
 
 public abstract class BaseTest {
 
+    protected static List<SeriesRecord> getExampleRecords() {
+        return List.of(
+                new SeriesRecord(ULong.valueOf(1), "Series One", "Info One", ULong.valueOf(20220101)),
+                new SeriesRecord(ULong.valueOf(2), "Series Two", "Info Two", ULong.valueOf(20220102)),
+                new SeriesRecord(ULong.valueOf(3), "Series Three", "Info Three", ULong.valueOf(20220103))
+        );
+    }
+
     @RegisterExtension
     private static final YdbHelperExtension ydb = new YdbHelperExtension();
 
-    protected static DSLContext dsl;
+    protected static CloseableYdbDSLContext dsl;
 
     @BeforeAll
-    public static void beforeAll() throws SQLException {
-        Connection conn = DriverManager.getConnection(jdbcUrl());
-        dsl = new YdbDslContext(conn);
+    public static void beforeAll() {
+        dsl = YDB.using(jdbcUrl());
 
-        conn.createStatement()
-                .execute("CREATE TABLE series \n" +
-                        "(                           \n" +
-                        "    series_id Uint64,\n" +
-                        "    title Utf8,\n" +
-                        "    series_info Utf8,\n" +
-                        "    release_date Uint64,\n" +
-                        "    PRIMARY KEY (series_id)\n" +
-                        ");\n" +
-                        "\n" +
-                        "CREATE TABLE seasons\n" +
-                        "(\n" +
-                        "    series_id Uint64,\n" +
-                        "    season_id Uint64,\n" +
-                        "    title Utf8,\n" +
-                        "    first_aired Uint64,\n" +
-                        "    last_aired Uint64,\n" +
-                        "    PRIMARY KEY (series_id, season_id)\n" +
-                        ");\n" +
-                        "\n" +
-                        "CREATE TABLE episodes\n" +
-                        "(\n" +
-                        "    series_id Uint64,\n" +
-                        "    season_id Uint64,\n" +
-                        "    episode_id Uint64,\n" +
-                        "    title Utf8,\n" +
-                        "    air_date Uint64,\n" +
-                        "    PRIMARY KEY (series_id, season_id, episode_id)\n" +
-                        ");" +
-                        "" +
-                        "CREATE TABLE hard_table\n" +
-                        "(\n" +
-                        "    id text,\n" +
-                        "    first json,\n" +
-                        "    second jsondocument,\n" +
-                        "    third yson,\n" +
-                        "    PRIMARY KEY (id)\n" +
-                        ");");
+        dsl.createTable("series")
+                .column("series_id", YdbTypes.UINT64)
+                .column("title", YdbTypes.UTF8)
+                .column("series_info", YdbTypes.UTF8)
+                .column("release_date", YdbTypes.UINT64)
+                .primaryKey("series_id")
+                .execute();
+
+        dsl.createTable("seasons")
+                .column("series_id", YdbTypes.UINT64)
+                .column("season_id", YdbTypes.UINT64)
+                .column("title", YdbTypes.UTF8)
+                .column("first_aired", YdbTypes.UINT64)
+                .column("last_aired", YdbTypes.UINT64)
+                .primaryKey("series_id", "season_id")
+                .execute();
+
+        dsl.createTable("episodes")
+                .column("series_id", YdbTypes.UINT64)
+                .column("season_id", YdbTypes.UINT64)
+                .column("episode_id", YdbTypes.UINT64)
+                .column("title", YdbTypes.UTF8)
+                .column("air_date", YdbTypes.UINT64)
+                .primaryKey("series_id", "season_id", "episode_id")
+                .execute();
+
+        dsl.createTable("hard_table")
+                .column("id", YdbTypes.TEXT)
+                .column("first", YdbTypes.JSON)
+                .column("second", YdbTypes.JSONDOCUMENT)
+                .column("third", YdbTypes.YSON)
+                .primaryKey("id")
+                .execute();
+
+        CreateTableElementListStep createQuery = dsl.createTable("numeric").column("id", YdbTypes.INT32);
+
+        for (int i = 1; i <= 23; i++) {
+            createQuery.column(Integer.toString(i), YdbTypes.INT32);
+        }
+
+        createQuery.primaryKey("id").execute();
+    }
+
+    @AfterAll
+    public static void afterAll() {
+        dsl.close();
     }
 
     @AfterEach
