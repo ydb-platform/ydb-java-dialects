@@ -9,6 +9,7 @@ import org.jooq.Record1;
 import org.jooq.Select;
 import org.jooq.Table;
 import tech.ydb.jooq.Replace;
+import tech.ydb.jooq.YdbDSLContext;
 
 import java.util.Collection;
 import java.util.Map;
@@ -27,8 +28,7 @@ import java.util.Map;
  *       .set(field2, value4)
  *       .execute();
  * </code></pre>
- * <p>
- * <h3>Referencing <code>XYZ*Step</code> types directly from client code</h3>
+ * <h2>Referencing <code>XYZ*Step</code> types directly from client code</h2>
  * <p>
  * It is usually not recommended to reference any <code>XYZ*Step</code> types
  * directly from client code, or assign them to local variables. When writing

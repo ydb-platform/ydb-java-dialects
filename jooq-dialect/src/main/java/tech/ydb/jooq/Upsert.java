@@ -8,7 +8,6 @@ import org.jooq.Table;
  * An <code>UPSERT</code> statement.
  * <p>
  * <strong>Example:</strong>
- * <p>
  * <pre><code>
  * // Assuming import static org.jooq.impl.DSL.* and tech.ydb.jooq.*;
  *
@@ -21,6 +20,8 @@ import org.jooq.Table;
  * <p>
  * Instances can be created using {@link YDB#upsertInto(Table)}, or
  * {@link YdbDSLContext#upsertQuery(Table)} and overloads.
+ *
+ * @param <R> the record type that is being manipulated by the UPSERT statement
  */
 public interface Upsert<R extends Record> extends DMLQuery<R> {
 
