@@ -60,14 +60,12 @@ public class InsertTest extends BaseTest {
 
         int insertCount = dsl.insertInto(SERIES)
                 .set(newRecord)
-                .onDuplicateKeyIgnore()
                 .execute();
 
         assertEquals(1, insertCount, "Record should be inserted as it is unique");
 
         assertThrows(DataAccessException.class, () -> dsl.insertInto(SERIES)
                 .set(newRecord)
-                .onDuplicateKeyIgnore()
                 .execute(), "Duplicate record should not be inserted");
     }
 

@@ -66,7 +66,16 @@ Configure the JOOQ runtime to use the YDB dialect and JDBC driver:
 String url = "jdbc:ydb:grpc://localhost:2136/local";
 Connection conn = DriverManager.getConnection(url);
 
-DSLContext dsl = new YdbDslContext(conn);
+YdbDSLContext dsl = YDB.using(conn);
+```
+
+or
+
+```java
+String url = "jdbc:ydb:grpc://localhost:2136/local";
+try (CloseableYdbDSLContext dsl = YDB.using(url)) {
+    // ...
+}
 ```
 
 ### XML config
