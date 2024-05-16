@@ -10,6 +10,7 @@ import org.jooq.types.UInteger;
 import org.jooq.types.ULong;
 import org.jooq.types.UShort;
 import tech.ydb.jdbc.YdbConnection;
+import tech.ydb.jdbc.context.SchemeExecutor;
 import tech.ydb.jdbc.context.YdbContext;
 import tech.ydb.jooq.YDB;
 import tech.ydb.jooq.YdbTypes;
@@ -166,6 +167,7 @@ public class YdbDatabase extends AbstractDatabase implements ResultQueryDatabase
 
         YdbContext context = getContext();
         SchemeClient client = context.getSchemeClient();
+        SchemeExecutor schemeExecutor = new SchemeExecutor(context);
         DescribeTableSettings settings = context.withDefaultTimeout(new DescribeTableSettings());
 
         List<String> schemas = schemas();
@@ -178,7 +180,7 @@ public class YdbDatabase extends AbstractDatabase implements ResultQueryDatabase
                     String tableName = entry.getName();
                     String fullPath = dirPath + "/" + tableName;
 
-                    TableDescription tableDescription = context.describeTable(fullPath, settings).join().getValue();
+                    TableDescription tableDescription = schemeExecutor.describeTable(fullPath, settings).join().getValue();
                     TableDefinition tableDefinition = getTableDefinition(tableName, dirPath, fullPath, tableDescription);
 
                     result.add(tableDefinition);
