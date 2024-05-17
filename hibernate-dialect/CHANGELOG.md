@@ -1,3 +1,7 @@
+## 0.9.4 ##
+
+- Fixed the generated bool value
+
 ## 0.9.3 ##
 
 - Supported enum field of Entity
