@@ -50,8 +50,10 @@ public class Employee {
     @Column(name = "limit_domain_password")
     private LocalDateTime limitDomainPassword;
 
+    @Column
     private byte[] bytes;
 
+    @Column
     private Enum anEnum;
 
     @Enumerated(EnumType.STRING)

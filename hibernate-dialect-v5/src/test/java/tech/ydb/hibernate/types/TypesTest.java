@@ -56,5 +56,9 @@ public class TypesTest {
         employee.setActive(false);
         inTransaction(session -> session.merge(employee));
         inTransaction(session -> assertEquals(employee, session.find(Employee.class, employee.getId())));
+
+        inTransaction(session -> assertEquals(employee, session
+                .createQuery("FROM Employee e WHERE e.isActive = false", Employee.class)
+                .getSingleResult()));
     }
 }

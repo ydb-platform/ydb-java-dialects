@@ -13,6 +13,7 @@ import org.hibernate.mapping.ForeignKey;
 import org.hibernate.mapping.Index;
 import org.hibernate.service.ServiceRegistry;
 import org.hibernate.sql.ast.SqlAstTranslatorFactory;
+import org.hibernate.sql.ast.spi.SqlAppender;
 import org.hibernate.tool.schema.spi.Exporter;
 import org.hibernate.type.BasicType;
 import static org.hibernate.type.SqlTypes.BIGINT;
@@ -180,6 +181,11 @@ public class YdbDialect extends Dialect {
     @Override
     public boolean supportsExistsInSelect() {
         return false;
+    }
+
+    @Override
+    public void appendBooleanValueString(SqlAppender appender, boolean bool) {
+        appender.append(toBooleanValueString(bool));
     }
 
     @Override
