@@ -1,5 +1,10 @@
 package tech.ydb.flywaydb.database;
 
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
 import org.flywaydb.core.internal.database.base.Schema;
 import org.flywaydb.core.internal.jdbc.JdbcTemplate;
 
@@ -23,7 +28,7 @@ public class YdbSchema extends Schema<YdbDatabase, YdbTable> {
     }
 
     @Override
-    protected boolean doEmpty() {
+    protected boolean doEmpty() throws SQLException {
         return doAllTables().length == 0;
     }
 
@@ -38,12 +43,25 @@ public class YdbSchema extends Schema<YdbDatabase, YdbTable> {
     }
 
     @Override
-    protected void doClean() {
+    protected void doClean() throws SQLException {
+        List<String> schemaTables = schemaTables();
+
+        if (schemaTables.isEmpty()) {
+            return;
+        }
+
+        jdbcTemplate.executeStatement(
+                schemaTables.stream()
+                        .map(table -> "DROP TABLE " + table)
+                        .collect(Collectors.joining("; "))
+        );
     }
 
     @Override
-    protected YdbTable[] doAllTables() {
-        return new YdbTable[0];
+    protected YdbTable[] doAllTables() throws SQLException {
+        return schemaTables().stream()
+                .map(table -> new YdbTable(jdbcTemplate, database, this, name))
+                .toArray(YdbTable[]::new);
     }
 
     @Override
@@ -54,5 +72,18 @@ public class YdbSchema extends Schema<YdbDatabase, YdbTable> {
     @Override
     public String toString() {
         return "ydb_schema";
+    }
+
+    private List<String> schemaTables() throws SQLException {
+        ResultSet rs = jdbcTemplate.getConnection().getMetaData()
+                .getTables(null, name, null, new String[]{"TABLE"});
+
+        List<String> tables = new ArrayList<>();
+
+        while (rs.next()) {
+            tables.add(database.quote(rs.getString("TABLE_NAME")));
+        }
+
+        return tables;
     }
 }
