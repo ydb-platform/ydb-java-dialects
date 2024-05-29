@@ -1,4 +1,4 @@
-package tech.ydb.data.config;
+package tech.ydb.data.repository.config;
 
 import java.sql.Connection;
 import java.sql.SQLException;
@@ -16,11 +16,11 @@ import tech.ydb.data.core.dialect.YdbDialect;
  * @author Madiyar Nurgazin
  */
 public class YdbDialectProvider extends DialectResolver.DefaultDialectProvider {
-
     @Override
     public Optional<Dialect> getDialect(JdbcOperations operations) {
         Optional<Dialect> ydbDialect = Optional.ofNullable(
-                operations.execute((ConnectionCallback<Dialect>) YdbDialectProvider::getDialect));
+                operations.execute((ConnectionCallback<Dialect>) YdbDialectProvider::getDialect)
+        );
 
         if (ydbDialect.isPresent()) {
             return ydbDialect;

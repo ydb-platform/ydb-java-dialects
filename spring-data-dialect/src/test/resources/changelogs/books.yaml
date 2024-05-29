@@ -123,43 +123,6 @@ databaseChangeLog:
         - dropTable:
             tableName: books_authors
   - changeSet:
-      id: "readers"
-      author: "Madiyar Nurgazin"
-      changes:
-        - createTable:
-            tableName: readers
-            columns:
-              - column:
-                  name: id
-                  type: bigint
-                  constraints:
-                    primaryKey: true
-                    nullable: false
-              - column:
-                  name: name
-                  type: varchar
-        - insert:
-            tableName: readers
-            columns:
-              - column:
-                  name: id
-                  valueNumeric: 1
-              - column:
-                  name: name
-                  value: "Ivan Ivanov"
-        - insert:
-            tableName: readers
-            columns:
-              - column:
-                  name: id
-                  valueNumeric: 2
-              - column:
-                  name: name
-                  value: "Sergey Petrov"
-      rollback:
-        - dropTable:
-            tableName: readers
-  - changeSet:
       id: "reviews"
       author: "Madiyar Nurgazin"
       changes:
@@ -185,8 +148,8 @@ databaseChangeLog:
                   name: book_id
                   type: bigint
               - column:
-                  name: reader_id
-                  type: bigint
+                  name: reader
+                  type: varchar
         - insert:
             tableName: reviews
             columns:
@@ -206,8 +169,8 @@ databaseChangeLog:
                   name: book_id
                   valueNumeric: 1
               - column:
-                  name: reader_id
-                  valueNumeric: 1
+                  name: reader
+                  value: "Ivan Ivanov"
         - insert:
             tableName: reviews
             columns:
@@ -227,48 +190,8 @@ databaseChangeLog:
                   name: book_id
                   valueNumeric: 1
               - column:
-                  name: reader_id
-                  valueNumeric: 2
-      rollback:
-        - dropTable:
-            tableName: reviews
-  - changeSet:
-      id: "readers_reviews"
-      author: "Madiyar Nurgazin"
-      changes:
-        - createTable:
-            tableName: readers_reviews
-            columns:
-              - column:
-                  name: reader_id
-                  type: bigint
-                  constraints:
-                    primaryKey: true
-                    nullable: false
-              - column:
-                  name: review_id
-                  type: bigint
-                  constraints:
-                    primaryKey: true
-                    nullable: false
-        - insert:
-            tableName: readers_reviews
-            columns:
-              - column:
-                  name: reader_id
-                  valueNumeric: 1
-              - column:
-                  name: review_id
-                  valueNumeric: 1
-        - insert:
-            tableName: readers_reviews
-            columns:
-              - column:
-                  name: reader_id
-                  valueNumeric: 2
-              - column:
-                  name: review_id
-                  valueNumeric: 2
+                  name: reader
+                  value: "Sergey Petrov"
       rollback:
         - dropTable:
             tableName: reviews

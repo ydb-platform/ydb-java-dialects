@@ -11,7 +11,7 @@ import org.springframework.data.relational.core.mapping.RelationalPersistentEnti
 import org.springframework.data.relational.core.mapping.RelationalPersistentProperty;
 import org.springframework.data.util.TypeInformation;
 import org.springframework.lang.Nullable;
-import tech.ydb.data.support.YdbJdbcUtil;
+import tech.ydb.data.repository.support.YdbJdbcUtil;
 
 /**
  * @author Madiyar Nurgazin
@@ -24,6 +24,9 @@ public class YdbMappingJdbcConverter extends MappingJdbcConverter {
 
     @Override
     public SQLType getTargetSqlType(RelationalPersistentProperty property) {
+        if (property.isAnnotationPresent(YdbType.class)) {
+            return YdbJdbcUtil.targetSqlTypeFor(property.getRequiredAnnotation(YdbType.class).value());
+        }
         return YdbJdbcUtil.targetSqlTypeFor(getColumnType(property));
     }
 

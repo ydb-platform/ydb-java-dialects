@@ -15,7 +15,6 @@ import org.springframework.data.relational.core.sql.LockOptions;
  * @author Madiyar Nurgazin
  */
 public class YdbDialect extends AbstractDialect {
-
     public static final YdbDialect INSTANCE = new YdbDialect();
 
     private static final LimitClause LIMIT_CLAUSE = new LimitClause() {
@@ -43,7 +42,7 @@ public class YdbDialect extends AbstractDialect {
 
     private static final LockClause LOCK_CLAUSE = new LockClause() {
         public String getLock(LockOptions lockOptions) {
-            throw new UnsupportedOperationException("YDB don't support FOR UPDATE statement");
+            throw new UnsupportedOperationException("YDB don't support pessimistic locks");
         }
 
         public LockClause.Position getClausePosition() {
@@ -85,5 +84,4 @@ public class YdbDialect extends AbstractDialect {
     public OrderByNullPrecedence orderByNullHandling() {
         return OrderByNullPrecedence.NONE;
     }
-
 }

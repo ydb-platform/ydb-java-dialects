@@ -11,6 +11,7 @@ import org.springframework.data.relational.core.mapping.Table;
 /**
  * @author Madiyar Nurgazin
  */
+//@AllArgsConstructor
 @Data
 @Table("books")
 public class Book {
@@ -23,7 +24,7 @@ public class Book {
     @MappedCollection(idColumn = "book_id")
     private Set<Review> reviews;
     @MappedCollection(idColumn = "book_id")
-    private Set<AuthorRef> authors;
+    private Set<BookAuthor> authors;
 
     public Book() {
         this.reviews = new HashSet<>();
