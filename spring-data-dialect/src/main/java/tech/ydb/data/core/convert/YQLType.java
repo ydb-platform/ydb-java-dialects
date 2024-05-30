@@ -13,7 +13,7 @@ public record YQLType(String name, int type) implements SQLType {
 
     @Override
     public String getVendor() {
-        return "Ydb";
+        return "YDB";
     }
 
     @Override
