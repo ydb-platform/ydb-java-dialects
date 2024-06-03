@@ -63,12 +63,13 @@ public class YdbDatabase extends Database<YdbConnection> {
                 "    execution_time INT32,\n" +
                 "    success BOOL,\n" +
                 "    PRIMARY KEY (installed_rank)" +
-                ")";
+                ");\n" +
+                (baseline ? getBaselineStatement(table) : "");
     }
 
     @Override
     public String getSelectStatement(Table table) {
-        return "SCAN SELECT " + quote("installed_rank")
+        return "SELECT " + quote("installed_rank")
                 + "," + quote("version")
                 + "," + quote("description")
                 + "," + quote("type")

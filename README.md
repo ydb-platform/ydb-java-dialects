@@ -28,8 +28,9 @@ tools like Flyway and Liquibase.
 ## Supports migration tools
 
 - *Liquibase*:
-  Liquibase dialect for YDB provides a familiar experience for Liquibase users. 
-  For more information, please visit the relevant [module](./liquibase-dialect).
+  For more information, please visit the [module](./liquibase-dialect).
+- *Flyway*:
+  For more information, please visit the [module](./flyway-dialect).
 
 Each module is developed independently,
 and the release process is separate from the others.
