@@ -2,13 +2,16 @@ package tech.ydb.data.core.convert;
 
 import java.sql.SQLType;
 
+import tech.ydb.jdbc.YdbConst;
+import tech.ydb.table.values.PrimitiveType;
+
 /**
  * @author Madiyar Nurgazin
  */
-public record YQLType(String name, int type) implements SQLType {
+public record YQLType(PrimitiveType type) implements SQLType {
     @Override
     public String getName() {
-        return name;
+        return type.name();
     }
 
     @Override
@@ -18,6 +21,6 @@ public record YQLType(String name, int type) implements SQLType {
 
     @Override
     public Integer getVendorTypeNumber() {
-        return type;
+        return YdbConst.SQL_KIND_PRIMITIVE + type.ordinal();
     }
 }

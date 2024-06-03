@@ -25,7 +25,7 @@ public class YdbMappingJdbcConverter extends MappingJdbcConverter {
     @Override
     public SQLType getTargetSqlType(RelationalPersistentProperty property) {
         if (property.isAnnotationPresent(YdbType.class)) {
-            return YdbJdbcUtil.targetSqlTypeFor(property.getRequiredAnnotation(YdbType.class).value());
+            return new YQLType(property.getRequiredAnnotation(YdbType.class).value());
         }
         return YdbJdbcUtil.targetSqlTypeFor(getColumnType(property));
     }
