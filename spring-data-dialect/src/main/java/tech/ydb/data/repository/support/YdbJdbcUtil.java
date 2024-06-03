@@ -1,4 +1,4 @@
-package tech.ydb.data.support;
+package tech.ydb.data.repository.support;
 
 import java.sql.JDBCType;
 import java.sql.SQLType;
@@ -15,12 +15,12 @@ import org.springframework.util.Assert;
  * @author Madiyar Nurgazin
  */
 public final class YdbJdbcUtil {
-    private static final Map<Class<?>, SQLType> sqlTypeMappings = new HashMap<>();
+    private static final Map<Class<?>, SQLType> sqlTypeByClass = new HashMap<>();
 
     static {
-        sqlTypeMappings.put(LocalDateTime.class, JDBCType.TIME);
-        sqlTypeMappings.put(LocalDate.class, JDBCType.DATE);
-        sqlTypeMappings.put(Instant.class, JDBCType.TIMESTAMP);
+        sqlTypeByClass.put(LocalDateTime.class, JDBCType.TIME);
+        sqlTypeByClass.put(LocalDate.class, JDBCType.DATE);
+        sqlTypeByClass.put(Instant.class, JDBCType.TIMESTAMP);
     }
 
     private YdbJdbcUtil() {
@@ -30,10 +30,10 @@ public final class YdbJdbcUtil {
     public static SQLType targetSqlTypeFor(Class<?> type) {
         Assert.notNull(type, "Type must not be null");
 
-        return sqlTypeMappings.keySet().stream() //
+        return sqlTypeByClass.keySet().stream() //
                 .filter(k -> k.isAssignableFrom(type)) //
                 .findFirst() //
-                .map(sqlTypeMappings::get) //
+                .map(sqlTypeByClass::get) //
                 .orElse(JdbcUtil.targetSqlTypeFor(type));
     }
 }

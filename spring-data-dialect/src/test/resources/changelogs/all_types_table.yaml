@@ -46,11 +46,29 @@ databaseChangeLog:
                   name: datetime_column
                   type: datetime
               - column:
-                  name: created
+                  name: modified
                   type: datetime
               - column:
                   name: timestamp_column
                   type: timestamp
+              - column:
+                  name: json_column
+                  type: json
+              - column:
+                  name: json_document_column
+                  type: jsondocument
+              - column:
+                  name: uint8_column
+                  type: uint8
+              - column:
+                  name: uint16_column
+                  type: uint16
+              - column:
+                  name: uint32_column
+                  type: uint32
+              - column:
+                  name: uint64_column
+                  type: uint64
       rollback:
         - dropTable:
             tableName: all_types_table

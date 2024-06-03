@@ -6,5 +6,5 @@ import org.springframework.data.relational.core.mapping.Table;
  * @author Madiyar Nurgazin
  */
 @Table("books_authors")
-public record AuthorRef(long authorId) {
+public record BookAuthor(long authorId, long bookId) {
 }

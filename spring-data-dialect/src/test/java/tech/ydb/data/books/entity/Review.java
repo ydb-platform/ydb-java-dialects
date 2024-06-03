@@ -14,7 +14,8 @@ import org.springframework.data.relational.core.mapping.Table;
 public class Review {
     @Id
     private long id;
-    private long readerId;
+    private long bookId;
+    private String reader;
     private String text;
     private long rating;
     private LocalDateTime created;
