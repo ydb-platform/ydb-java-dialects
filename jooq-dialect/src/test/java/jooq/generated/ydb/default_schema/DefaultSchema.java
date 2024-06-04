@@ -8,6 +8,7 @@ import java.util.Arrays;
 import java.util.List;
 
 import jooq.generated.ydb.DefaultCatalog;
+import jooq.generated.ydb.default_schema.tables.DateTable;
 import jooq.generated.ydb.default_schema.tables.Episodes;
 import jooq.generated.ydb.default_schema.tables.HardTable;
 import jooq.generated.ydb.default_schema.tables.Seasons;
@@ -30,6 +31,11 @@ public class DefaultSchema extends SchemaImpl {
      * The reference instance of <code>DEFAULT_SCHEMA</code>
      */
     public static final DefaultSchema DEFAULT_SCHEMA = new DefaultSchema();
+
+    /**
+     * The table <code>DEFAULT_SCHEMA.date_table</code>.
+     */
+    public final DateTable DATE_TABLE = DateTable.DATE_TABLE;
 
     /**
      * The table <code>DEFAULT_SCHEMA.episodes</code>.
@@ -67,6 +73,7 @@ public class DefaultSchema extends SchemaImpl {
     @Override
     public final List<Table<?>> getTables() {
         return Arrays.asList(
+            DateTable.DATE_TABLE,
             Episodes.EPISODES,
             HardTable.HARD_TABLE,
             Seasons.SEASONS,

@@ -14,7 +14,8 @@ import java.sql.SQLException;
 
 import static tech.ydb.jooq.binding.BindingTools.indexType;
 
-public class Uint64Binding extends AbstractBinding<ULong, ULong> {
+@SuppressWarnings("resource")
+public final class Uint64Binding extends AbstractBinding<ULong, ULong> {
 
     private static final int INDEX_TYPE = indexType(PrimitiveType.Uint64);
 
@@ -26,7 +27,11 @@ public class Uint64Binding extends AbstractBinding<ULong, ULong> {
 
     @Override
     public void set(BindingSetStatementContext<ULong> ctx) throws SQLException {
-        ctx.statement().setObject(ctx.index(), PrimitiveValue.newUint64(ctx.value().longValue()), INDEX_TYPE);
+        if (ctx.value() == null) {
+            ctx.statement().setNull(ctx.index(), INDEX_TYPE);
+        } else {
+            ctx.statement().setObject(ctx.index(), PrimitiveValue.newUint64(ctx.value().longValue()), INDEX_TYPE);
+        }
     }
 
     @Override

@@ -59,7 +59,7 @@ public class HardTable extends TableImpl<HardTableRecord> {
     /**
      * The column <code>DEFAULT_SCHEMA.hard_table.id</code>.
      */
-    public final TableField<HardTableRecord, String> ID = createField(DSL.name("id"), SQLDataType.VARCHAR(4194304), this, "");
+    public final TableField<HardTableRecord, byte[]> ID = createField(DSL.name("id"), SQLDataType.VARBINARY, this, "");
 
     /**
      * The column <code>DEFAULT_SCHEMA.hard_table.first</code>.
@@ -69,12 +69,12 @@ public class HardTable extends TableImpl<HardTableRecord> {
     /**
      * The column <code>DEFAULT_SCHEMA.hard_table.second</code>.
      */
-    public final TableField<HardTableRecord, JSONB> SECOND = createField(DSL.name("second"), SQLDataType.VARBINARY, this, "", new JsonDocumentBinding());
+    public final TableField<HardTableRecord, JSONB> SECOND = createField(DSL.name("second"), SQLDataType.JSONB, this, "", new JsonDocumentBinding());
 
     /**
      * The column <code>DEFAULT_SCHEMA.hard_table.third</code>.
      */
-    public final TableField<HardTableRecord, YSON> THIRD = createField(DSL.name("third"), SQLDataType.VARBINARY, this, "", new YsonBinding());
+    public final TableField<HardTableRecord, YSON> THIRD = createField(DSL.name("third"), SQLDataType.OTHER, this, "", new YsonBinding());
 
     private HardTable(Name alias, Table<HardTableRecord> aliased) {
         this(alias, aliased, (Field<?>[]) null, null);

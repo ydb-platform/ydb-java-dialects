@@ -3,19 +3,12 @@ package tech.ydb.jooq.codegen;
 import org.jooq.*;
 import org.jooq.impl.DSL;
 import org.jooq.meta.*;
-import org.jooq.meta.jaxb.ForcedType;
 import org.jooq.tools.JooqLogger;
-import org.jooq.types.UByte;
-import org.jooq.types.UInteger;
-import org.jooq.types.ULong;
-import org.jooq.types.UShort;
 import tech.ydb.jdbc.YdbConnection;
 import tech.ydb.jdbc.context.SchemeExecutor;
 import tech.ydb.jdbc.context.YdbContext;
 import tech.ydb.jooq.YDB;
 import tech.ydb.jooq.YdbTypes;
-import tech.ydb.jooq.binding.*;
-import tech.ydb.jooq.value.YSON;
 import tech.ydb.proto.scheme.SchemeOperationProtos;
 import tech.ydb.proto.scheme.SchemeOperationProtos.Entry.Type;
 import tech.ydb.scheme.SchemeClient;
@@ -33,65 +26,7 @@ public class YdbDatabase extends AbstractDatabase implements ResultQueryDatabase
     private static final JooqLogger log = JooqLogger.getLogger(YdbDatabase.class);
 
     public YdbDatabase() {
-        addForcedTypeForUnsignedTypes();
-        addForcedTypeForStringTypes();
-    }
-
-    private void addForcedTypeForUnsignedTypes() {
-        ForcedType uint8 = new ForcedType()
-                .withName("Uint8")
-                .withExpression(".*")
-                .withTypes(YdbTypes.UINT8.getTypeName())
-                .withBinding(Uint8Binding.class.getName())
-                .withUserType(UByte.class.getName());
-
-        ForcedType uint16 = new ForcedType()
-                .withName("Uint16")
-                .withExpression(".*")
-                .withTypes(YdbTypes.UINT16.getTypeName())
-                .withBinding(Uint16Binding.class.getName())
-                .withUserType(UShort.class.getName());
-
-        ForcedType uint32 = new ForcedType()
-                .withName("Uint32")
-                .withExpression(".*")
-                .withTypes(YdbTypes.UINT32.getTypeName())
-                .withBinding(Uint32Binding.class.getName())
-                .withUserType(UInteger.class.getName());
-
-        ForcedType uint64 = new ForcedType()
-                .withName("Uint64")
-                .withExpression(".*")
-                .withTypes(YdbTypes.UINT64.getTypeName())
-                .withBinding(Uint64Binding.class.getName())
-                .withUserType(ULong.class.getName());
-
-        setConfiguredForcedTypes(List.of(uint8, uint16, uint32, uint64));
-    }
-
-    private void addForcedTypeForStringTypes() {
-        ForcedType json = new ForcedType()
-                .withName("Json")
-                .withExpression(".*")
-                .withTypes(YdbTypes.JSON.getTypeName())
-                .withBinding(JsonBinding.class.getName())
-                .withUserType(JSON.class.getName());
-
-        ForcedType jsonDoc = new ForcedType()
-                .withName("JsonDocument")
-                .withExpression(".*")
-                .withTypes(YdbTypes.JSONDOCUMENT.getTypeName())
-                .withBinding(JsonDocumentBinding.class.getName())
-                .withUserType(JSONB.class.getName());
-
-        ForcedType yson = new ForcedType()
-                .withName("Yson")
-                .withExpression(".*")
-                .withTypes(YdbTypes.YSON.getTypeName())
-                .withBinding(YsonBinding.class.getName())
-                .withUserType(YSON.class.getName());
-
-        setConfiguredForcedTypes(List.of(json, jsonDoc, yson));
+        YdbTypes.initialize();
     }
 
     @Override
@@ -103,9 +38,13 @@ public class YdbDatabase extends AbstractDatabase implements ResultQueryDatabase
         return ((YdbConnection) getConnection()).getCtx();
     }
 
+    private String getDatabaseName() {
+        return getContext().getDatabase().substring(1);
+    }
+
     @Override
     protected void loadPrimaryKeys(DefaultRelations r) {
-        for (TableDefinition tableDefinition : getTables0()) {
+        for (TableDefinition tableDefinition : getTables()) {
             TableDescription tableDescription = ((YdbTableDefinition) tableDefinition).getTableDescription();
             List<String> primaryKeys = tableDescription.getPrimaryKeys();
 
@@ -141,14 +80,14 @@ public class YdbDatabase extends AbstractDatabase implements ResultQueryDatabase
 
     @Override
     protected List<SchemaDefinition> getSchemata0() {
-        String database = getContext().getDatabase();
+        String database = getDatabaseName();
         List<String> schemas = schemas();
 
         int databasePathSize = database.length() + 1;
 
         List<SchemaDefinition> result = new ArrayList<>();
         for (String path : schemas) {
-            String catalogPath = path.equals(database) ? "" : path.substring(databasePathSize);
+            String catalogPath = path.equals(database) ? "DEFAULT_SCHEMA" : path.substring(databasePathSize);
             SchemaDefinition schemaDefinition = new SchemaDefinition(this, catalogPath, "");
             result.add(schemaDefinition);
         }
@@ -192,10 +131,10 @@ public class YdbDatabase extends AbstractDatabase implements ResultQueryDatabase
     }
 
     private TableDefinition getTableDefinition(String tableName, String dirPathFull, String fullPath, TableDescription tableDescription) {
-        int databasePathSize = getContext().getDatabase().length() + 1;
+        int databasePathSize = getDatabaseName().length() + 1;
 
-        String tablePath = fullPath.length() < databasePathSize ? "" : fullPath.substring(databasePathSize);
-        String dirPath = dirPathFull.length() < databasePathSize ? "" : dirPathFull.substring(databasePathSize);
+        String tablePath = fullPath.substring(databasePathSize);
+        String dirPath = dirPathFull.length() < databasePathSize ? "DEFAULT_SCHEMA" : dirPathFull.substring(databasePathSize);
 
         SchemaDefinition scheme = new SchemaDefinition(
                 this,
@@ -216,7 +155,7 @@ public class YdbDatabase extends AbstractDatabase implements ResultQueryDatabase
         List<String> schemas = new ArrayList<>();
 
         SchemeClient client = getContext().getSchemeClient();
-        String database = getContext().getDatabase();
+        String database = getDatabaseName();
         schemas.add(database);
 
         for (int i = 0; i < schemas.size(); i++) {

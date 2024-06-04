@@ -4,6 +4,7 @@
 package jooq.generated.ydb.default_schema;
 
 
+import jooq.generated.ydb.default_schema.tables.DateTable;
 import jooq.generated.ydb.default_schema.tables.Episodes;
 import jooq.generated.ydb.default_schema.tables.HardTable;
 import jooq.generated.ydb.default_schema.tables.Seasons;
@@ -15,6 +16,11 @@ import jooq.generated.ydb.default_schema.tables.Series;
  */
 @SuppressWarnings({ "all", "unchecked", "rawtypes", "this-escape" })
 public class Tables {
+
+    /**
+     * The table <code>DEFAULT_SCHEMA.date_table</code>.
+     */
+    public static final DateTable DATE_TABLE = DateTable.DATE_TABLE;
 
     /**
      * The table <code>DEFAULT_SCHEMA.episodes</code>.

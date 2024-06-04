@@ -72,7 +72,7 @@ public class InsertTest extends BaseTest {
     @Test
     public void testInsertJsonTypes() {
         HardTableRecord record = new HardTableRecord();
-        record.setId("test-id");
+        record.setId("test-id".getBytes());
         record.setFirst(JSON.valueOf("{\"key\": \"value\"}"));
         record.setSecond(JSONB.valueOf("{\"list\": [1, 2, 3]}"));
         record.setThird(YSON.valueOf("{\"boolean\" = true}"));
@@ -82,7 +82,7 @@ public class InsertTest extends BaseTest {
                 .execute();
 
         Result<HardTableRecord> records = dsl.selectFrom(HARD_TABLE)
-                .where(HARD_TABLE.ID.eq("test-id"))
+                .where(HARD_TABLE.ID.eq("test-id".getBytes()))
                 .fetch();
 
         assertEquals(List.of(record), records);
