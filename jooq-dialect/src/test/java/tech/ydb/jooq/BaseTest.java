@@ -1,7 +1,11 @@
 package tech.ydb.jooq;
 
+import java.math.BigDecimal;
+import java.time.*;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 
+import jooq.generated.ydb.default_schema.tables.records.DateTableRecord;
 import jooq.generated.ydb.default_schema.tables.records.SeriesRecord;
 import org.jooq.CreateTableElementListStep;
 import org.jooq.Table;
@@ -19,6 +23,37 @@ public abstract class BaseTest {
                 new SeriesRecord(ULong.valueOf(1), "Series One", "Info One", ULong.valueOf(20220101)),
                 new SeriesRecord(ULong.valueOf(2), "Series Two", "Info Two", ULong.valueOf(20220102)),
                 new SeriesRecord(ULong.valueOf(3), "Series Three", "Info Three", ULong.valueOf(20220103))
+        );
+    }
+
+    protected static List<DateTableRecord> getExampleDateRecords() {
+        LocalDate date = LocalDate.of(2024, 4, 1);
+        LocalDateTime datetime = LocalDateTime.of(date, LocalTime.of(13, 29, 30));
+        Instant instant = datetime.toInstant(ZoneOffset.UTC).plus(1, ChronoUnit.HOURS);
+        Duration duration = Duration.of(1, ChronoUnit.HOURS);
+
+        return List.of(
+                new DateTableRecord(ULong.valueOf(1), 2, 0.1, BigDecimal.valueOf(1), date, datetime, instant, duration),
+                new DateTableRecord(
+                        ULong.valueOf(2),
+                        3,
+                        0.2,
+                        BigDecimal.valueOf(2),
+                        date.plusDays(1),
+                        datetime.plusDays(1),
+                        instant.plus(1, ChronoUnit.DAYS),
+                        duration.plus(1, ChronoUnit.HOURS)
+                ),
+                new DateTableRecord(
+                        ULong.valueOf(3),
+                        4,
+                        0.3,
+                        BigDecimal.valueOf(3),
+                        date.plusDays(1),
+                        datetime.plusDays(2),
+                        instant.plus(2, ChronoUnit.DAYS),
+                        duration.plus(2, ChronoUnit.HOURS)
+                )
         );
     }
 
@@ -58,10 +93,22 @@ public abstract class BaseTest {
                 .execute();
 
         dsl.createTable("hard_table")
-                .column("id", YdbTypes.TEXT)
+                .column("id", YdbTypes.STRING)
                 .column("first", YdbTypes.JSON)
                 .column("second", YdbTypes.JSONDOCUMENT)
                 .column("third", YdbTypes.YSON)
+                .primaryKey("id")
+                .execute();
+
+        dsl.createTable("date_table")
+                .column("id", YdbTypes.UINT64)
+                .column("int_col", YdbTypes.INT32)
+                .column("percent", YdbTypes.DOUBLE)
+                .column("big", YdbTypes.DECIMAL)
+                .column("date", YdbTypes.DATE)
+                .column("datetime", YdbTypes.DATETIME)
+                .column("timestamp", YdbTypes.TIMESTAMP)
+                .column("interval", YdbTypes.INTERVAL)
                 .primaryKey("id")
                 .execute();
 

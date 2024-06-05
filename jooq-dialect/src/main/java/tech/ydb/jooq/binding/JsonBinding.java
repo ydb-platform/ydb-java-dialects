@@ -1,7 +1,6 @@
 package tech.ydb.jooq.binding;
 
 import org.jetbrains.annotations.NotNull;
-
 import org.jooq.BindingGetResultSetContext;
 import org.jooq.BindingSetStatementContext;
 import org.jooq.Converter;
@@ -15,7 +14,8 @@ import java.sql.SQLException;
 
 import static tech.ydb.jooq.binding.BindingTools.indexType;
 
-public class JsonBinding extends AbstractBinding<JSON, JSON> {
+@SuppressWarnings("resource")
+public final class JsonBinding extends AbstractBinding<JSON, JSON> {
 
     private static final int INDEX_TYPE = indexType(PrimitiveType.Json);
 
@@ -27,7 +27,11 @@ public class JsonBinding extends AbstractBinding<JSON, JSON> {
 
     @Override
     public void set(BindingSetStatementContext<JSON> ctx) throws SQLException {
-        ctx.statement().setObject(ctx.index(), PrimitiveValue.newJson(ctx.value().data()), INDEX_TYPE);
+        if (ctx.value() == null) {
+            ctx.statement().setNull(ctx.index(), INDEX_TYPE);
+        } else {
+            ctx.statement().setObject(ctx.index(), PrimitiveValue.newJson(ctx.value().data()), INDEX_TYPE);
+        }
     }
 
     @Override

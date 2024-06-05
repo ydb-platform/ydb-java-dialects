@@ -25,15 +25,15 @@ public class HardTableRecord extends UpdatableRecordImpl<HardTableRecord> {
     /**
      * Setter for <code>DEFAULT_SCHEMA.hard_table.id</code>.
      */
-    public void setId(String value) {
+    public void setId(byte[] value) {
         set(0, value);
     }
 
     /**
      * Getter for <code>DEFAULT_SCHEMA.hard_table.id</code>.
      */
-    public String getId() {
-        return (String) get(0);
+    public byte[] getId() {
+        return (byte[]) get(0);
     }
 
     /**
@@ -83,7 +83,7 @@ public class HardTableRecord extends UpdatableRecordImpl<HardTableRecord> {
     // -------------------------------------------------------------------------
 
     @Override
-    public Record1<String> key() {
+    public Record1<byte[]> key() {
         return (Record1) super.key();
     }
 
@@ -101,7 +101,7 @@ public class HardTableRecord extends UpdatableRecordImpl<HardTableRecord> {
     /**
      * Create a detached, initialised HardTableRecord
      */
-    public HardTableRecord(String id, JSON first, JSONB second, YSON third) {
+    public HardTableRecord(byte[] id, JSON first, JSONB second, YSON third) {
         super(HardTable.HARD_TABLE);
 
         setId(id);

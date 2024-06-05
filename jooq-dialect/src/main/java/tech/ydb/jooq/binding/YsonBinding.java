@@ -13,19 +13,24 @@ import java.sql.SQLException;
 
 import static tech.ydb.jooq.binding.BindingTools.indexType;
 
-public class YsonBinding extends AbstractBinding<byte[], YSON> {
+@SuppressWarnings("resource")
+public final class YsonBinding extends AbstractBinding<Object, YSON> {
 
     private static final int INDEX_TYPE = indexType(PrimitiveType.Yson);
 
     @NotNull
     @Override
-    public Converter<byte[], YSON> converter() {
+    public Converter<Object, YSON> converter() {
         return new YsonConverter();
     }
 
     @Override
     public void set(BindingSetStatementContext<YSON> ctx) throws SQLException {
-        ctx.statement().setObject(ctx.index(), PrimitiveValue.newYson(ctx.value().data()), INDEX_TYPE);
+        if (ctx.value() == null) {
+            ctx.statement().setNull(ctx.index(), INDEX_TYPE);
+        } else {
+            ctx.statement().setObject(ctx.index(), PrimitiveValue.newYson(ctx.value().data()), INDEX_TYPE);
+        }
     }
 
     @Override
@@ -34,22 +39,24 @@ public class YsonBinding extends AbstractBinding<byte[], YSON> {
         ctx.value(YSON.ysonOrNull(value));
     }
 
-    private static class YsonConverter implements Converter<byte[], YSON> {
+    private static class YsonConverter implements Converter<Object, YSON> {
         @Override
-        public YSON from(byte[] databaseObject) {
-            return YSON.valueOf(databaseObject);
+        public YSON from(Object databaseObject) {
+            return (YSON) databaseObject;
         }
 
         @Override
-        public byte[] to(YSON userObject) {
-            return userObject.data();
+        public Object to(YSON userObject) {
+            return userObject;
         }
 
+        @NotNull
         @Override
-        public Class<byte[]> fromType() {
-            return byte[].class;
+        public Class<Object> fromType() {
+            return Object.class;
         }
 
+        @NotNull
         @Override
         public Class<YSON> toType() {
             return YSON.class;

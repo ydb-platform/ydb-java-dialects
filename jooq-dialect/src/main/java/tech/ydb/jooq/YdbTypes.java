@@ -1,16 +1,22 @@
 package tech.ydb.jooq;
 
 import org.jooq.DataType;
-import org.jooq.impl.DefaultDataType;
 import org.jooq.impl.SQLDataType;
-import org.jooq.types.*;
+import org.jooq.types.UByte;
+import org.jooq.types.UInteger;
+import org.jooq.types.ULong;
+import org.jooq.types.UShort;
+import tech.ydb.jooq.binding.*;
+import tech.ydb.jooq.value.YSON;
 
 import java.math.BigDecimal;
-import java.sql.Date;
-import java.sql.Timestamp;
+import java.time.Duration;
+import java.time.Instant;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
 
-import static tech.ydb.jooq.YDB.DIALECT;
+import static org.jooq.impl.DataTypesUtils.newDataType;
 
 public final class YdbTypes {
 
@@ -18,30 +24,42 @@ public final class YdbTypes {
         throw new UnsupportedOperationException();
     }
 
-    public static final DataType<Boolean> BOOL = new DefaultDataType<>(DIALECT, SQLDataType.BOOLEAN, "bool");
-    public static final DataType<Byte> INT8 = new DefaultDataType<>(DIALECT, SQLDataType.TINYINT, "int8");
-    public static final DataType<Short> INT16 = new DefaultDataType<>(DIALECT, SQLDataType.SMALLINT, "int16");
-    public static final DataType<Integer> INT32 = new DefaultDataType<>(DIALECT, SQLDataType.INTEGER, "int32");
-    public static final DataType<Long> INT64 = new DefaultDataType<>(DIALECT, SQLDataType.BIGINT, "int64");
+    public static void initialize() {
 
-    public static final DataType<UByte> UINT8 = new DefaultDataType<>(DIALECT, SQLDataType.TINYINTUNSIGNED, "uint8");
-    public static final DataType<UShort> UINT16 = new DefaultDataType<>(DIALECT, SQLDataType.SMALLINTUNSIGNED, "uint16");
-    public static final DataType<UInteger> UINT32 = new DefaultDataType<>(DIALECT, SQLDataType.INTEGERUNSIGNED, "uint32");
-    public static final DataType<ULong> UINT64 = new DefaultDataType<>(DIALECT, SQLDataType.BIGINTUNSIGNED, "uint64");
+    }
 
-    public static final DataType<Float> FLOAT = new DefaultDataType<>(DIALECT, SQLDataType.REAL, "float");
-    public static final DataType<Double> DOUBLE = new DefaultDataType<>(DIALECT, SQLDataType.DOUBLE, "double");
+    public static final DataType<Boolean> BOOL = newDataType(SQLDataType.BOOLEAN, "bool");
+    public static final DataType<Byte> INT8 = newDataType(SQLDataType.TINYINT, "int8");
+    public static final DataType<Short> INT16 = newDataType(SQLDataType.SMALLINT, "int16");
+    public static final DataType<Integer> INT32 = newDataType(SQLDataType.INTEGER, "int32");
+    public static final DataType<Long> INT64 = newDataType(SQLDataType.BIGINT, "int64");
 
-    public static final DataType<String> TEXT = new DefaultDataType<>(DIALECT, SQLDataType.VARCHAR, "text");
-    public static final DataType<String> UTF8 = new DefaultDataType<>(DIALECT, SQLDataType.VARCHAR, "utf8");
-    public static final DataType<byte[]> BYTES = new DefaultDataType<>(DIALECT, SQLDataType.VARBINARY, "bytes");
-    public static final DataType<String> JSON = new DefaultDataType<>(DIALECT, SQLDataType.VARCHAR, "json");
-    public static final DataType<byte[]> JSONDOCUMENT = new DefaultDataType<>(DIALECT, SQLDataType.VARBINARY, "jsondocument");
-    public static final DataType<byte[]> YSON = new DefaultDataType<>(DIALECT, SQLDataType.VARBINARY, "yson");
+    public static final DataType<UByte> UINT8 = newDataType(SQLDataType.TINYINTUNSIGNED, "uint8", new Uint8Binding());
+    public static final DataType<UShort> UINT16 = newDataType(SQLDataType.SMALLINTUNSIGNED, "uint16", new Uint16Binding());
+    public static final DataType<UInteger> UINT32 = newDataType(SQLDataType.INTEGERUNSIGNED, "uint32", new Uint32Binding());
+    public static final DataType<ULong> UINT64 = newDataType(SQLDataType.BIGINTUNSIGNED, "uint64", new Uint64Binding());
 
-    public static final DataType<Date> DATE = new DefaultDataType<>(DIALECT, SQLDataType.DATE, "date");
-    public static final DataType<LocalDateTime> DATETIME = new DefaultDataType<>(DIALECT, SQLDataType.LOCALDATETIME, "datetime");
-    public static final DataType<Timestamp> TIMESTAMP = new DefaultDataType<>(DIALECT, SQLDataType.TIMESTAMP, "timestamp");
-    public static final DataType<YearToSecond> INTERVAL = new DefaultDataType<>(DIALECT, SQLDataType.INTERVAL, "interval");
-    public static final DataType<BigDecimal> DECIMAL = new DefaultDataType<>(DIALECT, SQLDataType.DECIMAL, "decimal");
+    public static final DataType<Float> FLOAT = newDataType(SQLDataType.REAL, "float");
+    public static final DataType<Double> DOUBLE = newDataType(SQLDataType.DOUBLE, "double");
+    public static final DataType<BigDecimal> DECIMAL = newDataType(SQLDataType.DECIMAL(22, 9), "decimal");
+
+    public static DataType<BigDecimal> DECIMAL(int precision, int scale) {
+        return newDataType(SQLDataType.DECIMAL(precision, scale), "decimal");
+    }
+
+    public static final DataType<byte[]> STRING = newDataType(SQLDataType.VARBINARY, "Bytes");
+    public static final DataType<String> UTF8 = newDataType(SQLDataType.VARCHAR, "Text");
+    public static final DataType<org.jooq.JSON> JSON = newDataType(SQLDataType.JSON, "json", new JsonBinding());
+    public static final DataType<org.jooq.JSONB> JSONDOCUMENT = newDataType(SQLDataType.JSONB, "jsondocument", new JsonDocumentBinding());
+    public static final DataType<YSON> YSON = newDataType(SQLDataType.OTHER, "yson", new YsonBinding());
+    public static final DataType<java.util.UUID> UUID = newDataType(SQLDataType.UUID, "uuid");
+
+    public static final DataType<LocalDate> DATE = newDataType(SQLDataType.LOCALDATE, "date", new DateBinding());
+    public static final DataType<LocalDateTime> DATETIME = newDataType(SQLDataType.LOCALDATETIME, "datetime", new DatetimeBinding());
+    public static final DataType<Instant> TIMESTAMP = newDataType(SQLDataType.INSTANT, "timestamp", new TimestampBinding());
+    public static final DataType<Duration> INTERVAL = newDataType(SQLDataType.BIGINTUNSIGNED, "interval", new IntervalBinding());
+
+    public static final DataType<ZonedDateTime> TZ_DATE = newDataType(SQLDataType.OTHER, "tzdate", new TzDateBinding());
+    public static final DataType<ZonedDateTime> TZ_DATETIME = newDataType(SQLDataType.OTHER, "tzdateTime", new TzDatetimeBinding());
+    public static final DataType<ZonedDateTime> TZ_TIMESTAMP = newDataType(SQLDataType.OTHER, "tztimestamp", new TzTimestampBinding());
 }
