@@ -73,6 +73,12 @@
             <version>5.10.1</version>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-jdk14</artifactId>
+            <version>1.7.36</version>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <build>
@@ -115,6 +121,9 @@
                         <TESTCONTAINERS_REUSE_ENABLE>true</TESTCONTAINERS_REUSE_ENABLE>
                         <YDB_DOCKER_IMAGE>cr.yandex/yc/yandex-docker-local-ydb:trunk</YDB_DOCKER_IMAGE>
                     </environmentVariables>
+                    <systemPropertyVariables>
+                        <java.util.logging.config.file>src/test/resources/logging.properties</java.util.logging.config.file>
+                    </systemPropertyVariables>
                 </configuration>
             </plugin>
         </plugins>
