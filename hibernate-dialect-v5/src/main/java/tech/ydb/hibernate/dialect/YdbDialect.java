@@ -176,7 +176,7 @@ public class YdbDialect extends Dialect {
 
     @Override
     public String getForUpdateString() {
-        throw new UnsupportedOperationException("YDB don't support FOR UPDATE statement");
+        throw new UnsupportedOperationException("YDB does not support FOR UPDATE statement");
     }
 
     @Override

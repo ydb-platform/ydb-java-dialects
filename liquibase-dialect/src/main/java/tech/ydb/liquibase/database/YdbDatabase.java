@@ -119,7 +119,7 @@ public class YdbDatabase extends AbstractJdbcDatabase {
     }
 
     /**
-     * YDB don't support foreign key
+     * YDB does not support foreign key
      */
     @Override
     public boolean supportsForeignKeyDisable() {
@@ -127,7 +127,7 @@ public class YdbDatabase extends AbstractJdbcDatabase {
     }
 
     /**
-     * YDB don't support sequences
+     * YDB does not support sequences (yet)
      */
     @Override
     public boolean supportsSequences() {
@@ -135,7 +135,7 @@ public class YdbDatabase extends AbstractJdbcDatabase {
     }
 
     /**
-     * YDB don't support auto increment
+     * YDB does not support auto increment (yet)
      */
     @Override
     public boolean supportsAutoIncrement() {
