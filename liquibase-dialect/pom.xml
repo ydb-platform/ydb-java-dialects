@@ -43,7 +43,7 @@
         <maven.compiler.source>1.8</maven.compiler.source>
 
         <liquibase.core.version>4.24.0</liquibase.core.version>
-        <ydb.jdbc.version>2.0.5</ydb.jdbc.version>
+        <ydb.jdbc.version>2.1.5</ydb.jdbc.version>
     </properties>
 
     <dependencies>
@@ -71,6 +71,12 @@
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter-api</artifactId>
             <version>5.10.1</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-jdk14</artifactId>
+            <version>1.7.36</version>
             <scope>test</scope>
         </dependency>
     </dependencies>
@@ -115,6 +121,9 @@
                         <TESTCONTAINERS_REUSE_ENABLE>true</TESTCONTAINERS_REUSE_ENABLE>
                         <YDB_DOCKER_IMAGE>cr.yandex/yc/yandex-docker-local-ydb:trunk</YDB_DOCKER_IMAGE>
                     </environmentVariables>
+                    <systemPropertyVariables>
+                        <java.util.logging.config.file>src/test/resources/logging.properties</java.util.logging.config.file>
+                    </systemPropertyVariables>
                 </configuration>
             </plugin>
         </plugins>

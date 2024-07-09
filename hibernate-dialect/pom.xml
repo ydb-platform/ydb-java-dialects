@@ -40,6 +40,9 @@
         <hibernate.version>6.2.7.Final</hibernate.version>
         <junit5.version>5.9.3</junit5.version>
         <log4j2.version>2.17.2</log4j2.version>
+
+        <ydb.sdk.version>2.2.6</ydb.sdk.version>
+        <ydb.jdbc.version>2.1.5</ydb.jdbc.version>
     </properties>
 
     <licenses>
@@ -54,7 +57,7 @@
             <dependency>
                 <groupId>tech.ydb</groupId>
                 <artifactId>ydb-sdk-bom</artifactId>
-                <version>2.1.9</version>
+                <version>${ydb.sdk.version}</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
@@ -91,8 +94,8 @@
 
         <dependency>
             <groupId>tech.ydb.jdbc</groupId>
-            <artifactId>ydb-jdbc-driver-shaded</artifactId>
-            <version>2.0.6</version>
+            <artifactId>ydb-jdbc-driver</artifactId>
+            <version>${ydb.jdbc.version}</version>
             <scope>test</scope>
         </dependency>
 
