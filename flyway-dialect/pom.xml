@@ -41,7 +41,7 @@
         <maven.compiler.target>17</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <flyway.version>10.7.1</flyway.version>
-        <jdbc.ydb.driver.version>2.0.7</jdbc.ydb.driver.version>
+        <jdbc.ydb.driver.version>2.2.0</jdbc.ydb.driver.version>
         <log4j2.version>2.17.2</log4j2.version>
     </properties>
 
