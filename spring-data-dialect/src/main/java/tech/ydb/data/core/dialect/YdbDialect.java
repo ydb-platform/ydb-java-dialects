@@ -42,7 +42,7 @@ public class YdbDialect extends AbstractDialect {
 
     private static final LockClause LOCK_CLAUSE = new LockClause() {
         public String getLock(LockOptions lockOptions) {
-            throw new UnsupportedOperationException("YDB don't support pessimistic locks");
+            throw new UnsupportedOperationException("YDB does not support pessimistic locks");
         }
 
         public LockClause.Position getClausePosition() {
@@ -76,7 +76,7 @@ public class YdbDialect extends AbstractDialect {
     @Override
     public InsertRenderContext getInsertRenderContext() {
         return () -> {
-            throw new UnsupportedOperationException("YDB don't support VALUES (DEFAULT) statement");
+            throw new UnsupportedOperationException("YDB does not support VALUES (DEFAULT) statement");
         };
     }
 
