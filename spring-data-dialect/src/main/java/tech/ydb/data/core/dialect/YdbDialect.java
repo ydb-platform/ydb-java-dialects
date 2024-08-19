@@ -1,8 +1,5 @@
 package tech.ydb.data.core.dialect;
 
-import java.util.Collections;
-import java.util.Set;
-
 import org.springframework.data.relational.core.dialect.AbstractDialect;
 import org.springframework.data.relational.core.dialect.InsertRenderContext;
 import org.springframework.data.relational.core.dialect.LimitClause;
@@ -10,6 +7,7 @@ import org.springframework.data.relational.core.dialect.LockClause;
 import org.springframework.data.relational.core.dialect.OrderByNullPrecedence;
 import org.springframework.data.relational.core.sql.IdentifierProcessing;
 import org.springframework.data.relational.core.sql.LockOptions;
+import org.springframework.data.relational.core.sql.render.SelectRenderContext;
 
 /**
  * @author Madiyar Nurgazin
@@ -66,11 +64,6 @@ public class YdbDialect extends AbstractDialect {
                 new IdentifierProcessing.Quoting("`"),
                 IdentifierProcessing.LetterCasing.AS_IS
         );
-    }
-
-    @Override
-    public Set<Class<?>> simpleTypes() {
-        return Collections.emptySet();
     }
 
     @Override

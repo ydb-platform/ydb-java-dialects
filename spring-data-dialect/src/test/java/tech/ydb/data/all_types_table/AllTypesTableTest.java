@@ -20,6 +20,7 @@ import tech.ydb.data.all_types_table.repository.AllTypesEntityRepository;
  * @author Madiyar Nurgazin
  */
 public class AllTypesTableTest extends YdbBaseTest {
+
     @Autowired
     private AllTypesEntityRepository repository;
 

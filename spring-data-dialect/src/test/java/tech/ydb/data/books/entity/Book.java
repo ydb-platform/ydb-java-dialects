@@ -11,7 +11,6 @@ import org.springframework.data.relational.core.mapping.Table;
 /**
  * @author Madiyar Nurgazin
  */
-//@AllArgsConstructor
 @Data
 @Table("books")
 public class Book {

@@ -1,7 +1,7 @@
 package tech.ydb.data.core.convert;
 
 import java.sql.SQLType;
-
+import java.util.Objects;
 import org.springframework.data.convert.CustomConversions;
 import org.springframework.data.jdbc.core.convert.JdbcTypeFactory;
 import org.springframework.data.jdbc.core.convert.MappingJdbcConverter;
@@ -18,7 +18,7 @@ import tech.ydb.data.repository.support.YdbJdbcUtil;
  */
 public class YdbMappingJdbcConverter extends MappingJdbcConverter {
     public YdbMappingJdbcConverter(RelationalMappingContext context, RelationResolver relationResolver,
-                                CustomConversions conversions, JdbcTypeFactory typeFactory) {
+                                   CustomConversions conversions, JdbcTypeFactory typeFactory) {
         super(context, relationResolver, conversions, typeFactory);
     }
 
@@ -38,7 +38,8 @@ public class YdbMappingJdbcConverter extends MappingJdbcConverter {
         }
 
         if (property.isEntity()) {
-            Class<?> columnType = getEntityColumnType(property.getTypeInformation().getActualType());
+            Class<?> columnType = getEntityColumnType(Objects.requireNonNull(
+                    property.getTypeInformation().getActualType()));
 
             if (columnType != null) {
                 return columnType;
@@ -59,7 +60,6 @@ public class YdbMappingJdbcConverter extends MappingJdbcConverter {
     }
 
     private Class<?> getReferenceColumnType(RelationalPersistentProperty property) {
-
         Class<?> componentType = property.getTypeInformation().getRequiredComponentType().getType();
         RelationalPersistentEntity<?> referencedEntity = getMappingContext().getRequiredPersistentEntity(componentType);
 
@@ -68,7 +68,6 @@ public class YdbMappingJdbcConverter extends MappingJdbcConverter {
 
     @Nullable
     private Class<?> getEntityColumnType(TypeInformation<?> type) {
-
         RelationalPersistentEntity<?> persistentEntity = getMappingContext().getPersistentEntity(type);
 
         if (persistentEntity == null) {
