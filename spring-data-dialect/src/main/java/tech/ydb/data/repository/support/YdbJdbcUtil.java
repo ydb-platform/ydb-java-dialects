@@ -4,10 +4,8 @@ import java.sql.JDBCType;
 import java.sql.SQLType;
 import java.time.Instant;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
-
 import org.springframework.data.jdbc.support.JdbcUtil;
 import org.springframework.util.Assert;
 
@@ -18,7 +16,6 @@ public final class YdbJdbcUtil {
     private static final Map<Class<?>, SQLType> sqlTypeByClass = new HashMap<>();
 
     static {
-        sqlTypeByClass.put(LocalDateTime.class, JDBCType.TIME);
         sqlTypeByClass.put(LocalDate.class, JDBCType.DATE);
         sqlTypeByClass.put(Instant.class, JDBCType.TIMESTAMP);
     }
