@@ -64,7 +64,8 @@ public class YdbDialect extends Dialect {
 
     private static final Exporter<ForeignKey> FOREIGN_KEY_EMPTY_EXPORTER = new EmptyExporter<>();
     private static final Exporter<Constraint> UNIQUE_KEY_EMPTY_EXPORTER = new EmptyExporter<>();
-    private static final Pattern QUERY_PATTERN = Pattern.compile("^\\s*(select.+?from\\s+\\w+)(.+where.+)$", Pattern.CASE_INSENSITIVE);
+    private static final Pattern SELECT_FROM_WHERE_QUERY_PATTERN = Pattern
+            .compile("^\\s*(select.+?from\\s+\\w+)(.+where.+)$", Pattern.CASE_INSENSITIVE);
 
     public YdbDialect(DialectResolutionInfo dialectResolutionInfo) {
         super(dialectResolutionInfo);
@@ -123,7 +124,7 @@ public class YdbDialect extends Dialect {
 
     @Override
     public String getQueryHintString(String query, String hints) {
-        Matcher matcher = QUERY_PATTERN.matcher(query);
+        Matcher matcher = SELECT_FROM_WHERE_QUERY_PATTERN.matcher(query);
         if (matcher.matches() && matcher.groupCount() > 1) {
             String startToken = matcher.group(1);
             String endToken = matcher.group(2);
