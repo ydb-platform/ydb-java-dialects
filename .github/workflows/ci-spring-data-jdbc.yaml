@@ -39,11 +39,11 @@ jobs:
           echo "SPRING_DATA_JDBC_DIALECT_VERSION=$VERSION" >> "$GITHUB_ENV"
 
       - name: Download spring-data-jdbc YDB dialect dependencies
-        working-directory: ./spring-data-jdbc
+        working-directory: ./spring-data-dialect
         run: mvn $MAVEN_ARGS dependency:go-offline
 
       - name: Build spring-data-jdbc YDB dialect
-        working-directory: ./spring-data-jdbc
+        working-directory: ./spring-data-dialect
         run: mvn $MAVEN_ARGS install
 
 #      - uses: actions/checkout@v4

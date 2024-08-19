@@ -18,7 +18,7 @@ jobs:
 
       - name: Extract spring-data-jdbc YDB dialect version
         run: |
-          cd spring-data-jdbc
+          cd spring-data-dialect
           SPRING_DATA_JDBC_DIALECT_VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
           echo "SPRING_DATA_JDBC_DIALECT_VERSION=SPRING_DATA_JDBC_DIALECT_VERSION" >> "$GITHUB_ENV"
 
@@ -43,12 +43,12 @@ jobs:
 
       - name: Download dependencies
         run: |
-          cd spring-data-jdbc
+          cd spring-data-dialect
           mvn $MAVEN_ARGS dependency:go-offline
 
       - name: Build with Maven
         run: |
-          cd spring-data-jdbc
+          cd spring-data-dialect
           mvn $MAVEN_ARGS package
 
   publish:
@@ -78,7 +78,7 @@ jobs:
 
       - name: Publish package
         run: |
-          cd spring-data-jdbc
+          cd spring-data-dialect
           mvn $MAVEN_ARGS -Possrh-s01 -Dgpg.passphrase=${{ secrets.MAVEN_OSSRH_GPG_PASSWORD }} clean deploy
         env:
           MAVEN_USERNAME: ${{ secrets.MAVEN_OSSRH_USERNAME }}
