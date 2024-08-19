@@ -143,7 +143,6 @@ public class StudentsRepositoryTest {
         );
     }
 
-
     @Test
     void studentsByGroupName_Lazy_OneToManyTest() {
         inTransaction(
@@ -156,6 +155,20 @@ public class StudentsRepositoryTest {
 
                     assertEquals("Петров П.П.", students.get(0).getName());
                     assertEquals("Сидоров С.С.", students.get(1).getName());
+                }
+        );
+    }
+
+    @Test
+    void groupByGroupName_ViewIndex() {
+        inTransaction(
+                session -> {
+                    Group group = session
+                            .createQuery("FROM Group g WHERE g.name = 'M3439'", Group.class)
+                            .addQueryHint("group_name_index")
+                            .getSingleResult();
+
+                    assertEquals("M3439", group.getName());
                 }
         );
     }

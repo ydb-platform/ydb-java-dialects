@@ -1,6 +1,8 @@
 package tech.ydb.hibernate.dialect;
 
 import java.time.LocalDateTime;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import org.hibernate.boot.model.FunctionContributions;
 import org.hibernate.boot.model.TypeContributions;
 import org.hibernate.dialect.Dialect;
@@ -62,6 +64,7 @@ public class YdbDialect extends Dialect {
 
     private static final Exporter<ForeignKey> FOREIGN_KEY_EMPTY_EXPORTER = new EmptyExporter<>();
     private static final Exporter<Constraint> UNIQUE_KEY_EMPTY_EXPORTER = new EmptyExporter<>();
+    private static final Pattern QUERY_PATTERN = Pattern.compile("^\\s*(select.+?from\\s+\\w+)(.+where.+)$", Pattern.CASE_INSENSITIVE);
 
     public YdbDialect(DialectResolutionInfo dialectResolutionInfo) {
         super(dialectResolutionInfo);
@@ -116,6 +119,19 @@ public class YdbDialect extends Dialect {
                         localDateTimeType
                 )
         );
+    }
+
+    @Override
+    public String getQueryHintString(String query, String hints) {
+        Matcher matcher = QUERY_PATTERN.matcher(query);
+        if (matcher.matches() && matcher.groupCount() > 1) {
+            String startToken = matcher.group(1);
+            String endToken = matcher.group(2);
+
+            return startToken + " view " + hints + " " + endToken;
+        } else {
+            return query;
+        }
     }
 
     @Override
