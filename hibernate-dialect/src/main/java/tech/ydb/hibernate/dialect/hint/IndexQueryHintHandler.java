@@ -13,9 +13,12 @@ public class IndexQueryHintHandler {
             .compile("^\\s*(select.+?from\\s+\\w+)(.+where.+)$", Pattern.CASE_INSENSITIVE);
 
     public static final String HINT_USE_INDEX = "use_index:";
-    public static final IndexQueryHintHandler INSTANCE = new IndexQueryHintHandler();
 
-    public String addQueryHints(String query, List<String> hints) {
+    public static boolean commentIsHint(String comment) {
+        return comment.startsWith(HINT_USE_INDEX);
+    }
+
+    public static String addQueryHints(String query, List<String> hints) {
         if (hints.isEmpty()) {
             return query;
         }
