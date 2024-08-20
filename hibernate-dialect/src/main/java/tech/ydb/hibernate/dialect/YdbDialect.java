@@ -12,6 +12,7 @@ import org.hibernate.engine.jdbc.dialect.spi.DialectResolutionInfo;
 import org.hibernate.mapping.Constraint;
 import org.hibernate.mapping.ForeignKey;
 import org.hibernate.mapping.Index;
+import org.hibernate.query.spi.QueryOptions;
 import org.hibernate.service.ServiceRegistry;
 import org.hibernate.sql.ast.SqlAstTranslatorFactory;
 import org.hibernate.sql.ast.spi.SqlAppender;
@@ -121,8 +122,20 @@ public class YdbDialect extends Dialect {
     }
 
     @Override
-    public String getQueryHintString(String query, List<String> hintList) {
-        return IndexQueryHintHandler.INSTANCE.addQueryHints(query, hintList);
+    public String addSqlHintOrComment(String sql, QueryOptions queryOptions, boolean commentsEnabled) {
+        if (queryOptions.getDatabaseHints() != null) {
+            sql = IndexQueryHintHandler.addQueryHints(sql, queryOptions.getDatabaseHints());
+        }
+
+        if (queryOptions.getComment() != null && IndexQueryHintHandler.commentIsHint(queryOptions.getComment())) {
+            return IndexQueryHintHandler.addQueryHints(sql, List.of(queryOptions.getComment()));
+        }
+
+        if (commentsEnabled && queryOptions.getComment() != null) {
+            sql = prependComment(sql, queryOptions.getComment());
+        }
+
+        return sql;
     }
 
     @Override

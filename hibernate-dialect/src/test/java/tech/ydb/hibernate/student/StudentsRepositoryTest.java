@@ -3,6 +3,7 @@ package tech.ydb.hibernate.student;
 import java.util.List;
 import org.hibernate.cfg.AvailableSettings;
 import org.hibernate.cfg.Configuration;
+import org.hibernate.jpa.HibernateHints;
 import org.hibernate.query.Query;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import org.junit.jupiter.api.BeforeAll;
@@ -165,7 +166,18 @@ public class StudentsRepositoryTest {
                 session -> {
                     Group group = session
                             .createQuery("FROM Group g WHERE g.name = 'M3439'", Group.class)
-                            .addQueryHint("use_index:group_name_index")
+                            .addQueryHint("use_index:group_name_index") // Hibernate
+                            .getSingleResult();
+
+                    assertEquals("M3439", group.getName());
+                }
+        );
+
+        inTransaction(
+                session -> {
+                    Group group = session
+                            .createQuery("FROM Group g WHERE g.name = 'M3439'", Group.class)
+                            .setHint(HibernateHints.HINT_COMMENT, "use_index:group_name_index") // JPA
                             .getSingleResult();
 
                     assertEquals("M3439", group.getName());
