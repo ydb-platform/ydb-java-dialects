@@ -1,8 +1,7 @@
 package tech.ydb.hibernate.dialect;
 
 import java.time.LocalDateTime;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import java.util.List;
 import org.hibernate.boot.model.FunctionContributions;
 import org.hibernate.boot.model.TypeContributions;
 import org.hibernate.dialect.Dialect;
@@ -53,6 +52,7 @@ import static org.hibernate.type.SqlTypes.VARCHAR;
 import org.hibernate.type.StandardBasicTypes;
 import tech.ydb.hibernate.dialect.exporter.EmptyExporter;
 import tech.ydb.hibernate.dialect.exporter.YdbIndexExporter;
+import tech.ydb.hibernate.dialect.hint.IndexQueryHintHandler;
 import tech.ydb.hibernate.dialect.translator.YdbSqlAstTranslatorFactory;
 import tech.ydb.hibernate.dialect.types.LocalDateTimeJavaType;
 import tech.ydb.hibernate.dialect.types.LocalDateTimeJdbcType;
@@ -64,8 +64,6 @@ public class YdbDialect extends Dialect {
 
     private static final Exporter<ForeignKey> FOREIGN_KEY_EMPTY_EXPORTER = new EmptyExporter<>();
     private static final Exporter<Constraint> UNIQUE_KEY_EMPTY_EXPORTER = new EmptyExporter<>();
-    private static final Pattern SELECT_FROM_WHERE_QUERY_PATTERN = Pattern
-            .compile("^\\s*(select.+?from\\s+\\w+)(.+where.+)$", Pattern.CASE_INSENSITIVE);
 
     public YdbDialect(DialectResolutionInfo dialectResolutionInfo) {
         super(dialectResolutionInfo);
@@ -123,16 +121,8 @@ public class YdbDialect extends Dialect {
     }
 
     @Override
-    public String getQueryHintString(String query, String hints) {
-        Matcher matcher = SELECT_FROM_WHERE_QUERY_PATTERN.matcher(query);
-        if (matcher.matches() && matcher.groupCount() > 1) {
-            String startToken = matcher.group(1);
-            String endToken = matcher.group(2);
-
-            return startToken + " view " + hints + " " + endToken;
-        } else {
-            return query;
-        }
+    public String getQueryHintString(String query, List<String> hintList) {
+        return IndexQueryHintHandler.INSTANCE.addQueryHints(query, hintList);
     }
 
     @Override

@@ -165,7 +165,7 @@ public class StudentsRepositoryTest {
                 session -> {
                     Group group = session
                             .createQuery("FROM Group g WHERE g.name = 'M3439'", Group.class)
-                            .addQueryHint("group_name_index")
+                            .addQueryHint("use_index:group_name_index")
                             .getSingleResult();
 
                     assertEquals("M3439", group.getName());
