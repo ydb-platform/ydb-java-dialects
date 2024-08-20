@@ -12,7 +12,7 @@ public class IndexQueryHintHandler {
     private static final Pattern SELECT_FROM_WHERE_QUERY_PATTERN = Pattern
             .compile("^\\s*(select.+?from\\s+\\w+)(.+where.+)$", Pattern.CASE_INSENSITIVE);
 
-    public static final String HINT_USE_INDEX = "use_index";
+    public static final String HINT_USE_INDEX = "use_index:";
     public static final IndexQueryHintHandler INSTANCE = new IndexQueryHintHandler();
 
     public String addQueryHints(String query, List<String> hints) {
@@ -22,9 +22,8 @@ public class IndexQueryHintHandler {
 
         var useIndexes = new ArrayList<String>();
         hints.forEach(hint -> {
-            var hintSplit = hint.split(":");
-            if (hintSplit.length == 2 && hintSplit[0].equals(HINT_USE_INDEX)) {
-                useIndexes.add(hintSplit[1]);
+            if (hint.startsWith(HINT_USE_INDEX)) {
+                useIndexes.add(hint.substring(HINT_USE_INDEX.length()));
             }
         });
 
