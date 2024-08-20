@@ -1,6 +1,7 @@
 package tech.ydb.hibernate.dialect;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import org.hibernate.boot.model.FunctionContributions;
 import org.hibernate.boot.model.TypeContributions;
 import org.hibernate.dialect.Dialect;
@@ -51,6 +52,7 @@ import static org.hibernate.type.SqlTypes.VARCHAR;
 import org.hibernate.type.StandardBasicTypes;
 import tech.ydb.hibernate.dialect.exporter.EmptyExporter;
 import tech.ydb.hibernate.dialect.exporter.YdbIndexExporter;
+import tech.ydb.hibernate.dialect.hint.IndexQueryHintHandler;
 import tech.ydb.hibernate.dialect.translator.YdbSqlAstTranslatorFactory;
 import tech.ydb.hibernate.dialect.types.LocalDateTimeJavaType;
 import tech.ydb.hibernate.dialect.types.LocalDateTimeJdbcType;
@@ -116,6 +118,11 @@ public class YdbDialect extends Dialect {
                         localDateTimeType
                 )
         );
+    }
+
+    @Override
+    public String getQueryHintString(String query, List<String> hintList) {
+        return IndexQueryHintHandler.INSTANCE.addQueryHints(query, hintList);
     }
 
     @Override

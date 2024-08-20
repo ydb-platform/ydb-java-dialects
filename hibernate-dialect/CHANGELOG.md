@@ -1,3 +1,7 @@
+## 0.9.5 ##
+
+- Added query hint for view index for "select * from ... where" queries
+
 ## 0.9.4 ##
 
 - Fixed the generated bool value
