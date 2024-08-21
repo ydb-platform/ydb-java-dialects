@@ -1,10 +1,10 @@
 package tech.ydb.lock.provider;
 
-import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 /**
  * @author Kirill Kurdyukov
  */
-@SpringBootTest
+@SpringBootApplication
 public class TestApp {
 }
