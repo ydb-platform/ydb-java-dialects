@@ -57,7 +57,6 @@ public class YdbCoordinationServiceLockProvider implements LockProvider {
         if (semaphoreLease.isSuccess()) {
             logger.debug("Semaphore acquired");
 
-            System.out.println(semaphoreLease.getStatus());
             return Optional.of(new YdbSimpleLock(semaphoreLease.getValue()));
         } else {
             logger.debug("Semaphore is not acquired");
