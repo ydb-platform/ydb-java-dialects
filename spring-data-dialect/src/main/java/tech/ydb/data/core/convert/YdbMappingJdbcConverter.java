@@ -27,6 +27,7 @@ public class YdbMappingJdbcConverter extends MappingJdbcConverter {
         if (property.isAnnotationPresent(YdbType.class)) {
             return new YQLType(property.getRequiredAnnotation(YdbType.class).value());
         }
+
         return YdbJdbcUtil.targetSqlTypeFor(getColumnType(property));
     }
 
