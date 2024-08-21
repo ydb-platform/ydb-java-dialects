@@ -5,13 +5,13 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>tech.ydb.dialects</groupId>
-    <artifactId>shaded-lock-ydb</artifactId>
+    <artifactId>shedlock-ydb</artifactId>
     <version>0.1.0</version>
 
     <packaging>jar</packaging>
 
-    <name>Shaded Lock Service YDB</name>
-    <description>Shaded Lock Service YDB Spring Starter</description>
+    <name>ShedLock Service YDB</name>
+    <description>Lock Service YDB Spring Starter</description>
     <url>https://github.com/ydb-platform/ydb-java-dialects</url>
 
     <developers>
