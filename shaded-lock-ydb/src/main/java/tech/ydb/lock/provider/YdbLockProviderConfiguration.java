@@ -14,6 +14,10 @@ import tech.ydb.jdbc.YdbConnection;
 public class YdbLockProviderConfiguration {
     @Bean
     public YdbCoordinationServiceLockProvider ydbLockProvider(DataSource dataSource) throws SQLException {
-        return new YdbCoordinationServiceLockProvider(dataSource.getConnection().unwrap(YdbConnection.class));
+        var provider = new YdbCoordinationServiceLockProvider(dataSource.getConnection().unwrap(YdbConnection.class));
+
+        provider.init();
+
+        return provider;
     }
 }

@@ -7,6 +7,7 @@ import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import net.javacrumbs.shedlock.core.LockConfiguration;
 import net.javacrumbs.shedlock.core.SimpleLock;
@@ -53,13 +54,12 @@ public class YdbLockProviderTest {
     public void integrationTest() throws ExecutionException, InterruptedException {
         var executorServer = Executors.newFixedThreadPool(10);
         var atomicInt = new AtomicInteger();
+        var locked = new AtomicBoolean();
         var futures = new ArrayList<Future<?>>();
 
         for (int i = 0; i < 100; i++) {
             final var ii = i;
             futures.add(executorServer.submit(() -> {
-                lockProvider.init();
-
                 Optional<SimpleLock> optinal = Optional.empty();
 
                 while (optinal.isEmpty()) {
@@ -67,6 +67,11 @@ public class YdbLockProviderTest {
                             new LockConfiguration(Instant.now(), "semaphore", Duration.ZERO, Duration.ZERO));
 
                     optinal.ifPresent(simpleLock -> {
+                        if (locked.get()) {
+                            throw new RuntimeException();
+                        }
+                        locked.set(true);
+
                         try {
                             Thread.sleep(100);
                         } catch (InterruptedException e) {
@@ -74,6 +79,7 @@ public class YdbLockProviderTest {
                         }
 
                         atomicInt.addAndGet(ii);
+                        locked.set(false);
                         simpleLock.unlock();
                     });
                 }
