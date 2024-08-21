@@ -1,0 +1,47 @@
+name: YDB ShedLock CI with Maven
+
+on:
+  push:
+    paths:
+      - 'shedlock-ydb/**'
+    branches:
+      - main
+  pull_request:
+    paths:
+      - 'shedlock-ydb/**'
+
+env:
+  MAVEN_ARGS: --batch-mode --update-snapshots -Dstyle.color=always
+
+jobs:
+  build:
+    name: YDB ShedLock Lock Provider
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        java: [ '17', '21' ]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK ${{matrix.java}}
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{matrix.java}}
+          distribution: 'temurin'
+          cache: maven
+
+      - name: Extract YDB ShedLock Lock Provider version
+        working-directory: ./shedlock-ydb
+        run: |
+          VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
+          echo "SHEDLOCK_VERSION=$VERSION" >> "$GITHUB_ENV"
+
+      - name: Download ShedLock Lock Provider dependencies
+        working-directory: ./shedlock-ydb
+        run: mvn $MAVEN_ARGS dependency:go-offline
+
+      - name: Build ShedLock Lock Provider
+        working-directory: ./shedlock-ydb
+        run: mvn $MAVEN_ARGS clean test
