@@ -1,7 +1,7 @@
 package tech.ydb.data.core.convert;
 
-import java.sql.JDBCType;
 import java.sql.SQLType;
+import tech.ydb.jdbc.YdbConst;
 import tech.ydb.table.values.PrimitiveType;
 
 /**
@@ -20,6 +20,6 @@ public record YQLType(PrimitiveType type) implements SQLType {
 
     @Override
     public Integer getVendorTypeNumber() {
-        return JDBCType.JAVA_OBJECT.getVendorTypeNumber();
+        return YdbConst.SQL_KIND_PRIMITIVE + type.ordinal();
     }
 }
