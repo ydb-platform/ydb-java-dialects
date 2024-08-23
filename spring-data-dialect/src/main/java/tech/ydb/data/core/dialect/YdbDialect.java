@@ -2,7 +2,6 @@ package tech.ydb.data.core.dialect;
 
 import java.util.function.Function;
 import org.springframework.aop.interceptor.ExposeInvocationInterceptor;
-import org.springframework.core.NamedInheritableThreadLocal;
 import org.springframework.data.relational.core.dialect.AbstractDialect;
 import org.springframework.data.relational.core.dialect.InsertRenderContext;
 import org.springframework.data.relational.core.dialect.LimitClause;
@@ -60,16 +59,14 @@ public class YdbDialect extends AbstractDialect {
                 return "";
             }
 
-            var viewIndex = ExposeInvocationInterceptor.currentInvocation().getMethod().getAnnotation(ViewIndex.class);
-
-            var tableName = tables.get(0).getReferenceName();
+            var viewIndex = ExposeInvocationInterceptor.currentInvocation()
+                    .getMethod()
+                    .getAnnotation(ViewIndex.class);
 
             return viewIndex != null ?
-                    "VIEW " + viewIndex.name() + " AS " + tableName : "";
+                    "VIEW " + viewIndex.name() + " AS " + tables.get(0).getReferenceName() : "";
         };
     }
-
-    public final ThreadLocal<ViewIndex> viewIndexInfo = new NamedInheritableThreadLocal<>("viewIndexInfo");
 
     @Override
     public LimitClause limit() {

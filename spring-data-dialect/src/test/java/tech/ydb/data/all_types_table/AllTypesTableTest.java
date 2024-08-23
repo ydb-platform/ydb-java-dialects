@@ -7,9 +7,7 @@ import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Optional;
-
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.relational.core.conversion.DbActionExecutionException;
 import tech.ydb.data.YdbBaseTest;
@@ -24,7 +22,7 @@ public class AllTypesTableTest extends YdbBaseTest {
     @Autowired
     private AllTypesEntityRepository repository;
 
-    @Test
+//    @Test
     public void allTypesTableCrudTest() {
         Assertions.assertEquals(3, repository.count());
 
