@@ -22,6 +22,7 @@ import tech.ydb.data.books.repository.ReviewRepository;
  * @author Madiyar Nurgazin
  */
 public class RepositoriesIntegrationTest extends YdbBaseTest {
+
     @Autowired
     private AuthorRepository authorRepository;
     @Autowired
