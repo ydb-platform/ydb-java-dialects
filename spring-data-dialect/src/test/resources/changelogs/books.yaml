@@ -49,6 +49,12 @@ databaseChangeLog:
               - column:
                   name: year
                   type: bigint
+        - createIndex:
+            indexName: isbn_books_index
+            tableName: books
+            columns:
+              - column:
+                  name: isbn
         - insert:
             tableName: books
             columns:

@@ -81,7 +81,6 @@ public class RepositoriesIntegrationTest extends YdbBaseTest {
         book = createBook(3, "Title", "Isbn", 2024, Set.of(), Set.of(new BookAuthor(2, 3), new BookAuthor(3, 3)));
         bookRepository.insert(book);
 
-
         expected.get(0).setReviews(Set.of(review1, review2, review3));
         books = bookRepository.findBooksByAuthorName("Leo Tolstoy");
         Assertions.assertEquals(expected, books);
@@ -103,6 +102,8 @@ public class RepositoriesIntegrationTest extends YdbBaseTest {
         Optional<Author> author = authorRepository.findById(author2.getId());
         Assertions.assertTrue(author.isPresent());
         Assertions.assertTrue(author.get().getBooks().isEmpty());
+
+        Assertions.assertEquals(expected.get(0), bookRepository.findBookByIsbn("1234").get(0));
     }
 
     @Test

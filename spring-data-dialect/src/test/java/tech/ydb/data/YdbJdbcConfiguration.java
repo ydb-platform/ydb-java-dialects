@@ -7,13 +7,13 @@ import org.springframework.data.jdbc.repository.config.EnableJdbcAuditing;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import tech.ydb.data.repository.config.AbstractYdbJdbcConfiguration;
-import tech.ydb.data.repository.config.EnableYdbRepositories;
+import tech.ydb.data.repository.config.EnableYdbJdbcRepositories;
 
 /**
  * @author Madiyar Nurgazin
  */
 @Configuration
-@EnableYdbRepositories
+@EnableYdbJdbcRepositories
 @EnableJdbcAuditing
 public class YdbJdbcConfiguration extends AbstractYdbJdbcConfiguration {
     @Bean
