@@ -4,11 +4,11 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.annotation.LastModifiedDate;
+import org.springframework.data.domain.Persistable;
 import org.springframework.data.relational.core.mapping.Table;
 import tech.ydb.data.core.convert.YdbType;
 import tech.ydb.table.values.PrimitiveType;
@@ -19,9 +19,9 @@ import tech.ydb.table.values.PrimitiveType;
 @AllArgsConstructor
 @Data
 @Table("all_types_table")
-public class AllTypesEntity {
+public class AllTypesEntity implements Persistable<Integer> {
     @Id
-    private int id;
+    private Integer id;
     private String textColumn;
     private boolean boolColumn;
     private byte tinyintColumn;
@@ -50,5 +50,9 @@ public class AllTypesEntity {
     private long uint64Column;
 
     public AllTypesEntity() {
+    }
+    @Override
+    public boolean isNew() {
+        return false;
     }
 }

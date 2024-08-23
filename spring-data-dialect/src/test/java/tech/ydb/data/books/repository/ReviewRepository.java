@@ -1,16 +1,16 @@
 package tech.ydb.data.books.repository;
 
 import java.util.List;
-
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.repository.CrudRepository;
+import org.springframework.data.repository.ListCrudRepository;
+import org.springframework.data.repository.PagingAndSortingRepository;
 import tech.ydb.data.books.entity.Review;
-import tech.ydb.data.repository.YdbListCrudRepository;
-import tech.ydb.data.repository.YdbPagingAndSortingRepository;
 
 /**
  * @author Madiyar Nurgazin
  */
-public interface ReviewRepository extends YdbListCrudRepository<Review, Long>,
-        YdbPagingAndSortingRepository<Review, Long> {
+public interface ReviewRepository extends ListCrudRepository<Review, Long>,
+        CrudRepository<Review, Long>, PagingAndSortingRepository<Review, Long> {
     List<Review> findByReader(String reader, Pageable pageable);
 }

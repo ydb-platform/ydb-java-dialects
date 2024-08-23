@@ -28,7 +28,6 @@ public class AllTypesTableTest extends YdbBaseTest {
 
         Optional<AllTypesEntity> entity1 = repository.findById(1);
         Assertions.assertTrue(entity1.isPresent());
-
         AllTypesEntity expected = new AllTypesEntity(
                 1, "Madiyar Nurgazin", true, (byte) 1, (short) 2, 123123L, 1.123f, 1.123123d,
                 new BigDecimal("1.123123000"), "binary".getBytes(), LocalDate.parse("2024-03-19"),
@@ -36,6 +35,8 @@ public class AllTypesTableTest extends YdbBaseTest {
                 LocalDateTime.parse("2024-03-20T10:30:00"), "{\"a\" : \"b\"}", "{\"c\":\"d\"}",
                 (byte) 3, (short) 4, 5, 12341234L
         );
+        repository.save(expected);
+
         Assertions.assertEquals(expected, entity1.get());
 
         AllTypesEntity entity2 = new AllTypesEntity(
@@ -45,7 +46,7 @@ public class AllTypesTableTest extends YdbBaseTest {
                 "{}", "{}", (byte) 3, (short) 4, 5,
                 12341234L
         );
-        repository.insert(entity2);
+        repository.save(entity2);
         Assertions.assertEquals(2, repository.countDistinctTextColumn());
 
         List<AllTypesEntity> entities = repository.findAll();
@@ -59,17 +60,18 @@ public class AllTypesTableTest extends YdbBaseTest {
                 5, "text", true, (byte) 0, (short) 0, 0L, 0.0f, 0.0d,
                 BigDecimal.ZERO, "".getBytes(), null, null, null, null, null, null, (byte) 0, (short) 0, 0, 0L
         );
-        repository.insert(entity3);
+
+        repository.save(entity3);
 
         entities = repository.findAllByDateColumnAfterNow();
         Assertions.assertEquals(1, entities.size());
         Assertions.assertEquals(4, entities.get(0).getId());
 
         entity3.setJsonColumn("Not json");
-        Assertions.assertThrows(DbActionExecutionException.class, () -> repository.update(entity3));
+        Assertions.assertThrows(DbActionExecutionException.class, () -> repository.save(entity3));
 
         entity3.setJsonColumn("{\"values\": [1, 2, 3]}");
-        AllTypesEntity updated = repository.update(entity3);
+        AllTypesEntity updated = repository.save(entity3);
         Assertions.assertEquals(entity3, updated);
         Assertions.assertTrue(LocalDateTime.now().isAfter(entity3.getModified()));
         Assertions.assertTrue(LocalDateTime.now().minusSeconds(1).isBefore(entity3.getModified()));
