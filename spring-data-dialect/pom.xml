@@ -51,12 +51,12 @@
 
         <junit5.version>5.10.2</junit5.version>
         <lombok.version>1.18.30</lombok.version>
-        <spring.version>3.3.3</spring.version>
+        <spring.version>3.2.1</spring.version>
         <liquibase.version>4.24.0</liquibase.version>
 
         <ydb.sdk.version>2.2.9</ydb.sdk.version>
         <ydb.jdbc.version>2.2.3</ydb.jdbc.version>
-        <ydb.liquibase.version>0.9.7</ydb.liquibase.version>
+        <ydb.liquibase.version>1.1.0-SNAPSHOT</ydb.liquibase.version>
     </properties>
 
     <dependencyManagement>
