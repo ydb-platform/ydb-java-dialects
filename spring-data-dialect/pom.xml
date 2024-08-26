@@ -56,7 +56,7 @@
 
         <ydb.sdk.version>2.2.9</ydb.sdk.version>
         <ydb.jdbc.version>2.2.3</ydb.jdbc.version>
-        <ydb.liquibase.version>1.1.0-SNAPSHOT</ydb.liquibase.version>
+        <ydb.liquibase.version>0.9.7</ydb.liquibase.version>
     </properties>
 
     <dependencyManagement>
