@@ -40,8 +40,8 @@ public class InsertDataChangeYdb extends InsertDataChange {
             while (resultSet.next()) {
                 columnToLiquibaseDataType.put(
                         resultSet.getString("COLUMN_NAME").toLowerCase(),
-                        DataTypeFactory.getInstance().fromDescription(
-                                resultSet.getString("TYPE_NAME"), database));
+                        DataTypeFactory.getInstance()
+                                .fromDescription(resultSet.getString("TYPE_NAME"), database));
             }
 
             StringBuilder yqlInsert = new StringBuilder()
