@@ -1,6 +1,5 @@
 package tech.ydb.data.core.dialect;
 
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 import org.springframework.aop.interceptor.ExposeInvocationInterceptor;
 import org.springframework.data.relational.core.dialect.AbstractDialect;
@@ -54,12 +53,7 @@ public class YdbDialect extends AbstractDialect {
 
     @Override
     protected Function<Select, CharSequence> getAfterFromTable() {
-        final var invokeMethod = new AtomicBoolean();
         return select -> {
-            if (invokeMethod.get()) { // @MappedCollection without VIEW INDEX!
-                return "";
-            }
-
             var tables = select.getFrom().getTables();
             if (tables.size() != 1) {
                 return "";
@@ -69,10 +63,13 @@ public class YdbDialect extends AbstractDialect {
                     .getMethod()
                     .getAnnotation(ViewIndex.class);
 
-            invokeMethod.set(true);
+            if (viewIndex != null && (viewIndex.tableName().isEmpty() ||
+                    viewIndex.tableName().equals(tables.get(0).getName().toSql(IdentifierProcessing.NONE)))) {
+                return " VIEW " + viewIndex.indexName() + " AS " + tables.get(0).getReferenceName()
+                        .toSql(INSTANCE.getIdentifierProcessing());
+            }
 
-            return viewIndex != null ? " VIEW " + viewIndex.value() + " AS " + tables.get(0).getReferenceName()
-                    .toSql(INSTANCE.getIdentifierProcessing()) : "";
+            return "";
         };
     }
 

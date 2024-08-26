@@ -24,6 +24,12 @@ databaseChangeLog:
               - column:
                   name: name
                   value: "Leo Tolstoy"
+        - createIndex:
+            indexName: name_authors_index
+            tableName: authors
+            columns:
+              - column:
+                  name: name
       rollback:
         - dropTable:
             tableName: authors

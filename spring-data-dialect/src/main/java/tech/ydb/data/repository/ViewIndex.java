@@ -12,5 +12,7 @@ import java.lang.annotation.Target;
 @Target(ElementType.METHOD)
 public @interface ViewIndex {
 
-    String value() default "";
+    String indexName() default "";
+
+    String tableName() default "";
 }

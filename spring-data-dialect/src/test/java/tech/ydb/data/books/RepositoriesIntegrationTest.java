@@ -32,9 +32,12 @@ public class RepositoriesIntegrationTest extends YdbBaseTest {
 
     @Test
     public void crudTest() {
+        Assertions.assertEquals(1, authorRepository.findAuthorByName("Leo Tolstoy").get(0).getId());
+
         Review review1 = createReview(
                 1, 1, "Ivan Ivanov", "Masterpiece!", 10, LocalDateTime.parse("2024-03-19T15:52:26")
         );
+
         Review review2 = createReview(
                 2, 1, "Sergey Petrov", "Complex work, but I liked it", 9, LocalDateTime.parse("2024-03-19T16:14:05")
         );

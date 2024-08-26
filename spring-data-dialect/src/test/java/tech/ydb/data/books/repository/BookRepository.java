@@ -16,7 +16,7 @@ public interface BookRepository extends CrudRepository<Book, Long> {
             " join authors on authors.id = books_authors.author_id where name = :author")
     List<Book> findBooksByAuthorName(@Param("author") String author);
 
-    @ViewIndex("isbn_books_index")
+    @ViewIndex(indexName = "isbn_books_index", tableName = "books")
     List<Book> findBookByIsbn(String isbn);
 
     Optional<Book> findBookByTitle(String title);

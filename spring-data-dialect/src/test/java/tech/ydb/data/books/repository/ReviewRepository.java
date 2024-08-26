@@ -12,5 +12,6 @@ import tech.ydb.data.books.entity.Review;
  */
 public interface ReviewRepository extends ListCrudRepository<Review, Long>,
         CrudRepository<Review, Long>, PagingAndSortingRepository<Review, Long> {
+
     List<Review> findByReader(String reader, Pageable pageable);
 }
