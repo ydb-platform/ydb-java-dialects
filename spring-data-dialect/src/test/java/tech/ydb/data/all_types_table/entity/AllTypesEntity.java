@@ -29,7 +29,7 @@ public class AllTypesEntity implements Persistable<Integer> {
     private double doubleColumn;
     private BigDecimal decimalColumn;
     private byte[] binaryColumn;
-//    @YdbType("Date")
+    @YdbType("Date")
     private LocalDate dateColumn;
     @YdbType("Datetime")
     private LocalDateTime datetimeColumn;
