@@ -1,7 +1,6 @@
 package tech.ydb.data.books.entity;
 
-import java.time.LocalDateTime;
-
+import java.time.Instant;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import org.springframework.data.annotation.Id;
@@ -21,10 +20,10 @@ public class Review implements Persistable<Long> {
     private String reader;
     private String text;
     private long rating;
-    private LocalDateTime created;
+    private Instant created;
 
     public Review() {
-        this.created = LocalDateTime.now();
+        this.created = Instant.now();
     }
 
     @Transient

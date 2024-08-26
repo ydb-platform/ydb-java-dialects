@@ -1,6 +1,6 @@
 package tech.ydb.data.books;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -35,11 +35,11 @@ public class RepositoriesIntegrationTest extends YdbBaseTest {
         Assertions.assertEquals(1, authorRepository.findAuthorByName("Leo Tolstoy").get(0).getId());
 
         Review review1 = createReview(
-                1, 1, "Ivan Ivanov", "Masterpiece!", 10, LocalDateTime.parse("2024-03-19T15:52:26")
+                1, 1, "Ivan Ivanov", "Masterpiece!", 10, Instant.parse("2024-03-19T15:52:26Z")
         );
 
         Review review2 = createReview(
-                2, 1, "Sergey Petrov", "Complex work, but I liked it", 9, LocalDateTime.parse("2024-03-19T16:14:05")
+                2, 1, "Sergey Petrov", "Complex work, but I liked it", 9, Instant.parse("2024-03-19T16:14:05Z")
         );
 
         List<Book> expected = List.of(
@@ -53,7 +53,7 @@ public class RepositoriesIntegrationTest extends YdbBaseTest {
         Assertions.assertTrue(bookO.isPresent());
 
         Review review3 = createReview(
-                3, 1, "Madiyar Nurgazin", "Great", 8, LocalDateTime.parse("2024-03-19T20:00:00")
+                3, 1, "Madiyar Nurgazin", "Great", 8, Instant.parse("2024-03-19T20:00:00Z")
         );
 
         Book book = bookO.get();
@@ -97,7 +97,7 @@ public class RepositoriesIntegrationTest extends YdbBaseTest {
         List<Author> authors = authorRepository.findAuthorsByBookId(3);
         Assertions.assertEquals(Set.of(author1, author2), Set.copyOf(authors));
 
-        Review review = createReview(4, 3, "Reader", "Text", 5, LocalDateTime.now());
+        Review review = createReview(4, 3, "Reader", "Text", 5, Instant.now());
         reviewRepository.save(review);
 
         bookRepository.deleteById(3L);
@@ -115,15 +115,15 @@ public class RepositoriesIntegrationTest extends YdbBaseTest {
     @Test
     public void pagingAndSortingTest() {
         Review review1 = createReview(
-                1, 1, "Ivan Ivanov", "Masterpiece!", 10, LocalDateTime.parse("2024-03-19T15:52:26")
+                1, 1, "Ivan Ivanov", "Masterpiece!", 10, Instant.parse("2024-03-19T15:52:26Z")
         );
         Review review2 = createReview(
-                2, 1, "Sergey Petrov", "Complex work, but I liked it", 9, LocalDateTime.parse("2024-03-19T16:14:05")
+                2, 1, "Sergey Petrov", "Complex work, but I liked it", 9, Instant.parse("2024-03-19T16:14:05Z")
         );
-        Review review3 = createReview(3, 1, "Reader", "Text", 100, LocalDateTime.parse("2024-03-19T21:00:00"));
-        Review review4 = createReview(4, 1, "Reader", "Text2", 80, LocalDateTime.parse("2024-03-19T22:00:00"));
-        Review review5 = createReview(5, 1, "Reader", "Text3", 75, LocalDateTime.parse("2024-03-19T23:00:00"));
-        Review review6 = createReview(6, 1, "Reader", "Text4", 50, LocalDateTime.parse("2024-03-20T00:00:00"));
+        Review review3 = createReview(3, 1, "Reader", "Text", 100, Instant.parse("2024-03-19T21:00:00Z"));
+        Review review4 = createReview(4, 1, "Reader", "Text2", 80, Instant.parse("2024-03-19T22:00:00Z"));
+        Review review5 = createReview(5, 1, "Reader", "Text3", 75, Instant.parse("2024-03-19T23:00:00Z"));
+        Review review6 = createReview(6, 1, "Reader", "Text4", 50, Instant.parse("2024-03-20T00:00:00Z"));
         reviewRepository.saveAll(List.of(review3, review4, review5, review6));
 
         Iterable<Review> reviews = reviewRepository.findByReader(
@@ -149,7 +149,7 @@ public class RepositoriesIntegrationTest extends YdbBaseTest {
         Assertions.assertEquals(List.of(review5, review6), reviews);
     }
 
-    private Review createReview(long id, long bookId, String reader, String text, long rating, LocalDateTime created) {
+    private Review createReview(long id, long bookId, String reader, String text, long rating, Instant created) {
         Review review = new Review();
         review.setId(id);
         review.setBookId(bookId);

@@ -155,7 +155,7 @@ databaseChangeLog:
                   type: bigint
               - column:
                   name: created
-                  type: datetime
+                  type: timestamp
               - column:
                   name: book_id
                   type: bigint
