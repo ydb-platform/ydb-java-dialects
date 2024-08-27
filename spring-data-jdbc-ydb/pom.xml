@@ -5,7 +5,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>tech.ydb.dialects</groupId>
-    <artifactId>spring-data-jdbc-ydb-dialect</artifactId>
+    <artifactId>spring-data-jdbc-ydb</artifactId>
     <version>0.9.1</version>
 
     <name>Spring Data JDBC YDB Dialect</name>
