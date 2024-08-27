@@ -1,4 +1,4 @@
-id,text_column,bool_column,tinyint_column,smallint_column,bigint_column,float_column,double_column,decimal_column,binary_column,date_column,datetime_column,timestamp_column,modified,json_column,json_document_column,uint8_column,uint16_column,uint32_column,uint64_column
-1,Madiyar Nurgazin,true,1,2,123123,1.123,1.123123,1.123123,binary,2024-03-19,2024-03-20T10:30:12,2024-07-21T17:00:00.000000Z,2024-03-20T10:30:00,{"a" : "b"},{"c" : "d"},3,4,5,12341234
-2,Madiyar Nurgazin,true,1,2,123123,1.123,1.123123,1.123123,binary,2024-03-19,2024-03-20T10:30:12,2024-02-21T17:00:00.000000Z,2024-03-20T10:30:00,{"a" : "b"},{"c" : "d"},3,4,5,12341234
-3,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null
+id,text_column,bool_column,tinyint_column,smallint_column,bigint_column,float_column,double_column,decimal_column,binary_column,date_column,datetime_column,timestamp_column,json_column,json_document_column,uint8_column,uint16_column,uint32_column,uint64_column
+1,Madiyar Nurgazin,true,1,2,123123,1.123,1.123123,1.123123,binary,2024-03-19,2024-03-20T10:30,2024-07-21T17:00:00.000000Z,{"a" : "b"},{"c" : "d"},3,4,5,12341234
+2,Madiyar Nurgazin,true,1,2,123123,1.123,1.123123,1.123123,binary,2024-03-19,2024-03-20T10:30,2024-02-21T17:00:00.000000Z,{"a" : "b"},{"c" : "d"},3,4,5,12341234
+3,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null

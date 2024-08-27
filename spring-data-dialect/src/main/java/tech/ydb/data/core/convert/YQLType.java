@@ -1,7 +1,6 @@
 package tech.ydb.data.core.convert;
 
 import java.sql.SQLType;
-
 import tech.ydb.jdbc.YdbConst;
 import tech.ydb.table.values.PrimitiveType;
 

@@ -24,6 +24,12 @@ databaseChangeLog:
               - column:
                   name: name
                   value: "Leo Tolstoy"
+        - createIndex:
+            indexName: name_authors_index
+            tableName: authors
+            columns:
+              - column:
+                  name: name
       rollback:
         - dropTable:
             tableName: authors
@@ -49,6 +55,12 @@ databaseChangeLog:
               - column:
                   name: year
                   type: bigint
+        - createIndex:
+            indexName: isbn_books_index
+            tableName: books
+            columns:
+              - column:
+                  name: isbn
         - insert:
             tableName: books
             columns:
@@ -143,55 +155,20 @@ databaseChangeLog:
                   type: bigint
               - column:
                   name: created
-                  type: datetime
+                  type: timestamp
               - column:
                   name: book_id
                   type: bigint
               - column:
                   name: reader
                   type: varchar
-        - insert:
-            tableName: reviews
-            columns:
-              - column:
-                  name: id
-                  valueNumeric: 1
-              - column:
-                  name: text
-                  value: "Masterpiece!"
-              - column:
-                  name: rating
-                  valueNumeric: 10
-              - column:
-                  name: created
-                  valueDate: "2024-03-19T18:52:26.123"
-              - column:
-                  name: book_id
-                  valueNumeric: 1
-              - column:
-                  name: reader
-                  value: "Ivan Ivanov"
-        - insert:
-            tableName: reviews
-            columns:
-              - column:
-                  name: id
-                  valueNumeric: 2
-              - column:
-                  name: text
-                  value: "Complex work, but I liked it"
-              - column:
-                  name: rating
-                  valueNumeric: 9
-              - column:
-                  name: created
-                  valueDate: "2024-03-19T19:14:05.456"
-              - column:
-                  name: book_id
-                  valueNumeric: 1
-              - column:
-                  name: reader
-                  value: "Sergey Petrov"
+  - changeSet:
+      id: "insert reviews"
+      author: "Kirill Kurdyukov"
+      changes:
+        - sqlFile:
+            relativeToChangelogFile: true
+            path: "insert.sql"
       rollback:
         - dropTable:
             tableName: reviews
