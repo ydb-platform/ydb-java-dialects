@@ -1,4 +1,4 @@
-package tech.ydb.data.core.convert;
+package tech.ydb.data.repository;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
@@ -6,10 +6,13 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * @author Madiyar Nurgazin
+ * @author Kirill Kurdyukov
  */
 @Retention(RetentionPolicy.RUNTIME)
-@Target(ElementType.FIELD)
-public @interface YdbType {
-    String value();
+@Target(ElementType.METHOD)
+public @interface ViewIndex {
+
+    String indexName() default "";
+
+    String tableName() default "";
 }

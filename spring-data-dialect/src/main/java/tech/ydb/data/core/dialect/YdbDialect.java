@@ -1,8 +1,7 @@
 package tech.ydb.data.core.dialect;
 
-import java.util.Collections;
-import java.util.Set;
-
+import java.util.function.Function;
+import org.springframework.aop.interceptor.ExposeInvocationInterceptor;
 import org.springframework.data.relational.core.dialect.AbstractDialect;
 import org.springframework.data.relational.core.dialect.InsertRenderContext;
 import org.springframework.data.relational.core.dialect.LimitClause;
@@ -10,6 +9,8 @@ import org.springframework.data.relational.core.dialect.LockClause;
 import org.springframework.data.relational.core.dialect.OrderByNullPrecedence;
 import org.springframework.data.relational.core.sql.IdentifierProcessing;
 import org.springframework.data.relational.core.sql.LockOptions;
+import org.springframework.data.relational.core.sql.Select;
+import tech.ydb.data.repository.ViewIndex;
 
 /**
  * @author Madiyar Nurgazin
@@ -51,6 +52,28 @@ public class YdbDialect extends AbstractDialect {
     };
 
     @Override
+    protected Function<Select, CharSequence> getAfterFromTable() {
+        return select -> {
+            var tables = select.getFrom().getTables();
+            if (tables.size() != 1) {
+                return "";
+            }
+
+            var viewIndex = ExposeInvocationInterceptor.currentInvocation()
+                    .getMethod()
+                    .getAnnotation(ViewIndex.class);
+
+            if (viewIndex != null && (viewIndex.tableName().isEmpty() ||
+                    viewIndex.tableName().equals(tables.get(0).getName().toSql(IdentifierProcessing.NONE)))) {
+                return " VIEW " + viewIndex.indexName() + " AS " + tables.get(0).getReferenceName()
+                        .toSql(INSTANCE.getIdentifierProcessing());
+            }
+
+            return "";
+        };
+    }
+
+    @Override
     public LimitClause limit() {
         return LIMIT_CLAUSE;
     }
@@ -66,11 +89,6 @@ public class YdbDialect extends AbstractDialect {
                 new IdentifierProcessing.Quoting("`"),
                 IdentifierProcessing.LetterCasing.AS_IS
         );
-    }
-
-    @Override
-    public Set<Class<?>> simpleTypes() {
-        return Collections.emptySet();
     }
 
     @Override

@@ -46,9 +46,6 @@ databaseChangeLog:
                   name: datetime_column
                   type: datetime
               - column:
-                  name: modified
-                  type: datetime
-              - column:
                   name: timestamp_column
                   type: timestamp
               - column:
@@ -69,6 +66,12 @@ databaseChangeLog:
               - column:
                   name: uint64_column
                   type: uint64
+        - createIndex:
+            indexName: text_column_index
+            tableName: all_types_table
+            columns:
+              - column:
+                  name: text_column
       rollback:
         - dropTable:
             tableName: all_types_table

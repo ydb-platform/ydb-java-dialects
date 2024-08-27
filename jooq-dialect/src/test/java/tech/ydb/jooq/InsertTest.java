@@ -1,5 +1,8 @@
 package tech.ydb.jooq;
 
+import java.util.List;
+import static jooq.generated.ydb.default_schema.Tables.HARD_TABLE;
+import static jooq.generated.ydb.default_schema.Tables.SERIES;
 import jooq.generated.ydb.default_schema.tables.records.HardTableRecord;
 import jooq.generated.ydb.default_schema.tables.records.SeriesRecord;
 import org.jooq.JSON;
@@ -7,14 +10,10 @@ import org.jooq.JSONB;
 import org.jooq.Result;
 import org.jooq.exception.DataAccessException;
 import org.jooq.types.ULong;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import org.junit.jupiter.api.Test;
 import tech.ydb.jooq.value.YSON;
-
-import java.util.List;
-
-import static jooq.generated.ydb.default_schema.Tables.HARD_TABLE;
-import static jooq.generated.ydb.default_schema.Tables.SERIES;
-import static org.junit.jupiter.api.Assertions.*;
 
 public class InsertTest extends BaseTest {
 

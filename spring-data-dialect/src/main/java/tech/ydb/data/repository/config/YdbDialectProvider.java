@@ -34,6 +34,7 @@ public class YdbDialectProvider extends DialectResolver.DefaultDialectProvider {
         if ("ydb".contains(connection.getMetaData().getDatabaseProductName().toLowerCase(Locale.ENGLISH))) {
             return YdbDialect.INSTANCE;
         }
+
         return null;
     }
 }
