@@ -166,48 +166,9 @@ databaseChangeLog:
       id: "insert reviews"
       author: "Kirill Kurdyukov"
       changes:
-        - insert:
-            tableName: reviews
-            columns:
-              - column:
-                  name: id
-                  valueNumeric: 1
-              - column:
-                  name: text
-                  value: "Masterpiece!"
-              - column:
-                  name: rating
-                  valueNumeric: 10
-              - column:
-                  name: created
-                  value: "2024-03-19T15:52:26Z"
-              - column:
-                  name: book_id
-                  valueNumeric: 1
-              - column:
-                  name: reader
-                  value: "Ivan Ivanov"
-        - insert:
-            tableName: reviews
-            columns:
-              - column:
-                  name: id
-                  valueNumeric: 2
-              - column:
-                  name: text
-                  value: "Complex work, but I liked it"
-              - column:
-                  name: rating
-                  valueNumeric: 9
-              - column:
-                  name: created
-                  value: "2024-03-19T16:14:05Z"
-              - column:
-                  name: book_id
-                  valueNumeric: 1
-              - column:
-                  name: reader
-                  value: "Sergey Petrov"
+        - sqlFile:
+            relativeToChangelogFile: true
+            path: "insert.sql"
       rollback:
         - dropTable:
             tableName: reviews
