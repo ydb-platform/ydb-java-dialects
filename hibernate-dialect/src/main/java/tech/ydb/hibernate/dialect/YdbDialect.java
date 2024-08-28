@@ -78,8 +78,8 @@ public class YdbDialect extends Dialect {
             case SMALLINT -> "Int16";
             case INTEGER -> "Int32";
             case BIGINT -> "Int64";
-            case REAL, FLOAT -> "Float";
-            case DOUBLE -> "Double";
+            case REAL -> "Float";
+            case DOUBLE, FLOAT -> "Double";
             case NUMERIC, DECIMAL -> "Decimal (22,9)"; // Fixed
             case DATE -> "Date";
             case TIME -> "Datetime";
