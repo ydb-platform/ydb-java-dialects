@@ -19,10 +19,6 @@ class HibernateApplication : CommandLineRunner {
 	private lateinit var sloService: SloService
 
 	override fun run(vararg args: String) {
-		if (args.isNotEmpty() && args[0] == "create") {
-			return // Flyway created slo table
-		}
-
 		val pushGateway = PushGateway.builder()
 			.job("hibernate-slo")
 			.address("prometheus-pushgateway:9091")
