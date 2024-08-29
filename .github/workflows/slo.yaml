@@ -57,7 +57,7 @@ jobs:
           language_id0: 'hibernate'
           workload_path0: 'slo'
           language0: 'Hibernate YQL Dialect over YDB JDBC Driver'
-          workload_build_context0: ../..
+          workload_build_context0:
           workload_build_options0: -f Dockerfile --build-arg SRC_PATH=hibernate
 
 
