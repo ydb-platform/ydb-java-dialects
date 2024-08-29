@@ -29,7 +29,7 @@ jobs:
           DOCKER_REPO: ${{ secrets.SLO_DOCKER_REPO }}
 
       - name: Run SLO
-        uses: ydb-platform/slo-tests@main
+        uses: ydb-platform/slo-tests@k8s-local
         if: env.DOCKER_REPO != null
         env:
           DOCKER_REPO: ${{ secrets.SLO_DOCKER_REPO }}
