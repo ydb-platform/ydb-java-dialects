@@ -33,6 +33,7 @@
 	</dependencies>
 
 	<build>
+		<finalName>slo</finalName>
 		<sourceDirectory>${project.basedir}/src/main/kotlin</sourceDirectory>
 		<plugins>
 			<plugin>
