@@ -1,9 +1,10 @@
 FROM maven:3.8.4-openjdk-17 AS build
-COPY . .
-WORKDIR /hibernate
+ARG SRC_PATH
+COPY . /app
+WORKDIR /app/${SRC_PATH}
 RUN mvn package -DskipTests
+RUN cp -r ./target/* ./..
 
 FROM openjdk:21 AS run
-WORKDIR /app
-COPY --from=build . .
-ENTRYPOINT ["java", "-jar", "./hibernate/target/hibernate-0.0.1-SNAPSHOT.jar"]
+COPY --from=build /app .
+ENTRYPOINT ["java", "-jar", "./slo.jar"]

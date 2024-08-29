@@ -58,7 +58,7 @@ jobs:
           workload_path0: 'slo/hibernate'
           language0: 'Hibernate YQL Dialect over YDB JDBC Driver'
           workload_build_context0: ../..
-          workload_build_options0: -f Dockerfile
+          workload_build_options0: -f Dockerfile --build-arg SRC_PATH=hibernate
 
 
       - uses: actions/upload-artifact@v3
