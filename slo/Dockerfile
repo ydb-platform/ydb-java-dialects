@@ -1,7 +1,6 @@
 FROM maven:3.8.4-openjdk-17 AS build
-ARG SRC_PATH
 COPY . .
-WORKDIR /${SRC_PATH}
+WORKDIR /hibernate
 RUN mvn package -DskipTests
 
 FROM openjdk:21 AS run
