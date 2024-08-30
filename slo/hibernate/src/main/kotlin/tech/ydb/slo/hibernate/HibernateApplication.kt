@@ -20,7 +20,7 @@ class HibernateApplication : CommandLineRunner {
 
 	override fun run(vararg args: String) {
 		val pushGateway = PushGateway.builder()
-			.job("slo-hibernate")
+			.job("workload-hibernate")
 			.address("prometheus-pushgateway:9091")
 			.build()
 
