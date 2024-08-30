@@ -20,7 +20,7 @@ class HibernateApplication : CommandLineRunner {
 
 	override fun run(vararg args: String) {
 		val pushGateway = PushGateway.builder()
-			.job("hibernate-slo")
+			.job("slo")
 			.address("prometheus-pushgateway:9091")
 			.build()
 
@@ -45,7 +45,6 @@ class HibernateApplication : CommandLineRunner {
 					okCount.labelValues("read", "TODO", "hibernate").inc()
 				} catch (e: Exception) {
 					notOkCount.labelValues("read", "TODO", "hibernate").inc()
-					println(e)
 				}
 				pushGateway.push()
 			}
@@ -56,7 +55,6 @@ class HibernateApplication : CommandLineRunner {
 					okCount.labelValues("write", "TODO", "hibernate").inc()
 				} catch (e: Exception) {
 					notOkCount.labelValues("write", "TODO", "hibernate").inc()
-					println(e)
 				}
 				pushGateway.push()
 			}
