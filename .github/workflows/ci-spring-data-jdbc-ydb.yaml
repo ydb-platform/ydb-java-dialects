@@ -57,5 +57,5 @@ jobs:
         run: mvn $MAVEN_ARGS -Dspring.data.jdbc.ydb.version=$SPRING_DATA_JDBC_DIALECT_VERSION dependency:go-offline
 
       - name: Test examples with Maven
-        working-directory: ./examples/jdbc/spring-data-jpa-v5
+        working-directory: ./examples/jdbc/spring-data-jdbc
         run: mvn $MAVEN_ARGS -Dspring.data.jdbc.ydb.version=$SPRING_DATA_JDBC_DIALECT_VERSION test
