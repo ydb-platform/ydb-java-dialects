@@ -89,11 +89,6 @@ spring.datasource.url=jdbc:ydb:grpc://localhost:2136/local
 An example of a simple Spring Data JPA repository can be found at the following
 [link](https://github.com/ydb-platform/ydb-java-examples/tree/master/jdbc/spring-data-jpa).
 
-## Known Limitations
-
-In the section [NOTES.md](./NOTES.md), we list all the current dialect limitations
-and provide solutions to them.
-
 ## Support and Contact
 
 For support, you can open issues in the repository issue tracker with tag `hibernate-v6`.

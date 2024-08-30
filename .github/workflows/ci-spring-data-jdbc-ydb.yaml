@@ -46,16 +46,16 @@ jobs:
         working-directory: ./spring-data-jdbc-ydb
         run: mvn $MAVEN_ARGS install
 
-#      - uses: actions/checkout@v4
-#        with:
-#          repository: ydb-platform/ydb-java-examples
-#          ref: master
-#          path: examples
-#
-#      - name: Download dependencies
-#        working-directory: ./examples/jdbc/spring-data-jpa-v5
-#        run: mvn $MAVEN_ARGS -Dspring.data.jdbc.ydb.dialect.version=$SPRING_DATA_JDBC_DIALECT_VERSION dependency:go-offline
-#
-#      - name: Test examples with Maven
-#        working-directory: ./examples/jdbc/spring-data-jpa-v5
-#        run: mvn $MAVEN_ARGS -Dspring.data.jdbc.ydb.dialect.version=$SPRING_DATA_JDBC_DIALECT_VERSION test
+      - uses: actions/checkout@v4
+        with:
+          repository: ydb-platform/ydb-java-examples
+          ref: master
+          path: examples
+
+      - name: Download dependencies
+        working-directory: ./examples/jdbc/spring-data-jdbc
+        run: mvn $MAVEN_ARGS -Dspring.data.jdbc.ydb.version=$SPRING_DATA_JDBC_DIALECT_VERSION dependency:go-offline
+
+      - name: Test examples with Maven
+        working-directory: ./examples/jdbc/spring-data-jpa-v5
+        run: mvn $MAVEN_ARGS -Dspring.data.jdbc.ydb.version=$SPRING_DATA_JDBC_DIALECT_VERSION test
