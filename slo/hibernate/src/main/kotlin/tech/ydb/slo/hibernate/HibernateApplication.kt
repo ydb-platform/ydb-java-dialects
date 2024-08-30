@@ -19,6 +19,10 @@ class HibernateApplication : CommandLineRunner {
 	private lateinit var sloService: SloService
 
 	override fun run(vararg args: String) {
+		if (args[0] == "create") {
+			return
+		}
+
 		val pushGateway = PushGateway.builder()
 			.job("workload-hibernate")
 			.address("prometheus-pushgateway:9091")
