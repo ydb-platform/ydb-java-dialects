@@ -46,3 +46,62 @@ services:
       - "3000:3000"
     networks:
       - monitor-net
+  ydb:
+    image: cr.yandex/yc/yandex-docker-local-ydb:latest
+    container_name: ydb
+    environment:
+      - GRPC_TLS_PORT=2135
+      - GRPC_PORT=2136
+      - MON_PORT=8765
+      - YDB_USE_IN_MEMORY_PDISKS=true
+      - YDB_DEFAULT_LOG_LEVEL=NOTICE
+    ports:
+      - "2135:2135"
+      - "2136:2136"
+      - "8765:8765"
+    volumes:
+      - ../data/ydb_certs:/ydb_certs
+    networks:
+      - monitor-net
+
+  slo-create:
+    build:
+      dockerfile: ./Dockerfile
+      args:
+        - SRC_PATH=hibernate
+    command:
+      - 'create'
+      - 'http://ydb:2136'
+      - '/local'
+      - '--table-name'
+      - 'slo-dotnet'
+      - '--min-partitions-count'
+      - '6'
+      - '--max-partitions-count'
+      - '1000'
+      - '--partition-size'
+      - '1'
+      - '--initial-data-count'
+      - '1000'
+    networks:
+      - monitor-net
+    depends_on:
+      ydb:
+        condition: service_healthy
+
+  slo-run:
+    build:
+      dockerfile: ./Dockerfile
+    command:
+      - 'run'
+      - 'http://ydb:2136'
+      - '/local'
+      - '--prom-pgw'
+      - 'http://prometheus-pushgateway:9091'
+      - '--table-name'
+      - 'slo-dotnet'
+    networks:
+      - monitor-net
+    depends_on:
+      slo-create:
+        condition: service_completed_successfully
