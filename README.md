@@ -21,6 +21,9 @@ tools like Flyway and Liquibase.
   Hibernate Dialect for YDB is designed to leverage features of YDB while
   providing a familiar experience to Hibernate users.
   For more information, please visit the appropriate [module](./hibernate-dialect).
+- *Spring Data JDBC*:
+  Spring Data JDBC extension for YDB.
+  For more information, please visit the appropriate [module](./spring-data-jdbc-ydbc).
 - *JOOQ*:
   Small JOOQ dialect is designed to be used for [code generation](https://www.jooq.org/doc/3.19/manual/code-generation/)
   For more information, please visit the appropriate [module](./jooq-dialect).
