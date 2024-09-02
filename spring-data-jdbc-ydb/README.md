@@ -70,6 +70,10 @@ public class YdbJdbcConfiguration {}
 An example of a simple Spring Data JDBC repository can be found at the following
 [link](https://github.com/ydb-platform/ydb-java-examples/tree/master/jdbc/spring-data-jdbc).
 
+## Authorization
+
+See [connect to YDB](../README.md/#connect-to-ydb).
+
 ## Support and Contact
 
 For support, you can open issues in the repository issue tracker with tag `spring-data-jdbc`.
