@@ -1,12 +1,27 @@
 package tech.ydb.jooq;
 
-import org.jetbrains.annotations.Blocking;
-import org.jetbrains.annotations.NotNull;
-import org.jooq.*;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.SQLException;
+import java.time.Duration;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
+import org.jooq.ConnectionProvider;
+import org.jooq.Field;
+import org.jooq.JSON;
+import org.jooq.JSONB;
+import org.jooq.Param;
 import org.jooq.Record;
+import org.jooq.SQLDialect;
+import org.jooq.Table;
 import org.jooq.conf.Settings;
 import org.jooq.exception.DataAccessException;
-import org.jooq.impl.*;
+import org.jooq.impl.ConnectionUtils;
+import org.jooq.impl.DSL;
+import org.jooq.impl.DataSourceConnectionProvider;
+import org.jooq.impl.DefaultConnectionProvider;
 import org.jooq.types.UByte;
 import org.jooq.types.UInteger;
 import org.jooq.types.ULong;
@@ -19,8 +34,6 @@ import tech.ydb.jooq.value.YSON;
 
 import javax.sql.DataSource;
 import java.math.BigDecimal;
-import java.sql.*;
-import java.time.*;
 import java.util.Collection;
 import java.util.Properties;
 import java.util.UUID;
@@ -40,7 +53,6 @@ public final class YDB {
      * Without a connection or data source, this executor cannot execute
      * queries. Use it to render SQL only.
      */
-    @NotNull
     public static YdbDSLContext using() {
         return new YdbDSLContextImpl();
     }
@@ -54,7 +66,6 @@ public final class YDB {
      * @param settings The runtime settings to apply to objects created from
      *                 this executor
      */
-    @NotNull
     public static YdbDSLContext using(Settings settings) {
         return new YdbDSLContextImpl(settings);
     }
@@ -79,8 +90,6 @@ public final class YDB {
      * @param url The connection URL.
      * @see DefaultConnectionProvider
      */
-    @Blocking
-    @NotNull
     public static CloseableYdbDSLContext using(String url) {
         try {
             Connection connection = DriverManager.getConnection(url);
@@ -112,8 +121,6 @@ public final class YDB {
      * @param password The connection password.
      * @see DefaultConnectionProvider
      */
-    @Blocking
-    @NotNull
     public static CloseableYdbDSLContext using(String url, String username, String password) {
         try {
             Connection connection = DriverManager.getConnection(url, username, password);
@@ -144,8 +151,6 @@ public final class YDB {
      * @param properties The connection properties.
      * @see DefaultConnectionProvider
      */
-    @Blocking
-    @NotNull
     public static CloseableYdbDSLContext using(String url, Properties properties) {
         try {
             Connection connection = DriverManager.getConnection(url, properties);
@@ -168,7 +173,6 @@ public final class YDB {
      *                   executor
      * @see DefaultConnectionProvider
      */
-    @NotNull
     public static YdbDSLContext using(Connection connection) {
         return new YdbDSLContextImpl(connection);
     }
@@ -189,7 +193,6 @@ public final class YDB {
      *                   this executor
      * @see DefaultConnectionProvider
      */
-    @NotNull
     public static YdbDSLContext using(Connection connection, Settings settings) {
         return new YdbDSLContextImpl(connection, settings);
     }
@@ -208,7 +211,6 @@ public final class YDB {
      *                   executor
      * @see DataSourceConnectionProvider
      */
-    @NotNull
     public static YdbDSLContext using(DataSource datasource) {
         return new YdbDSLContextImpl(datasource);
     }
@@ -229,7 +231,6 @@ public final class YDB {
      *                   this executor
      * @see DataSourceConnectionProvider
      */
-    @NotNull
     public static YdbDSLContext using(DataSource datasource, Settings settings) {
         return new YdbDSLContextImpl(datasource, settings);
     }
@@ -240,7 +241,6 @@ public final class YDB {
      * @param connectionProvider The connection provider providing jOOQ with
      *                           JDBC connections
      */
-    @NotNull
     public static YdbDSLContext using(ConnectionProvider connectionProvider) {
         return new YdbDSLContextImpl(connectionProvider);
     }
@@ -253,7 +253,6 @@ public final class YDB {
      * @param settings           The runtime settings to apply to objects created from
      *                           this executor
      */
-    @NotNull
     public static YdbDSLContext using(ConnectionProvider connectionProvider, Settings settings) {
         return new YdbDSLContextImpl(connectionProvider, settings);
     }
@@ -287,7 +286,6 @@ public final class YDB {
      *
      * @see YdbDSLContext#upsertInto(Table)
      */
-    @NotNull
     public static <R extends Record> UpsertSetStep<R> upsertInto(Table<R> into) {
         return dsl().upsertInto(into);
     }
@@ -315,7 +313,6 @@ public final class YDB {
      *
      * @see YdbDSLContext#upsertInto(Table, Field)
      */
-    @NotNull
     public static <R extends Record, T1> UpsertValuesStep1<R, T1> upsertInto(Table<R> into, Field<T1> field1) {
         return (UpsertValuesStep1) upsertInto(into, new Field[]{field1});
     }
@@ -339,7 +336,6 @@ public final class YDB {
      *
      * @see YdbDSLContext#upsertInto(Table, Field, Field)
      */
-    @NotNull
     public static <R extends Record, T1, T2> UpsertValuesStep2<R, T1, T2> upsertInto(Table<R> into, Field<T1> field1, Field<T2> field2) {
         return (UpsertValuesStep2) upsertInto(into, new Field[]{field1, field2});
     }
@@ -363,7 +359,6 @@ public final class YDB {
      *
      * @see YdbDSLContext#upsertInto(Table, Field, Field, Field)
      */
-    @NotNull
     public static <R extends Record, T1, T2, T3> UpsertValuesStep3<R, T1, T2, T3> upsertInto(Table<R> into, Field<T1> field1, Field<T2> field2, Field<T3> field3) {
         return (UpsertValuesStep3) upsertInto(into, new Field[]{field1, field2, field3});
     }
@@ -387,7 +382,6 @@ public final class YDB {
      *
      * @see YdbDSLContext#upsertInto(Table, Field, Field, Field, Field)
      */
-    @NotNull
     public static <R extends Record, T1, T2, T3, T4> UpsertValuesStep4<R, T1, T2, T3, T4> upsertInto(Table<R> into, Field<T1> field1, Field<T2> field2, Field<T3> field3, Field<T4> field4) {
         return (UpsertValuesStep4) upsertInto(into, new Field[]{field1, field2, field3, field4});
     }
@@ -411,7 +405,6 @@ public final class YDB {
      *
      * @see YdbDSLContext#upsertInto(Table, Field, Field, Field, Field, Field)
      */
-    @NotNull
     public static <R extends Record, T1, T2, T3, T4, T5> UpsertValuesStep5<R, T1, T2, T3, T4, T5> upsertInto(Table<R> into, Field<T1> field1, Field<T2> field2, Field<T3> field3, Field<T4> field4, Field<T5> field5) {
         return (UpsertValuesStep5) upsertInto(into, new Field[]{field1, field2, field3, field4, field5});
     }
@@ -435,7 +428,6 @@ public final class YDB {
      *
      * @see YdbDSLContext#upsertInto(Table, Field, Field, Field, Field, Field, Field)
      */
-    @NotNull
     public static <R extends Record, T1, T2, T3, T4, T5, T6> UpsertValuesStep6<R, T1, T2, T3, T4, T5, T6> upsertInto(Table<R> into, Field<T1> field1, Field<T2> field2, Field<T3> field3, Field<T4> field4, Field<T5> field5, Field<T6> field6) {
         return (UpsertValuesStep6) upsertInto(into, new Field[]{field1, field2, field3, field4, field5, field6});
     }
@@ -459,7 +451,6 @@ public final class YDB {
      *
      * @see YdbDSLContext#upsertInto(Table, Field, Field, Field, Field, Field, Field, Field)
      */
-    @NotNull
     public static <R extends Record, T1, T2, T3, T4, T5, T6, T7> UpsertValuesStep7<R, T1, T2, T3, T4, T5, T6, T7> upsertInto(Table<R> into, Field<T1> field1, Field<T2> field2, Field<T3> field3, Field<T4> field4, Field<T5> field5, Field<T6> field6, Field<T7> field7) {
         return (UpsertValuesStep7) upsertInto(into, new Field[]{field1, field2, field3, field4, field5, field6, field7});
     }
@@ -483,7 +474,6 @@ public final class YDB {
      *
      * @see YdbDSLContext#upsertInto(Table, Field, Field, Field, Field, Field, Field, Field, Field)
      */
-    @NotNull
     public static <R extends Record, T1, T2, T3, T4, T5, T6, T7, T8> UpsertValuesStep8<R, T1, T2, T3, T4, T5, T6, T7, T8> upsertInto(Table<R> into, Field<T1> field1, Field<T2> field2, Field<T3> field3, Field<T4> field4, Field<T5> field5, Field<T6> field6, Field<T7> field7, Field<T8> field8) {
         return (UpsertValuesStep8) upsertInto(into, new Field[]{field1, field2, field3, field4, field5, field6, field7, field8});
     }
@@ -507,7 +497,6 @@ public final class YDB {
      *
      * @see YdbDSLContext#upsertInto(Table, Field, Field, Field, Field, Field, Field, Field, Field, Field)
      */
-    @NotNull
     public static <R extends Record, T1, T2, T3, T4, T5, T6, T7, T8, T9> UpsertValuesStep9<R, T1, T2, T3, T4, T5, T6, T7, T8, T9> upsertInto(Table<R> into, Field<T1> field1, Field<T2> field2, Field<T3> field3, Field<T4> field4, Field<T5> field5, Field<T6> field6, Field<T7> field7, Field<T8> field8, Field<T9> field9) {
         return (UpsertValuesStep9) upsertInto(into, new Field[]{field1, field2, field3, field4, field5, field6, field7, field8, field9});
     }
@@ -531,7 +520,6 @@ public final class YDB {
      *
      * @see YdbDSLContext#upsertInto(Table, Field, Field, Field, Field, Field, Field, Field, Field, Field, Field)
      */
-    @NotNull
     public static <R extends Record, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10> UpsertValuesStep10<R, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10> upsertInto(Table<R> into, Field<T1> field1, Field<T2> field2, Field<T3> field3, Field<T4> field4, Field<T5> field5, Field<T6> field6, Field<T7> field7, Field<T8> field8, Field<T9> field9, Field<T10> field10) {
         return (UpsertValuesStep10) upsertInto(into, new Field[]{field1, field2, field3, field4, field5, field6, field7, field8, field9, field10});
     }
@@ -555,7 +543,6 @@ public final class YDB {
      *
      * @see YdbDSLContext#upsertInto(Table, Field, Field, Field, Field, Field, Field, Field, Field, Field, Field, Field)
      */
-    @NotNull
     public static <R extends Record, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11> UpsertValuesStep11<R, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11> upsertInto(Table<R> into, Field<T1> field1, Field<T2> field2, Field<T3> field3, Field<T4> field4, Field<T5> field5, Field<T6> field6, Field<T7> field7, Field<T8> field8, Field<T9> field9, Field<T10> field10, Field<T11> field11) {
         return (UpsertValuesStep11) upsertInto(into, new Field[]{field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11});
     }
@@ -579,7 +566,6 @@ public final class YDB {
      *
      * @see YdbDSLContext#upsertInto(Table, Field, Field, Field, Field, Field, Field, Field, Field, Field, Field, Field, Field)
      */
-    @NotNull
     public static <R extends Record, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12> UpsertValuesStep12<R, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12> upsertInto(Table<R> into, Field<T1> field1, Field<T2> field2, Field<T3> field3, Field<T4> field4, Field<T5> field5, Field<T6> field6, Field<T7> field7, Field<T8> field8, Field<T9> field9, Field<T10> field10, Field<T11> field11, Field<T12> field12) {
         return (UpsertValuesStep12) upsertInto(into, new Field[]{field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12});
     }
@@ -603,7 +589,6 @@ public final class YDB {
      *
      * @see YdbDSLContext#upsertInto(Table, Field, Field, Field, Field, Field, Field, Field, Field, Field, Field, Field, Field, Field)
      */
-    @NotNull
     public static <R extends Record, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13> UpsertValuesStep13<R, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13> upsertInto(Table<R> into, Field<T1> field1, Field<T2> field2, Field<T3> field3, Field<T4> field4, Field<T5> field5, Field<T6> field6, Field<T7> field7, Field<T8> field8, Field<T9> field9, Field<T10> field10, Field<T11> field11, Field<T12> field12, Field<T13> field13) {
         return (UpsertValuesStep13) upsertInto(into, new Field[]{field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13});
     }
@@ -627,7 +612,6 @@ public final class YDB {
      *
      * @see YdbDSLContext#upsertInto(Table, Field, Field, Field, Field, Field, Field, Field, Field, Field, Field, Field, Field, Field, Field)
      */
-    @NotNull
     public static <R extends Record, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14> UpsertValuesStep14<R, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14> upsertInto(Table<R> into, Field<T1> field1, Field<T2> field2, Field<T3> field3, Field<T4> field4, Field<T5> field5, Field<T6> field6, Field<T7> field7, Field<T8> field8, Field<T9> field9, Field<T10> field10, Field<T11> field11, Field<T12> field12, Field<T13> field13, Field<T14> field14) {
         return (UpsertValuesStep14) upsertInto(into, new Field[]{field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14});
     }
@@ -651,7 +635,6 @@ public final class YDB {
      *
      * @see YdbDSLContext#upsertInto(Table, Field, Field, Field, Field, Field, Field, Field, Field, Field, Field, Field, Field, Field, Field, Field)
      */
-    @NotNull
     public static <R extends Record, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15> UpsertValuesStep15<R, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15> upsertInto(Table<R> into, Field<T1> field1, Field<T2> field2, Field<T3> field3, Field<T4> field4, Field<T5> field5, Field<T6> field6, Field<T7> field7, Field<T8> field8, Field<T9> field9, Field<T10> field10, Field<T11> field11, Field<T12> field12, Field<T13> field13, Field<T14> field14, Field<T15> field15) {
         return (UpsertValuesStep15) upsertInto(into, new Field[]{field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15});
     }
@@ -675,7 +658,6 @@ public final class YDB {
      *
      * @see YdbDSLContext#upsertInto(Table, Field, Field, Field, Field, Field, Field, Field, Field, Field, Field, Field, Field, Field, Field, Field, Field)
      */
-    @NotNull
     public static <R extends Record, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16> UpsertValuesStep16<R, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16> upsertInto(Table<R> into, Field<T1> field1, Field<T2> field2, Field<T3> field3, Field<T4> field4, Field<T5> field5, Field<T6> field6, Field<T7> field7, Field<T8> field8, Field<T9> field9, Field<T10> field10, Field<T11> field11, Field<T12> field12, Field<T13> field13, Field<T14> field14, Field<T15> field15, Field<T16> field16) {
         return (UpsertValuesStep16) upsertInto(into, new Field[]{field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15, field16});
     }
@@ -699,7 +681,6 @@ public final class YDB {
      *
      * @see YdbDSLContext#upsertInto(Table, Field, Field, Field, Field, Field, Field, Field, Field, Field, Field, Field, Field, Field, Field, Field, Field, Field)
      */
-    @NotNull
     public static <R extends Record, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17> UpsertValuesStep17<R, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17> upsertInto(Table<R> into, Field<T1> field1, Field<T2> field2, Field<T3> field3, Field<T4> field4, Field<T5> field5, Field<T6> field6, Field<T7> field7, Field<T8> field8, Field<T9> field9, Field<T10> field10, Field<T11> field11, Field<T12> field12, Field<T13> field13, Field<T14> field14, Field<T15> field15, Field<T16> field16, Field<T17> field17) {
         return (UpsertValuesStep17) upsertInto(into, new Field[]{field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15, field16, field17});
     }
@@ -723,7 +704,6 @@ public final class YDB {
      *
      * @see YdbDSLContext#upsertInto(Table, Field, Field, Field, Field, Field, Field, Field, Field, Field, Field, Field, Field, Field, Field, Field, Field, Field, Field)
      */
-    @NotNull
     public static <R extends Record, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18> UpsertValuesStep18<R, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18> upsertInto(Table<R> into, Field<T1> field1, Field<T2> field2, Field<T3> field3, Field<T4> field4, Field<T5> field5, Field<T6> field6, Field<T7> field7, Field<T8> field8, Field<T9> field9, Field<T10> field10, Field<T11> field11, Field<T12> field12, Field<T13> field13, Field<T14> field14, Field<T15> field15, Field<T16> field16, Field<T17> field17, Field<T18> field18) {
         return (UpsertValuesStep18) upsertInto(into, new Field[]{field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15, field16, field17, field18});
     }
@@ -747,7 +727,6 @@ public final class YDB {
      *
      * @see YdbDSLContext#upsertInto(Table, Field, Field, Field, Field, Field, Field, Field, Field, Field, Field, Field, Field, Field, Field, Field, Field, Field, Field, Field)
      */
-    @NotNull
     public static <R extends Record, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19> UpsertValuesStep19<R, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19> upsertInto(Table<R> into, Field<T1> field1, Field<T2> field2, Field<T3> field3, Field<T4> field4, Field<T5> field5, Field<T6> field6, Field<T7> field7, Field<T8> field8, Field<T9> field9, Field<T10> field10, Field<T11> field11, Field<T12> field12, Field<T13> field13, Field<T14> field14, Field<T15> field15, Field<T16> field16, Field<T17> field17, Field<T18> field18, Field<T19> field19) {
         return (UpsertValuesStep19) upsertInto(into, new Field[]{field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15, field16, field17, field18, field19});
     }
@@ -771,7 +750,6 @@ public final class YDB {
      *
      * @see YdbDSLContext#upsertInto(Table, Field, Field, Field, Field, Field, Field, Field, Field, Field, Field, Field, Field, Field, Field, Field, Field, Field, Field, Field, Field)
      */
-    @NotNull
     public static <R extends Record, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20> UpsertValuesStep20<R, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20> upsertInto(Table<R> into, Field<T1> field1, Field<T2> field2, Field<T3> field3, Field<T4> field4, Field<T5> field5, Field<T6> field6, Field<T7> field7, Field<T8> field8, Field<T9> field9, Field<T10> field10, Field<T11> field11, Field<T12> field12, Field<T13> field13, Field<T14> field14, Field<T15> field15, Field<T16> field16, Field<T17> field17, Field<T18> field18, Field<T19> field19, Field<T20> field20) {
         return (UpsertValuesStep20) upsertInto(into, new Field[]{field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15, field16, field17, field18, field19, field20});
     }
@@ -795,7 +773,6 @@ public final class YDB {
      *
      * @see YdbDSLContext#upsertInto(Table, Field, Field, Field, Field, Field, Field, Field, Field, Field, Field, Field, Field, Field, Field, Field, Field, Field, Field, Field, Field, Field)
      */
-    @NotNull
     public static <R extends Record, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20, T21> UpsertValuesStep21<R, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20, T21> upsertInto(Table<R> into, Field<T1> field1, Field<T2> field2, Field<T3> field3, Field<T4> field4, Field<T5> field5, Field<T6> field6, Field<T7> field7, Field<T8> field8, Field<T9> field9, Field<T10> field10, Field<T11> field11, Field<T12> field12, Field<T13> field13, Field<T14> field14, Field<T15> field15, Field<T16> field16, Field<T17> field17, Field<T18> field18, Field<T19> field19, Field<T20> field20, Field<T21> field21) {
         return (UpsertValuesStep21) upsertInto(into, new Field[]{field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15, field16, field17, field18, field19, field20, field21});
     }
@@ -819,7 +796,6 @@ public final class YDB {
      *
      * @see YdbDSLContext#upsertInto(Table, Field, Field, Field, Field, Field, Field, Field, Field, Field, Field, Field, Field, Field, Field, Field, Field, Field, Field, Field, Field, Field, Field)
      */
-    @NotNull
     public static <R extends Record, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20, T21, T22> UpsertValuesStep22<R, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20, T21, T22> upsertInto(Table<R> into, Field<T1> field1, Field<T2> field2, Field<T3> field3, Field<T4> field4, Field<T5> field5, Field<T6> field6, Field<T7> field7, Field<T8> field8, Field<T9> field9, Field<T10> field10, Field<T11> field11, Field<T12> field12, Field<T13> field13, Field<T14> field14, Field<T15> field15, Field<T16> field16, Field<T17> field17, Field<T18> field18, Field<T19> field19, Field<T20> field20, Field<T21> field21, Field<T22> field22) {
         return (UpsertValuesStep22) upsertInto(into, new Field[]{field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15, field16, field17, field18, field19, field20, field21, field22});
     }
@@ -844,7 +820,6 @@ public final class YDB {
      *
      * @see YdbDSLContext#upsertInto(Table, Field...)
      */
-    @NotNull
     public static <R extends Record> UpsertValuesStepN<R> upsertInto(Table<R> into, Field<?>... fields) {
         return dsl().upsertInto(into, fields);
     }
@@ -868,7 +843,6 @@ public final class YDB {
      *
      * @see YdbDSLContext#upsertInto(Table, Collection)
      */
-    @NotNull
     public static <R extends Record> UpsertValuesStepN<R> upsertInto(Table<R> into, Collection<? extends Field<?>> fields) {
         return dsl().upsertInto(into, fields);
     }
@@ -894,7 +868,6 @@ public final class YDB {
      *
      * @see YdbDSLContext#replaceInto(Table)
      */
-    @NotNull
     public static <R extends Record> ReplaceSetStep<R> replaceInto(Table<R> into) {
         return dsl().replaceInto(into);
     }
@@ -922,7 +895,6 @@ public final class YDB {
      *
      * @see YdbDSLContext#replaceInto(Table, Field)
      */
-    @NotNull
     public static <R extends Record, T1> ReplaceValuesStep1<R, T1> replaceInto(Table<R> into, Field<T1> field1) {
         return (ReplaceValuesStep1) replaceInto(into, new Field[]{field1});
     }
@@ -946,7 +918,6 @@ public final class YDB {
      *
      * @see YdbDSLContext#replaceInto(Table, Field, Field)
      */
-    @NotNull
     public static <R extends Record, T1, T2> ReplaceValuesStep2<R, T1, T2> replaceInto(Table<R> into, Field<T1> field1, Field<T2> field2) {
         return (ReplaceValuesStep2) replaceInto(into, new Field[]{field1, field2});
     }
@@ -970,7 +941,6 @@ public final class YDB {
      *
      * @see YdbDSLContext#replaceInto(Table, Field, Field, Field)
      */
-    @NotNull
     public static <R extends Record, T1, T2, T3> ReplaceValuesStep3<R, T1, T2, T3> replaceInto(Table<R> into, Field<T1> field1, Field<T2> field2, Field<T3> field3) {
         return (ReplaceValuesStep3) replaceInto(into, new Field[]{field1, field2, field3});
     }
@@ -994,7 +964,6 @@ public final class YDB {
      *
      * @see YdbDSLContext#replaceInto(Table, Field, Field, Field, Field)
      */
-    @NotNull
     public static <R extends Record, T1, T2, T3, T4> ReplaceValuesStep4<R, T1, T2, T3, T4> replaceInto(Table<R> into, Field<T1> field1, Field<T2> field2, Field<T3> field3, Field<T4> field4) {
         return (ReplaceValuesStep4) replaceInto(into, new Field[]{field1, field2, field3, field4});
     }
@@ -1018,7 +987,6 @@ public final class YDB {
      *
      * @see YdbDSLContext#replaceInto(Table, Field, Field, Field, Field, Field)
      */
-    @NotNull
     public static <R extends Record, T1, T2, T3, T4, T5> ReplaceValuesStep5<R, T1, T2, T3, T4, T5> replaceInto(Table<R> into, Field<T1> field1, Field<T2> field2, Field<T3> field3, Field<T4> field4, Field<T5> field5) {
         return (ReplaceValuesStep5) replaceInto(into, new Field[]{field1, field2, field3, field4, field5});
     }
@@ -1042,7 +1010,6 @@ public final class YDB {
      *
      * @see YdbDSLContext#replaceInto(Table, Field, Field, Field, Field, Field, Field)
      */
-    @NotNull
     public static <R extends Record, T1, T2, T3, T4, T5, T6> ReplaceValuesStep6<R, T1, T2, T3, T4, T5, T6> replaceInto(Table<R> into, Field<T1> field1, Field<T2> field2, Field<T3> field3, Field<T4> field4, Field<T5> field5, Field<T6> field6) {
         return (ReplaceValuesStep6) replaceInto(into, new Field[]{field1, field2, field3, field4, field5, field6});
     }
@@ -1066,7 +1033,6 @@ public final class YDB {
      *
      * @see YdbDSLContext#replaceInto(Table, Field, Field, Field, Field, Field, Field, Field)
      */
-    @NotNull
     public static <R extends Record, T1, T2, T3, T4, T5, T6, T7> ReplaceValuesStep7<R, T1, T2, T3, T4, T5, T6, T7> replaceInto(Table<R> into, Field<T1> field1, Field<T2> field2, Field<T3> field3, Field<T4> field4, Field<T5> field5, Field<T6> field6, Field<T7> field7) {
         return (ReplaceValuesStep7) replaceInto(into, new Field[]{field1, field2, field3, field4, field5, field6, field7});
     }
@@ -1090,7 +1056,6 @@ public final class YDB {
      *
      * @see YdbDSLContext#replaceInto(Table, Field, Field, Field, Field, Field, Field, Field, Field)
      */
-    @NotNull
     public static <R extends Record, T1, T2, T3, T4, T5, T6, T7, T8> ReplaceValuesStep8<R, T1, T2, T3, T4, T5, T6, T7, T8> replaceInto(Table<R> into, Field<T1> field1, Field<T2> field2, Field<T3> field3, Field<T4> field4, Field<T5> field5, Field<T6> field6, Field<T7> field7, Field<T8> field8) {
         return (ReplaceValuesStep8) replaceInto(into, new Field[]{field1, field2, field3, field4, field5, field6, field7, field8});
     }
@@ -1114,7 +1079,6 @@ public final class YDB {
      *
      * @see YdbDSLContext#replaceInto(Table, Field, Field, Field, Field, Field, Field, Field, Field, Field)
      */
-    @NotNull
     public static <R extends Record, T1, T2, T3, T4, T5, T6, T7, T8, T9> ReplaceValuesStep9<R, T1, T2, T3, T4, T5, T6, T7, T8, T9> replaceInto(Table<R> into, Field<T1> field1, Field<T2> field2, Field<T3> field3, Field<T4> field4, Field<T5> field5, Field<T6> field6, Field<T7> field7, Field<T8> field8, Field<T9> field9) {
         return (ReplaceValuesStep9) replaceInto(into, new Field[]{field1, field2, field3, field4, field5, field6, field7, field8, field9});
     }
@@ -1138,7 +1102,6 @@ public final class YDB {
      *
      * @see YdbDSLContext#replaceInto(Table, Field, Field, Field, Field, Field, Field, Field, Field, Field, Field)
      */
-    @NotNull
     public static <R extends Record, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10> ReplaceValuesStep10<R, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10> replaceInto(Table<R> into, Field<T1> field1, Field<T2> field2, Field<T3> field3, Field<T4> field4, Field<T5> field5, Field<T6> field6, Field<T7> field7, Field<T8> field8, Field<T9> field9, Field<T10> field10) {
         return (ReplaceValuesStep10) replaceInto(into, new Field[]{field1, field2, field3, field4, field5, field6, field7, field8, field9, field10});
     }
@@ -1162,7 +1125,6 @@ public final class YDB {
      *
      * @see YdbDSLContext#replaceInto(Table, Field, Field, Field, Field, Field, Field, Field, Field, Field, Field, Field)
      */
-    @NotNull
     public static <R extends Record, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11> ReplaceValuesStep11<R, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11> replaceInto(Table<R> into, Field<T1> field1, Field<T2> field2, Field<T3> field3, Field<T4> field4, Field<T5> field5, Field<T6> field6, Field<T7> field7, Field<T8> field8, Field<T9> field9, Field<T10> field10, Field<T11> field11) {
         return (ReplaceValuesStep11) replaceInto(into, new Field[]{field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11});
     }
@@ -1186,7 +1148,6 @@ public final class YDB {
      *
      * @see YdbDSLContext#replaceInto(Table, Field, Field, Field, Field, Field, Field, Field, Field, Field, Field, Field, Field)
      */
-    @NotNull
     public static <R extends Record, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12> ReplaceValuesStep12<R, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12> replaceInto(Table<R> into, Field<T1> field1, Field<T2> field2, Field<T3> field3, Field<T4> field4, Field<T5> field5, Field<T6> field6, Field<T7> field7, Field<T8> field8, Field<T9> field9, Field<T10> field10, Field<T11> field11, Field<T12> field12) {
         return (ReplaceValuesStep12) replaceInto(into, new Field[]{field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12});
     }
@@ -1210,7 +1171,6 @@ public final class YDB {
      *
      * @see YdbDSLContext#replaceInto(Table, Field, Field, Field, Field, Field, Field, Field, Field, Field, Field, Field, Field, Field)
      */
-    @NotNull
     public static <R extends Record, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13> ReplaceValuesStep13<R, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13> replaceInto(Table<R> into, Field<T1> field1, Field<T2> field2, Field<T3> field3, Field<T4> field4, Field<T5> field5, Field<T6> field6, Field<T7> field7, Field<T8> field8, Field<T9> field9, Field<T10> field10, Field<T11> field11, Field<T12> field12, Field<T13> field13) {
         return (ReplaceValuesStep13) replaceInto(into, new Field[]{field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13});
     }
@@ -1234,7 +1194,6 @@ public final class YDB {
      *
      * @see YdbDSLContext#replaceInto(Table, Field, Field, Field, Field, Field, Field, Field, Field, Field, Field, Field, Field, Field, Field)
      */
-    @NotNull
     public static <R extends Record, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14> ReplaceValuesStep14<R, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14> replaceInto(Table<R> into, Field<T1> field1, Field<T2> field2, Field<T3> field3, Field<T4> field4, Field<T5> field5, Field<T6> field6, Field<T7> field7, Field<T8> field8, Field<T9> field9, Field<T10> field10, Field<T11> field11, Field<T12> field12, Field<T13> field13, Field<T14> field14) {
         return (ReplaceValuesStep14) replaceInto(into, new Field[]{field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14});
     }
@@ -1258,7 +1217,6 @@ public final class YDB {
      *
      * @see YdbDSLContext#replaceInto(Table, Field, Field, Field, Field, Field, Field, Field, Field, Field, Field, Field, Field, Field, Field, Field)
      */
-    @NotNull
     public static <R extends Record, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15> ReplaceValuesStep15<R, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15> replaceInto(Table<R> into, Field<T1> field1, Field<T2> field2, Field<T3> field3, Field<T4> field4, Field<T5> field5, Field<T6> field6, Field<T7> field7, Field<T8> field8, Field<T9> field9, Field<T10> field10, Field<T11> field11, Field<T12> field12, Field<T13> field13, Field<T14> field14, Field<T15> field15) {
         return (ReplaceValuesStep15) replaceInto(into, new Field[]{field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15});
     }
@@ -1282,7 +1240,6 @@ public final class YDB {
      *
      * @see YdbDSLContext#replaceInto(Table, Field, Field, Field, Field, Field, Field, Field, Field, Field, Field, Field, Field, Field, Field, Field, Field)
      */
-    @NotNull
     public static <R extends Record, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16> ReplaceValuesStep16<R, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16> replaceInto(Table<R> into, Field<T1> field1, Field<T2> field2, Field<T3> field3, Field<T4> field4, Field<T5> field5, Field<T6> field6, Field<T7> field7, Field<T8> field8, Field<T9> field9, Field<T10> field10, Field<T11> field11, Field<T12> field12, Field<T13> field13, Field<T14> field14, Field<T15> field15, Field<T16> field16) {
         return (ReplaceValuesStep16) replaceInto(into, new Field[]{field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15, field16});
     }
@@ -1306,7 +1263,6 @@ public final class YDB {
      *
      * @see YdbDSLContext#replaceInto(Table, Field, Field, Field, Field, Field, Field, Field, Field, Field, Field, Field, Field, Field, Field, Field, Field, Field)
      */
-    @NotNull
     public static <R extends Record, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17> ReplaceValuesStep17<R, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17> replaceInto(Table<R> into, Field<T1> field1, Field<T2> field2, Field<T3> field3, Field<T4> field4, Field<T5> field5, Field<T6> field6, Field<T7> field7, Field<T8> field8, Field<T9> field9, Field<T10> field10, Field<T11> field11, Field<T12> field12, Field<T13> field13, Field<T14> field14, Field<T15> field15, Field<T16> field16, Field<T17> field17) {
         return (ReplaceValuesStep17) replaceInto(into, new Field[]{field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15, field16, field17});
     }
@@ -1330,7 +1286,6 @@ public final class YDB {
      *
      * @see YdbDSLContext#replaceInto(Table, Field, Field, Field, Field, Field, Field, Field, Field, Field, Field, Field, Field, Field, Field, Field, Field, Field, Field)
      */
-    @NotNull
     public static <R extends Record, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18> ReplaceValuesStep18<R, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18> replaceInto(Table<R> into, Field<T1> field1, Field<T2> field2, Field<T3> field3, Field<T4> field4, Field<T5> field5, Field<T6> field6, Field<T7> field7, Field<T8> field8, Field<T9> field9, Field<T10> field10, Field<T11> field11, Field<T12> field12, Field<T13> field13, Field<T14> field14, Field<T15> field15, Field<T16> field16, Field<T17> field17, Field<T18> field18) {
         return (ReplaceValuesStep18) replaceInto(into, new Field[]{field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15, field16, field17, field18});
     }
@@ -1354,7 +1309,6 @@ public final class YDB {
      *
      * @see YdbDSLContext#replaceInto(Table, Field, Field, Field, Field, Field, Field, Field, Field, Field, Field, Field, Field, Field, Field, Field, Field, Field, Field, Field)
      */
-    @NotNull
     public static <R extends Record, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19> ReplaceValuesStep19<R, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19> replaceInto(Table<R> into, Field<T1> field1, Field<T2> field2, Field<T3> field3, Field<T4> field4, Field<T5> field5, Field<T6> field6, Field<T7> field7, Field<T8> field8, Field<T9> field9, Field<T10> field10, Field<T11> field11, Field<T12> field12, Field<T13> field13, Field<T14> field14, Field<T15> field15, Field<T16> field16, Field<T17> field17, Field<T18> field18, Field<T19> field19) {
         return (ReplaceValuesStep19) replaceInto(into, new Field[]{field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15, field16, field17, field18, field19});
     }
@@ -1378,7 +1332,6 @@ public final class YDB {
      *
      * @see YdbDSLContext#replaceInto(Table, Field, Field, Field, Field, Field, Field, Field, Field, Field, Field, Field, Field, Field, Field, Field, Field, Field, Field, Field, Field)
      */
-    @NotNull
     public static <R extends Record, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20> ReplaceValuesStep20<R, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20> replaceInto(Table<R> into, Field<T1> field1, Field<T2> field2, Field<T3> field3, Field<T4> field4, Field<T5> field5, Field<T6> field6, Field<T7> field7, Field<T8> field8, Field<T9> field9, Field<T10> field10, Field<T11> field11, Field<T12> field12, Field<T13> field13, Field<T14> field14, Field<T15> field15, Field<T16> field16, Field<T17> field17, Field<T18> field18, Field<T19> field19, Field<T20> field20) {
         return (ReplaceValuesStep20) replaceInto(into, new Field[]{field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15, field16, field17, field18, field19, field20});
     }
@@ -1402,7 +1355,6 @@ public final class YDB {
      *
      * @see YdbDSLContext#replaceInto(Table, Field, Field, Field, Field, Field, Field, Field, Field, Field, Field, Field, Field, Field, Field, Field, Field, Field, Field, Field, Field, Field)
      */
-    @NotNull
     public static <R extends Record, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20, T21> ReplaceValuesStep21<R, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20, T21> replaceInto(Table<R> into, Field<T1> field1, Field<T2> field2, Field<T3> field3, Field<T4> field4, Field<T5> field5, Field<T6> field6, Field<T7> field7, Field<T8> field8, Field<T9> field9, Field<T10> field10, Field<T11> field11, Field<T12> field12, Field<T13> field13, Field<T14> field14, Field<T15> field15, Field<T16> field16, Field<T17> field17, Field<T18> field18, Field<T19> field19, Field<T20> field20, Field<T21> field21) {
         return (ReplaceValuesStep21) replaceInto(into, new Field[]{field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15, field16, field17, field18, field19, field20, field21});
     }
@@ -1426,7 +1378,6 @@ public final class YDB {
      *
      * @see YdbDSLContext#replaceInto(Table, Field, Field, Field, Field, Field, Field, Field, Field, Field, Field, Field, Field, Field, Field, Field, Field, Field, Field, Field, Field, Field, Field)
      */
-    @NotNull
     public static <R extends Record, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20, T21, T22> ReplaceValuesStep22<R, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20, T21, T22> replaceInto(Table<R> into, Field<T1> field1, Field<T2> field2, Field<T3> field3, Field<T4> field4, Field<T5> field5, Field<T6> field6, Field<T7> field7, Field<T8> field8, Field<T9> field9, Field<T10> field10, Field<T11> field11, Field<T12> field12, Field<T13> field13, Field<T14> field14, Field<T15> field15, Field<T16> field16, Field<T17> field17, Field<T18> field18, Field<T19> field19, Field<T20> field20, Field<T21> field21, Field<T22> field22) {
         return (ReplaceValuesStep22) replaceInto(into, new Field[]{field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15, field16, field17, field18, field19, field20, field21, field22});
     }
@@ -1451,7 +1402,6 @@ public final class YDB {
      *
      * @see YdbDSLContext#replaceInto(Table, Field...)
      */
-    @NotNull
     public static <R extends Record> ReplaceValuesStepN<R> replaceInto(Table<R> into, Field<?>... fields) {
         return dsl().replaceInto(into, fields);
     }
@@ -1475,7 +1425,6 @@ public final class YDB {
      *
      * @see YdbDSLContext#replaceInto(Table, Collection)
      */
-    @NotNull
     public static <R extends Record> ReplaceValuesStepN<R> replaceInto(Table<R> into, Collection<? extends Field<?>> fields) {
         return dsl().replaceInto(into, fields);
     }
@@ -1483,7 +1432,6 @@ public final class YDB {
     /**
      * Get a bind value.
      */
-    @NotNull
     public static <T> Param<T> val(T value) {
         if (value instanceof Byte b) {
             return (Param<T>) val(b);
@@ -1538,7 +1486,6 @@ public final class YDB {
     /**
      * Get a bind value.
      */
-    @NotNull
     public static Param<Byte> val(byte value) {
         return DSL.val(value, YdbTypes.INT8);
     }
@@ -1546,7 +1493,6 @@ public final class YDB {
     /**
      * Get a bind value.
      */
-    @NotNull
     public static Param<Byte> val(Byte value) {
         return DSL.val(value, YdbTypes.INT8);
     }
@@ -1554,7 +1500,6 @@ public final class YDB {
     /**
      * Get a bind value.
      */
-    @NotNull
     public static Param<UByte> val(UByte value) {
         return DSL.val(value, YdbTypes.UINT8);
     }
@@ -1562,7 +1507,6 @@ public final class YDB {
     /**
      * Get a bind value.
      */
-    @NotNull
     public static Param<Short> val(short value) {
         return DSL.val(value, YdbTypes.INT16);
     }
@@ -1570,7 +1514,6 @@ public final class YDB {
     /**
      * Get a bind value.
      */
-    @NotNull
     public static Param<Short> val(Short value) {
         return DSL.val(value, YdbTypes.INT16);
     }
@@ -1578,7 +1521,6 @@ public final class YDB {
     /**
      * Get a bind value.
      */
-    @NotNull
     public static Param<UShort> val(UShort value) {
         return DSL.val(value, YdbTypes.UINT16);
     }
@@ -1586,7 +1528,6 @@ public final class YDB {
     /**
      * Get a bind value.
      */
-    @NotNull
     public static Param<Integer> val(int value) {
         return DSL.val(value, YdbTypes.INT32);
     }
@@ -1594,7 +1535,6 @@ public final class YDB {
     /**
      * Get a bind value.
      */
-    @NotNull
     public static Param<Integer> val(Integer value) {
         return DSL.val(value, YdbTypes.INT32);
     }
@@ -1602,7 +1542,6 @@ public final class YDB {
     /**
      * Get a bind value.
      */
-    @NotNull
     public static Param<UInteger> val(UInteger value) {
         return DSL.val(value, YdbTypes.UINT32);
     }
@@ -1610,7 +1549,6 @@ public final class YDB {
     /**
      * Get a bind value.
      */
-    @NotNull
     public static Param<Long> val(long value) {
         return DSL.val(value, YdbTypes.INT64);
     }
@@ -1618,7 +1556,6 @@ public final class YDB {
     /**
      * Get a bind value.
      */
-    @NotNull
     public static Param<Long> val(Long value) {
         return DSL.val(value, YdbTypes.INT64);
     }
@@ -1626,7 +1563,6 @@ public final class YDB {
     /**
      * Get a bind value.
      */
-    @NotNull
     public static Param<ULong> val(ULong value) {
         return DSL.val(value, YdbTypes.UINT64);
     }
@@ -1634,7 +1570,6 @@ public final class YDB {
     /**
      * Get a bind value.
      */
-    @NotNull
     public static Param<Float> val(float value) {
         return DSL.val(value, YdbTypes.FLOAT);
     }
@@ -1642,7 +1577,6 @@ public final class YDB {
     /**
      * Get a bind value.
      */
-    @NotNull
     public static Param<Float> val(Float value) {
         return DSL.val(value, YdbTypes.FLOAT);
     }
@@ -1650,7 +1584,6 @@ public final class YDB {
     /**
      * Get a bind value.
      */
-    @NotNull
     public static Param<Double> val(double value) {
         return DSL.val(value, YdbTypes.DOUBLE);
     }
@@ -1658,7 +1591,6 @@ public final class YDB {
     /**
      * Get a bind value.
      */
-    @NotNull
     public static Param<Double> val(Double value) {
         return DSL.val(value, YdbTypes.DOUBLE);
     }
@@ -1666,7 +1598,6 @@ public final class YDB {
     /**
      * Get a bind value.
      */
-    @NotNull
     public static Param<Boolean> val(boolean value) {
         return DSL.val(value, YdbTypes.BOOL);
     }
@@ -1674,7 +1605,6 @@ public final class YDB {
     /**
      * Get a bind value.
      */
-    @NotNull
     public static Param<Boolean> val(Boolean value) {
         return DSL.val(value, YdbTypes.BOOL);
     }
@@ -1682,7 +1612,6 @@ public final class YDB {
     /**
      * Get a bind value.
      */
-    @NotNull
     public static Param<BigDecimal> val(BigDecimal value) {
         return DSL.val(value, YdbTypes.DECIMAL);
     }
@@ -1690,7 +1619,6 @@ public final class YDB {
     /**
      * Get a bind value.
      */
-    @NotNull
     public static Param<byte[]> val(byte[] value) {
         return DSL.val(value, YdbTypes.STRING);
     }
@@ -1698,7 +1626,6 @@ public final class YDB {
     /**
      * Get a bind value.
      */
-    @NotNull
     public static Param<String> val(String value) {
         return DSL.val(value, YdbTypes.UTF8);
     }
@@ -1706,7 +1633,6 @@ public final class YDB {
     /**
      * Get a bind value.
      */
-    @NotNull
     public static Param<JSON> val(JSON value) {
         return DSL.val(value, YdbTypes.JSON);
     }
@@ -1714,7 +1640,6 @@ public final class YDB {
     /**
      * Get a bind value.
      */
-    @NotNull
     public static Param<JSONB> val(JSONB value) {
         return DSL.val(value, YdbTypes.JSONDOCUMENT);
     }
@@ -1722,7 +1647,6 @@ public final class YDB {
     /**
      * Get a bind value.
      */
-    @NotNull
     public static Param<YSON> val(YSON value) {
         return DSL.val(value, YdbTypes.YSON);
     }
@@ -1730,7 +1654,6 @@ public final class YDB {
     /**
      * Get a bind value.
      */
-    @NotNull
     public static Param<UUID> val(UUID value) {
         return DSL.val(value, YdbTypes.UUID);
     }
@@ -1738,7 +1661,6 @@ public final class YDB {
     /**
      * Get a bind value.
      */
-    @NotNull
     public static Param<LocalDate> val(LocalDate value) {
         return DSL.val(value, YdbTypes.DATE);
     }
@@ -1746,7 +1668,6 @@ public final class YDB {
     /**
      * Get a bind value.
      */
-    @NotNull
     public static Param<LocalDateTime> val(LocalDateTime value) {
         return DSL.val(value, YdbTypes.DATETIME);
     }
@@ -1754,7 +1675,6 @@ public final class YDB {
     /**
      * Get a bind value.
      */
-    @NotNull
     public static Param<Instant> val(Instant value) {
         return DSL.val(value, YdbTypes.TIMESTAMP);
     }
@@ -1762,7 +1682,6 @@ public final class YDB {
     /**
      * Get a bind value.
      */
-    @NotNull
     public static Param<Duration> val(Duration value) {
         return DSL.val(value, YdbTypes.INTERVAL);
     }
@@ -1770,7 +1689,6 @@ public final class YDB {
     /**
      * Get a bind value.
      */
-    @NotNull
     public static Param<ZonedDateTime> val(ZonedDateTime value) {
         return DSL.val(value, YdbTypes.TZ_DATETIME);
     }
@@ -1778,7 +1696,6 @@ public final class YDB {
     /**
      * Get a bind value.
      */
-    @NotNull
     public static Param<ZonedDateTime> tzDate(ZonedDateTime value) {
         return DSL.val(value, YdbTypes.TZ_DATE);
     }
@@ -1786,7 +1703,6 @@ public final class YDB {
     /**
      * Get a bind value.
      */
-    @NotNull
     public static Param<ZonedDateTime> tzDateTime(ZonedDateTime value) {
         return DSL.val(value, YdbTypes.TZ_DATETIME);
     }
@@ -1794,7 +1710,6 @@ public final class YDB {
     /**
      * Get a bind value.
      */
-    @NotNull
     public static Param<ZonedDateTime> tzTimestamp(ZonedDateTime value) {
         return DSL.val(value, YdbTypes.TZ_TIMESTAMP);
     }

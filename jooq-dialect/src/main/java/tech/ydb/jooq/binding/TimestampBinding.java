@@ -1,26 +1,22 @@
 package tech.ydb.jooq.binding;
 
-import org.jetbrains.annotations.NotNull;
-import org.jooq.BindingGetResultSetContext;
-import org.jooq.BindingSetStatementContext;
-import org.jooq.Converter;
-import org.jooq.impl.AbstractBinding;
-import tech.ydb.table.values.PrimitiveType;
-import tech.ydb.table.values.PrimitiveValue;
-
 import java.sql.SQLException;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
-
+import org.jooq.BindingGetResultSetContext;
+import org.jooq.BindingSetStatementContext;
+import org.jooq.Converter;
+import org.jooq.impl.AbstractBinding;
 import static tech.ydb.jooq.binding.BindingTools.indexType;
+import tech.ydb.table.values.PrimitiveType;
+import tech.ydb.table.values.PrimitiveValue;
 
 @SuppressWarnings("resource")
 public final class TimestampBinding extends AbstractBinding<LocalDateTime, Instant> {
 
     private static final int INDEX_TYPE = indexType(PrimitiveType.Timestamp);
 
-    @NotNull
     @Override
     public Converter<LocalDateTime, Instant> converter() {
         return new TimestampConverter();
@@ -52,13 +48,11 @@ public final class TimestampBinding extends AbstractBinding<LocalDateTime, Insta
             return LocalDateTime.ofInstant(userObject, ZoneOffset.UTC);
         }
 
-        @NotNull
         @Override
         public Class<LocalDateTime> fromType() {
             return LocalDateTime.class;
         }
 
-        @NotNull
         @Override
         public Class<Instant> toType() {
             return Instant.class;

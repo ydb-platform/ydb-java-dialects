@@ -1,7 +1,5 @@
 package tech.ydb.jooq;
 
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 import org.jooq.*;
 import org.jooq.impl.DSL;
 import org.jooq.types.UByte;
@@ -29,7 +27,6 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/en/yql/reference/builtins/basic#coalesce">documentation</a>
      */
-    @NotNull
     public static <T> Field<T> coalesce(Field<T> field, T value) {
         return coalesce(field, DSL.val(value, field.getDataType()));
     }
@@ -39,7 +36,6 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/en/yql/reference/builtins/basic#coalesce">documentation</a>
      */
-    @NotNull
     @SafeVarargs
     public static <T> Field<T> coalesce(Field<T> field, Field<T>... fields) {
         return new Coalesce<>(combineTyped(field, fields));
@@ -51,8 +47,7 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/en/yql/reference/builtins/basic#length">documentation</a>
      */
-    @NotNull
-    public static Field<UInteger> length(@NotNull Field<?> value) {
+    public static Field<UInteger> length(Field<?> value) {
         return new Length(value);
     }
 
@@ -61,8 +56,7 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/en/yql/reference/builtins/basic#length">documentation</a>
      */
-    @NotNull
-    public static Field<UInteger> len(@NotNull Field<?> value) {
+    public static Field<UInteger> len(Field<?> value) {
         return length(value);
     }
 
@@ -72,8 +66,7 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/en/yql/reference/builtins/basic#substring">documentation</a>
      */
-    @NotNull
-    public static Field<byte[]> substring(@NotNull Field<byte[]> source, int startingPosition) {
+    public static Field<byte[]> substring(Field<byte[]> source, int startingPosition) {
         return substring(source, UInteger.valueOf(startingPosition));
     }
 
@@ -82,8 +75,7 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/en/yql/reference/builtins/basic#substring">documentation</a>
      */
-    @NotNull
-    public static Field<byte[]> substring(@NotNull Field<byte[]> source, int startingPosition, int length) {
+    public static Field<byte[]> substring(Field<byte[]> source, int startingPosition, int length) {
         return substring(source, UInteger.valueOf(startingPosition), UInteger.valueOf(length));
     }
 
@@ -92,9 +84,8 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/en/yql/reference/builtins/basic#substring">documentation</a>
      */
-    @NotNull
-    public static Field<byte[]> substring(@NotNull Field<byte[]> source,
-                                          @Nullable UInteger startingPosition) {
+    public static Field<byte[]> substring(Field<byte[]> source,
+                                          UInteger startingPosition) {
         return substring(source, val(startingPosition), null);
     }
 
@@ -103,10 +94,9 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/en/yql/reference/builtins/basic#substring">documentation</a>
      */
-    @NotNull
-    public static Field<byte[]> substring(@NotNull Field<byte[]> source,
-                                          @Nullable UInteger startingPosition,
-                                          @Nullable UInteger length) {
+    public static Field<byte[]> substring(Field<byte[]> source,
+                                          UInteger startingPosition,
+                                          UInteger length) {
         return substring(source, val(startingPosition), val(length));
     }
 
@@ -115,10 +105,9 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/en/yql/reference/builtins/basic#substring">documentation</a>
      */
-    @NotNull
-    public static Field<byte[]> substring(@NotNull Field<byte[]> source,
-                                          @NotNull Field<UInteger> startingPosition,
-                                          @Nullable Field<UInteger> length) {
+    public static Field<byte[]> substring(Field<byte[]> source,
+                                          Field<UInteger> startingPosition,
+                                          Field<UInteger> length) {
         return new Substring(source, startingPosition, length);
     }
 
@@ -127,8 +116,7 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/en/yql/reference/builtins/basic#find">documentation</a>
      */
-    @NotNull
-    public static Field<UInteger> find(@NotNull Field<byte[]> source,
+    public static Field<UInteger> find(Field<byte[]> source,
                                        byte[] substring) {
         return find(source, val(substring));
     }
@@ -138,8 +126,7 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/en/yql/reference/builtins/basic#find">documentation</a>
      */
-    @NotNull
-    public static Field<UInteger> find(@NotNull Field<byte[]> source,
+    public static Field<UInteger> find(Field<byte[]> source,
                                        byte[] substring,
                                        int startingPosition) {
         return find(source, substring, UInteger.valueOf(startingPosition));
@@ -150,10 +137,9 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/en/yql/reference/builtins/basic#find">documentation</a>
      */
-    @NotNull
-    public static Field<UInteger> find(@NotNull Field<byte[]> source,
+    public static Field<UInteger> find(Field<byte[]> source,
                                        byte[] substring,
-                                       @Nullable UInteger startingPosition) {
+                                       UInteger startingPosition) {
         return find(source, val(substring), val(startingPosition));
     }
 
@@ -162,9 +148,8 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/en/yql/reference/builtins/basic#find">documentation</a>
      */
-    @NotNull
-    public static Field<UInteger> find(@NotNull Field<String> source,
-                                       @NotNull String substring) {
+    public static Field<UInteger> find(Field<String> source,
+                                       String substring) {
         return findUtf8(source, val(substring));
     }
 
@@ -173,9 +158,8 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/en/yql/reference/builtins/basic#find">documentation</a>
      */
-    @NotNull
-    public static Field<UInteger> find(@NotNull Field<String> source,
-                                       @NotNull String substring,
+    public static Field<UInteger> find(Field<String> source,
+                                       String substring,
                                        int startingPosition) {
         return find(source, substring, UInteger.valueOf(startingPosition));
     }
@@ -185,10 +169,9 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/en/yql/reference/builtins/basic#find">documentation</a>
      */
-    @NotNull
-    public static Field<UInteger> find(@NotNull Field<String> source,
-                                       @NotNull String substring,
-                                       @Nullable UInteger startingPosition) {
+    public static Field<UInteger> find(Field<String> source,
+                                       String substring,
+                                       UInteger startingPosition) {
         return findUtf8(source, val(substring), val(startingPosition));
     }
 
@@ -197,9 +180,8 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/en/yql/reference/builtins/basic#find">documentation</a>
      */
-    @NotNull
-    public static Field<UInteger> find(@NotNull Field<byte[]> source,
-                                       @NotNull Field<byte[]> substring) {
+    public static Field<UInteger> find(Field<byte[]> source,
+                                       Field<byte[]> substring) {
         return find(source, substring, (Field<UInteger>) null);
     }
 
@@ -208,9 +190,8 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/en/yql/reference/builtins/basic#find">documentation</a>
      */
-    @NotNull
-    public static Field<UInteger> findUtf8(@NotNull Field<String> source,
-                                           @NotNull Field<String> substring) {
+    public static Field<UInteger> findUtf8(Field<String> source,
+                                           Field<String> substring) {
         return findUtf8(source, substring, (Field<UInteger>) null);
     }
 
@@ -219,10 +200,9 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/en/yql/reference/builtins/basic#find">documentation</a>
      */
-    @NotNull
-    public static Field<UInteger> find(@NotNull Field<byte[]> source,
-                                       @NotNull Field<byte[]> substring,
-                                       @Nullable UInteger startingPosition) {
+    public static Field<UInteger> find(Field<byte[]> source,
+                                       Field<byte[]> substring,
+                                       UInteger startingPosition) {
         return find(source, substring, val(startingPosition));
     }
 
@@ -231,10 +211,9 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/en/yql/reference/builtins/basic#find">documentation</a>
      */
-    @NotNull
-    public static Field<UInteger> findUtf8(@NotNull Field<String> source,
-                                           @NotNull Field<String> substring,
-                                           @Nullable UInteger startingPosition) {
+    public static Field<UInteger> findUtf8(Field<String> source,
+                                           Field<String> substring,
+                                           UInteger startingPosition) {
         return findUtf8(source, substring, val(startingPosition));
     }
 
@@ -243,10 +222,9 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/en/yql/reference/builtins/basic#find">documentation</a>
      */
-    @NotNull
-    public static Field<UInteger> find(@NotNull Field<byte[]> source,
-                                           @NotNull Field<byte[]> substring,
-                                           @Nullable Field<UInteger> startingPosition) {
+    public static Field<UInteger> find(Field<byte[]> source,
+                                       Field<byte[]> substring,
+                                       Field<UInteger> startingPosition) {
         return new Find<>(source, substring, startingPosition);
     }
 
@@ -255,10 +233,9 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/en/yql/reference/builtins/basic#find">documentation</a>
      */
-    @NotNull
-    public static Field<UInteger> findUtf8(@NotNull Field<String> source,
-                                           @NotNull Field<String> substring,
-                                           @Nullable Field<UInteger> startingPosition) {
+    public static Field<UInteger> findUtf8(Field<String> source,
+                                           Field<String> substring,
+                                           Field<UInteger> startingPosition) {
         return new Find<>(source, substring, startingPosition);
     }
 
@@ -267,8 +244,7 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/en/yql/reference/builtins/basic#rfind">documentation</a>
      */
-    @NotNull
-    public static Field<UInteger> rFind(@NotNull Field<byte[]> source,
+    public static Field<UInteger> rFind(Field<byte[]> source,
                                         byte[] substring) {
         return rFind(source, val(substring));
     }
@@ -278,8 +254,7 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/en/yql/reference/builtins/basic#rfind">documentation</a>
      */
-    @NotNull
-    public static Field<UInteger> rFind(@NotNull Field<byte[]> source,
+    public static Field<UInteger> rFind(Field<byte[]> source,
                                         byte[] substring,
                                         int startingPosition) {
         return rFind(source, substring, UInteger.valueOf(startingPosition));
@@ -290,8 +265,7 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/en/yql/reference/builtins/basic#rfind">documentation</a>
      */
-    @NotNull
-    public static Field<UInteger> rFind(@NotNull Field<byte[]> source,
+    public static Field<UInteger> rFind(Field<byte[]> source,
                                         byte[] substring,
                                         UInteger startingPosition) {
         return rFind(source, val(substring), val(startingPosition));
@@ -302,8 +276,7 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/en/yql/reference/builtins/basic#rfind">documentation</a>
      */
-    @NotNull
-    public static Field<UInteger> rFind(@NotNull Field<String> source,
+    public static Field<UInteger> rFind(Field<String> source,
                                         String substring) {
         return rFindUtf8(source, val(substring));
     }
@@ -313,8 +286,7 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/en/yql/reference/builtins/basic#rfind">documentation</a>
      */
-    @NotNull
-    public static Field<UInteger> rFind(@NotNull Field<String> source,
+    public static Field<UInteger> rFind(Field<String> source,
                                         String substring,
                                         int startingPosition) {
         return rFind(source, substring, UInteger.valueOf(startingPosition));
@@ -325,8 +297,7 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/en/yql/reference/builtins/basic#rfind">documentation</a>
      */
-    @NotNull
-    public static Field<UInteger> rFind(@NotNull Field<String> source,
+    public static Field<UInteger> rFind(Field<String> source,
                                         String substring,
                                         UInteger startingPosition) {
         return rFindUtf8(source, val(substring), val(startingPosition));
@@ -337,9 +308,8 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/en/yql/reference/builtins/basic#rfind">documentation</a>
      */
-    @NotNull
-    public static Field<UInteger> rFind(@NotNull Field<byte[]> source,
-                                        @NotNull Field<byte[]> substring) {
+    public static Field<UInteger> rFind(Field<byte[]> source,
+                                        Field<byte[]> substring) {
         return rFind(source, substring, (Field<UInteger>) null);
     }
 
@@ -348,9 +318,8 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/en/yql/reference/builtins/basic#rfind">documentation</a>
      */
-    @NotNull
-    public static Field<UInteger> rFindUtf8(@NotNull Field<String> source,
-                                            @NotNull Field<String> substring) {
+    public static Field<UInteger> rFindUtf8(Field<String> source,
+                                            Field<String> substring) {
         return rFindUtf8(source, substring, (Field<UInteger>) null);
     }
 
@@ -359,10 +328,9 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/en/yql/reference/builtins/basic#rfind">documentation</a>
      */
-    @NotNull
-    public static Field<UInteger> rFind(@NotNull Field<byte[]> source,
-                                        @NotNull Field<byte[]> substring,
-                                        @Nullable UInteger startingPosition) {
+    public static Field<UInteger> rFind(Field<byte[]> source,
+                                        Field<byte[]> substring,
+                                        UInteger startingPosition) {
         return rFind(source, substring, val(startingPosition));
     }
 
@@ -371,10 +339,9 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/en/yql/reference/builtins/basic#rfind">documentation</a>
      */
-    @NotNull
-    public static Field<UInteger> rFindUtf8(@NotNull Field<String> source,
-                                            @NotNull Field<String> substring,
-                                            @Nullable UInteger startingPosition) {
+    public static Field<UInteger> rFindUtf8(Field<String> source,
+                                            Field<String> substring,
+                                            UInteger startingPosition) {
         return rFindUtf8(source, substring, val(startingPosition));
     }
 
@@ -383,10 +350,9 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/en/yql/reference/builtins/basic#rfind">documentation</a>
      */
-    @NotNull
-    public static Field<UInteger> rFind(@NotNull Field<byte[]> source,
-                                        @NotNull Field<byte[]> substring,
-                                        @Nullable Field<UInteger> startingPosition) {
+    public static Field<UInteger> rFind(Field<byte[]> source,
+                                        Field<byte[]> substring,
+                                        Field<UInteger> startingPosition) {
         return new RFind<>(source, substring, startingPosition);
     }
 
@@ -395,10 +361,9 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/en/yql/reference/builtins/basic#rfind">documentation</a>
      */
-    @NotNull
-    public static Field<UInteger> rFindUtf8(@NotNull Field<String> source,
-                                            @NotNull Field<String> substring,
-                                            @Nullable Field<UInteger> startingPosition) {
+    public static Field<UInteger> rFindUtf8(Field<String> source,
+                                            Field<String> substring,
+                                            Field<UInteger> startingPosition) {
         return new RFind<>(source, substring, startingPosition);
     }
 
@@ -407,8 +372,7 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/en/yql/reference/builtins/basic#starts_ends_with">documentation</a>
      */
-    @NotNull
-    public static Condition startsWith(@NotNull Field<byte[]> source,
+    public static Condition startsWith(Field<byte[]> source,
                                        byte[] substring) {
         return startsWith(source, val(substring));
     }
@@ -418,8 +382,7 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/en/yql/reference/builtins/basic#starts_ends_with">documentation</a>
      */
-    @NotNull
-    public static Condition startsWithUtf8(@NotNull Field<String> source,
+    public static Condition startsWithUtf8(Field<String> source,
                                            byte[] substring) {
         return startsWith(source, val(substring));
     }
@@ -429,9 +392,8 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/en/yql/reference/builtins/basic#starts_ends_with">documentation</a>
      */
-    @NotNull
-    public static Condition startsWith(@NotNull Field<byte[]> source,
-                                       @Nullable String substring) {
+    public static Condition startsWith(Field<byte[]> source,
+                                       String substring) {
         return startsWith(source, val(substring));
     }
 
@@ -440,9 +402,8 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/en/yql/reference/builtins/basic#starts_ends_with">documentation</a>
      */
-    @NotNull
-    public static Condition startsWithUtf8(@NotNull Field<String> source,
-                                           @Nullable String substring) {
+    public static Condition startsWithUtf8(Field<String> source,
+                                           String substring) {
         return startsWith(source, val(substring));
     }
 
@@ -451,9 +412,8 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/en/yql/reference/builtins/basic#starts_ends_with">documentation</a>
      */
-    @NotNull
     public static Condition startsWith(byte[] source,
-                                       @NotNull Field<byte[]> substring) {
+                                       Field<byte[]> substring) {
         return startsWith(val(source), substring);
     }
 
@@ -462,9 +422,8 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/en/yql/reference/builtins/basic#starts_ends_with">documentation</a>
      */
-    @NotNull
     public static Condition startsWithUtf8(byte[] source,
-                                           @NotNull Field<String> substring) {
+                                           Field<String> substring) {
         return startsWith(val(source), substring);
     }
 
@@ -473,9 +432,8 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/en/yql/reference/builtins/basic#starts_ends_with">documentation</a>
      */
-    @NotNull
-    public static Condition startsWith(@Nullable String source,
-                                       @NotNull Field<byte[]> substring) {
+    public static Condition startsWith(String source,
+                                       Field<byte[]> substring) {
         return startsWith(val(source), substring);
     }
 
@@ -484,9 +442,8 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/en/yql/reference/builtins/basic#starts_ends_with">documentation</a>
      */
-    @NotNull
-    public static Condition startsWithUtf8(@Nullable String source,
-                                           @NotNull Field<String> substring) {
+    public static Condition startsWithUtf8(String source,
+                                           Field<String> substring) {
         return startsWith(val(source), substring);
     }
 
@@ -495,9 +452,8 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/en/yql/reference/builtins/basic#starts_ends_with">documentation</a>
      */
-    @NotNull
-    public static Condition startsWith(@NotNull Field<?> source,
-                                       @NotNull Field<?> substring) {
+    public static Condition startsWith(Field<?> source,
+                                       Field<?> substring) {
         return new StartsWith(source, substring);
     }
 
@@ -506,8 +462,7 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/en/yql/reference/builtins/basic#starts_ends_with">documentation</a>
      */
-    @NotNull
-    public static Condition endsWith(@NotNull Field<byte[]> source,
+    public static Condition endsWith(Field<byte[]> source,
                                      byte[] substring) {
         return endsWith(source, val(substring));
     }
@@ -517,8 +472,7 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/en/yql/reference/builtins/basic#starts_ends_with">documentation</a>
      */
-    @NotNull
-    public static Condition endsWithUtf8(@NotNull Field<String> source,
+    public static Condition endsWithUtf8(Field<String> source,
                                          byte[] substring) {
         return endsWith(source, val(substring));
     }
@@ -528,9 +482,8 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/en/yql/reference/builtins/basic#starts_ends_with">documentation</a>
      */
-    @NotNull
-    public static Condition endsWith(@NotNull Field<byte[]> source,
-                                     @Nullable String substring) {
+    public static Condition endsWith(Field<byte[]> source,
+                                     String substring) {
         return endsWith(source, val(substring));
     }
 
@@ -539,9 +492,8 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/en/yql/reference/builtins/basic#starts_ends_with">documentation</a>
      */
-    @NotNull
-    public static Condition endsWithUtf8(@NotNull Field<String> source,
-                                         @Nullable String substring) {
+    public static Condition endsWithUtf8(Field<String> source,
+                                         String substring) {
         return endsWith(source, val(substring));
     }
 
@@ -550,9 +502,8 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/en/yql/reference/builtins/basic#starts_ends_with">documentation</a>
      */
-    @NotNull
     public static Condition endsWith(byte[] source,
-                                     @NotNull Field<byte[]> substring) {
+                                     Field<byte[]> substring) {
         return endsWith(val(source), substring);
     }
 
@@ -561,9 +512,8 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/en/yql/reference/builtins/basic#starts_ends_with">documentation</a>
      */
-    @NotNull
     public static Condition endsWithUtf8(byte[] source,
-                                         @NotNull Field<String> substring) {
+                                         Field<String> substring) {
         return endsWith(val(source), substring);
     }
 
@@ -572,9 +522,8 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/en/yql/reference/builtins/basic#starts_ends_with">documentation</a>
      */
-    @NotNull
-    public static Condition endsWith(@Nullable String source,
-                                     @NotNull Field<byte[]> substring) {
+    public static Condition endsWith(String source,
+                                     Field<byte[]> substring) {
         return endsWith(val(source), substring);
     }
 
@@ -583,9 +532,8 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/en/yql/reference/builtins/basic#starts_ends_with">documentation</a>
      */
-    @NotNull
-    public static Condition endsWithUtf8(@Nullable String source,
-                                         @NotNull Field<String> substring) {
+    public static Condition endsWithUtf8(String source,
+                                         Field<String> substring) {
         return endsWith(val(source), substring);
     }
 
@@ -594,9 +542,8 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/en/yql/reference/builtins/basic#starts_ends_with">documentation</a>
      */
-    @NotNull
-    public static Condition endsWith(@NotNull Field<?> source,
-                                     @NotNull Field<?> substring) {
+    public static Condition endsWith(Field<?> source,
+                                     Field<?> substring) {
         return new EndsWith(source, substring);
     }
 
@@ -605,9 +552,8 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/en/yql/reference/builtins/basic#if">documentation</a>
      */
-    @NotNull
-    public static <T> Field<T> if_(@NotNull Condition condition,
-                                   @Nullable T ifTrue) {
+    public static <T> Field<T> if_(Condition condition,
+                                   T ifTrue) {
         return if_(condition, (Field<T>) val(ifTrue), (Field<T>) null);
     }
 
@@ -616,9 +562,8 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/en/yql/reference/builtins/basic#if">documentation</a>
      */
-    @NotNull
-    public static <T> Field<T> if_(@NotNull Condition condition,
-                                   @NotNull Field<T> ifTrue) {
+    public static <T> Field<T> if_(Condition condition,
+                                   Field<T> ifTrue) {
         return if_(condition, ifTrue, (Field<T>) null);
     }
 
@@ -627,10 +572,9 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/en/yql/reference/builtins/basic#if">documentation</a>
      */
-    @NotNull
-    public static <T> Field<T> if_(@NotNull Condition condition,
-                                   @Nullable T ifTrue,
-                                   @Nullable T ifFalse) {
+    public static <T> Field<T> if_(Condition condition,
+                                   T ifTrue,
+                                   T ifFalse) {
         return if_(condition, val(ifTrue), ifFalse);
     }
 
@@ -639,10 +583,9 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/en/yql/reference/builtins/basic#if">documentation</a>
      */
-    @NotNull
-    public static <T> Field<T> if_(@NotNull Condition condition,
-                                   @Nullable T ifTrue,
-                                   @NotNull Field<T> ifFalse) {
+    public static <T> Field<T> if_(Condition condition,
+                                   T ifTrue,
+                                   Field<T> ifFalse) {
         return if_(condition, DSL.val(ifTrue, ifFalse.getDataType()), ifFalse);
     }
 
@@ -651,10 +594,9 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/en/yql/reference/builtins/basic#if">documentation</a>
      */
-    @NotNull
-    public static <T> Field<T> if_(@NotNull Condition condition,
-                                   @NotNull Field<T> ifTrue,
-                                   @Nullable T ifFalse) {
+    public static <T> Field<T> if_(Condition condition,
+                                   Field<T> ifTrue,
+                                   T ifFalse) {
         return if_(condition, ifTrue, DSL.val(ifFalse, ifTrue.getDataType()));
     }
 
@@ -663,10 +605,9 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/en/yql/reference/builtins/basic#if">documentation</a>
      */
-    @NotNull
-    public static <T> Field<T> if_(@NotNull Condition condition,
-                                   @NotNull Field<T> ifTrue,
-                                   @Nullable Field<T> ifFalse) {
+    public static <T> Field<T> if_(Condition condition,
+                                   Field<T> ifTrue,
+                                   Field<T> ifFalse) {
         return new If<>(condition, ifTrue, ifFalse);
     }
 
@@ -675,9 +616,8 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/en/yql/reference/builtins/basic#nanvl">documentation</a>
      */
-    @NotNull
-    public static Field<Float> nanvl(@NotNull Field<Float> expression,
-                                     @Nullable Float replacement) {
+    public static Field<Float> nanvl(Field<Float> expression,
+                                     Float replacement) {
         return nanvl(expression, val(replacement));
     }
 
@@ -686,9 +626,8 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/en/yql/reference/builtins/basic#nanvl">documentation</a>
      */
-    @NotNull
-    public static Field<Double> nanvl(@NotNull Field<Double> expression,
-                                      @Nullable Double replacement) {
+    public static Field<Double> nanvl(Field<Double> expression,
+                                      Double replacement) {
         return nanvl(expression, val(replacement));
     }
 
@@ -697,9 +636,8 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/en/yql/reference/builtins/basic#nanvl">documentation</a>
      */
-    @NotNull
-    public static <T> Field<T> nanvl(@NotNull Field<T> condition,
-                                     @NotNull Field<T> replacement) {
+    public static <T> Field<T> nanvl(Field<T> condition,
+                                     Field<T> replacement) {
         return new NaNvl<>(condition, replacement);
     }
 
@@ -708,9 +646,8 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/en/yql/reference/builtins/basic#random">documentation</a>
      */
-    @NotNull
-    public static Field<Double> random(@NotNull Object value,
-                                       @NotNull Object... values) {
+    public static Field<Double> random(Object value,
+                                       Object... values) {
         return new Random(combine(val(value), fieldsArray(values)));
     }
 
@@ -719,9 +656,8 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/en/yql/reference/builtins/basic#random">documentation</a>
      */
-    @NotNull
-    public static Field<Double> random(@NotNull Field<?> field,
-                                       @NotNull Object value) {
+    public static Field<Double> random(Field<?> field,
+                                       Object value) {
         return new Random(new Field[]{field, val(value)});
     }
 
@@ -730,9 +666,8 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/en/yql/reference/builtins/basic#random">documentation</a>
      */
-    @NotNull
-    public static Field<Double> random(@NotNull Field<?> field,
-                                       @NotNull Field<?>... fields) {
+    public static Field<Double> random(Field<?> field,
+                                       Field<?>... fields) {
         return new Random(combine(field, fields));
     }
 
@@ -741,9 +676,8 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/en/yql/reference/builtins/basic#random">documentation</a>
      */
-    @NotNull
-    public static Field<ULong> randomNumber(@NotNull Object value,
-                                            @NotNull Object... values) {
+    public static Field<ULong> randomNumber(Object value,
+                                            Object... values) {
         return new RandomNumber(combine(val(value), fieldsArray(values)));
     }
 
@@ -752,9 +686,8 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/en/yql/reference/builtins/basic#random">documentation</a>
      */
-    @NotNull
-    public static Field<ULong> randomNumber(@NotNull Field<?> field,
-                                            @NotNull Object value) {
+    public static Field<ULong> randomNumber(Field<?> field,
+                                            Object value) {
         return new RandomNumber(new Field[]{field, val(value)});
     }
 
@@ -763,9 +696,8 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/en/yql/reference/builtins/basic#random">documentation</a>
      */
-    @NotNull
-    public static Field<ULong> randomNumber(@NotNull Field<?> field,
-                                            @NotNull Field<?>... fields) {
+    public static Field<ULong> randomNumber(Field<?> field,
+                                            Field<?>... fields) {
         return new RandomNumber(combine(field, fields));
     }
 
@@ -774,9 +706,8 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/en/yql/reference/builtins/basic#random">documentation</a>
      */
-    @NotNull
-    public static Field<UUID> randomUuid(@NotNull Object value,
-                                         @NotNull Object... values) {
+    public static Field<UUID> randomUuid(Object value,
+                                         Object... values) {
         return new RandomUuid(combine(val(value), fieldsArray(values)));
     }
 
@@ -785,9 +716,8 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/en/yql/reference/builtins/basic#random">documentation</a>
      */
-    @NotNull
-    public static Field<UUID> randomUuid(@NotNull Field<?> field,
-                                         @NotNull Object value) {
+    public static Field<UUID> randomUuid(Field<?> field,
+                                         Object value) {
         return new RandomUuid(new Field[]{field, val(value)});
     }
 
@@ -796,9 +726,8 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/en/yql/reference/builtins/basic#random">documentation</a>
      */
-    @NotNull
-    public static Field<UUID> randomUuid(@NotNull Field<?> field,
-                                         @NotNull Field<?>... fields) {
+    public static Field<UUID> randomUuid(Field<?> field,
+                                         Field<?>... fields) {
         return new RandomUuid(combine(field, fields));
     }
 
@@ -807,8 +736,7 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/en/yql/reference/builtins/basic#current-utc">documentation</a>
      */
-    @NotNull
-    public static Field<LocalDate> currentUtcDate(@NotNull Object... values) {
+    public static Field<LocalDate> currentUtcDate(Object... values) {
         return currentUtcDate(fieldsArray(values));
     }
 
@@ -817,8 +745,7 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/en/yql/reference/builtins/basic#current-utc">documentation</a>
      */
-    @NotNull
-    public static Field<LocalDate> currentUtcDate(@NotNull Field<?>... fields) {
+    public static Field<LocalDate> currentUtcDate(Field<?>... fields) {
         return new CurrentUtcDate(fields);
     }
 
@@ -827,8 +754,7 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/en/yql/reference/builtins/basic#current-utc">documentation</a>
      */
-    @NotNull
-    public static Field<LocalDateTime> currentUtcDatetime(@NotNull Object... values) {
+    public static Field<LocalDateTime> currentUtcDatetime(Object... values) {
         return currentUtcDatetime(fieldsArray(values));
     }
 
@@ -837,8 +763,7 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/en/yql/reference/builtins/basic#current-utc">documentation</a>
      */
-    @NotNull
-    public static Field<LocalDateTime> currentUtcDatetime(@NotNull Field<?>... fields) {
+    public static Field<LocalDateTime> currentUtcDatetime(Field<?>... fields) {
         return new CurrentUtcDatetime(fields);
     }
 
@@ -847,8 +772,7 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/en/yql/reference/builtins/basic#current-utc">documentation</a>
      */
-    @NotNull
-    public static Field<Instant> currentUtcTimestamp(@NotNull Object... values) {
+    public static Field<Instant> currentUtcTimestamp(Object... values) {
         return currentUtcTimestamp(fieldsArray(values));
     }
 
@@ -857,8 +781,7 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/en/yql/reference/builtins/basic#current-utc">documentation</a>
      */
-    @NotNull
-    public static Field<Instant> currentUtcTimestamp(@NotNull Field<?>... fields) {
+    public static Field<Instant> currentUtcTimestamp(Field<?>... fields) {
         return new CurrentUtcTimestamp(fields);
     }
 
@@ -867,9 +790,8 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/en/yql/reference/builtins/basic#current-tz">documentation</a>
      */
-    @NotNull
-    public static Field<ZonedDateTime> currentTzDate(@NotNull ZoneId timeZone,
-                                                     @NotNull Object... values) {
+    public static Field<ZonedDateTime> currentTzDate(ZoneId timeZone,
+                                                     Object... values) {
         return currentTzDate(val(timeZone.toString().getBytes()), fieldsArray(values));
     }
 
@@ -878,9 +800,8 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/en/yql/reference/builtins/basic#current-tz">documentation</a>
      */
-    @NotNull
-    public static Field<ZonedDateTime> currentTzDate(@NotNull String timeZone,
-                                                     @NotNull Object... values) {
+    public static Field<ZonedDateTime> currentTzDate(String timeZone,
+                                                     Object... values) {
         return currentTzDate(val(timeZone.getBytes()), fieldsArray(values));
     }
 
@@ -889,9 +810,8 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/en/yql/reference/builtins/basic#current-tz">documentation</a>
      */
-    @NotNull
-    public static Field<ZonedDateTime> currentTzDate(@NotNull Field<byte[]> timeZone,
-                                                     @NotNull Field<?>... fields) {
+    public static Field<ZonedDateTime> currentTzDate(Field<byte[]> timeZone,
+                                                     Field<?>... fields) {
         return new CurrentTzDate(timeZone, fields);
     }
 
@@ -900,9 +820,8 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/en/yql/reference/builtins/basic#current-tz">documentation</a>
      */
-    @NotNull
-    public static Field<ZonedDateTime> currentTzDatetime(@NotNull ZoneId timeZone,
-                                                         @NotNull Object... values) {
+    public static Field<ZonedDateTime> currentTzDatetime(ZoneId timeZone,
+                                                         Object... values) {
         return currentTzDatetime(val(timeZone.toString().getBytes()), fieldsArray(values));
     }
 
@@ -911,9 +830,8 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/en/yql/reference/builtins/basic#current-tz">documentation</a>
      */
-    @NotNull
-    public static Field<ZonedDateTime> currentTzDatetime(@NotNull String timeZone,
-                                                         @NotNull Object... values) {
+    public static Field<ZonedDateTime> currentTzDatetime(String timeZone,
+                                                         Object... values) {
         return currentTzDatetime(val(timeZone.getBytes()), fieldsArray(values));
     }
 
@@ -922,9 +840,8 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/en/yql/reference/builtins/basic#current-tz">documentation</a>
      */
-    @NotNull
-    public static Field<ZonedDateTime> currentTzDatetime(@NotNull Field<byte[]> timeZone,
-                                                         @NotNull Field<?>... fields) {
+    public static Field<ZonedDateTime> currentTzDatetime(Field<byte[]> timeZone,
+                                                         Field<?>... fields) {
         return new CurrentTzDatetime(timeZone, fields);
     }
 
@@ -933,9 +850,8 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/en/yql/reference/builtins/basic#current-tz">documentation</a>
      */
-    @NotNull
-    public static Field<ZonedDateTime> currentTzTimestamp(@NotNull ZoneId timeZone,
-                                                          @NotNull Object... values) {
+    public static Field<ZonedDateTime> currentTzTimestamp(ZoneId timeZone,
+                                                          Object... values) {
         return currentTzTimestamp(timeZone.toString(), values);
     }
 
@@ -944,9 +860,8 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/en/yql/reference/builtins/basic#current-tz">documentation</a>
      */
-    @NotNull
-    public static Field<ZonedDateTime> currentTzTimestamp(@NotNull String timeZone,
-                                                          @NotNull Object... values) {
+    public static Field<ZonedDateTime> currentTzTimestamp(String timeZone,
+                                                          Object... values) {
         return currentTzTimestamp(val(timeZone.getBytes()), fieldsArray(values));
     }
 
@@ -955,9 +870,8 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/en/yql/reference/builtins/basic#current-tz">documentation</a>
      */
-    @NotNull
-    public static Field<ZonedDateTime> currentTzTimestamp(@NotNull Field<byte[]> timeZone,
-                                                          @NotNull Field<?>... fields) {
+    public static Field<ZonedDateTime> currentTzTimestamp(Field<byte[]> timeZone,
+                                                          Field<?>... fields) {
         return new CurrentTzTimestamp(timeZone, fields);
     }
 
@@ -966,9 +880,8 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/en/yql/reference/builtins/basic#addtimezone">documentation</a>
      */
-    @NotNull
-    public static Field<ZonedDateTime> addTimezone(@Nullable LocalDate date,
-                                                   @NotNull ZoneId timeZone) {
+    public static Field<ZonedDateTime> addTimezone(LocalDate date,
+                                                   ZoneId timeZone) {
         return addTimezone(val(date), timeZone);
     }
 
@@ -977,9 +890,8 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/en/yql/reference/builtins/basic#addtimezone">documentation</a>
      */
-    @NotNull
-    public static Field<ZonedDateTime> addTimezone(@Nullable LocalDateTime date,
-                                                   @NotNull ZoneId timeZone) {
+    public static Field<ZonedDateTime> addTimezone(LocalDateTime date,
+                                                   ZoneId timeZone) {
         return addTimezone(val(date), timeZone);
     }
 
@@ -988,9 +900,8 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/en/yql/reference/builtins/basic#addtimezone">documentation</a>
      */
-    @NotNull
-    public static Field<ZonedDateTime> addTimezone(@Nullable Instant date,
-                                                   @NotNull ZoneId timeZone) {
+    public static Field<ZonedDateTime> addTimezone(Instant date,
+                                                   ZoneId timeZone) {
         return addTimezone(val(date), timeZone);
     }
 
@@ -999,9 +910,8 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/en/yql/reference/builtins/basic#addtimezone">documentation</a>
      */
-    @NotNull
-    public static Field<ZonedDateTime> addTimezone(@NotNull Field<?> date,
-                                                   @NotNull ZoneId timeZone) {
+    public static Field<ZonedDateTime> addTimezone(Field<?> date,
+                                                   ZoneId timeZone) {
         return addTimezone(date, val(timeZone.toString().getBytes()));
     }
 
@@ -1010,9 +920,8 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/en/yql/reference/builtins/basic#addtimezone">documentation</a>
      */
-    @NotNull
-    public static Field<ZonedDateTime> addTimezone(@NotNull Field<?> date,
-                                                   @NotNull Field<byte[]> timeZone) {
+    public static Field<ZonedDateTime> addTimezone(Field<?> date,
+                                                   Field<byte[]> timeZone) {
         return new AddTimezone(date, timeZone);
     }
 
@@ -1021,9 +930,8 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/en/yql/reference/builtins/basic#removetimezone">documentation</a>
      */
-    @NotNull
-    public static <T> Field<T> removeTimezone(@NotNull Field<ZonedDateTime> date,
-                                              @NotNull DataType<T> type) {
+    public static <T> Field<T> removeTimezone(Field<ZonedDateTime> date,
+                                              DataType<T> type) {
         return new RemoveTimezone<>(date, type);
     }
 
@@ -1032,7 +940,6 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/ru/yql/reference/builtins/basic#max-min">documentation</a>
      */
-    @NotNull
     public static <T> Field<T> maxOf(Field<T> field, T value) {
         return maxOf(field, DSL.val(value, field.getDataType()));
     }
@@ -1042,7 +949,6 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/ru/yql/reference/builtins/basic#max-min">documentation</a>
      */
-    @NotNull
     @SafeVarargs
     public static <T> Field<T> maxOf(Field<T> field, Field<T>... fields) {
         return new MaxOf<>(combineTyped(field, fields));
@@ -1053,7 +959,6 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/ru/yql/reference/builtins/basic#max-min">documentation</a>
      */
-    @NotNull
     public static <T> Field<T> minOf(Field<T> field, T value) {
         return minOf(field, DSL.val(value, field.getDataType()));
     }
@@ -1063,7 +968,6 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/ru/yql/reference/builtins/basic#max-min">documentation</a>
      */
-    @NotNull
     @SafeVarargs
     public static <T> Field<T> minOf(Field<T> field, Field<T>... fields) {
         return new MinOf<>(combineTyped(field, fields));
@@ -1074,7 +978,6 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/ru/yql/reference/builtins/basic#max-min">documentation</a>
      */
-    @NotNull
     public static <T> Field<T> greatest(Field<T> field, T value) {
         return maxOf(field, value);
     }
@@ -1084,7 +987,6 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/ru/yql/reference/builtins/basic#max-min">documentation</a>
      */
-    @NotNull
     @SafeVarargs
     public static <T> Field<T> greatest(Field<T> field, Field<T>... fields) {
         return maxOf(field, fields);
@@ -1095,7 +997,6 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/ru/yql/reference/builtins/basic#max-min">documentation</a>
      */
-    @NotNull
     public static <T> Field<T> least(Field<T> field, T value) {
         return minOf(field, value);
     }
@@ -1105,7 +1006,6 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/ru/yql/reference/builtins/basic#max-min">documentation</a>
      */
-    @NotNull
     @SafeVarargs
     public static <T> Field<T> least(Field<T> field, Field<T>... fields) {
         return minOf(field, fields);
@@ -1116,7 +1016,6 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/en/yql/reference/builtins/basic#tablerow">documentation</a>
      */
-    @NotNull
     public static Field<?> tableRow() {
         return new TableRow();
     }
@@ -1126,7 +1025,6 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/en/yql/reference/builtins/basic#tablerow">documentation</a>
      */
-    @NotNull
     public static Field<?> joinTableRow() {
         return new JoinTableRow();
     }
@@ -1136,9 +1034,8 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/en/yql/reference/builtins/basic#ensure">documentation</a>
      */
-    @NotNull
-    public static <T> Field<T> ensure(@NotNull Field<T> value,
-                                      @NotNull Condition condition) {
+    public static <T> Field<T> ensure(Field<T> value,
+                                      Condition condition) {
         return ensure(value, condition, (Field<byte[]>) null);
     }
 
@@ -1147,10 +1044,9 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/en/yql/reference/builtins/basic#ensure">documentation</a>
      */
-    @NotNull
-    public static <T> Field<T> ensure(@NotNull Field<T> value,
-                                      @NotNull Condition condition,
-                                      @Nullable String message) {
+    public static <T> Field<T> ensure(Field<T> value,
+                                      Condition condition,
+                                      String message) {
         return ensure(value, condition, message != null ? val(message.getBytes()) : null);
     }
 
@@ -1159,10 +1055,9 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/en/yql/reference/builtins/basic#ensure">documentation</a>
      */
-    @NotNull
-    public static <T> Field<T> ensure(@NotNull Field<T> value,
-                                      @NotNull Condition condition,
-                                      @Nullable Field<byte[]> message) {
+    public static <T> Field<T> ensure(Field<T> value,
+                                      Condition condition,
+                                      Field<byte[]> message) {
         return new Ensure<>(value, condition, message);
     }
 
@@ -1171,8 +1066,7 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/ru/yql/reference/builtins/basic#assumestrict">documentation</a>
      */
-    @NotNull
-    public static <T> Field<T> assumeStrict(@NotNull Field<T> value) {
+    public static <T> Field<T> assumeStrict(Field<T> value) {
         return new AssumeStrict<>(value);
     }
 
@@ -1181,8 +1075,7 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/ru/yql/reference/builtins/basic#likely">documentation</a>
      */
-    @NotNull
-    public static Condition likely(@NotNull Condition condition) {
+    public static Condition likely(Condition condition) {
         return new Likely(condition);
     }
 
@@ -1191,8 +1084,7 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/en/yql/reference/builtins/basic#to-from-bytes">documentation</a>
      */
-    @NotNull
-    public static Field<byte[]> toBytes(@NotNull Field<?> value) {
+    public static Field<byte[]> toBytes(Field<?> value) {
         return new ToBytes(value);
     }
 
@@ -1201,9 +1093,8 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/en/yql/reference/builtins/basic#to-from-bytes">documentation</a>
      */
-    @NotNull
-    public static <T> Field<T> fromBytes(@NotNull Field<byte[]> bytes,
-                                         @NotNull DataType<T> type) {
+    public static <T> Field<T> fromBytes(Field<byte[]> bytes,
+                                         DataType<T> type) {
         return new FromBytes<>(bytes, type);
     }
 
@@ -1212,8 +1103,7 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/en/yql/reference/builtins/basic#byteat">documentation</a>
      */
-    @NotNull
-    public static Field<UByte> byteAt(@NotNull Field<byte[]> source,
+    public static Field<UByte> byteAt(Field<byte[]> source,
                                       int index) {
         return byteAt(source, UInteger.valueOf(index));
     }
@@ -1223,9 +1113,8 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/en/yql/reference/builtins/basic#byteat">documentation</a>
      */
-    @NotNull
-    public static Field<UByte> byteAt(@NotNull Field<byte[]> source,
-                                      @NotNull UInteger index) {
+    public static Field<UByte> byteAt(Field<byte[]> source,
+                                      UInteger index) {
         return byteAt(source, val(index));
     }
 
@@ -1234,9 +1123,8 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/en/yql/reference/builtins/basic#byteat">documentation</a>
      */
-    @NotNull
-    public static Field<UByte> byteAt(@NotNull Field<byte[]> source,
-                                      @NotNull Field<UInteger> index) {
+    public static Field<UByte> byteAt(Field<byte[]> source,
+                                      Field<UInteger> index) {
         return new ByteAt(source, index);
     }
 
@@ -1245,8 +1133,7 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/en/yql/reference/builtins/basic#byteat">documentation</a>
      */
-    @NotNull
-    public static Field<UByte> byteAtUtf8(@NotNull Field<String> source,
+    public static Field<UByte> byteAtUtf8(Field<String> source,
                                           int index) {
         return byteAtUtf8(source, UInteger.valueOf(index));
     }
@@ -1256,9 +1143,8 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/en/yql/reference/builtins/basic#byteat">documentation</a>
      */
-    @NotNull
-    public static Field<UByte> byteAtUtf8(@NotNull Field<String> source,
-                                          @NotNull UInteger index) {
+    public static Field<UByte> byteAtUtf8(Field<String> source,
+                                          UInteger index) {
         return byteAtUtf8(source, val(index));
     }
 
@@ -1267,9 +1153,8 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/en/yql/reference/builtins/basic#byteat">documentation</a>
      */
-    @NotNull
-    public static Field<UByte> byteAtUtf8(@NotNull Field<String> source,
-                                          @NotNull Field<UInteger> index) {
+    public static Field<UByte> byteAtUtf8(Field<String> source,
+                                          Field<UInteger> index) {
         return new ByteAt(source, index);
     }
 
@@ -1278,8 +1163,7 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/en/yql/reference/builtins/basic#bitops">documentation</a>
      */
-    @NotNull
-    public static Condition testBit(@NotNull Field<? extends UNumber> source,
+    public static Condition testBit(Field<? extends UNumber> source,
                                     int index) {
         return testBit(source, UByte.valueOf(index));
     }
@@ -1289,9 +1173,8 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/en/yql/reference/builtins/basic#bitops">documentation</a>
      */
-    @NotNull
-    public static Condition testBit(@NotNull Field<? extends UNumber> source,
-                                    @NotNull UByte index) {
+    public static Condition testBit(Field<? extends UNumber> source,
+                                    UByte index) {
         return testBit(source, val(index));
     }
 
@@ -1300,9 +1183,8 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/en/yql/reference/builtins/basic#bitops">documentation</a>
      */
-    @NotNull
-    public static Condition testBit(@NotNull Field<? extends UNumber> source,
-                                    @NotNull Field<UByte> index) {
+    public static Condition testBit(Field<? extends UNumber> source,
+                                    Field<UByte> index) {
         return new TestBit(source, index);
     }
 
@@ -1311,8 +1193,7 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/en/yql/reference/builtins/basic#bitops">documentation</a>
      */
-    @NotNull
-    public static <T extends UNumber> Field<T> clearBit(@NotNull Field<T> source,
+    public static <T extends UNumber> Field<T> clearBit(Field<T> source,
                                                         int index) {
         return clearBit(source, UByte.valueOf(index));
     }
@@ -1322,14 +1203,13 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/en/yql/reference/builtins/basic#bitops">documentation</a>
      */
-    @NotNull
-    public static <T extends UNumber> Field<T> clearBit(@NotNull Field<T> source,
-                                                        @NotNull UByte index) {
+    public static <T extends UNumber> Field<T> clearBit(Field<T> source,
+                                                        UByte index) {
         return clearBit(source, val(index));
     }
 
-    public static <T extends UNumber> Field<T> clearBit(@NotNull Field<T> source,
-                                                        @NotNull Field<UByte> index) {
+    public static <T extends UNumber> Field<T> clearBit(Field<T> source,
+                                                        Field<UByte> index) {
         return new ClearBit<>(source, index);
     }
 
@@ -1338,8 +1218,7 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/en/yql/reference/builtins/basic#bitops">documentation</a>
      */
-    @NotNull
-    public static <T extends UNumber> Field<T> setBit(@NotNull Field<T> source,
+    public static <T extends UNumber> Field<T> setBit(Field<T> source,
                                                       int index) {
         return setBit(source, UByte.valueOf(index));
     }
@@ -1349,9 +1228,8 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/en/yql/reference/builtins/basic#bitops">documentation</a>
      */
-    @NotNull
-    public static <T extends UNumber> Field<T> setBit(@NotNull Field<T> source,
-                                                      @NotNull UByte index) {
+    public static <T extends UNumber> Field<T> setBit(Field<T> source,
+                                                      UByte index) {
         return setBit(source, val(index));
     }
 
@@ -1360,9 +1238,8 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/en/yql/reference/builtins/basic#bitops">documentation</a>
      */
-    @NotNull
-    public static <T extends UNumber> Field<T> setBit(@NotNull Field<T> source,
-                                                      @NotNull Field<UByte> index) {
+    public static <T extends UNumber> Field<T> setBit(Field<T> source,
+                                                      Field<UByte> index) {
         return new SetBit<>(source, index);
     }
 
@@ -1371,8 +1248,7 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/en/yql/reference/builtins/basic#bitops">documentation</a>
      */
-    @NotNull
-    public static <T extends UNumber> Field<T> flipBit(@NotNull Field<T> source,
+    public static <T extends UNumber> Field<T> flipBit(Field<T> source,
                                                        int index) {
         return flipBit(source, UByte.valueOf(index));
     }
@@ -1382,9 +1258,8 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/en/yql/reference/builtins/basic#bitops">documentation</a>
      */
-    @NotNull
-    public static <T extends UNumber> Field<T> flipBit(@NotNull Field<T> source,
-                                                       @NotNull UByte index) {
+    public static <T extends UNumber> Field<T> flipBit(Field<T> source,
+                                                       UByte index) {
         return flipBit(source, val(index));
     }
 
@@ -1393,9 +1268,8 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/en/yql/reference/builtins/basic#bitops">documentation</a>
      */
-    @NotNull
-    public static <T extends UNumber> Field<T> flipBit(@NotNull Field<T> source,
-                                                       @NotNull Field<UByte> index) {
+    public static <T extends UNumber> Field<T> flipBit(Field<T> source,
+                                                       Field<UByte> index) {
         return new FlipBit<>(source, index);
     }
 
@@ -1404,8 +1278,7 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/en/yql/reference/builtins/basic#abs">documentation</a>
      */
-    @NotNull
-    public static <T extends Number> Field<T> abs(@NotNull Field<T> value) {
+    public static <T extends Number> Field<T> abs(Field<T> value) {
         return new Abs<>(value);
     }
 
@@ -1414,8 +1287,7 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/en/yql/reference/builtins/basic#optional-ops">documentation</a>
      */
-    @NotNull
-    public static <T> Field<T> just(@NotNull Field<T> value) {
+    public static <T> Field<T> just(Field<T> value) {
         return new Just<>(value);
     }
 
@@ -1424,8 +1296,7 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/en/yql/reference/builtins/basic#optional-ops">documentation</a>
      */
-    @NotNull
-    public static <T> Field<T> unwrap(@NotNull Field<T> value) {
+    public static <T> Field<T> unwrap(Field<T> value) {
         return unwrap(value, (Field<byte[]>) null);
     }
 
@@ -1434,8 +1305,7 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/en/yql/reference/builtins/basic#optional-ops">documentation</a>
      */
-    @NotNull
-    public static <T> Field<T> unwrap(@NotNull Field<T> value, @NotNull String message) {
+    public static <T> Field<T> unwrap(Field<T> value, String message) {
         return unwrap(value, val(message.getBytes()));
     }
 
@@ -1444,9 +1314,8 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/en/yql/reference/builtins/basic#optional-ops">documentation</a>
      */
-    @NotNull
-    public static <T> Field<T> unwrap(@NotNull Field<T> value,
-                                      @Nullable Field<byte[]> message) {
+    public static <T> Field<T> unwrap(Field<T> value,
+                                      Field<byte[]> message) {
         return new Unwrap<>(value, message);
     }
 
@@ -1455,8 +1324,7 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/en/yql/reference/builtins/basic#optional-ops">documentation</a>
      */
-    @NotNull
-    public static <T> Field<T> nothing(@NotNull DataType<T> type) {
+    public static <T> Field<T> nothing(DataType<T> type) {
         return new Nothing<>(type);
     }
 
@@ -1465,8 +1333,7 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/en/yql/reference/builtins/basic#pickle">documentation</a>
      */
-    @NotNull
-    public static Field<byte[]> pickle(@NotNull Field<?> value) {
+    public static Field<byte[]> pickle(Field<?> value) {
         return new Pickle(value);
     }
 
@@ -1475,8 +1342,7 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/en/yql/reference/builtins/basic#pickle">documentation</a>
      */
-    @NotNull
-    public static Field<byte[]> stablePickle(@NotNull Field<?> value) {
+    public static Field<byte[]> stablePickle(Field<?> value) {
         return new StablePickle(value);
     }
 
@@ -1485,9 +1351,8 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/en/yql/reference/builtins/basic#pickle">documentation</a>
      */
-    @NotNull
-    public static <T> Field<T> unpickle(@NotNull DataType<T> type,
-                                        @NotNull Field<byte[]> bytes) {
+    public static <T> Field<T> unpickle(DataType<T> type,
+                                        Field<byte[]> bytes) {
         return new Unpickle<>(type, bytes);
     }
 
@@ -1496,8 +1361,7 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/en/yql/reference/builtins/aggregation#count">documentation</a>
      */
-    @NotNull
-    public static AggregateFunction<ULong> count(@NotNull Field<?> field) {
+    public static AggregateFunction<ULong> count(Field<?> field) {
         return new Count(field, false);
     }
 
@@ -1506,8 +1370,7 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/en/yql/reference/builtins/aggregation#count">documentation</a>
      */
-    @NotNull
-    public static AggregateFunction<ULong> count(@NotNull SelectFieldOrAsterisk field) {
+    public static AggregateFunction<ULong> count(SelectFieldOrAsterisk field) {
         return new Count(DSL.field("{0}", field), false);
     }
 
@@ -1516,8 +1379,7 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/en/yql/reference/builtins/aggregation#count">documentation</a>
      */
-    @NotNull
-    public static AggregateFunction<ULong> countDistinct(@NotNull Field<?> field) {
+    public static AggregateFunction<ULong> countDistinct(Field<?> field) {
         return new Count(field, true);
     }
 
@@ -1526,8 +1388,7 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/en/yql/reference/builtins/aggregation#min-max">documentation</a>
      */
-    @NotNull
-    public static <T> AggregateFunction<T> min(@NotNull Field<T> field) {
+    public static <T> AggregateFunction<T> min(Field<T> field) {
         return new Min<>(field, false);
     }
 
@@ -1536,8 +1397,7 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/en/yql/reference/builtins/aggregation#min-max">documentation</a>
      */
-    @NotNull
-    public static <T> AggregateFunction<T> minDistinct(@NotNull Field<T> field) {
+    public static <T> AggregateFunction<T> minDistinct(Field<T> field) {
         return new Min<>(field, true);
     }
 
@@ -1546,8 +1406,7 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/en/yql/reference/builtins/aggregation#min-max">documentation</a>
      */
-    @NotNull
-    public static <T> AggregateFunction<T> max(@NotNull Field<T> field) {
+    public static <T> AggregateFunction<T> max(Field<T> field) {
         return new Max<>(field, false);
     }
 
@@ -1556,8 +1415,7 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/en/yql/reference/builtins/aggregation#min-max">documentation</a>
      */
-    @NotNull
-    public static <T> AggregateFunction<T> maxDistinct(@NotNull Field<T> field) {
+    public static <T> AggregateFunction<T> maxDistinct(Field<T> field) {
         return new Max<>(field, true);
     }
 
@@ -1566,8 +1424,7 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/en/yql/reference/builtins/aggregation#sum">documentation</a>
      */
-    @NotNull
-    public static AggregateFunction<ULong> sumUnsigned(@NotNull Field<? extends UNumber> field) {
+    public static AggregateFunction<ULong> sumUnsigned(Field<? extends UNumber> field) {
         return new Sum<>(field, false, YdbTypes.UINT64);
     }
 
@@ -1576,8 +1433,7 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/en/yql/reference/builtins/aggregation#sum">documentation</a>
      */
-    @NotNull
-    public static AggregateFunction<Long> sumSigned(@NotNull Field<? extends Number> field) {
+    public static AggregateFunction<Long> sumSigned(Field<? extends Number> field) {
         return new Sum<>(field, false, YdbTypes.INT64);
     }
 
@@ -1586,8 +1442,7 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/en/yql/reference/builtins/aggregation#sum">documentation</a>
      */
-    @NotNull
-    public static AggregateFunction<Duration> sumInterval(@NotNull Field<Duration> field) {
+    public static AggregateFunction<Duration> sumInterval(Field<Duration> field) {
         return new Sum<>(field, false, YdbTypes.INTERVAL);
     }
 
@@ -1596,8 +1451,7 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/en/yql/reference/builtins/aggregation#sum">documentation</a>
      */
-    @NotNull
-    public static AggregateFunction<BigDecimal> sumDecimal(@NotNull Field<BigDecimal> field) {
+    public static AggregateFunction<BigDecimal> sumDecimal(Field<BigDecimal> field) {
         return new Sum<>(field, false, YdbTypes.DECIMAL);
     }
 
@@ -1606,8 +1460,7 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/en/yql/reference/builtins/aggregation#sum">documentation</a>
      */
-    @NotNull
-    public static AggregateFunction<ULong> sumUnsignedDistinct(@NotNull Field<? extends UNumber> field) {
+    public static AggregateFunction<ULong> sumUnsignedDistinct(Field<? extends UNumber> field) {
         return new Sum<>(field, true, YdbTypes.UINT64);
     }
 
@@ -1616,8 +1469,7 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/en/yql/reference/builtins/aggregation#sum">documentation</a>
      */
-    @NotNull
-    public static AggregateFunction<Long> sumSignedDistinct(@NotNull Field<? extends Number> field) {
+    public static AggregateFunction<Long> sumSignedDistinct(Field<? extends Number> field) {
         return new Sum<>(field, true, YdbTypes.INT64);
     }
 
@@ -1626,8 +1478,7 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/en/yql/reference/builtins/aggregation#sum">documentation</a>
      */
-    @NotNull
-    public static AggregateFunction<Duration> sumIntervalDistinct(@NotNull Field<Duration> field) {
+    public static AggregateFunction<Duration> sumIntervalDistinct(Field<Duration> field) {
         return new Sum<>(field, true, YdbTypes.INTERVAL);
     }
 
@@ -1636,8 +1487,7 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/en/yql/reference/builtins/aggregation#sum">documentation</a>
      */
-    @NotNull
-    public static AggregateFunction<BigDecimal> sumDecimalDistinct(@NotNull Field<BigDecimal> field) {
+    public static AggregateFunction<BigDecimal> sumDecimalDistinct(Field<BigDecimal> field) {
         return new Sum<>(field, true, YdbTypes.DECIMAL);
     }
 
@@ -1646,8 +1496,7 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/en/yql/reference/builtins/aggregation#avg">documentation</a>
      */
-    @NotNull
-    public static AggregateFunction<Double> avgDouble(@NotNull Field<Double> field) {
+    public static AggregateFunction<Double> avgDouble(Field<Double> field) {
         return new Avg<>(field, false, YdbTypes.DOUBLE);
     }
 
@@ -1656,8 +1505,7 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/en/yql/reference/builtins/aggregation#avg">documentation</a>
      */
-    @NotNull
-    public static AggregateFunction<Duration> avgInterval(@NotNull Field<Duration> field) {
+    public static AggregateFunction<Duration> avgInterval(Field<Duration> field) {
         return new Avg<>(field, false, YdbTypes.INTERVAL);
     }
 
@@ -1666,8 +1514,7 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/en/yql/reference/builtins/aggregation#avg">documentation</a>
      */
-    @NotNull
-    public static AggregateFunction<BigDecimal> avgDecimal(@NotNull Field<BigDecimal> field) {
+    public static AggregateFunction<BigDecimal> avgDecimal(Field<BigDecimal> field) {
         return new Avg<>(field, false, YdbTypes.DECIMAL);
     }
 
@@ -1676,8 +1523,7 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/en/yql/reference/builtins/aggregation#avg">documentation</a>
      */
-    @NotNull
-    public static AggregateFunction<Double> avgDoubleDistinct(@NotNull Field<Double> field) {
+    public static AggregateFunction<Double> avgDoubleDistinct(Field<Double> field) {
         return new Avg<>(field, false, YdbTypes.DOUBLE);
     }
 
@@ -1686,8 +1532,7 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/en/yql/reference/builtins/aggregation#avg">documentation</a>
      */
-    @NotNull
-    public static AggregateFunction<Duration> avgIntervalDistinct(@NotNull Field<Duration> field) {
+    public static AggregateFunction<Duration> avgIntervalDistinct(Field<Duration> field) {
         return new Avg<>(field, false, YdbTypes.INTERVAL);
     }
 
@@ -1696,8 +1541,7 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/en/yql/reference/builtins/aggregation#avg">documentation</a>
      */
-    @NotNull
-    public static AggregateFunction<BigDecimal> avgDecimalDistinct(@NotNull Field<BigDecimal> field) {
+    public static AggregateFunction<BigDecimal> avgDecimalDistinct(Field<BigDecimal> field) {
         return new Avg<>(field, false, YdbTypes.DECIMAL);
     }
 
@@ -1706,8 +1550,7 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/en/yql/reference/builtins/aggregation#count-if">documentation</a>
      */
-    @NotNull
-    public static AggregateFunction<ULong> countIf(@NotNull Condition condition) {
+    public static AggregateFunction<ULong> countIf(Condition condition) {
         return new CountIf(condition);
     }
 
@@ -1716,9 +1559,8 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/en/yql/reference/builtins/aggregation#sum-if">documentation</a>
      */
-    @NotNull
-    public static AggregateFunction<ULong> sumIfUnsigned(@NotNull Field<? extends UNumber> field,
-                                                         @NotNull Condition condition) {
+    public static AggregateFunction<ULong> sumIfUnsigned(Field<? extends UNumber> field,
+                                                         Condition condition) {
         return new SumIf<>(field, condition, false, YdbTypes.UINT64);
     }
 
@@ -1727,9 +1569,8 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/en/yql/reference/builtins/aggregation#sum-if">documentation</a>
      */
-    @NotNull
-    public static AggregateFunction<Long> sumIfSigned(@NotNull Field<? extends Number> field,
-                                                      @NotNull Condition condition) {
+    public static AggregateFunction<Long> sumIfSigned(Field<? extends Number> field,
+                                                      Condition condition) {
         return new SumIf<>(field, condition, false, YdbTypes.INT64);
     }
 
@@ -1738,9 +1579,8 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/en/yql/reference/builtins/aggregation#sum-if">documentation</a>
      */
-    @NotNull
-    public static AggregateFunction<Duration> sumIfInterval(@NotNull Field<Duration> field,
-                                                            @NotNull Condition condition) {
+    public static AggregateFunction<Duration> sumIfInterval(Field<Duration> field,
+                                                            Condition condition) {
         return new SumIf<>(field, condition, false, YdbTypes.INTERVAL);
     }
 
@@ -1749,9 +1589,8 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/en/yql/reference/builtins/aggregation#sum-if">documentation</a>
      */
-    @NotNull
-    public static AggregateFunction<ULong> sumIfUnsignedDistinct(@NotNull Field<? extends UNumber> field,
-                                                                 @NotNull Condition condition) {
+    public static AggregateFunction<ULong> sumIfUnsignedDistinct(Field<? extends UNumber> field,
+                                                                 Condition condition) {
         return new SumIf<>(field, condition, true, YdbTypes.UINT64);
     }
 
@@ -1760,9 +1599,8 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/en/yql/reference/builtins/aggregation#sum-if">documentation</a>
      */
-    @NotNull
-    public static AggregateFunction<Long> sumIfSignedDistinct(@NotNull Field<? extends Number> field,
-                                                              @NotNull Condition condition) {
+    public static AggregateFunction<Long> sumIfSignedDistinct(Field<? extends Number> field,
+                                                              Condition condition) {
         return new SumIf<>(field, condition, true, YdbTypes.INT64);
     }
 
@@ -1771,9 +1609,8 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/en/yql/reference/builtins/aggregation#sum-if">documentation</a>
      */
-    @NotNull
-    public static AggregateFunction<Duration> sumIfIntervalDistinct(@NotNull Field<Duration> field,
-                                                                    @NotNull Condition condition) {
+    public static AggregateFunction<Duration> sumIfIntervalDistinct(Field<Duration> field,
+                                                                    Condition condition) {
         return new SumIf<>(field, condition, true, YdbTypes.INTERVAL);
     }
 
@@ -1782,9 +1619,8 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/en/yql/reference/builtins/aggregation#sum-if">documentation</a>
      */
-    @NotNull
-    public static AggregateFunction<Double> avgIf(@NotNull Field<Double> field,
-                                                  @NotNull Condition condition) {
+    public static AggregateFunction<Double> avgIf(Field<Double> field,
+                                                  Condition condition) {
         return new AvgIf(field, condition, false);
     }
 
@@ -1793,9 +1629,8 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/en/yql/reference/builtins/aggregation#sum-if">documentation</a>
      */
-    @NotNull
-    public static AggregateFunction<Double> avgIfDistinct(@NotNull Field<Double> field,
-                                                          @NotNull Condition condition) {
+    public static AggregateFunction<Double> avgIfDistinct(Field<Double> field,
+                                                          Condition condition) {
         return new AvgIf(field, condition, true);
     }
 
@@ -1804,8 +1639,7 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/en/yql/reference/builtins/aggregation#some">documentation</a>
      */
-    @NotNull
-    public static <T> AggregateFunction<T> some(@NotNull Field<T> field) {
+    public static <T> AggregateFunction<T> some(Field<T> field) {
         return new Some<>(field, false);
     }
 
@@ -1814,8 +1648,7 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/en/yql/reference/builtins/aggregation#some">documentation</a>
      */
-    @NotNull
-    public static <T> AggregateFunction<T> someDistinct(@NotNull Field<T> field) {
+    public static <T> AggregateFunction<T> someDistinct(Field<T> field) {
         return new Some<>(field, true);
     }
 
@@ -1824,8 +1657,7 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/en/yql/reference/builtins/aggregation#countdistinctestimate">documentation</a>
      */
-    @NotNull
-    public static AggregateFunction<ULong> countDistinctEstimate(@NotNull Field<?> field) {
+    public static AggregateFunction<ULong> countDistinctEstimate(Field<?> field) {
         return new CountDistinctEstimate(field);
     }
 
@@ -1834,8 +1666,7 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/en/yql/reference/builtins/aggregation#countdistinctestimate">documentation</a>
      */
-    @NotNull
-    public static AggregateFunction<ULong> hyperLogLog(@NotNull Field<?> field) {
+    public static AggregateFunction<ULong> hyperLogLog(Field<?> field) {
         return new HyperLogLog(field);
     }
 
@@ -1844,8 +1675,7 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/en/yql/reference/builtins/aggregation#countdistinctestimate">documentation</a>
      */
-    @NotNull
-    public static AggregateFunction<ULong> hll(@NotNull Field<?> field) {
+    public static AggregateFunction<ULong> hll(Field<?> field) {
         return new HyperLogLog(field);
     }
 
@@ -1854,9 +1684,8 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/ru/yql/reference/builtins/aggregation#max-min-by">documentation</a>
      */
-    @NotNull
-    public static <T> AggregateFunction<T> maxBy(@NotNull Field<T> field,
-                                                 @NotNull Field<?> cmp) {
+    public static <T> AggregateFunction<T> maxBy(Field<T> field,
+                                                 Field<?> cmp) {
         return new MaxBy<>(field, cmp);
     }
 
@@ -1865,9 +1694,8 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/ru/yql/reference/builtins/aggregation#max-min-by">documentation</a>
      */
-    @NotNull
-    public static <T> AggregateFunction<T> minBy(@NotNull Field<T> field,
-                                                 @NotNull Field<?> cmp) {
+    public static <T> AggregateFunction<T> minBy(Field<T> field,
+                                                 Field<?> cmp) {
         return new MinBy<>(field, cmp);
     }
 
@@ -1876,8 +1704,7 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/ru/yql/reference/builtins/aggregation#stddev-variance">documentation</a>
      */
-    @NotNull
-    public static AggregateFunction<Double> stdDev(@NotNull Field<Double> field) {
+    public static AggregateFunction<Double> stdDev(Field<Double> field) {
         return new StdDev(field, false);
     }
 
@@ -1886,8 +1713,7 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/ru/yql/reference/builtins/aggregation#stddev-variance">documentation</a>
      */
-    @NotNull
-    public static AggregateFunction<Double> stdDevPopulation(@NotNull Field<Double> field) {
+    public static AggregateFunction<Double> stdDevPopulation(Field<Double> field) {
         return new StdDevPopulation(field, false);
     }
 
@@ -1896,8 +1722,7 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/ru/yql/reference/builtins/aggregation#stddev-variance">documentation</a>
      */
-    @NotNull
-    public static AggregateFunction<Double> populationStdDev(@NotNull Field<Double> field) {
+    public static AggregateFunction<Double> populationStdDev(Field<Double> field) {
         return new PopulationStdDev(field, false);
     }
 
@@ -1906,8 +1731,7 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/ru/yql/reference/builtins/aggregation#stddev-variance">documentation</a>
      */
-    @NotNull
-    public static AggregateFunction<Double> stdDevSample(@NotNull Field<Double> field) {
+    public static AggregateFunction<Double> stdDevSample(Field<Double> field) {
         return new StdDevSample(field, false);
     }
 
@@ -1916,8 +1740,7 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/ru/yql/reference/builtins/aggregation#stddev-variance">documentation</a>
      */
-    @NotNull
-    public static AggregateFunction<Double> stdDevSamp(@NotNull Field<Double> field) {
+    public static AggregateFunction<Double> stdDevSamp(Field<Double> field) {
         return new StdDevSample(field, false);
     }
 
@@ -1926,8 +1749,7 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/ru/yql/reference/builtins/aggregation#stddev-variance">documentation</a>
      */
-    @NotNull
-    public static AggregateFunction<Double> stdDevDistinct(@NotNull Field<Double> field) {
+    public static AggregateFunction<Double> stdDevDistinct(Field<Double> field) {
         return new StdDev(field, true);
     }
 
@@ -1936,8 +1758,7 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/ru/yql/reference/builtins/aggregation#stddev-variance">documentation</a>
      */
-    @NotNull
-    public static AggregateFunction<Double> stdDevPopulationDistinct(@NotNull Field<Double> field) {
+    public static AggregateFunction<Double> stdDevPopulationDistinct(Field<Double> field) {
         return new StdDevPopulation(field, true);
     }
 
@@ -1946,8 +1767,7 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/ru/yql/reference/builtins/aggregation#stddev-variance">documentation</a>
      */
-    @NotNull
-    public static AggregateFunction<Double> populationStdDevDistinct(@NotNull Field<Double> field) {
+    public static AggregateFunction<Double> populationStdDevDistinct(Field<Double> field) {
         return new PopulationStdDev(field, true);
     }
 
@@ -1956,8 +1776,7 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/ru/yql/reference/builtins/aggregation#stddev-variance">documentation</a>
      */
-    @NotNull
-    public static AggregateFunction<Double> stdDevSampleDistinct(@NotNull Field<Double> field) {
+    public static AggregateFunction<Double> stdDevSampleDistinct(Field<Double> field) {
         return new StdDevSample(field, true);
     }
 
@@ -1966,8 +1785,7 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/ru/yql/reference/builtins/aggregation#stddev-variance">documentation</a>
      */
-    @NotNull
-    public static AggregateFunction<Double> stdDevSampDistinct(@NotNull Field<Double> field) {
+    public static AggregateFunction<Double> stdDevSampDistinct(Field<Double> field) {
         return new StdDevSample(field, true);
     }
 
@@ -1976,8 +1794,7 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/ru/yql/reference/builtins/aggregation#stddev-variance">documentation</a>
      */
-    @NotNull
-    public static AggregateFunction<Double> variance(@NotNull Field<Double> field) {
+    public static AggregateFunction<Double> variance(Field<Double> field) {
         return new Variance(field, false);
     }
 
@@ -1986,8 +1803,7 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/ru/yql/reference/builtins/aggregation#stddev-variance">documentation</a>
      */
-    @NotNull
-    public static AggregateFunction<Double> variancePopulation(@NotNull Field<Double> field) {
+    public static AggregateFunction<Double> variancePopulation(Field<Double> field) {
         return new VariancePopulation(field, false);
     }
 
@@ -1996,8 +1812,7 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/ru/yql/reference/builtins/aggregation#stddev-variance">documentation</a>
      */
-    @NotNull
-    public static AggregateFunction<Double> populationVariance(@NotNull Field<Double> field) {
+    public static AggregateFunction<Double> populationVariance(Field<Double> field) {
         return new PopulationVariance(field, false);
     }
 
@@ -2006,8 +1821,7 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/ru/yql/reference/builtins/aggregation#stddev-variance">documentation</a>
      */
-    @NotNull
-    public static AggregateFunction<Double> varianceSample(@NotNull Field<Double> field) {
+    public static AggregateFunction<Double> varianceSample(Field<Double> field) {
         return new VarianceSample(field, false);
     }
 
@@ -2016,8 +1830,7 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/ru/yql/reference/builtins/aggregation#stddev-variance">documentation</a>
      */
-    @NotNull
-    public static AggregateFunction<Double> varPop(@NotNull Field<Double> field) {
+    public static AggregateFunction<Double> varPop(Field<Double> field) {
         return new VariancePopulation(field, false);
     }
 
@@ -2026,8 +1839,7 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/ru/yql/reference/builtins/aggregation#stddev-variance">documentation</a>
      */
-    @NotNull
-    public static AggregateFunction<Double> varianceDistinct(@NotNull Field<Double> field) {
+    public static AggregateFunction<Double> varianceDistinct(Field<Double> field) {
         return new Variance(field, true);
     }
 
@@ -2036,8 +1848,7 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/ru/yql/reference/builtins/aggregation#stddev-variance">documentation</a>
      */
-    @NotNull
-    public static AggregateFunction<Double> variancePopulationDistinct(@NotNull Field<Double> field) {
+    public static AggregateFunction<Double> variancePopulationDistinct(Field<Double> field) {
         return new VariancePopulation(field, true);
     }
 
@@ -2046,8 +1857,7 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/ru/yql/reference/builtins/aggregation#stddev-variance">documentation</a>
      */
-    @NotNull
-    public static AggregateFunction<Double> populationVarianceDistinct(@NotNull Field<Double> field) {
+    public static AggregateFunction<Double> populationVarianceDistinct(Field<Double> field) {
         return new PopulationVariance(field, true);
     }
 
@@ -2056,8 +1866,7 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/ru/yql/reference/builtins/aggregation#stddev-variance">documentation</a>
      */
-    @NotNull
-    public static AggregateFunction<Double> varianceSampleDistinct(@NotNull Field<Double> field) {
+    public static AggregateFunction<Double> varianceSampleDistinct(Field<Double> field) {
         return new VarianceSample(field, true);
     }
 
@@ -2066,8 +1875,7 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/ru/yql/reference/builtins/aggregation#stddev-variance">documentation</a>
      */
-    @NotNull
-    public static AggregateFunction<Double> varianceSampDistinct(@NotNull Field<Double> field) {
+    public static AggregateFunction<Double> varianceSampDistinct(Field<Double> field) {
         return new VarianceSample(field, true);
     }
 
@@ -2076,9 +1884,8 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/ru/yql/reference/builtins/aggregation#correlation-covariance">documentation</a>
      */
-    @NotNull
-    public static AggregateFunction<Double> correlation(@NotNull Field<Double> field1,
-                                                        @NotNull Field<Double> field2) {
+    public static AggregateFunction<Double> correlation(Field<Double> field1,
+                                                        Field<Double> field2) {
         return new Correlation(field1, field2, false);
     }
 
@@ -2087,8 +1894,8 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/ru/yql/reference/builtins/aggregation#correlation-covariance">documentation</a>
      */
-    public static AggregateFunction<Double> covariance(@NotNull Field<Double> field1,
-                                                       @NotNull Field<Double> field2) {
+    public static AggregateFunction<Double> covariance(Field<Double> field1,
+                                                       Field<Double> field2) {
         return new Covariance(field1, field2, false);
     }
 
@@ -2097,8 +1904,8 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/ru/yql/reference/builtins/aggregation#correlation-covariance">documentation</a>
      */
-    public static AggregateFunction<Double> covarianceSample(@NotNull Field<Double> field1,
-                                                             @NotNull Field<Double> field2) {
+    public static AggregateFunction<Double> covarianceSample(Field<Double> field1,
+                                                             Field<Double> field2) {
         return new CovarianceSample(field1, field2, false);
     }
 
@@ -2107,8 +1914,8 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/ru/yql/reference/builtins/aggregation#correlation-covariance">documentation</a>
      */
-    public static AggregateFunction<Double> covariancePopulation(@NotNull Field<Double> field1,
-                                                                 @NotNull Field<Double> field2) {
+    public static AggregateFunction<Double> covariancePopulation(Field<Double> field1,
+                                                                 Field<Double> field2) {
         return new CovariancePopulation(field1, field2, false);
     }
 
@@ -2117,8 +1924,8 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/ru/yql/reference/builtins/aggregation#correlation-covariance">documentation</a>
      */
-    public static AggregateFunction<Double> corr(@NotNull Field<Double> field1,
-                                                 @NotNull Field<Double> field2) {
+    public static AggregateFunction<Double> corr(Field<Double> field1,
+                                                 Field<Double> field2) {
         return new Correlation(field1, field2, false);
     }
 
@@ -2127,8 +1934,8 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/ru/yql/reference/builtins/aggregation#correlation-covariance">documentation</a>
      */
-    public static AggregateFunction<Double> covar(@NotNull Field<Double> field1,
-                                                  @NotNull Field<Double> field2) {
+    public static AggregateFunction<Double> covar(Field<Double> field1,
+                                                  Field<Double> field2) {
         return new Covariance(field1, field2, false);
     }
 
@@ -2137,7 +1944,7 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/ru/yql/reference/builtins/aggregation#percentile-median">documentation</a>
      */
-    public static <T> AggregateFunction<T> percentile(@NotNull Field<T> field,
+    public static <T> AggregateFunction<T> percentile(Field<T> field,
                                                       double percent) {
         return percentile(field, val(percent));
     }
@@ -2147,8 +1954,8 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/ru/yql/reference/builtins/aggregation#percentile-median">documentation</a>
      */
-    public static <T> AggregateFunction<T> percentile(@NotNull Field<T> field,
-                                                      @NotNull Field<Double> percent) {
+    public static <T> AggregateFunction<T> percentile(Field<T> field,
+                                                      Field<Double> percent) {
         return new Percentile<>(field, percent, false);
     }
 
@@ -2157,7 +1964,7 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/ru/yql/reference/builtins/aggregation#percentile-median">documentation</a>
      */
-    public static <T> AggregateFunction<T> percentileDistinct(@NotNull Field<T> field,
+    public static <T> AggregateFunction<T> percentileDistinct(Field<T> field,
                                                               double percent) {
         return percentileDistinct(field, val(percent));
     }
@@ -2167,8 +1974,8 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/ru/yql/reference/builtins/aggregation#percentile-median">documentation</a>
      */
-    public static <T> AggregateFunction<T> percentileDistinct(@NotNull Field<T> field,
-                                                              @NotNull Field<Double> percent) {
+    public static <T> AggregateFunction<T> percentileDistinct(Field<T> field,
+                                                              Field<Double> percent) {
         return new Percentile<>(field, percent, true);
     }
 
@@ -2177,7 +1984,7 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/ru/yql/reference/builtins/aggregation#percentile-median">documentation</a>
      */
-    public static <T> AggregateFunction<T> median(@NotNull Field<T> field) {
+    public static <T> AggregateFunction<T> median(Field<T> field) {
         return median(field, null);
     }
 
@@ -2186,7 +1993,7 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/ru/yql/reference/builtins/aggregation#percentile-median">documentation</a>
      */
-    public static <T> AggregateFunction<T> median(@NotNull Field<T> field,
+    public static <T> AggregateFunction<T> median(Field<T> field,
                                                   double percent) {
         return median(field, val(percent));
     }
@@ -2196,8 +2003,8 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/ru/yql/reference/builtins/aggregation#percentile-median">documentation</a>
      */
-    public static <T> AggregateFunction<T> median(@NotNull Field<T> field,
-                                                  @Nullable Field<Double> percent) {
+    public static <T> AggregateFunction<T> median(Field<T> field,
+                                                  Field<Double> percent) {
         return new Median<>(field, percent, false);
     }
 
@@ -2206,7 +2013,7 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/ru/yql/reference/builtins/aggregation#percentile-median">documentation</a>
      */
-    public static <T> AggregateFunction<T> medianDistinct(@NotNull Field<T> field) {
+    public static <T> AggregateFunction<T> medianDistinct(Field<T> field) {
         return medianDistinct(field, null);
     }
 
@@ -2215,7 +2022,7 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/ru/yql/reference/builtins/aggregation#percentile-median">documentation</a>
      */
-    public static <T> AggregateFunction<T> medianDistinct(@NotNull Field<T> field,
+    public static <T> AggregateFunction<T> medianDistinct(Field<T> field,
                                                           double percent) {
         return medianDistinct(field, val(percent));
     }
@@ -2225,8 +2032,8 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/ru/yql/reference/builtins/aggregation#percentile-median">documentation</a>
      */
-    public static <T> AggregateFunction<T> medianDistinct(@NotNull Field<T> field,
-                                                          @Nullable Field<Double> percent) {
+    public static <T> AggregateFunction<T> medianDistinct(Field<T> field,
+                                                          Field<Double> percent) {
         return new Median<>(field, percent, true);
     }
 
@@ -2235,7 +2042,7 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/ru/yql/reference/builtins/aggregation#bool-and-or-xor">documentation</a>
      */
-    public static AggregateFunction<Boolean> boolAnd(@NotNull Field<Boolean> field) {
+    public static AggregateFunction<Boolean> boolAnd(Field<Boolean> field) {
         return new BoolAnd(field);
     }
 
@@ -2244,7 +2051,7 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/ru/yql/reference/builtins/aggregation#bool-and-or-xor">documentation</a>
      */
-    public static AggregateFunction<Boolean> boolOr(@NotNull Field<Boolean> field) {
+    public static AggregateFunction<Boolean> boolOr(Field<Boolean> field) {
         return new BoolOr(field);
     }
 
@@ -2253,7 +2060,7 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/ru/yql/reference/builtins/aggregation#bool-and-or-xor">documentation</a>
      */
-    public static AggregateFunction<Boolean> boolXor(@NotNull Field<Boolean> field) {
+    public static AggregateFunction<Boolean> boolXor(Field<Boolean> field) {
         return new BoolXor(field);
     }
 
@@ -2262,7 +2069,7 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/ru/yql/reference/builtins/aggregation#bit-and-or-xor">documentation</a>
      */
-    public static <T extends UNumber> AggregateFunction<T> bitAnd(@NotNull Field<T> field) {
+    public static <T extends UNumber> AggregateFunction<T> bitAnd(Field<T> field) {
         return new BitAnd<>(field);
     }
 
@@ -2271,7 +2078,7 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/ru/yql/reference/builtins/aggregation#bit-and-or-xor">documentation</a>
      */
-    public static <T extends UNumber> AggregateFunction<T> bitOr(@NotNull Field<T> field) {
+    public static <T extends UNumber> AggregateFunction<T> bitOr(Field<T> field) {
         return new BitOr<>(field);
     }
 
@@ -2280,7 +2087,7 @@ public final class YdbFunction {
      * <p>
      * For details, read the <a href="https://ydb.tech/docs/ru/yql/reference/builtins/aggregation#bit-and-or-xor">documentation</a>
      */
-    public static <T extends UNumber> AggregateFunction<T> bitXor(@NotNull Field<T> field) {
+    public static <T extends UNumber> AggregateFunction<T> bitXor(Field<T> field) {
         return new BitXor<>(field);
     }
 }

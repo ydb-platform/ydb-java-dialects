@@ -1,13 +1,16 @@
 package tech.ydb.jooq.dsl.upsert;
 
-import org.jetbrains.annotations.NotNull;
-import org.jooq.Record;
-import org.jooq.*;
-import tech.ydb.jooq.Upsert;
-import tech.ydb.jooq.YdbDSLContext;
-
 import java.util.Collection;
 import java.util.Map;
+import org.jooq.CheckReturnValue;
+import org.jooq.Field;
+import org.jooq.Name;
+import org.jooq.Record;
+import org.jooq.Record1;
+import org.jooq.Select;
+import org.jooq.Table;
+import tech.ydb.jooq.Upsert;
+import tech.ydb.jooq.YdbDSLContext;
 
 /**
  * This type is used for the {@link Upsert}'s alternative DSL API.
@@ -46,13 +49,13 @@ public interface UpsertSetStep<R extends Record> {
     /**
      * Set the columns for upsert.
      */
-    @NotNull @CheckReturnValue
+    @CheckReturnValue
     UpsertValuesStepN<R> columns(Field<?>... fields);
 
     /**
      * Set the columns for upsert.
      */
-    @NotNull @CheckReturnValue
+    @CheckReturnValue
     UpsertValuesStepN<R> columns(Collection<? extends Field<?>> fields);
 
 
@@ -60,133 +63,133 @@ public interface UpsertSetStep<R extends Record> {
     /**
      * Set the columns for upsert.
      */
-    @NotNull @CheckReturnValue
+    @CheckReturnValue
     <T1> UpsertValuesStep1<R, T1> columns(Field<T1> field1);
 
     /**
      * Set the columns for upsert.
      */
-    @NotNull @CheckReturnValue
+    @CheckReturnValue
     <T1, T2> UpsertValuesStep2<R, T1, T2> columns(Field<T1> field1, Field<T2> field2);
 
     /**
      * Set the columns for upsert.
      */
-    @NotNull @CheckReturnValue
+    @CheckReturnValue
     <T1, T2, T3> UpsertValuesStep3<R, T1, T2, T3> columns(Field<T1> field1, Field<T2> field2, Field<T3> field3);
 
     /**
      * Set the columns for upsert.
      */
-    @NotNull @CheckReturnValue
+    @CheckReturnValue
     <T1, T2, T3, T4> UpsertValuesStep4<R, T1, T2, T3, T4> columns(Field<T1> field1, Field<T2> field2, Field<T3> field3, Field<T4> field4);
 
     /**
      * Set the columns for upsert.
      */
-    @NotNull @CheckReturnValue
+    @CheckReturnValue
     <T1, T2, T3, T4, T5> UpsertValuesStep5<R, T1, T2, T3, T4, T5> columns(Field<T1> field1, Field<T2> field2, Field<T3> field3, Field<T4> field4, Field<T5> field5);
 
     /**
      * Set the columns for upsert.
      */
-    @NotNull @CheckReturnValue
+    @CheckReturnValue
     <T1, T2, T3, T4, T5, T6> UpsertValuesStep6<R, T1, T2, T3, T4, T5, T6> columns(Field<T1> field1, Field<T2> field2, Field<T3> field3, Field<T4> field4, Field<T5> field5, Field<T6> field6);
 
     /**
      * Set the columns for upsert.
      */
-    @NotNull @CheckReturnValue
+    @CheckReturnValue
     <T1, T2, T3, T4, T5, T6, T7> UpsertValuesStep7<R, T1, T2, T3, T4, T5, T6, T7> columns(Field<T1> field1, Field<T2> field2, Field<T3> field3, Field<T4> field4, Field<T5> field5, Field<T6> field6, Field<T7> field7);
 
     /**
      * Set the columns for upsert.
      */
-    @NotNull @CheckReturnValue
+    @CheckReturnValue
     <T1, T2, T3, T4, T5, T6, T7, T8> UpsertValuesStep8<R, T1, T2, T3, T4, T5, T6, T7, T8> columns(Field<T1> field1, Field<T2> field2, Field<T3> field3, Field<T4> field4, Field<T5> field5, Field<T6> field6, Field<T7> field7, Field<T8> field8);
 
     /**
      * Set the columns for upsert.
      */
-    @NotNull @CheckReturnValue
+    @CheckReturnValue
     <T1, T2, T3, T4, T5, T6, T7, T8, T9> UpsertValuesStep9<R, T1, T2, T3, T4, T5, T6, T7, T8, T9> columns(Field<T1> field1, Field<T2> field2, Field<T3> field3, Field<T4> field4, Field<T5> field5, Field<T6> field6, Field<T7> field7, Field<T8> field8, Field<T9> field9);
 
     /**
      * Set the columns for upsert.
      */
-    @NotNull @CheckReturnValue
+    @CheckReturnValue
     <T1, T2, T3, T4, T5, T6, T7, T8, T9, T10> UpsertValuesStep10<R, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10> columns(Field<T1> field1, Field<T2> field2, Field<T3> field3, Field<T4> field4, Field<T5> field5, Field<T6> field6, Field<T7> field7, Field<T8> field8, Field<T9> field9, Field<T10> field10);
 
     /**
      * Set the columns for upsert.
      */
-    @NotNull @CheckReturnValue
+    @CheckReturnValue
     <T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11> UpsertValuesStep11<R, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11> columns(Field<T1> field1, Field<T2> field2, Field<T3> field3, Field<T4> field4, Field<T5> field5, Field<T6> field6, Field<T7> field7, Field<T8> field8, Field<T9> field9, Field<T10> field10, Field<T11> field11);
 
     /**
      * Set the columns for upsert.
      */
-    @NotNull @CheckReturnValue
+    @CheckReturnValue
     <T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12> UpsertValuesStep12<R, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12> columns(Field<T1> field1, Field<T2> field2, Field<T3> field3, Field<T4> field4, Field<T5> field5, Field<T6> field6, Field<T7> field7, Field<T8> field8, Field<T9> field9, Field<T10> field10, Field<T11> field11, Field<T12> field12);
 
     /**
      * Set the columns for upsert.
      */
-    @NotNull @CheckReturnValue
+    @CheckReturnValue
     <T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13> UpsertValuesStep13<R, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13> columns(Field<T1> field1, Field<T2> field2, Field<T3> field3, Field<T4> field4, Field<T5> field5, Field<T6> field6, Field<T7> field7, Field<T8> field8, Field<T9> field9, Field<T10> field10, Field<T11> field11, Field<T12> field12, Field<T13> field13);
 
     /**
      * Set the columns for upsert.
      */
-    @NotNull @CheckReturnValue
+    @CheckReturnValue
     <T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14> UpsertValuesStep14<R, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14> columns(Field<T1> field1, Field<T2> field2, Field<T3> field3, Field<T4> field4, Field<T5> field5, Field<T6> field6, Field<T7> field7, Field<T8> field8, Field<T9> field9, Field<T10> field10, Field<T11> field11, Field<T12> field12, Field<T13> field13, Field<T14> field14);
 
     /**
      * Set the columns for upsert.
      */
-    @NotNull @CheckReturnValue
+    @CheckReturnValue
     <T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15> UpsertValuesStep15<R, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15> columns(Field<T1> field1, Field<T2> field2, Field<T3> field3, Field<T4> field4, Field<T5> field5, Field<T6> field6, Field<T7> field7, Field<T8> field8, Field<T9> field9, Field<T10> field10, Field<T11> field11, Field<T12> field12, Field<T13> field13, Field<T14> field14, Field<T15> field15);
 
     /**
      * Set the columns for upsert.
      */
-    @NotNull @CheckReturnValue
+    @CheckReturnValue
     <T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16> UpsertValuesStep16<R, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16> columns(Field<T1> field1, Field<T2> field2, Field<T3> field3, Field<T4> field4, Field<T5> field5, Field<T6> field6, Field<T7> field7, Field<T8> field8, Field<T9> field9, Field<T10> field10, Field<T11> field11, Field<T12> field12, Field<T13> field13, Field<T14> field14, Field<T15> field15, Field<T16> field16);
 
     /**
      * Set the columns for upsert.
      */
-    @NotNull @CheckReturnValue
+    @CheckReturnValue
     <T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17> UpsertValuesStep17<R, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17> columns(Field<T1> field1, Field<T2> field2, Field<T3> field3, Field<T4> field4, Field<T5> field5, Field<T6> field6, Field<T7> field7, Field<T8> field8, Field<T9> field9, Field<T10> field10, Field<T11> field11, Field<T12> field12, Field<T13> field13, Field<T14> field14, Field<T15> field15, Field<T16> field16, Field<T17> field17);
 
     /**
      * Set the columns for upsert.
      */
-    @NotNull @CheckReturnValue
+    @CheckReturnValue
     <T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18> UpsertValuesStep18<R, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18> columns(Field<T1> field1, Field<T2> field2, Field<T3> field3, Field<T4> field4, Field<T5> field5, Field<T6> field6, Field<T7> field7, Field<T8> field8, Field<T9> field9, Field<T10> field10, Field<T11> field11, Field<T12> field12, Field<T13> field13, Field<T14> field14, Field<T15> field15, Field<T16> field16, Field<T17> field17, Field<T18> field18);
 
     /**
      * Set the columns for upsert.
      */
-    @NotNull @CheckReturnValue
+    @CheckReturnValue
     <T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19> UpsertValuesStep19<R, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19> columns(Field<T1> field1, Field<T2> field2, Field<T3> field3, Field<T4> field4, Field<T5> field5, Field<T6> field6, Field<T7> field7, Field<T8> field8, Field<T9> field9, Field<T10> field10, Field<T11> field11, Field<T12> field12, Field<T13> field13, Field<T14> field14, Field<T15> field15, Field<T16> field16, Field<T17> field17, Field<T18> field18, Field<T19> field19);
 
     /**
      * Set the columns for upsert.
      */
-    @NotNull @CheckReturnValue
+    @CheckReturnValue
     <T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20> UpsertValuesStep20<R, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20> columns(Field<T1> field1, Field<T2> field2, Field<T3> field3, Field<T4> field4, Field<T5> field5, Field<T6> field6, Field<T7> field7, Field<T8> field8, Field<T9> field9, Field<T10> field10, Field<T11> field11, Field<T12> field12, Field<T13> field13, Field<T14> field14, Field<T15> field15, Field<T16> field16, Field<T17> field17, Field<T18> field18, Field<T19> field19, Field<T20> field20);
 
     /**
      * Set the columns for upsert.
      */
-    @NotNull @CheckReturnValue
+    @CheckReturnValue
     <T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20, T21> UpsertValuesStep21<R, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20, T21> columns(Field<T1> field1, Field<T2> field2, Field<T3> field3, Field<T4> field4, Field<T5> field5, Field<T6> field6, Field<T7> field7, Field<T8> field8, Field<T9> field9, Field<T10> field10, Field<T11> field11, Field<T12> field12, Field<T13> field13, Field<T14> field14, Field<T15> field15, Field<T16> field16, Field<T17> field17, Field<T18> field18, Field<T19> field19, Field<T20> field20, Field<T21> field21);
 
     /**
      * Set the columns for upsert.
      */
-    @NotNull @CheckReturnValue
+    @CheckReturnValue
     <T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20, T21, T22> UpsertValuesStep22<R, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20, T21, T22> columns(Field<T1> field1, Field<T2> field2, Field<T3> field3, Field<T4> field4, Field<T5> field5, Field<T6> field6, Field<T7> field7, Field<T8> field8, Field<T9> field9, Field<T10> field10, Field<T11> field11, Field<T12> field12, Field<T13> field13, Field<T14> field14, Field<T15> field15, Field<T16> field16, Field<T17> field17, Field<T18> field18, Field<T19> field19, Field<T20> field20, Field<T21> field21, Field<T22> field22);
 
 
@@ -194,19 +197,19 @@ public interface UpsertSetStep<R extends Record> {
     /**
      * Set a value for a field in the <code>UPSERT</code> statement.
      */
-    @NotNull @CheckReturnValue
+    @CheckReturnValue
     <T> UpsertSetMoreStep<R> set(Field<T> field, T value);
 
     /**
      * Set a value for a field in the <code>UPSERT</code> statement.
      */
-    @NotNull @CheckReturnValue
+    @CheckReturnValue
     <T> UpsertSetMoreStep<R> set(Field<T> field, Field<T> value);
 
     /**
      * Set a value for a field in the <code>UPSERT</code> statement.
      */
-    @NotNull @CheckReturnValue
+    @CheckReturnValue
     <T> UpsertSetMoreStep<R> set(Field<T> field, Select<? extends Record1<T>> value);
 
     /**
@@ -217,7 +220,7 @@ public interface UpsertSetStep<R extends Record> {
      * without the necessity of casting the Java <code>null</code> literal to
      * <code>(T)</code>.
      */
-    @NotNull @CheckReturnValue
+    @CheckReturnValue
     <T> UpsertSetMoreStep<R> setNull(Field<T> field);
 
     /**
@@ -230,7 +233,7 @@ public interface UpsertSetStep<R extends Record> {
      * <code>Field&lt;T&gt;</code>. jOOQ will attempt to convert values to their
      * corresponding field's type.
      */
-    @NotNull @CheckReturnValue
+    @CheckReturnValue
     UpsertSetMoreStep<R> set(Map<?, ?> map);
 
     /**
@@ -243,7 +246,7 @@ public interface UpsertSetStep<R extends Record> {
      *
      * @see #set(Map)
      */
-    @NotNull @CheckReturnValue
+    @CheckReturnValue
     UpsertSetMoreStep<R> set(Record record);
 
     /**
@@ -254,7 +257,7 @@ public interface UpsertSetStep<R extends Record> {
      *
      * @see #set(Record)
      */
-    @NotNull @CheckReturnValue
+    @CheckReturnValue
     UpsertSetMoreStep<R> set(Record... records);
 
     /**
@@ -265,25 +268,25 @@ public interface UpsertSetStep<R extends Record> {
      *
      * @see #set(Record)
      */
-    @NotNull @CheckReturnValue
+    @CheckReturnValue
     UpsertSetMoreStep<R> set(Collection<? extends Record> records);
 
     /**
      * Add values to the upsert statement with implicit field names.
      */
-    @NotNull @CheckReturnValue
+    @CheckReturnValue
     UpsertValuesStepN<R> values(Object... values);
 
     /**
      * Add values to the upsert statement with implicit field names.
      */
-    @NotNull @CheckReturnValue
+    @CheckReturnValue
     UpsertValuesStepN<R> values(Field<?>... values);
 
     /**
      * Add values to the upsert statement with implicit field names.
      */
-    @NotNull @CheckReturnValue
+    @CheckReturnValue
     UpsertValuesStepN<R> values(Collection<?> values);
 
     /**
@@ -297,6 +300,6 @@ public interface UpsertSetStep<R extends Record> {
      * {@link YdbDSLContext#upsertInto(Table, Collection)} instead, to
      * define a field set for upsertion.
      */
-    @NotNull @CheckReturnValue
+    @CheckReturnValue
     Upsert<R> select(Select<?> select);
 }

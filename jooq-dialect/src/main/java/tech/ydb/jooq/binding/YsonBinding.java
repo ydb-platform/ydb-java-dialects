@@ -1,6 +1,5 @@
 package tech.ydb.jooq.binding;
 
-import org.jetbrains.annotations.NotNull;
 import org.jooq.BindingGetResultSetContext;
 import org.jooq.BindingSetStatementContext;
 import org.jooq.Converter;
@@ -18,7 +17,6 @@ public final class YsonBinding extends AbstractBinding<Object, YSON> {
 
     private static final int INDEX_TYPE = indexType(PrimitiveType.Yson);
 
-    @NotNull
     @Override
     public Converter<Object, YSON> converter() {
         return new YsonConverter();
@@ -50,13 +48,12 @@ public final class YsonBinding extends AbstractBinding<Object, YSON> {
             return userObject;
         }
 
-        @NotNull
+
         @Override
         public Class<Object> fromType() {
             return Object.class;
         }
 
-        @NotNull
         @Override
         public Class<YSON> toType() {
             return YSON.class;

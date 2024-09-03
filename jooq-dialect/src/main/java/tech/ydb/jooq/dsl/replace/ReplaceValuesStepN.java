@@ -1,13 +1,16 @@
 package tech.ydb.jooq.dsl.replace;
 
-import org.jetbrains.annotations.NotNull;
-import org.jooq.Record;
-import org.jooq.*;
-import tech.ydb.jooq.Replace;
-import tech.ydb.jooq.YdbDSLContext;
-
 import java.util.Collection;
 import java.util.function.Function;
+import org.jooq.CheckReturnValue;
+import org.jooq.Field;
+import org.jooq.Record;
+import org.jooq.RowN;
+import org.jooq.Rows;
+import org.jooq.Select;
+import org.jooq.Table;
+import tech.ydb.jooq.Replace;
+import tech.ydb.jooq.YdbDSLContext;
 
 /**
  * This type is used for the {@link Replace}'s DSL API.
@@ -25,31 +28,31 @@ public interface ReplaceValuesStepN<R extends Record> extends Replace<R> {
     /**
      * Add a single row of values to the replace statement.
      */
-    @NotNull @CheckReturnValue
+    @CheckReturnValue
     ReplaceValuesStepN<R> values(Object... values);
 
     /**
      * Add a single row of values to the replace statement.
      */
-    @NotNull @CheckReturnValue
+    @CheckReturnValue
     ReplaceValuesStepN<R> values(Field<?>... values);
 
     /**
      * Add a single row of values to the replace statement.
      */
-    @NotNull @CheckReturnValue
+    @CheckReturnValue
     ReplaceValuesStepN<R> values(Collection<?> values);
 
     /**
      * Add a single row of values to the replace statement.
      */
-    @NotNull @CheckReturnValue
+    @CheckReturnValue
     ReplaceValuesStepN<R> values(RowN values);
 
     /**
      * Add a single row of values to the replace statement.
      */
-    @NotNull @CheckReturnValue
+    @CheckReturnValue
     ReplaceValuesStepN<R> values(Record values);
 
     /**
@@ -60,7 +63,7 @@ public interface ReplaceValuesStepN<R extends Record> extends Replace<R> {
      *
      * @see Rows#toRowArray(Function, Function)
      */
-    @NotNull @CheckReturnValue
+    @CheckReturnValue
     ReplaceValuesStepN<R> valuesOfRows(RowN... values);
 
     /**
@@ -71,7 +74,7 @@ public interface ReplaceValuesStepN<R extends Record> extends Replace<R> {
      *
      * @see Rows#toRowList(Function, Function)
      */
-    @NotNull @CheckReturnValue
+    @CheckReturnValue
     ReplaceValuesStepN<R> valuesOfRows(Collection<? extends RowN> values);
 
     /**
@@ -87,7 +90,7 @@ public interface ReplaceValuesStepN<R extends Record> extends Replace<R> {
      * name rather than by index, use {@link ReplaceSetStep#set(Record...)} instead.
      * That syntax is available only if you omit the explicit replace columns list.
      */
-    @NotNull @CheckReturnValue
+    @CheckReturnValue
     ReplaceValuesStepN<R> valuesOfRecords(Record... values);
 
     /**
@@ -103,7 +106,7 @@ public interface ReplaceValuesStepN<R extends Record> extends Replace<R> {
      * name rather than by index, use {@link ReplaceSetStep#set(Record...)} instead.
      * That syntax is available only if you omit the explicit replace columns list.
      */
-    @NotNull @CheckReturnValue
+    @CheckReturnValue
     ReplaceValuesStepN<R> valuesOfRecords(Collection<? extends Record> values);
 
     /**
@@ -115,6 +118,6 @@ public interface ReplaceValuesStepN<R extends Record> extends Replace<R> {
      * <code>INTO</code> clause:
      * {@link YdbDSLContext#replaceInto(Table)}
      */
-    @NotNull @CheckReturnValue
+    @CheckReturnValue
     Replace<R> select(Select<? extends Record> select);
 }

@@ -1,8 +1,5 @@
 package tech.ydb.jooq.value;
 
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
-
 import java.io.Serializable;
 import java.util.Arrays;
 
@@ -19,7 +16,6 @@ public final class YSON implements Serializable {
         return data;
     }
 
-    @NotNull
     public String string() {
         if (value == null) {
             value = new String(data);
@@ -28,32 +24,26 @@ public final class YSON implements Serializable {
         return value;
     }
 
-    @NotNull
     public static YSON valueOf(byte[] data) {
         return new YSON(data);
     }
 
-    @NotNull
     public static YSON valueOf(String string) {
         return new YSON(string.getBytes());
     }
 
-    @NotNull
     public static YSON yson(byte[] data) {
         return new YSON(data);
     }
 
-    @NotNull
     public static YSON yson(String string) {
         return new YSON(string.getBytes());
     }
 
-    @Nullable
     public static YSON ysonOrNull(byte[] data) {
         return data == null ? null : yson(data);
     }
 
-    @Nullable
     public static YSON ysonOrNull(String string) {
         return string == null ? null : yson(string);
     }

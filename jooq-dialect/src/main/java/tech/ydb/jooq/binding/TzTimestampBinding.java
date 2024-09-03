@@ -1,25 +1,21 @@
 package tech.ydb.jooq.binding;
 
-import org.jetbrains.annotations.NotNull;
+import java.sql.SQLException;
+import java.time.ZonedDateTime;
 import org.jooq.BindingGetResultSetContext;
 import org.jooq.BindingSetStatementContext;
 import org.jooq.Converter;
 import org.jooq.impl.AbstractBinding;
 import org.jooq.impl.IdentityConverter;
+import static tech.ydb.jooq.binding.BindingTools.indexType;
 import tech.ydb.table.values.PrimitiveType;
 import tech.ydb.table.values.PrimitiveValue;
-
-import java.sql.SQLException;
-import java.time.ZonedDateTime;
-
-import static tech.ydb.jooq.binding.BindingTools.indexType;
 
 @SuppressWarnings("resource")
 public final class TzTimestampBinding extends AbstractBinding<ZonedDateTime, ZonedDateTime> {
 
     private static final int INDEX_TYPE = indexType(PrimitiveType.TzTimestamp);
 
-    @NotNull
     @Override
     public Converter<ZonedDateTime, ZonedDateTime> converter() {
         return new IdentityConverter<>(ZonedDateTime.class);

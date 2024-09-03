@@ -1,6 +1,5 @@
 package tech.ydb.jooq.binding;
 
-import org.jetbrains.annotations.NotNull;
 import org.jooq.BindingGetResultSetContext;
 import org.jooq.BindingSetStatementContext;
 import org.jooq.Converter;
@@ -19,7 +18,6 @@ public final class JsonBinding extends AbstractBinding<JSON, JSON> {
 
     private static final int INDEX_TYPE = indexType(PrimitiveType.Json);
 
-    @NotNull
     @Override
     public Converter<JSON, JSON> converter() {
         return new IdentityConverter<>(JSON.class);
