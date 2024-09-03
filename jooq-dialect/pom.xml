@@ -36,6 +36,12 @@
             <name>Ilya Kriushenkov</name>
             <email>ikriushenkov@yandex.ru</email>
         </developer>
+        <developer>
+            <name>Kirill Kurdyukov</name>
+            <email>kurdyukov-kir@ydb.tech</email>
+            <organization>YDB</organization>
+            <organizationUrl>https://ydb.tech/</organizationUrl>
+        </developer>
     </developers>
 
     <properties>
