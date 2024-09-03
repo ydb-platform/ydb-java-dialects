@@ -1,6 +1,5 @@
 package tech.ydb.jooq.binding;
 
-import org.jetbrains.annotations.NotNull;
 import org.jooq.BindingGetResultSetContext;
 import org.jooq.BindingSetStatementContext;
 import org.jooq.Converter;
@@ -19,7 +18,6 @@ public final class Uint32Binding extends AbstractBinding<UInteger, UInteger> {
 
     private static final int INDEX_TYPE = indexType(PrimitiveType.Uint32);
 
-    @NotNull
     @Override
     public Converter<UInteger, UInteger> converter() {
         return new IdentityConverter<>(UInteger.class);

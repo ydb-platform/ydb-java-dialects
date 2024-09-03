@@ -1,6 +1,5 @@
 package tech.ydb.jooq.binding;
 
-import org.jetbrains.annotations.NotNull;
 import org.jooq.BindingGetResultSetContext;
 import org.jooq.BindingSetStatementContext;
 import org.jooq.Converter;
@@ -19,7 +18,6 @@ public final class DateBinding extends AbstractBinding<LocalDate, LocalDate> {
 
     private static final int INDEX_TYPE = indexType(PrimitiveType.Date);
 
-    @NotNull
     @Override
     public Converter<LocalDate, LocalDate> converter() {
         return new IdentityConverter<>(LocalDate.class);

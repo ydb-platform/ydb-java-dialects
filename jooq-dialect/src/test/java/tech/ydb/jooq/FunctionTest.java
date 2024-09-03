@@ -1,26 +1,60 @@
 package tech.ydb.jooq;
 
-import jooq.generated.ydb.default_schema.Tables;
-import jooq.generated.ydb.default_schema.tables.records.EpisodesRecord;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
+import java.util.UUID;
 import org.jooq.Field;
-import org.jooq.Record;
 import org.jooq.types.UByte;
 import org.jooq.types.UInteger;
 import org.jooq.types.ULong;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import org.junit.jupiter.api.Test;
-import tech.ydb.table.values.OptionalValue;
-import tech.ydb.table.values.PrimitiveType;
-import tech.ydb.table.values.StructValue;
-import tech.ydb.table.values.Value;
-
-import java.time.*;
-import java.util.List;
-import java.util.UUID;
-import java.util.stream.IntStream;
-
-import static org.junit.jupiter.api.Assertions.*;
 import static tech.ydb.jooq.YDB.val;
-import static tech.ydb.jooq.YdbFunction.*;
+import static tech.ydb.jooq.YdbFunction.abs;
+import static tech.ydb.jooq.YdbFunction.addTimezone;
+import static tech.ydb.jooq.YdbFunction.assumeStrict;
+import static tech.ydb.jooq.YdbFunction.byteAtUtf8;
+import static tech.ydb.jooq.YdbFunction.clearBit;
+import static tech.ydb.jooq.YdbFunction.coalesce;
+import static tech.ydb.jooq.YdbFunction.currentTzDate;
+import static tech.ydb.jooq.YdbFunction.currentTzDatetime;
+import static tech.ydb.jooq.YdbFunction.currentTzTimestamp;
+import static tech.ydb.jooq.YdbFunction.currentUtcDate;
+import static tech.ydb.jooq.YdbFunction.currentUtcDatetime;
+import static tech.ydb.jooq.YdbFunction.currentUtcTimestamp;
+import static tech.ydb.jooq.YdbFunction.endsWithUtf8;
+import static tech.ydb.jooq.YdbFunction.ensure;
+import static tech.ydb.jooq.YdbFunction.find;
+import static tech.ydb.jooq.YdbFunction.flipBit;
+import static tech.ydb.jooq.YdbFunction.greatest;
+import static tech.ydb.jooq.YdbFunction.if_;
+import static tech.ydb.jooq.YdbFunction.just;
+import static tech.ydb.jooq.YdbFunction.least;
+import static tech.ydb.jooq.YdbFunction.len;
+import static tech.ydb.jooq.YdbFunction.length;
+import static tech.ydb.jooq.YdbFunction.likely;
+import static tech.ydb.jooq.YdbFunction.maxOf;
+import static tech.ydb.jooq.YdbFunction.minOf;
+import static tech.ydb.jooq.YdbFunction.nanvl;
+import static tech.ydb.jooq.YdbFunction.pickle;
+import static tech.ydb.jooq.YdbFunction.rFind;
+import static tech.ydb.jooq.YdbFunction.random;
+import static tech.ydb.jooq.YdbFunction.randomNumber;
+import static tech.ydb.jooq.YdbFunction.randomUuid;
+import static tech.ydb.jooq.YdbFunction.setBit;
+import static tech.ydb.jooq.YdbFunction.stablePickle;
+import static tech.ydb.jooq.YdbFunction.startsWithUtf8;
+import static tech.ydb.jooq.YdbFunction.substring;
+import static tech.ydb.jooq.YdbFunction.testBit;
+import static tech.ydb.jooq.YdbFunction.toBytes;
+import static tech.ydb.jooq.YdbFunction.unwrap;
 
 public class FunctionTest extends BaseTest {
 
@@ -210,42 +244,6 @@ public class FunctionTest extends BaseTest {
 
         assertNotNull(result);
         assertEquals(1, result);
-    }
-
-    @Test
-    public void testTableRow() {
-        Record record = new EpisodesRecord(
-                ULong.valueOf(1),
-                ULong.valueOf(2),
-                ULong.valueOf(3),
-                "title",
-                ULong.MIN);
-
-        dsl.insertInto(Tables.EPISODES)
-                .set(record)
-                .execute();
-
-        Object result = dsl.select(tableRow())
-                .from(Tables.EPISODES)
-                .fetchOne()
-                .value1();
-
-        assertInstanceOf(StructValue.class, result);
-
-        StructValue structResult = (StructValue) result;
-
-        List<String> resultFields = IntStream.range(0, structResult.getMembersCount())
-                .mapToObj(structResult::getMemberValue)
-                .map(Value::asOptional)
-                .map(OptionalValue::get)
-                .map(Value::asData)
-                .map(value -> value.getType() == PrimitiveType.Text ? value.getText() : value.toString())
-                .toList();
-
-        List<String> expectedFields = record.intoList().stream().map(Object::toString).toList();
-
-        assertEquals(expectedFields.size(), resultFields.size());
-        assertTrue(expectedFields.containsAll(resultFields));
     }
 
     @Test

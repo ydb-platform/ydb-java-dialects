@@ -1,13 +1,16 @@
 package tech.ydb.jooq.dsl.upsert;
 
-import org.jetbrains.annotations.NotNull;
-import org.jooq.Record;
-import org.jooq.*;
-import tech.ydb.jooq.Upsert;
-import tech.ydb.jooq.YdbDSLContext;
-
 import java.util.Collection;
 import java.util.function.Function;
+import org.jooq.CheckReturnValue;
+import org.jooq.Field;
+import org.jooq.Record;
+import org.jooq.Record1;
+import org.jooq.Row1;
+import org.jooq.Rows;
+import org.jooq.Select;
+import tech.ydb.jooq.Upsert;
+import tech.ydb.jooq.YdbDSLContext;
 
 /**
  * This type is used for the {@link Upsert}'s DSL API.
@@ -25,31 +28,31 @@ public interface UpsertValuesStep1<R extends Record, T1> extends Upsert<R> {
     /**
      * Add a single row of values to the upsert statement.
      */
-    @NotNull @CheckReturnValue
+    @CheckReturnValue
     UpsertValuesStep1<R, T1> values(T1 value1);
 
     /**
      * Add a single row of values to the upsert statement.
      */
-    @NotNull @CheckReturnValue
+    @CheckReturnValue
     UpsertValuesStep1<R, T1> values(Field<T1> value1);
 
     /**
      * Add a single row of values to the upsert statement.
      */
-    @NotNull @CheckReturnValue
+    @CheckReturnValue
     UpsertValuesStep1<R, T1> values(Collection<?> values);
 
     /**
      * Add a single row of values to the upsert statement.
      */
-    @NotNull @CheckReturnValue
+    @CheckReturnValue
     UpsertValuesStep1<R, T1> values(Row1<T1> values);
 
     /**
      * Add a single row of values to the upsert statement.
      */
-    @NotNull @CheckReturnValue
+    @CheckReturnValue
     UpsertValuesStep1<R, T1> values(Record1<T1> values);
 
     /**
@@ -60,7 +63,7 @@ public interface UpsertValuesStep1<R extends Record, T1> extends Upsert<R> {
      *
      * @see Rows#toRowArray(Function)
      */
-    @NotNull @CheckReturnValue
+    @CheckReturnValue
     @SuppressWarnings("unchecked")
     UpsertValuesStep1<R, T1> valuesOfRows(Row1<T1>... values);
 
@@ -72,7 +75,7 @@ public interface UpsertValuesStep1<R extends Record, T1> extends Upsert<R> {
      *
      * @see Rows#toRowList(Function)
      */
-    @NotNull @CheckReturnValue
+    @CheckReturnValue
     UpsertValuesStep1<R, T1> valuesOfRows(Collection<? extends Row1<T1>> values);
 
     /**
@@ -88,7 +91,7 @@ public interface UpsertValuesStep1<R extends Record, T1> extends Upsert<R> {
      * name rather than by index, use {@link UpsertSetStep#set(Record...)} instead.
      * That syntax is available only if you omit the explicit upsert columns list.
      */
-    @NotNull @CheckReturnValue
+    @CheckReturnValue
     @SuppressWarnings("unchecked")
     UpsertValuesStep1<R, T1> valuesOfRecords(Record1<T1>... values);
 
@@ -105,7 +108,7 @@ public interface UpsertValuesStep1<R extends Record, T1> extends Upsert<R> {
      * name rather than by index, use {@link UpsertSetStep#set(Record...)} instead.
      * That syntax is available only if you omit the explicit upsert columns list.
      */
-    @NotNull @CheckReturnValue
+    @CheckReturnValue
     UpsertValuesStep1<R, T1> valuesOfRecords(Collection<? extends Record1<T1>> values);
 
     /**
@@ -117,6 +120,6 @@ public interface UpsertValuesStep1<R extends Record, T1> extends Upsert<R> {
      * <code>INTO</code> clause:
      * {@link YdbDSLContext#upsertInto(Table, Field)}
      */
-    @NotNull @CheckReturnValue
+    @CheckReturnValue
     Upsert<R> select(Select<? extends Record1<T1>> select);
 }

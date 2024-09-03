@@ -1,25 +1,22 @@
 package tech.ydb.jooq.binding;
 
-import org.jetbrains.annotations.NotNull;
+import java.sql.SQLException;
+import java.time.Duration;
 import org.jooq.BindingGetResultSetContext;
 import org.jooq.BindingSetStatementContext;
 import org.jooq.Converter;
 import org.jooq.impl.AbstractBinding;
 import org.jooq.types.YearToSecond;
+import static tech.ydb.jooq.binding.BindingTools.indexType;
 import tech.ydb.table.values.PrimitiveType;
 import tech.ydb.table.values.PrimitiveValue;
-
-import java.sql.SQLException;
-import java.time.Duration;
-
-import static tech.ydb.jooq.binding.BindingTools.indexType;
 
 @SuppressWarnings("resource")
 public final class IntervalBinding extends AbstractBinding<YearToSecond, Duration> {
 
     private static final int INDEX_TYPE = indexType(PrimitiveType.Interval);
 
-    @NotNull
+
     @Override
     public Converter<YearToSecond, Duration> converter() {
         return new IntervalConverter();
@@ -51,13 +48,11 @@ public final class IntervalBinding extends AbstractBinding<YearToSecond, Duratio
             return YearToSecond.valueOf(userObject);
         }
 
-        @NotNull
         @Override
         public Class<YearToSecond> fromType() {
             return YearToSecond.class;
         }
 
-        @NotNull
         @Override
         public Class<Duration> toType() {
             return Duration.class;

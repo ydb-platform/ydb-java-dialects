@@ -1,6 +1,5 @@
 package tech.ydb.jooq.dsl.replace;
 
-import org.jetbrains.annotations.NotNull;
 import org.jooq.CheckReturnValue;
 import org.jooq.*;
 import org.jooq.Record;
@@ -47,19 +46,19 @@ public interface ReplaceSetMoreStep<R extends Record> extends Replace<R> {
     /**
      * Set a value for a field in the <code>REPLACE</code> statement.
      */
-    @NotNull @CheckReturnValue
+    @CheckReturnValue
     <T> ReplaceSetMoreStep<R> set(Field<T> field, T value);
 
     /**
      * Set a value for a field in the <code>REPLACE</code> statement.
      */
-    @NotNull @CheckReturnValue
+    @CheckReturnValue
     <T> ReplaceSetMoreStep<R> set(Field<T> field, Field<T> value);
 
     /**
      * Set a value for a field in the <code>REPLACE</code> statement.
      */
-    @NotNull @CheckReturnValue
+    @CheckReturnValue
     <T> ReplaceSetMoreStep<R> set(Field<T> field, Select<? extends Record1<T>> value);
 
     /**
@@ -70,7 +69,7 @@ public interface ReplaceSetMoreStep<R extends Record> extends Replace<R> {
      * without the necessity of casting the Java <code>null</code> literal to
      * <code>(T)</code>.
      */
-    @NotNull @CheckReturnValue
+    @CheckReturnValue
     <T> ReplaceSetMoreStep<R> setNull(Field<T> field);
 
     /**
@@ -83,7 +82,7 @@ public interface ReplaceSetMoreStep<R extends Record> extends Replace<R> {
      * <code>Field&lt;T&gt;</code>. jOOQ will attempt to convert values to their
      * corresponding field's type.
      */
-    @NotNull @CheckReturnValue
+    @CheckReturnValue
     ReplaceSetMoreStep<R> set(Map<?, ?> map);
 
     /**
@@ -94,7 +93,7 @@ public interface ReplaceSetMoreStep<R extends Record> extends Replace<R> {
      *
      * @see #set(Map)
      */
-    @NotNull @CheckReturnValue
+    @CheckReturnValue
     ReplaceSetMoreStep<R> set(Record record);
 
     /**
@@ -105,7 +104,7 @@ public interface ReplaceSetMoreStep<R extends Record> extends Replace<R> {
      *
      * @see #set(Record)
      */
-    @NotNull @CheckReturnValue
+    @CheckReturnValue
     ReplaceSetMoreStep<R> set(Record... records);
 
     /**
@@ -116,7 +115,7 @@ public interface ReplaceSetMoreStep<R extends Record> extends Replace<R> {
      *
      * @see #set(Record)
      */
-    @NotNull @CheckReturnValue
+    @CheckReturnValue
     ReplaceSetMoreStep<R> set(Collection<? extends Record> records);
 
     /**
@@ -124,6 +123,6 @@ public interface ReplaceSetMoreStep<R extends Record> extends Replace<R> {
      *
      * @see ReplaceQuery#newRecord()
      */
-    @NotNull @CheckReturnValue
+    @CheckReturnValue
     ReplaceSetStep<R> newRecord();
 }

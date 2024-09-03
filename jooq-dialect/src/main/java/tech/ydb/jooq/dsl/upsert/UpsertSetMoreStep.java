@@ -1,15 +1,15 @@
 package tech.ydb.jooq.dsl.upsert;
 
-import org.jooq.*;
-
-import org.jetbrains.annotations.*;
-import org.jooq.CheckReturnValue;
-import org.jooq.Record;
-import tech.ydb.jooq.Upsert;
-import tech.ydb.jooq.UpsertQuery;
-
 import java.util.Collection;
 import java.util.Map;
+import org.jooq.CheckReturnValue;
+import org.jooq.Field;
+import org.jooq.Name;
+import org.jooq.Record;
+import org.jooq.Record1;
+import org.jooq.Select;
+import tech.ydb.jooq.Upsert;
+import tech.ydb.jooq.UpsertQuery;
 
 /**
  * This type is used for the {@link Upsert}'s alternative DSL API.
@@ -48,19 +48,19 @@ public interface UpsertSetMoreStep<R extends Record> extends Upsert<R> {
     /**
      * Set a value for a field in the <code>UPSERT</code> statement.
      */
-    @NotNull @CheckReturnValue
+    @CheckReturnValue
     <T> UpsertSetMoreStep<R> set(Field<T> field, T value);
 
     /**
      * Set a value for a field in the <code>UPSERT</code> statement.
      */
-    @NotNull @CheckReturnValue
+    @CheckReturnValue
     <T> UpsertSetMoreStep<R> set(Field<T> field, Field<T> value);
 
     /**
      * Set a value for a field in the <code>UPSERT</code> statement.
      */
-    @NotNull @CheckReturnValue
+    @CheckReturnValue
     <T> UpsertSetMoreStep<R> set(Field<T> field, Select<? extends Record1<T>> value);
 
     /**
@@ -71,7 +71,7 @@ public interface UpsertSetMoreStep<R extends Record> extends Upsert<R> {
      * without the necessity of casting the Java <code>null</code> literal to
      * <code>(T)</code>.
      */
-    @NotNull @CheckReturnValue
+    @CheckReturnValue
     <T> UpsertSetMoreStep<R> setNull(Field<T> field);
 
     /**
@@ -84,7 +84,7 @@ public interface UpsertSetMoreStep<R extends Record> extends Upsert<R> {
      * <code>Field&lt;T&gt;</code>. jOOQ will attempt to convert values to their
      * corresponding field's type.
      */
-    @NotNull @CheckReturnValue
+    @CheckReturnValue
     UpsertSetMoreStep<R> set(Map<?, ?> map);
 
     /**
@@ -95,7 +95,7 @@ public interface UpsertSetMoreStep<R extends Record> extends Upsert<R> {
      *
      * @see #set(Map)
      */
-    @NotNull @CheckReturnValue
+    @CheckReturnValue
     UpsertSetMoreStep<R> set(Record record);
 
     /**
@@ -106,7 +106,7 @@ public interface UpsertSetMoreStep<R extends Record> extends Upsert<R> {
      *
      * @see #set(Record)
      */
-    @NotNull @CheckReturnValue
+    @CheckReturnValue
     UpsertSetMoreStep<R> set(Record... records);
 
     /**
@@ -117,7 +117,7 @@ public interface UpsertSetMoreStep<R extends Record> extends Upsert<R> {
      *
      * @see #set(Record)
      */
-    @NotNull @CheckReturnValue
+    @CheckReturnValue
     UpsertSetMoreStep<R> set(Collection<? extends Record> records);
 
     /**
@@ -125,6 +125,6 @@ public interface UpsertSetMoreStep<R extends Record> extends Upsert<R> {
      *
      * @see UpsertQuery#newRecord()
      */
-    @NotNull @CheckReturnValue
+    @CheckReturnValue
     UpsertSetStep<R> newRecord();
 }

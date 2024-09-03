@@ -1,25 +1,21 @@
 package tech.ydb.jooq.binding;
 
-import org.jetbrains.annotations.NotNull;
+import java.sql.SQLException;
 import org.jooq.BindingGetResultSetContext;
 import org.jooq.BindingSetStatementContext;
 import org.jooq.Converter;
 import org.jooq.JSONB;
 import org.jooq.impl.AbstractBinding;
 import org.jooq.impl.IdentityConverter;
+import static tech.ydb.jooq.binding.BindingTools.indexType;
 import tech.ydb.table.values.PrimitiveType;
 import tech.ydb.table.values.PrimitiveValue;
-
-import java.sql.SQLException;
-
-import static tech.ydb.jooq.binding.BindingTools.indexType;
 
 @SuppressWarnings("resource")
 public final class JsonDocumentBinding extends AbstractBinding<JSONB, JSONB> {
 
     private static final int INDEX_TYPE = indexType(PrimitiveType.JsonDocument);
 
-    @NotNull
     @Override
     public Converter<JSONB, JSONB> converter() {
         return new IdentityConverter<>(JSONB.class);

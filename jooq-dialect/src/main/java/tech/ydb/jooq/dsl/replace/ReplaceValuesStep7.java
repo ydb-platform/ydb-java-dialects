@@ -1,13 +1,17 @@
 package tech.ydb.jooq.dsl.replace;
 
-import org.jetbrains.annotations.NotNull;
-import org.jooq.Record;
-import org.jooq.*;
-import tech.ydb.jooq.Replace;
-import tech.ydb.jooq.YdbDSLContext;
-
 import java.util.Collection;
 import java.util.function.Function;
+import org.jooq.CheckReturnValue;
+import org.jooq.Field;
+import org.jooq.Record;
+import org.jooq.Record7;
+import org.jooq.Row7;
+import org.jooq.Rows;
+import org.jooq.Select;
+import org.jooq.Table;
+import tech.ydb.jooq.Replace;
+import tech.ydb.jooq.YdbDSLContext;
 
 /**
  * This type is used for the {@link Replace}'s DSL API.
@@ -25,31 +29,31 @@ public interface ReplaceValuesStep7<R extends Record, T1, T2, T3, T4, T5, T6, T7
     /**
      * Add a single row of values to the replace statement.
      */
-    @NotNull @CheckReturnValue
+    @CheckReturnValue
     ReplaceValuesStep7<R, T1, T2, T3, T4, T5, T6, T7> values(T1 value1, T2 value2, T3 value3, T4 value4, T5 value5, T6 value6, T7 value7);
 
     /**
      * Add a single row of values to the replace statement.
      */
-    @NotNull @CheckReturnValue
+    @CheckReturnValue
     ReplaceValuesStep7<R, T1, T2, T3, T4, T5, T6, T7> values(Field<T1> value1, Field<T2> value2, Field<T3> value3, Field<T4> value4, Field<T5> value5, Field<T6> value6, Field<T7> value7);
 
     /**
      * Add a single row of values to the replace statement.
      */
-    @NotNull @CheckReturnValue
+    @CheckReturnValue
     ReplaceValuesStep7<R, T1, T2, T3, T4, T5, T6, T7> values(Collection<?> values);
 
     /**
      * Add a single row of values to the replace statement.
      */
-    @NotNull @CheckReturnValue
+    @CheckReturnValue
     ReplaceValuesStep7<R, T1, T2, T3, T4, T5, T6, T7> values(Row7<T1, T2, T3, T4, T5, T6, T7> values);
 
     /**
      * Add a single row of values to the replace statement.
      */
-    @NotNull @CheckReturnValue
+    @CheckReturnValue
     ReplaceValuesStep7<R, T1, T2, T3, T4, T5, T6, T7> values(Record7<T1, T2, T3, T4, T5, T6, T7> values);
 
     /**
@@ -60,7 +64,7 @@ public interface ReplaceValuesStep7<R extends Record, T1, T2, T3, T4, T5, T6, T7
      *
      * @see Rows#toRowArray(Function, Function, Function, Function, Function, Function, Function)
      */
-    @NotNull @CheckReturnValue
+    @CheckReturnValue
     @SuppressWarnings("unchecked")
     ReplaceValuesStep7<R, T1, T2, T3, T4, T5, T6, T7> valuesOfRows(Row7<T1, T2, T3, T4, T5, T6, T7>... values);
 
@@ -72,7 +76,7 @@ public interface ReplaceValuesStep7<R extends Record, T1, T2, T3, T4, T5, T6, T7
      *
      * @see Rows#toRowList(Function, Function, Function, Function, Function, Function, Function)
      */
-    @NotNull @CheckReturnValue
+    @CheckReturnValue
     ReplaceValuesStep7<R, T1, T2, T3, T4, T5, T6, T7> valuesOfRows(Collection<? extends Row7<T1, T2, T3, T4, T5, T6, T7>> values);
 
     /**
@@ -88,7 +92,7 @@ public interface ReplaceValuesStep7<R extends Record, T1, T2, T3, T4, T5, T6, T7
      * name rather than by index, use {@link ReplaceSetStep#set(Record...)} instead.
      * That syntax is available only if you omit the explicit replace columns list.
      */
-    @NotNull @CheckReturnValue
+    @CheckReturnValue
     @SuppressWarnings("unchecked")
     ReplaceValuesStep7<R, T1, T2, T3, T4, T5, T6, T7> valuesOfRecords(Record7<T1, T2, T3, T4, T5, T6, T7>... values);
 
@@ -105,7 +109,7 @@ public interface ReplaceValuesStep7<R extends Record, T1, T2, T3, T4, T5, T6, T7
      * name rather than by index, use {@link ReplaceSetStep#set(Record...)} instead.
      * That syntax is available only if you omit the explicit replace columns list.
      */
-    @NotNull @CheckReturnValue
+    @CheckReturnValue
     ReplaceValuesStep7<R, T1, T2, T3, T4, T5, T6, T7> valuesOfRecords(Collection<? extends Record7<T1, T2, T3, T4, T5, T6, T7>> values);
 
     /**
@@ -117,6 +121,6 @@ public interface ReplaceValuesStep7<R extends Record, T1, T2, T3, T4, T5, T6, T7
      * <code>INTO</code> clause:
      * {@link YdbDSLContext#replaceInto(Table, Field, Field, Field, Field, Field, Field, Field)}
      */
-    @NotNull @CheckReturnValue
+    @CheckReturnValue
     Replace<R> select(Select<? extends Record7<T1, T2, T3, T4, T5, T6, T7>> select);
 }

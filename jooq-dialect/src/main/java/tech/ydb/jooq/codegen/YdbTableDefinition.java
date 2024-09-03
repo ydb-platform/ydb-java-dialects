@@ -1,29 +1,42 @@
 package tech.ydb.jooq.codegen;
 
-import org.jooq.Binding;
-import org.jooq.JSON;
-import org.jooq.JSONB;
-import org.jooq.impl.DSL;
-import org.jooq.meta.*;
-import org.jooq.types.UByte;
-import org.jooq.types.UInteger;
-import org.jooq.types.ULong;
-import org.jooq.types.UShort;
-import tech.ydb.jdbc.YdbConnection;
-import tech.ydb.jdbc.YdbConst;
-import tech.ydb.jdbc.YdbTypes;
-import tech.ydb.jooq.binding.*;
-import tech.ydb.jooq.value.YSON;
-import tech.ydb.table.description.TableColumn;
-import tech.ydb.table.description.TableDescription;
-import tech.ydb.table.values.Type;
-
 import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import org.jooq.Binding;
+import org.jooq.JSON;
+import org.jooq.JSONB;
+import org.jooq.impl.DSL;
+import org.jooq.meta.AbstractTableDefinition;
+import org.jooq.meta.ColumnDefinition;
+import org.jooq.meta.DataTypeDefinition;
+import org.jooq.meta.DefaultColumnDefinition;
+import org.jooq.meta.DefaultDataTypeDefinition;
+import org.jooq.meta.SchemaDefinition;
+import org.jooq.types.UByte;
+import org.jooq.types.UInteger;
+import org.jooq.types.ULong;
+import org.jooq.types.UShort;
+import tech.ydb.jdbc.YdbConst;
+import tech.ydb.jdbc.impl.YdbTypes;
+import tech.ydb.jooq.binding.DateBinding;
+import tech.ydb.jooq.binding.DatetimeBinding;
+import tech.ydb.jooq.binding.IntervalBinding;
+import tech.ydb.jooq.binding.JsonBinding;
+import tech.ydb.jooq.binding.JsonDocumentBinding;
+import tech.ydb.jooq.binding.TimestampBinding;
+import tech.ydb.jooq.binding.Uint16Binding;
+import tech.ydb.jooq.binding.Uint32Binding;
+import tech.ydb.jooq.binding.Uint64Binding;
+import tech.ydb.jooq.binding.Uint8Binding;
+import tech.ydb.jooq.binding.YsonBinding;
+import tech.ydb.jooq.value.YSON;
+import tech.ydb.table.description.TableColumn;
+import tech.ydb.table.description.TableDescription;
+import tech.ydb.table.values.Type;
 
 public class YdbTableDefinition extends AbstractTableDefinition {
 
@@ -44,9 +57,6 @@ public class YdbTableDefinition extends AbstractTableDefinition {
     @Override
     protected List<ColumnDefinition> getElements0() {
         List<ColumnDefinition> result = new ArrayList<>();
-
-        YdbConnection connection = (YdbConnection) getConnection();
-        YdbTypes types = connection.getYdbTypes();
 
         List<TableColumn> columns = tableDescription.getColumns();
 
@@ -71,8 +81,8 @@ public class YdbTableDefinition extends AbstractTableDefinition {
                     getDatabase(),
                     null,
                     typeName,
-                    types.getSqlPrecision(type),
-                    types.getSqlPrecision(type),
+                    YdbTypes.getSqlPrecision(type),
+                    YdbTypes.getSqlPrecision(type),
                     decimalDigits,
                     isNullable,
                     null,

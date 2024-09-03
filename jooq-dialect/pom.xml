@@ -4,7 +4,7 @@
 
     <groupId>tech.ydb.dialects</groupId>
     <artifactId>jooq-ydb-dialect</artifactId>
-    <version>1.0.0-RC0</version>
+    <version>1.0.0-RC1</version>
 
     <name>YDB JOOQ Dialect module</name>
     <description>YDB JOOQ Dialect module</description>
@@ -36,6 +36,12 @@
             <name>Ilya Kriushenkov</name>
             <email>ikriushenkov@yandex.ru</email>
         </developer>
+        <developer>
+            <name>Kirill Kurdyukov</name>
+            <email>kurdyukov-kir@ydb.tech</email>
+            <organization>YDB</organization>
+            <organizationUrl>https://ydb.tech/</organizationUrl>
+        </developer>
     </developers>
 
     <properties>
@@ -47,7 +53,7 @@
         <jooq.version>3.19.0</jooq.version>
 
         <ydb.sdk.version>2.2.6</ydb.sdk.version>
-        <ydb.jdbc.version>2.1.5</ydb.jdbc.version>
+        <ydb.jdbc.version>2.2.3</ydb.jdbc.version>
     </properties>
 
     <dependencies>
@@ -64,17 +70,12 @@
             <scope>provided</scope>
         </dependency>
         <dependency>
-            <groupId>org.jetbrains</groupId>
-            <artifactId>annotations</artifactId>
-            <version>24.1.0</version>
-            <scope>compile</scope>
-        </dependency>
-        <dependency>
             <groupId>tech.ydb.jdbc</groupId>
-            <artifactId>ydb-jdbc-driver-shaded</artifactId>
+            <artifactId>ydb-jdbc-driver</artifactId>
             <version>${ydb.jdbc.version}</version>
-            <scope>compile</scope>
+            <scope>provided</scope>
         </dependency>
+
         <dependency>
             <groupId>tech.ydb.test</groupId>
             <artifactId>ydb-junit5-support</artifactId>

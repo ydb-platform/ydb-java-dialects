@@ -1,6 +1,5 @@
 package tech.ydb.jooq.binding;
 
-import org.jetbrains.annotations.NotNull;
 import org.jooq.BindingGetResultSetContext;
 import org.jooq.BindingSetStatementContext;
 import org.jooq.Converter;
@@ -19,7 +18,6 @@ public final class TzDateBinding extends AbstractBinding<ZonedDateTime, ZonedDat
 
     private static final int INDEX_TYPE = indexType(PrimitiveType.TzDate);
 
-    @NotNull
     @Override
     public Converter<ZonedDateTime, ZonedDateTime> converter() {
         return new IdentityConverter<>(ZonedDateTime.class);
