@@ -4,7 +4,7 @@
 
     <groupId>tech.ydb.dialects</groupId>
     <artifactId>jooq-ydb-dialect</artifactId>
-    <version>1.0.0-RC0</version>
+    <version>1.0.0-RC1</version>
 
     <name>YDB JOOQ Dialect module</name>
     <description>YDB JOOQ Dialect module</description>
