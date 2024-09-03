@@ -1011,14 +1011,6 @@ public final class YdbFunction {
         return minOf(field, fields);
     }
 
-    /**
-     * The <code>TableRow</code> function.
-     * <p>
-     * For details, read the <a href="https://ydb.tech/docs/en/yql/reference/builtins/basic#tablerow">documentation</a>
-     */
-    public static Field<?> tableRow() {
-        return new TableRow();
-    }
 
     /**
      * The <code>JoinTableRow</code> function.
