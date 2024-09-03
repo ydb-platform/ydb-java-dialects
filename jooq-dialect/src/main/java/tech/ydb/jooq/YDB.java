@@ -8,6 +8,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZonedDateTime;
+import org.jooq.Configuration;
 import org.jooq.ConnectionProvider;
 import org.jooq.Field;
 import org.jooq.JSON;
@@ -255,6 +256,15 @@ public final class YDB {
      */
     public static YdbDSLContext using(ConnectionProvider connectionProvider, Settings settings) {
         return new YdbDSLContextImpl(connectionProvider, settings);
+    }
+
+    /**
+     * Create an executor from a custom configuration.
+     *
+     * @param configuration The configuration
+     */
+    public static YdbDSLContext using(Configuration configuration) {
+        return new YdbDSLContextImpl(configuration);
     }
 
     private static RuntimeException initializeException(Exception e) {
