@@ -65,8 +65,8 @@ public class YdbDialect extends AbstractDialect {
 
             if (viewIndex != null && (viewIndex.tableName().isEmpty() ||
                     viewIndex.tableName().equals(tables.get(0).getName().toSql(IdentifierProcessing.NONE)))) {
-                return " VIEW " + viewIndex.indexName() + " AS " + tables.get(0).getReferenceName()
-                        .toSql(INSTANCE.getIdentifierProcessing());
+                return " VIEW " + getIdentifierProcessing().quote(viewIndex.indexName()) +
+                        " AS " + tables.get(0).getReferenceName().toSql(INSTANCE.getIdentifierProcessing());
             }
 
             return "";
