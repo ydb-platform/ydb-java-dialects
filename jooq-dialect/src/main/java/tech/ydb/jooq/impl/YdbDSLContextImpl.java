@@ -68,7 +68,7 @@ public class YdbDSLContextImpl extends DefaultDSLContext implements YdbDSLContex
         super(configuration
                 .deriveSettings(YdbDSLContextImpl::addRequiredParameters)
                 .set(YDB.DIALECT)
-                .set(quoteListener()));
+                .set(ydbListener()));
     }
 
     private static Settings addRequiredParameters(Settings settings) {
@@ -77,8 +77,8 @@ public class YdbDSLContextImpl extends DefaultDSLContext implements YdbDSLContex
                 .withRenderSchema(false);
     }
 
-    private static VisitListener quoteListener() {
-        return new CustomQuoteListener("`");
+    private static VisitListener ydbListener() {
+        return new YdbListener("`");
     }
 
     @Override
