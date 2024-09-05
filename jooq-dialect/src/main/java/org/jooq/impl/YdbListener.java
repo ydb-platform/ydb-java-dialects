@@ -62,12 +62,13 @@ public class YdbListener implements VisitListener {
             if (context.renderContext() instanceof DefaultRenderContext renderContext) {
                 renderContext.sql.setLength(hintedTableStartSize);
 
+                renderContext.visit(hintedTable.delegate);
                 renderContext.sql(" view ");
 
                 // Sorry, Lukas!!! :(
                 java.lang.reflect.Field fieldArguments = hintedTable.getClass().getDeclaredField("arguments");
                 fieldArguments.setAccessible(true);
-                QueryPartList<Name> arguments = (QueryPartList<Name>)fieldArguments.get(hintedTable);
+                QueryPartList<Name> arguments = (QueryPartList<Name>) fieldArguments.get(hintedTable);
                 renderContext.visit(arguments);
             }
         }

@@ -1,3 +1,6 @@
+## 1.0.1 ##
+- Fixed bug with `useIndex` - skip the table name (`from view`)
+
 ## 1.0.0 ##
 
 - `REPLACE` / `UPSERT` builders from YDB 
