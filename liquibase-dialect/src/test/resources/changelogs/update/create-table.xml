@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                      http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.8.xsd">
+
+    <changeSet id="create-table" author="author" context="all">
+        <sql>
+        create table test(
+            id Int32 NOT NULL,
+            code Text NOT NULL,
+            token bool,
+            PRIMARY KEY (id)
+        );
+        </sql>
+        <rollback>
+            drop table test;
+        </rollback>
+    </changeSet>
+</databaseChangeLog>
