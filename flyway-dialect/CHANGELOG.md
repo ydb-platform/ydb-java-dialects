@@ -1,3 +1,9 @@
+## 1.0.0 ##
+
+- Stable version
+
+---
+
 ## 1.0.0-RC0 ##
 
 * Implementation distributed lock
