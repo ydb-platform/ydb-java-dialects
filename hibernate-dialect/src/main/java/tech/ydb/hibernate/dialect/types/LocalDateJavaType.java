@@ -6,12 +6,12 @@ import org.hibernate.type.descriptor.jdbc.JdbcTypeIndicators;
 /**
  * @author Kirill Kurdyukov
  */
-public class LocalDateTimeJavaType extends org.hibernate.type.descriptor.java.LocalDateTimeJavaType {
+public class LocalDateJavaType extends org.hibernate.type.descriptor.java.LocalDateJavaType {
 
-    public static final LocalDateTimeJavaType INSTANCE = new LocalDateTimeJavaType();
+    public static final LocalDateJavaType INSTANCE = new LocalDateJavaType();
 
     @Override
     public JdbcType getRecommendedJdbcType(JdbcTypeIndicators context) {
-        return LocalDateTimeJdbcType.INSTANCE;
+        return LocalDateJdbcType.INSTANCE;
     }
 }
