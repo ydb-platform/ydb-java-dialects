@@ -3,7 +3,6 @@ package tech.ydb.hibernate.types;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.TimeZone;
 import org.hibernate.cfg.AvailableSettings;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import org.junit.jupiter.api.BeforeAll;
@@ -33,8 +32,6 @@ public class TypesTest {
 
     @Test
     void integrationTypesTest() {
-        TimeZone.setDefault(TimeZone.getTimeZone("UTC"));
-
         Employee employee = new Employee(
                 1,
                 "Kirill Kurdyukov",

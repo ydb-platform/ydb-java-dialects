@@ -7,7 +7,9 @@
 
     <changeSet id="update" author="author" context="all">
         <sql>
-            update test set token= true where code = 'A';
+            update test
+            set token= true
+            where code = 'A';
         </sql>
         <rollback>
             update test set token=NULL where code='A';

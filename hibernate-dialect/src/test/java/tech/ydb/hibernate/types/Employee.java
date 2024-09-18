@@ -47,8 +47,8 @@ public class Employee {
     @Column
     private int age;
 
-    @Column(name = "limit_domain_password")
-    private LocalDateTime limitDomainPassword;
+    @Column(name = "expired_domain_password")
+    private LocalDateTime expiredDomainPassword;
 
     @Column
     private byte[] bytes;

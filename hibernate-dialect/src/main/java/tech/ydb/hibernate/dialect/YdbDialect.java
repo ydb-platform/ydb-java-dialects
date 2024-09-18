@@ -43,20 +43,27 @@ import static org.hibernate.type.SqlTypes.NUMERIC;
 import static org.hibernate.type.SqlTypes.NVARCHAR;
 import static org.hibernate.type.SqlTypes.REAL;
 import static org.hibernate.type.SqlTypes.SMALLINT;
-import static org.hibernate.type.SqlTypes.TIME;
 import static org.hibernate.type.SqlTypes.TIMESTAMP;
+import static org.hibernate.type.SqlTypes.TIMESTAMP_UTC;
 import static org.hibernate.type.SqlTypes.TIMESTAMP_WITH_TIMEZONE;
 import static org.hibernate.type.SqlTypes.TIME_WITH_TIMEZONE;
 import static org.hibernate.type.SqlTypes.TINYINT;
 import static org.hibernate.type.SqlTypes.VARBINARY;
 import static org.hibernate.type.SqlTypes.VARCHAR;
 import org.hibernate.type.StandardBasicTypes;
+import org.hibernate.type.descriptor.sql.internal.DdlTypeImpl;
+import org.hibernate.type.descriptor.sql.spi.DdlTypeRegistry;
 import tech.ydb.hibernate.dialect.exporter.EmptyExporter;
 import tech.ydb.hibernate.dialect.exporter.YdbIndexExporter;
 import tech.ydb.hibernate.dialect.hint.IndexQueryHintHandler;
 import tech.ydb.hibernate.dialect.translator.YdbSqlAstTranslatorFactory;
+import tech.ydb.hibernate.dialect.types.InstantJavaType;
+import tech.ydb.hibernate.dialect.types.InstantJdbcType;
+import tech.ydb.hibernate.dialect.types.LocalDateJavaType;
+import tech.ydb.hibernate.dialect.types.LocalDateJdbcType;
 import tech.ydb.hibernate.dialect.types.LocalDateTimeJavaType;
 import tech.ydb.hibernate.dialect.types.LocalDateTimeJdbcType;
+import static tech.ydb.hibernate.dialect.types.LocalDateTimeJdbcType.JDBC_TYPE_DATETIME_CODE;
 
 /**
  * @author Kirill Kurdyukov
@@ -82,9 +89,9 @@ public class YdbDialect extends Dialect {
             case DOUBLE -> "Double";
             case NUMERIC, DECIMAL -> "Decimal (22,9)"; // Fixed
             case DATE -> "Date";
-            case TIME -> "Datetime";
+            case JDBC_TYPE_DATETIME_CODE -> "Datetime";
             case TIME_WITH_TIMEZONE -> "TzDateTime";
-            case TIMESTAMP -> "Timestamp";
+            case TIMESTAMP, TIMESTAMP_UTC -> "Timestamp";
             case TIMESTAMP_WITH_TIMEZONE -> "TzTimestamp";
             case CHAR, VARCHAR, CLOB, NCHAR, NVARCHAR, NCLOB,
                     LONG32VARCHAR, LONG32NVARCHAR, LONGVARCHAR, LONGNVARCHAR -> "Text";
@@ -100,6 +107,19 @@ public class YdbDialect extends Dialect {
 
         typeContributions.contributeJavaType(LocalDateTimeJavaType.INSTANCE);
         typeContributions.contributeJdbcType(LocalDateTimeJdbcType.INSTANCE);
+        typeContributions.contributeJavaType(LocalDateJavaType.INSTANCE);
+        typeContributions.contributeJdbcType(LocalDateJdbcType.INSTANCE);
+        typeContributions.contributeJavaType(InstantJavaType.INSTANCE);
+        typeContributions.contributeJdbcType(InstantJdbcType.INSTANCE);
+    }
+
+    @Override
+    protected void registerColumnTypes(TypeContributions typeContributions, ServiceRegistry serviceRegistry) {
+        super.registerColumnTypes(typeContributions, serviceRegistry);
+
+        final DdlTypeRegistry ddlTypeRegistry = typeContributions.getTypeConfiguration().getDdlTypeRegistry();
+
+        ddlTypeRegistry.addDescriptor(new DdlTypeImpl(JDBC_TYPE_DATETIME_CODE, "Datetime", "Datetime", this));
     }
 
     @Override
