@@ -1,6 +1,6 @@
 insert into Students (StudentId, StudentName, GroupId) values (1, 'Иванов И.И.', 1), (2, 'Петров П.П.', 1), (3, 'Петров П.П.', 2), (4, 'Сидоров С.С.', 2), (5, 'Неизвестный Н.Н.', 3), (6, 'Безымянный Б.Б', 4);
 
-insert into Groups (GroupId, GroupName) values (1, 'M3435'), (2, 'M34\\39'), (3, 'M3238'), (4, '%39');
+insert into Groups (GroupId, GroupName) values (1, 'M3435'), (2, 'M3439'), (3, 'M3238'), (4, 'M3239');
 
 insert into Courses (CourseId, CourseName) values (1, 'Базы данных'), (2, 'Управление проектами'), (3, 'ППО'), (4, 'Теория информации'), (6, 'Математический анализ'), (7, 'Технологии Java');
 
