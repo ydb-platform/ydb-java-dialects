@@ -40,11 +40,21 @@ public class DataTimeTests {
         expected.setTimestamp(timestamp);
 
         inTransaction(session -> session.persist(expected));
+        inTransaction(session -> assertEquals(expected, session.find(TestEntity.class, 1)));
 
-        inTransaction(session -> {
-            var actual = session.find(TestEntity.class, 1);
-            
-            assertEquals(expected, actual);
-        });
+        expected.setDatetime(datetime.plusDays(1));
+
+        inTransaction(session -> session.merge(expected));
+        inTransaction(session -> assertEquals(expected, session.find(TestEntity.class, 1)));
+
+        expected.setDate(date.plusDays(1));
+
+        inTransaction(session -> session.merge(expected));
+        inTransaction(session -> assertEquals(expected, session.find(TestEntity.class, 1)));
+
+        expected.setTimestamp(timestamp.plus(1, ChronoUnit.DAYS));
+
+        inTransaction(session -> session.merge(expected));
+        inTransaction(session -> assertEquals(expected, session.find(TestEntity.class, 1)));
     }
 }

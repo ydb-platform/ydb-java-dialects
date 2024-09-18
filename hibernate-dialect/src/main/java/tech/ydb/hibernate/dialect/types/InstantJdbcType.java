@@ -11,18 +11,14 @@ import org.hibernate.type.descriptor.ValueExtractor;
 import org.hibernate.type.descriptor.WrapperOptions;
 import org.hibernate.type.descriptor.java.JavaType;
 import org.hibernate.type.descriptor.jdbc.BasicBinder;
-import org.hibernate.type.descriptor.jdbc.TimestampUtcAsInstantJdbcType;
-import org.hibernate.type.spi.TypeConfiguration;
+import org.hibernate.type.descriptor.jdbc.TimestampUtcAsJdbcTimestampJdbcType;
 
 /**
  * @author Kirill Kurdyukov
  */
-public class InstantJdbcType extends TimestampUtcAsInstantJdbcType {
+public class InstantJdbcType extends TimestampUtcAsJdbcTimestampJdbcType {
 
-    @Override
-    public <T> JavaType<T> getJdbcRecommendedJavaTypeMapping(Integer length, Integer scale, TypeConfiguration typeConfiguration) {
-        return typeConfiguration.getJavaTypeRegistry().getDescriptor(Instant.class);
-    }
+    public static final InstantJdbcType INSTANCE = new InstantJdbcType();
 
     @Override
     public <X> ValueBinder<X> getBinder(final JavaType<X> javaType) {
