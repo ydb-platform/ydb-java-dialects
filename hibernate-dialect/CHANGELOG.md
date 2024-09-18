@@ -1,3 +1,7 @@
+## 1.0.0 ##
+
+- Fixed: data time type converters
+
 ## 0.9.5 ##
 
 - Added query hint for view index for "select * from ... where" queries
