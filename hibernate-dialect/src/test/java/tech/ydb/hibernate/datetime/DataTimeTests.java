@@ -31,7 +31,7 @@ public class DataTimeTests {
 
         var date = LocalDate.now();
         var datetime = LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS);
-        var timestamp = Instant.now();
+        var timestamp = Instant.now().truncatedTo(ChronoUnit.MICROS);
 
         var expected = new TestEntity();
         expected.setId(1);
