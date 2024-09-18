@@ -53,14 +53,14 @@ public class LocalDateTimeJdbcType extends TimestampJdbcType {
             protected void doBind(PreparedStatement st, X value, int index, WrapperOptions options) throws SQLException {
                 final LocalDateTime localDateTime = javaType.unwrap(value, LocalDateTime.class, options);
 
-                st.setObject(index, localDateTime);
+                st.setObject(index, localDateTime, JDBC_TYPE_DATETIME_CODE);
             }
 
             @Override
             protected void doBind(CallableStatement st, X value, String name, WrapperOptions options) throws SQLException {
                 final LocalDateTime localDateTime = javaType.unwrap(value, LocalDateTime.class, options);
 
-                st.setObject(name, localDateTime);
+                st.setObject(name, localDateTime, JDBC_TYPE_DATETIME_CODE);
             }
         };
     }
