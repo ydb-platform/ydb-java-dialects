@@ -2,6 +2,7 @@ package tech.ydb.hibernate.dialect;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.concurrent.ConcurrentHashMap;
 import org.hibernate.boot.model.FunctionContributions;
 import org.hibernate.boot.model.TypeContributions;
 import org.hibernate.dialect.Dialect;
@@ -51,14 +52,19 @@ import static org.hibernate.type.SqlTypes.TINYINT;
 import static org.hibernate.type.SqlTypes.VARBINARY;
 import static org.hibernate.type.SqlTypes.VARCHAR;
 import org.hibernate.type.StandardBasicTypes;
+import org.hibernate.type.descriptor.jdbc.JdbcType;
+import org.hibernate.type.descriptor.jdbc.spi.JdbcTypeRegistry;
 import org.hibernate.type.descriptor.sql.internal.DdlTypeImpl;
 import org.hibernate.type.descriptor.sql.spi.DdlTypeRegistry;
+import tech.ydb.hibernate.dialect.code.YdbJdbcCode;
 import tech.ydb.hibernate.dialect.exporter.EmptyExporter;
 import tech.ydb.hibernate.dialect.exporter.YdbIndexExporter;
 import tech.ydb.hibernate.dialect.hint.IndexQueryHintHandler;
 import tech.ydb.hibernate.dialect.hint.QueryHintHandler;
 import tech.ydb.hibernate.dialect.hint.ScanQueryHintHandler;
 import tech.ydb.hibernate.dialect.translator.YdbSqlAstTranslatorFactory;
+import tech.ydb.hibernate.dialect.types.BigDecimalJavaType;
+import tech.ydb.hibernate.dialect.types.DecimalJdbcType;
 import tech.ydb.hibernate.dialect.types.InstantJavaType;
 import tech.ydb.hibernate.dialect.types.InstantJdbcType;
 import tech.ydb.hibernate.dialect.types.LocalDateJavaType;
@@ -66,18 +72,20 @@ import tech.ydb.hibernate.dialect.types.LocalDateJdbcType;
 import tech.ydb.hibernate.dialect.types.LocalDateTimeJavaType;
 import tech.ydb.hibernate.dialect.types.LocalDateTimeJdbcType;
 import static tech.ydb.hibernate.dialect.types.LocalDateTimeJdbcType.JDBC_TYPE_DATETIME_CODE;
+import tech.ydb.hibernate.dialect.types.Uint8JdbcType;
 
 /**
  * @author Kirill Kurdyukov
  */
 public class YdbDialect extends Dialect {
-
+    private static final int SHIFT_DECIMAL_CODE = 11000;
     private static final Exporter<ForeignKey> FOREIGN_KEY_EMPTY_EXPORTER = new EmptyExporter<>();
     private static final Exporter<Constraint> UNIQUE_KEY_EMPTY_EXPORTER = new EmptyExporter<>();
     private static final List<QueryHintHandler> QUERY_HINT_HANDLERS = List.of(
             IndexQueryHintHandler.INSTANCE,
             ScanQueryHintHandler.INSTANCE
     );
+    private static final ConcurrentHashMap<Integer, DecimalJdbcType> DECIMAL_JDBC_TYPE_CACHE = new ConcurrentHashMap<>();
 
     public YdbDialect(DialectResolutionInfo dialectResolutionInfo) {
         super(dialectResolutionInfo);
@@ -93,7 +101,7 @@ public class YdbDialect extends Dialect {
             case BIGINT -> "Int64";
             case REAL, FLOAT -> "Float";
             case DOUBLE -> "Double";
-            case NUMERIC, DECIMAL -> "Decimal (22,9)"; // Fixed
+            case NUMERIC, DECIMAL -> "Decimal($p, $s)";
             case DATE -> "Date";
             case JDBC_TYPE_DATETIME_CODE -> "Datetime";
             case TIME_WITH_TIMEZONE -> "TzDateTime";
@@ -117,6 +125,11 @@ public class YdbDialect extends Dialect {
         typeContributions.contributeJdbcType(LocalDateJdbcType.INSTANCE);
         typeContributions.contributeJavaType(InstantJavaType.INSTANCE);
         typeContributions.contributeJdbcType(InstantJdbcType.INSTANCE);
+
+        // custom jdbc codec
+        typeContributions.contributeJdbcType(Uint8JdbcType.INSTANCE);
+        typeContributions.contributeJavaType(BigDecimalJavaType.INSTANCE_22_9);
+
     }
 
     @Override
@@ -125,7 +138,29 @@ public class YdbDialect extends Dialect {
 
         final DdlTypeRegistry ddlTypeRegistry = typeContributions.getTypeConfiguration().getDdlTypeRegistry();
 
-        ddlTypeRegistry.addDescriptor(new DdlTypeImpl(JDBC_TYPE_DATETIME_CODE, "Datetime", "Datetime", this));
+        ddlTypeRegistry.addDescriptor(new DdlTypeImpl(YdbJdbcCode.DATETIME, "Datetime", "Datetime", this));
+        ddlTypeRegistry.addDescriptor(new DdlTypeImpl(YdbJdbcCode.UINT8, "Uint8", "Uint8", this));
+    }
+
+    @Override
+    public JdbcType resolveSqlTypeDescriptor(
+            String columnTypeName,
+            int jdbcTypeCode,
+            int precision,
+            int scale,
+            JdbcTypeRegistry jdbcTypeRegistry) {
+        if ((jdbcTypeCode == NUMERIC || jdbcTypeCode == DECIMAL) && (precision != 0 || scale != 0)) {
+            int sqlCode = SHIFT_DECIMAL_CODE + (precision + scale) * (precision + scale + 1) / 2 + precision;
+
+            return DECIMAL_JDBC_TYPE_CACHE.computeIfAbsent(sqlCode, DecimalJdbcType::new);
+        }
+
+        return super.resolveSqlTypeDescriptor(columnTypeName, jdbcTypeCode, precision, scale, jdbcTypeRegistry);
+    }
+
+    @Override
+    public int getDefaultDecimalPrecision() {
+        return 22;
     }
 
     @Override
