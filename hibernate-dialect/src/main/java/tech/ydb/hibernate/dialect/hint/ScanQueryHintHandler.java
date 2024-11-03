@@ -1,7 +1,7 @@
 package tech.ydb.hibernate.dialect.hint;
 
-import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * @author Kirill Kurdyukov
@@ -21,14 +21,14 @@ public class ScanQueryHintHandler implements QueryHintHandler {
             return query;
         }
 
-        var useScan = new ArrayList<String>();
+        AtomicBoolean useScan = new AtomicBoolean(false);
         hints.forEach(hint -> {
-            if (hint.startsWith(HINT_USE_SCAN)) {
-                useScan.add(hint.substring(HINT_USE_SCAN.length()));
+            if (hint.equals(HINT_USE_SCAN)) {
+                useScan.set(true);
             }
         });
 
-        if (useScan.size() == 1) {
+        if (useScan.get()) {
             return "scan " + query;
         }
 
