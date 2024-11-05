@@ -1,3 +1,7 @@
+## 1.1.0 ##
+
+- Added hint for scan queries
+
 ## 1.0.0 ##
 
 - Fixed: data time type converters
