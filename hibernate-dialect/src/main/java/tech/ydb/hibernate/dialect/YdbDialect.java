@@ -56,6 +56,8 @@ import org.hibernate.type.descriptor.sql.spi.DdlTypeRegistry;
 import tech.ydb.hibernate.dialect.exporter.EmptyExporter;
 import tech.ydb.hibernate.dialect.exporter.YdbIndexExporter;
 import tech.ydb.hibernate.dialect.hint.IndexQueryHintHandler;
+import tech.ydb.hibernate.dialect.hint.QueryHintHandler;
+import tech.ydb.hibernate.dialect.hint.ScanQueryHintHandler;
 import tech.ydb.hibernate.dialect.translator.YdbSqlAstTranslatorFactory;
 import tech.ydb.hibernate.dialect.types.InstantJavaType;
 import tech.ydb.hibernate.dialect.types.InstantJdbcType;
@@ -72,6 +74,10 @@ public class YdbDialect extends Dialect {
 
     private static final Exporter<ForeignKey> FOREIGN_KEY_EMPTY_EXPORTER = new EmptyExporter<>();
     private static final Exporter<Constraint> UNIQUE_KEY_EMPTY_EXPORTER = new EmptyExporter<>();
+    private static final List<QueryHintHandler> QUERY_HINT_HANDLERS = List.of(
+            IndexQueryHintHandler.INSTANCE,
+            ScanQueryHintHandler.INSTANCE
+    );
 
     public YdbDialect(DialectResolutionInfo dialectResolutionInfo) {
         super(dialectResolutionInfo);
@@ -144,11 +150,29 @@ public class YdbDialect extends Dialect {
     @Override
     public String addSqlHintOrComment(String sql, QueryOptions queryOptions, boolean commentsEnabled) {
         if (queryOptions.getDatabaseHints() != null) {
-            sql = IndexQueryHintHandler.addQueryHints(sql, queryOptions.getDatabaseHints());
+            for (var queryHintHandler : QUERY_HINT_HANDLERS) {
+                sql = queryHintHandler.addQueryHints(sql, queryOptions.getDatabaseHints());
+            }
         }
 
-        if (queryOptions.getComment() != null && IndexQueryHintHandler.commentIsHint(queryOptions.getComment())) {
-            return IndexQueryHintHandler.addQueryHints(sql, List.of(queryOptions.getComment()));
+        if (queryOptions.getComment() != null) {
+            boolean commentIsHint = false;
+
+            var hints = queryOptions.getComment().split(",");
+
+            for (var queryHintHandler : QUERY_HINT_HANDLERS) {
+                for (var hint : hints) {
+                    hint = hint.trim();
+                    if (queryHintHandler.commentIsHint(hint)) {
+                        commentIsHint = true;
+                        sql = queryHintHandler.addQueryHints(sql, List.of(hint));
+                    }
+                }
+            }
+
+            if (commentIsHint) {
+                return sql;
+            }
         }
 
         if (commentsEnabled && queryOptions.getComment() != null) {

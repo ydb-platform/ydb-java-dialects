@@ -260,4 +260,100 @@ public class StudentsRepositoryTest {
                 }
         );
     }
+
+    @Test
+    void useScanQueryHintTest() {
+        /*
+        scan select
+            c1_0.CourseId,
+            c1_0.CourseName
+        from
+            Courses c1_0
+        order by
+            c1_0.CourseId
+         */
+        inTransaction(
+                session -> {
+                    var courses = session.createQuery("FROM Course c ORDER BY c.id", Course.class)
+                            .addQueryHint("use_scan")
+                            .getResultList();
+
+                    checkCourses(courses);
+                }
+        );
+
+        /*
+        scan select
+            c1_0.CourseId,
+            c1_0.CourseName
+        from
+            Courses c1_0
+        order by
+            c1_0.CourseId
+         */
+        inTransaction(
+                session -> {
+                    var courses = session.createQuery("FROM Course c ORDER BY c.id", Course.class)
+                            .setHint(HibernateHints.HINT_COMMENT, "use_scan")
+                            .getResultList();
+
+                    checkCourses(courses);
+                }
+        );
+    }
+
+    private static void checkCourses(List<Course> courses) {
+        assertEquals(6, courses.size());
+        assertEquals("Базы данных", courses.get(0).getName());
+        assertEquals("Управление проектами", courses.get(1).getName());
+        assertEquals("ППО", courses.get(2).getName());
+        assertEquals("Теория информации", courses.get(3).getName());
+        assertEquals("Математический анализ", courses.get(4).getName());
+        assertEquals("Технологии Java", courses.get(5).getName());
+    }
+
+    @Test
+    void useIndexAndUseScanHintsTogetherTest() {
+        /*
+        scan select
+            g1_0.GroupId,
+            g1_0.GroupName
+        from
+            Groups view group_name_index g1_0
+        where
+            g1_0.GroupName='M3439'
+         */
+        inTransaction(
+                session -> {
+                    Group group = session
+                            .createQuery("FROM Group g WHERE g.name = 'M3439'", Group.class)
+                            .addQueryHint("use_index:group_name_index") // Hibernate
+                            .addQueryHint("use_scan")
+                            .getSingleResult();
+
+                    assertEquals("M3439", group.getName());
+                }
+        );
+
+
+        /*
+        scan select
+            g1_0.GroupId,
+            g1_0.GroupName
+        from
+            Groups view group_name_index g1_0
+        where
+            g1_0.GroupName='M3439'
+         */
+        inTransaction(
+                session -> {
+                    Group group = session
+                            .createQuery("FROM Group g WHERE g.name = 'M3439'", Group.class)
+                            .setHint(HibernateHints.HINT_COMMENT, "use_index:group_name_index, use_scan") // JPA
+                            .getSingleResult();
+
+                    assertEquals("M3439", group.getName());
+                }
+        );
+    }
 }

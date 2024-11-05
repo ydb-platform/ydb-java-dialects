@@ -8,17 +8,24 @@ import java.util.regex.Pattern;
 /**
  * @author Kirill Kurdyukov
  */
-public class IndexQueryHintHandler {
+public class IndexQueryHintHandler implements QueryHintHandler {
+    public static final IndexQueryHintHandler INSTANCE = new IndexQueryHintHandler();
+
     private static final Pattern SELECT_FROM_WHERE_QUERY_PATTERN = Pattern
             .compile("^\\s*(select.+?from\\s+\\w+)(.+where.+)$", Pattern.CASE_INSENSITIVE);
 
-    public static final String HINT_USE_INDEX = "use_index:";
+    private static final String HINT_USE_INDEX = "use_index:";
 
-    public static boolean commentIsHint(String comment) {
+    private IndexQueryHintHandler() {
+    }
+
+    @Override
+    public boolean commentIsHint(String comment) {
         return comment.startsWith(HINT_USE_INDEX);
     }
 
-    public static String addQueryHints(String query, List<String> hints) {
+    @Override
+    public String addQueryHints(String query, List<String> hints) {
         if (hints.isEmpty()) {
             return query;
         }
