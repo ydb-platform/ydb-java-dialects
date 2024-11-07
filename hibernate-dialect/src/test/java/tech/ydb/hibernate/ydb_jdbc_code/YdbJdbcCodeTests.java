@@ -23,10 +23,26 @@ public class YdbJdbcCodeTests {
     public void integrationTests() {
         SESSION_FACTORY = basedConfiguration()
                 .addAnnotatedClass(TestEntity.class)
-                .setProperty(AvailableSettings.URL, jdbcUrl(ydb))
+                .setProperty(AvailableSettings.URL, jdbcUrl(ydb) + "?disablePrepareDataQuery=true")
                 .buildSessionFactory();
 
-        var testEntity = new TestEntity(1, new BigDecimal("123.000000000"), new BigDecimal(123), new BigDecimal("12345678123"));
+        /*
+        create table hibernate_test (
+            default_bigDecimal Decimal(22, 9),
+            bigDecimal31_9 Decimal(31, 9),
+            bigDecimal35_0 Decimal(35, 0),
+            bigDecimal35_9 Decimal(35, 9),
+            id Uint8 not null,
+            primary key (id)
+        )
+         */
+        var testEntity = new TestEntity(
+                1,
+                new BigDecimal("123.000000000"),
+                new BigDecimal("123.000000000"),
+                new BigDecimal("12345678123"),
+                new BigDecimal("12345678123.000000000")
+        );
 
         inTransaction(session -> session.persist(testEntity));
         inTransaction(session -> assertEquals(testEntity, session.find(TestEntity.class, 1)));

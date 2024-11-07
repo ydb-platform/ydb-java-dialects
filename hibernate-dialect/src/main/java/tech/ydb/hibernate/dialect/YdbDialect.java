@@ -71,14 +71,15 @@ import tech.ydb.hibernate.dialect.types.LocalDateJavaType;
 import tech.ydb.hibernate.dialect.types.LocalDateJdbcType;
 import tech.ydb.hibernate.dialect.types.LocalDateTimeJavaType;
 import tech.ydb.hibernate.dialect.types.LocalDateTimeJdbcType;
-import static tech.ydb.hibernate.dialect.types.LocalDateTimeJdbcType.JDBC_TYPE_DATETIME_CODE;
 import tech.ydb.hibernate.dialect.types.Uint8JdbcType;
+
+import static tech.ydb.hibernate.dialect.code.YdbJdbcCode.DECIMAL_SHIFT;
+import static tech.ydb.hibernate.dialect.types.LocalDateTimeJdbcType.JDBC_TYPE_DATETIME_CODE;
 
 /**
  * @author Kirill Kurdyukov
  */
 public class YdbDialect extends Dialect {
-    private static final int SHIFT_DECIMAL_CODE = 11000;
     private static final Exporter<ForeignKey> FOREIGN_KEY_EMPTY_EXPORTER = new EmptyExporter<>();
     private static final Exporter<Constraint> UNIQUE_KEY_EMPTY_EXPORTER = new EmptyExporter<>();
     private static final List<QueryHintHandler> QUERY_HINT_HANDLERS = List.of(
@@ -125,11 +126,14 @@ public class YdbDialect extends Dialect {
         typeContributions.contributeJdbcType(LocalDateJdbcType.INSTANCE);
         typeContributions.contributeJavaType(InstantJavaType.INSTANCE);
         typeContributions.contributeJdbcType(InstantJdbcType.INSTANCE);
+        typeContributions.contributeJdbcType(new DecimalJdbcType(YdbJdbcCode.DECIMAL_22_9));
+        typeContributions.contributeJdbcType(new DecimalJdbcType(YdbJdbcCode.DECIMAL_31_9));
+        typeContributions.contributeJdbcType(new DecimalJdbcType(YdbJdbcCode.DECIMAL_35_0));
+        typeContributions.contributeJdbcType(new DecimalJdbcType(YdbJdbcCode.DECIMAL_35_9));
 
         // custom jdbc codec
         typeContributions.contributeJdbcType(Uint8JdbcType.INSTANCE);
         typeContributions.contributeJavaType(BigDecimalJavaType.INSTANCE_22_9);
-
     }
 
     @Override
@@ -140,6 +144,10 @@ public class YdbDialect extends Dialect {
 
         ddlTypeRegistry.addDescriptor(new DdlTypeImpl(YdbJdbcCode.DATETIME, "Datetime", "Datetime", this));
         ddlTypeRegistry.addDescriptor(new DdlTypeImpl(YdbJdbcCode.UINT8, "Uint8", "Uint8", this));
+        ddlTypeRegistry.addDescriptor(new DdlTypeImpl(YdbJdbcCode.DECIMAL_22_9, "Decimal(22, 9)", "Decimal(22, 9)", this));
+        ddlTypeRegistry.addDescriptor(new DdlTypeImpl(YdbJdbcCode.DECIMAL_31_9, "Decimal(31, 9)", "Decimal(31, 9)", this));
+        ddlTypeRegistry.addDescriptor(new DdlTypeImpl(YdbJdbcCode.DECIMAL_35_0, "Decimal(35, 0)", "Decimal(35, 0)", this));
+        ddlTypeRegistry.addDescriptor(new DdlTypeImpl(YdbJdbcCode.DECIMAL_35_9, "Decimal(35, 9)", "Decimal(35, 9)", this));
     }
 
     @Override
@@ -150,7 +158,7 @@ public class YdbDialect extends Dialect {
             int scale,
             JdbcTypeRegistry jdbcTypeRegistry) {
         if ((jdbcTypeCode == NUMERIC || jdbcTypeCode == DECIMAL) && (precision != 0 || scale != 0)) {
-            int sqlCode = SHIFT_DECIMAL_CODE + (precision + scale) * (precision + scale + 1) / 2 + precision;
+            int sqlCode = DECIMAL_SHIFT + (precision << 6) + scale;
 
             return DECIMAL_JDBC_TYPE_CACHE.computeIfAbsent(sqlCode, DecimalJdbcType::new);
         }
@@ -174,11 +182,7 @@ public class YdbDialect extends Dialect {
 
         functionContributions.getFunctionRegistry().register(
                 "current_time",
-                new CurrentFunction(
-                        "current_time",
-                        currentTime(),
-                        localDateTimeType
-                )
+                new CurrentFunction("current_time", currentTime(), localDateTimeType)
         );
     }
 

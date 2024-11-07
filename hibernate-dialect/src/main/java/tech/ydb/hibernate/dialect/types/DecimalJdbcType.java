@@ -19,6 +19,11 @@ public class DecimalJdbcType extends org.hibernate.type.descriptor.jdbc.DecimalJ
     }
 
     @Override
+    public int getJdbcTypeCode() {
+        return sqlCode;
+    }
+
+    @Override
     public <X> ValueBinder<X> getBinder(final JavaType<X> javaType) {
         return new ValueBinder<>() {
             @Override

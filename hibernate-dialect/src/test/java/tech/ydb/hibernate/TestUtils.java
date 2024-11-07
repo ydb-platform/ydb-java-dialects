@@ -28,16 +28,10 @@ public abstract class TestUtils {
     }
 
     public static String jdbcUrl(YdbHelperExtension ydb) {
-        StringBuilder jdbc = new StringBuilder("jdbc:ydb:")
-                .append(ydb.useTls() ? "grpcs://" : "grpc://")
-                .append(ydb.endpoint())
-                .append(ydb.database());
-
-        if (ydb.authToken() != null) {
-            jdbc.append("?").append("token=").append(ydb.authToken());
-        }
-
-        return jdbc.toString();
+        return "jdbc:ydb:" +
+                (ydb.useTls() ? "grpcs://" : "grpc://") +
+                ydb.endpoint() +
+                ydb.database();
     }
 
     public static void inTransaction(Consumer<Session> work) {

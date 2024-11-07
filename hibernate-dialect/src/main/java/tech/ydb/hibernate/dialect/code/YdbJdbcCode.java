@@ -125,9 +125,13 @@ public final class YdbJdbcCode {
      */
     public static final int JSON_DOCUMENT = 10023;
 
-    public static final int DECIMAL_22_9 = 10024;
+    public static final int DECIMAL_SHIFT = (1 << 14);
 
-    public static final int DECIMAL_31_9 = 10025;
+    public static final int DECIMAL_22_9 = DECIMAL_SHIFT + (22 << 6) + 9;
 
-    public static final int DECIMAL_35_9 = 10026;
+    public static final int DECIMAL_31_9 = DECIMAL_SHIFT + (31 << 6) + 9;
+
+    public static final int DECIMAL_35_0 = DECIMAL_SHIFT + (35 << 6);
+
+    public static final int DECIMAL_35_9 = DECIMAL_SHIFT + (35 << 6) + 9;
 }
