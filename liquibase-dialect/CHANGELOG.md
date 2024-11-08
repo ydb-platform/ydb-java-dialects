@@ -1,3 +1,7 @@
+## 1.1.0 ##
+
+* Supported UUID type in .xml, .yaml, and .json formats
+
 ## 1.0.2 ##
 
 * Added duration format for `Interval` type and ISO for time types when loading data into tables
