@@ -18,3 +18,4 @@ tech.ydb.liquibase.type.Uint8TypeYdb
 tech.ydb.liquibase.type.Uint16TypeYdb
 tech.ydb.liquibase.type.Uint32TypeYdb
 tech.ydb.liquibase.type.Uint64TypeYdb
+tech.ydb.liquibase.type.UuidTypeYdb

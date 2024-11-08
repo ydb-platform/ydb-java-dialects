@@ -1,4 +1,4 @@
-YDB_JDBC_DRIVER_VERSION=2.2.0
+YDB_JDBC_DRIVER_VERSION=2.3.3
 
 echo Stress test using ydb-jdbc-driver-shaded:"$YDB_JDBC_DRIVER_VERSION"
 
