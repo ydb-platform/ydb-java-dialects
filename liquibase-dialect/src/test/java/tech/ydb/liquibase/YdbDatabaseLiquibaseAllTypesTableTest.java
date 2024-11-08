@@ -38,6 +38,7 @@ public class YdbDatabaseLiquibaseAllTypesTableTest extends BaseTest {
                         "datetime_column DATETIME, " +
                         "timestamp_column TIMESTAMP, " +
                         "interval_column INTERVAL, " +
+                        "uuid_column UUID, " +
                         "PRIMARY KEY (id) " +
                         ");"
                 )

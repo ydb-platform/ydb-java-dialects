@@ -24,32 +24,32 @@ public class YdbDatabaseCSVLoadTest extends BaseTest {
         assertTrue(migrationStr.contains("UPSERT INTO all_types_table (id, bool_column, bigint_column, smallint_column, " +
                 "tinyint_column, float_column, double_column, decimal_column, uint8_column, " +
                 "uint16_column, uint32_column, uint64_column, text_column, binary_column, json_column, " +
-                "jsondocument_column, date_column, datetime_column, timestamp_column, interval_column) VALUES " +
+                "jsondocument_column, date_column, datetime_column, timestamp_column, interval_column, uuid_column) VALUES " +
                 "('1', 'true', '123123', '13000', '113', '1.123', '1.123123', '1.123123', '12', '13', '14', " +
                 "'15', 'Кирилл Курдюков Алексеевич', 'binary', '{\"asd\": \"asd\"}', '{\"asd\": \"asd\"}', " +
-                "'2014-04-06', '2023-09-16T12:30', '2023-07-31T17:00:00.000000Z', 'PT10S');"
+                "'2014-04-06', '2023-09-16T12:30', '2023-07-31T17:00:00.000000Z', 'PT10S', '689fd2b6-5764-4c43-8803-519da8f5f305');"
         ));
 
         assertTrue(migrationStr.contains("UPSERT INTO all_types_table (id, bool_column, bigint_column, smallint_column, " +
                 "tinyint_column, float_column, double_column, decimal_column, uint8_column, " +
                 "uint16_column, uint32_column, uint64_column, text_column, binary_column, json_column, " +
-                "jsondocument_column, date_column, datetime_column, timestamp_column, interval_column) VALUES " +
+                "jsondocument_column, date_column, datetime_column, timestamp_column, interval_column, uuid_column) VALUES " +
                 "('5', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, " +
-                "NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL);"
+                "NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL);"
         ));
 
         assertTrue(migrationStr.contains("INSERT INTO all_types_table (id, bool_column, bigint_column, smallint_column, " +
                 "tinyint_column, float_column, double_column, decimal_column, uint8_column, uint16_column, " +
                 "uint32_column, uint64_column, text_column, binary_column, json_column, jsondocument_column, " +
-                "date_column, datetime_column, timestamp_column, interval_column) VALUES " +
+                "date_column, datetime_column, timestamp_column, interval_column, uuid_column) VALUES " +
                 "('2', 'true', '123123', '13000', '112', '1.123', '1.123123', '1.123123', '12', '13', " +
                 "'14', '15', 'Кирилл Курдюков Алексеевич', 'binary', '{\"asd\": \"asd\"}', '{\"asd\": \"asd\"}', " +
-                "'2014-04-06', '2023-09-16T12:30', '2023-07-31T17:00:00.000000Z', 'PT10S'), " +
+                "'2014-04-06', '2023-09-16T12:30', '2023-07-31T17:00:00.000000Z', 'PT10S', '689fd2b6-5764-4c43-8803-519da8f5f305'), " +
                 "('3', 'true', '123123', '13000', '112', '1.123', '1.123123', '1.123123', '12', " +
                 "'13', '14', '15', 'Кирилл Курдюков Алексеевич', 'binary', '{\"asd\": \"asd\"}', " +
-                "'{\"asd\": \"asd\"}', '2014-04-06', '2023-09-16T12:30', '2023-07-31T17:00:00.000000Z', 'PT10S'), " +
+                "'{\"asd\": \"asd\"}', '2014-04-06', '2023-09-16T12:30', '2023-07-31T17:00:00.000000Z', 'PT10S', '689fd2b6-5764-4c43-8803-519da8f5f305'), " +
                 "('6', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, " +
-                "NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL);"
+                "NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL);"
         ));
 
         migrateChangeFile(changeLogFile);

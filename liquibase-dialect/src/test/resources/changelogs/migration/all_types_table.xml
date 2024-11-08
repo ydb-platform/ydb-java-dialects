@@ -51,6 +51,8 @@
             <column name="datetime_column" type="datetime" remarks="Date/time, precision to the second."/>
             <column name="timestamp_column" type="timestamp" remarks="Date/time, precision to the microsecond."/>
             <column name="interval_column" type="interval" remarks="Time interval (signed), precision to microseconds"/>
+
+            <column name="uuid_column" type="uuid" remarks="UUID value."/>
         </createTable>
 
         <rollback>
