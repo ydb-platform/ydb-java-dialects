@@ -127,6 +127,9 @@ public final class YdbJdbcCode {
 
     public static final int DECIMAL_SHIFT = (1 << 14);
 
+    /**
+     *  <a href="https://github.com/ydb-platform/ydb-jdbc-driver/blob/v2.3.3/jdbc/src/main/java/tech/ydb/jdbc/impl/YdbTypes.java#L37-L66">link</a>
+     */
     public static final int DECIMAL_22_9 = DECIMAL_SHIFT + (22 << 6) + 9;
 
     public static final int DECIMAL_31_9 = DECIMAL_SHIFT + (31 << 6) + 9;

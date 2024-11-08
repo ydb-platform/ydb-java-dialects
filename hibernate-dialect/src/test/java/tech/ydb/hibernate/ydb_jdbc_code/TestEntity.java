@@ -18,7 +18,7 @@ import tech.ydb.hibernate.dialect.code.YdbJdbcCode;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-@Table(name = "hibernate_test")
+@Table(name = "hibernate_test_bigdecimal")
 public class TestEntity {
 
     @Id

@@ -2,7 +2,9 @@ package tech.ydb.hibernate.ydb_jdbc_code;
 
 import java.math.BigDecimal;
 import org.hibernate.cfg.AvailableSettings;
+import org.hibernate.exception.GenericJDBCException;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import static tech.ydb.hibernate.TestUtils.SESSION_FACTORY;
@@ -46,5 +48,18 @@ public class YdbJdbcCodeTests {
 
         inTransaction(session -> session.persist(testEntity));
         inTransaction(session -> assertEquals(testEntity, session.find(TestEntity.class, 1)));
+
+        testEntity.setBigDecimal35_0(new BigDecimal(123));
+
+        inTransaction(session -> session.merge(testEntity));
+        inTransaction(session -> assertEquals(testEntity, session.find(TestEntity.class, 1)));
+
+        testEntity.setBigDecimal31_9(new BigDecimal("123123456781231234567812312345678123123456781231234567812312345678123123456781231234567812312345678123"));
+
+        assertThrows(GenericJDBCException.class, () -> inTransaction(session -> session.merge(testEntity)), "Unable to bind parameter #1 - 123123456781231234567812312345678123123456781231234567812312345678123123456781231234567812312345678123 [Cannot cast to decimal type Decimal(31, 9): [class java.math.BigDecimal: 123123456781231234567812312345678123123456781231234567812312345678123123456781231234567812312345678123] is Infinite] [n/a]");
+
+        testEntity.setBigDecimal31_9(new BigDecimal("123451234512345123451234512345123"));
+
+        assertThrows(GenericJDBCException.class, () -> inTransaction(session -> session.merge(testEntity)), "Unable to bind parameter #1 - 123451234512345123451234512345123 [Cannot cast to decimal type Decimal(31, 9): [class java.math.BigDecimal: 123123456781231234567812312345678123123456781231234567812312345678123123456781231234567812312345678123] is Infinite] [n/a]");
     }
 }

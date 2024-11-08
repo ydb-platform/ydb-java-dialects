@@ -57,6 +57,7 @@ import org.hibernate.type.descriptor.jdbc.spi.JdbcTypeRegistry;
 import org.hibernate.type.descriptor.sql.internal.DdlTypeImpl;
 import org.hibernate.type.descriptor.sql.spi.DdlTypeRegistry;
 import tech.ydb.hibernate.dialect.code.YdbJdbcCode;
+import static tech.ydb.hibernate.dialect.code.YdbJdbcCode.DECIMAL_SHIFT;
 import tech.ydb.hibernate.dialect.exporter.EmptyExporter;
 import tech.ydb.hibernate.dialect.exporter.YdbIndexExporter;
 import tech.ydb.hibernate.dialect.hint.IndexQueryHintHandler;
@@ -71,10 +72,8 @@ import tech.ydb.hibernate.dialect.types.LocalDateJavaType;
 import tech.ydb.hibernate.dialect.types.LocalDateJdbcType;
 import tech.ydb.hibernate.dialect.types.LocalDateTimeJavaType;
 import tech.ydb.hibernate.dialect.types.LocalDateTimeJdbcType;
-import tech.ydb.hibernate.dialect.types.Uint8JdbcType;
-
-import static tech.ydb.hibernate.dialect.code.YdbJdbcCode.DECIMAL_SHIFT;
 import static tech.ydb.hibernate.dialect.types.LocalDateTimeJdbcType.JDBC_TYPE_DATETIME_CODE;
+import tech.ydb.hibernate.dialect.types.Uint8JdbcType;
 
 /**
  * @author Kirill Kurdyukov
