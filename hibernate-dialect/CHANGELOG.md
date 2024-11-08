@@ -1,3 +1,7 @@
+## 1.2.0 ##
+
+- Added custom decimal jdbc codes `DECIMAL_31_9`, `DECIMAL_35_0`, `DECIMAL_35_9`
+
 ## 1.1.0 ##
 
 - Added hint for scan queries
