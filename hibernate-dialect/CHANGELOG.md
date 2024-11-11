@@ -1,3 +1,7 @@
+## 1.3.0 ##
+
+- Added support UUID YDB type
+
 ## 1.2.0 ##
 
 - Added custom decimal jdbc codes `DECIMAL_31_9`, `DECIMAL_35_0`, `DECIMAL_35_9`

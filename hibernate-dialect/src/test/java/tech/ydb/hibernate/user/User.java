@@ -5,6 +5,8 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import java.time.Instant;
+import java.util.concurrent.ThreadLocalRandom;
 import lombok.Data;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.GenericGenerator;
@@ -13,9 +15,6 @@ import org.hibernate.annotations.UpdateTimestamp;
 import org.hibernate.engine.spi.SharedSessionContractImplementor;
 import org.hibernate.id.IdentifierGenerator;
 import org.hibernate.type.SqlTypes;
-
-import java.time.Instant;
-import java.util.concurrent.ThreadLocalRandom;
 
 /**
  * @author Kirill Kurdyukov

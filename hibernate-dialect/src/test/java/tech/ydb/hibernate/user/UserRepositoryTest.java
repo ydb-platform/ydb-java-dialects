@@ -46,22 +46,18 @@ public class UserRepositoryTest {
         user.setJson(json);
 
         inTransaction(session -> session.persist(user));
-
         inTransaction(
                 session -> {
                     User findUser = session.find(User.class, user.getId());
 
                     assertEquals("Kirill", findUser.getName());
                     assertEquals(json, findUser.getJson());
-
                     assertTrue(Instant.now().compareTo(findUser.getCreatedAt()) >= 0);
                     assertTrue(Instant.now().compareTo(findUser.getUpdatedAt()) >= 0);
                 }
         );
 
         User rollbackUser = new User();
-
-        user.setId(10);
         user.setName("Kirill");
 
         try {
@@ -73,7 +69,7 @@ public class UserRepositoryTest {
         } catch (RuntimeException ignored) {
         }
 
-        inTransaction(session -> assertNull(session.find(User.class, 10)));
+        inTransaction(session -> assertNull(session.find(User.class, rollbackUser.getId())));
     }
 
     @Test

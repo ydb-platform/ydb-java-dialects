@@ -3,6 +3,8 @@ package tech.ydb.hibernate.types;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
+import java.util.UUID;
 import org.hibernate.cfg.AvailableSettings;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import org.junit.jupiter.api.BeforeAll;
@@ -26,7 +28,7 @@ public class TypesTest {
     static void beforeAll() {
         TestUtils.SESSION_FACTORY = basedConfiguration()
                 .addAnnotatedClass(Employee.class)
-                .setProperty(AvailableSettings.URL, jdbcUrl(ydb))
+                .setProperty(AvailableSettings.URL, jdbcUrl(ydb) + "?disablePrepareDataQuery=true")
                 .buildSessionFactory();
     }
 
@@ -44,7 +46,8 @@ public class TypesTest {
                 LocalDateTime.parse("2023-09-16T12:30:00"),
                 new byte[]{1, 2, 3, 4, 5},
                 Employee.Enum.ONE,
-                Employee.Enum.TWO
+                Employee.Enum.TWO,
+                UUID.randomUUID()
         );
 
         inTransaction(session -> session.persist(employee));
@@ -57,5 +60,22 @@ public class TypesTest {
         inTransaction(session -> assertEquals(employee, session
                 .createQuery("FROM Employee e WHERE e.isActive = false", Employee.class)
                 .getSingleResult()));
+
+        List<String> uuids = List.of(
+                "123e4567-e89b-12d3-a456-426614174000",
+                "2d9e498b-b746-9cfb-084d-de4e1cb4736e",
+                "6E73B41C-4EDE-4D08-9CFB-B7462D9E498B"
+        );
+
+        for (var uuid : uuids) {
+            employee.setUuid(UUID.fromString(uuid));
+            inTransaction(session -> session.merge(employee));
+            inTransaction(session -> {
+                var actualEmployee = session.find(Employee.class, employee.getId());
+
+                assertEquals(employee, actualEmployee);
+                assertEquals(uuid.toLowerCase(), actualEmployee.getUuid().toString());
+            });
+        }
     }
 }
