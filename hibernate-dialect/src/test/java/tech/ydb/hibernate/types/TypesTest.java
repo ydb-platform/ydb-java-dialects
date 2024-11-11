@@ -28,7 +28,7 @@ public class TypesTest {
     static void beforeAll() {
         TestUtils.SESSION_FACTORY = basedConfiguration()
                 .addAnnotatedClass(Employee.class)
-                .setProperty(AvailableSettings.URL, jdbcUrl(ydb))
+                .setProperty(AvailableSettings.URL, jdbcUrl(ydb) + "?disablePrepareDataQuery=true")
                 .buildSessionFactory();
     }
 
