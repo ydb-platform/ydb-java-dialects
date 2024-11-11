@@ -49,10 +49,13 @@ import static org.hibernate.type.SqlTypes.TIMESTAMP_UTC;
 import static org.hibernate.type.SqlTypes.TIMESTAMP_WITH_TIMEZONE;
 import static org.hibernate.type.SqlTypes.TIME_WITH_TIMEZONE;
 import static org.hibernate.type.SqlTypes.TINYINT;
+import static org.hibernate.type.SqlTypes.UUID;
 import static org.hibernate.type.SqlTypes.VARBINARY;
 import static org.hibernate.type.SqlTypes.VARCHAR;
 import org.hibernate.type.StandardBasicTypes;
+import org.hibernate.type.descriptor.java.UUIDJavaType;
 import org.hibernate.type.descriptor.jdbc.JdbcType;
+import org.hibernate.type.descriptor.jdbc.UUIDJdbcType;
 import org.hibernate.type.descriptor.jdbc.spi.JdbcTypeRegistry;
 import org.hibernate.type.descriptor.sql.internal.DdlTypeImpl;
 import org.hibernate.type.descriptor.sql.spi.DdlTypeRegistry;
@@ -111,6 +114,7 @@ public class YdbDialect extends Dialect {
                     LONG32VARCHAR, LONG32NVARCHAR, LONGVARCHAR, LONGNVARCHAR -> "Text";
             case BINARY, VARBINARY, BLOB, LONGVARBINARY, LONG32VARBINARY -> "Bytes";
             case JSON -> "Json";
+            case UUID, YdbJdbcCode.UUID -> "Uuid";
             default -> super.columnType(sqlTypeCode);
         };
     }
@@ -119,20 +123,22 @@ public class YdbDialect extends Dialect {
     public void contributeTypes(TypeContributions typeContributions, ServiceRegistry serviceRegistry) {
         super.contributeTypes(typeContributions, serviceRegistry);
 
+        typeContributions.contributeJavaType(UUIDJavaType.INSTANCE);
+        typeContributions.contributeJdbcType(UUIDJdbcType.INSTANCE);
         typeContributions.contributeJavaType(LocalDateTimeJavaType.INSTANCE);
         typeContributions.contributeJdbcType(LocalDateTimeJdbcType.INSTANCE);
         typeContributions.contributeJavaType(LocalDateJavaType.INSTANCE);
         typeContributions.contributeJdbcType(LocalDateJdbcType.INSTANCE);
         typeContributions.contributeJavaType(InstantJavaType.INSTANCE);
         typeContributions.contributeJdbcType(InstantJdbcType.INSTANCE);
-        typeContributions.contributeJdbcType(new DecimalJdbcType(YdbJdbcCode.DECIMAL_22_9));
-        typeContributions.contributeJdbcType(new DecimalJdbcType(YdbJdbcCode.DECIMAL_31_9));
-        typeContributions.contributeJdbcType(new DecimalJdbcType(YdbJdbcCode.DECIMAL_35_0));
-        typeContributions.contributeJdbcType(new DecimalJdbcType(YdbJdbcCode.DECIMAL_35_9));
 
         // custom jdbc codec
         typeContributions.contributeJdbcType(Uint8JdbcType.INSTANCE);
         typeContributions.contributeJavaType(BigDecimalJavaType.INSTANCE_22_9);
+        typeContributions.contributeJdbcType(new DecimalJdbcType(YdbJdbcCode.DECIMAL_22_9));
+        typeContributions.contributeJdbcType(new DecimalJdbcType(YdbJdbcCode.DECIMAL_31_9));
+        typeContributions.contributeJdbcType(new DecimalJdbcType(YdbJdbcCode.DECIMAL_35_0));
+        typeContributions.contributeJdbcType(new DecimalJdbcType(YdbJdbcCode.DECIMAL_35_9));
     }
 
     @Override
@@ -141,6 +147,7 @@ public class YdbDialect extends Dialect {
 
         final DdlTypeRegistry ddlTypeRegistry = typeContributions.getTypeConfiguration().getDdlTypeRegistry();
 
+        ddlTypeRegistry.addDescriptor(new DdlTypeImpl(UUID, "Uuid", "Uuid", this));
         ddlTypeRegistry.addDescriptor(new DdlTypeImpl(YdbJdbcCode.DATETIME, "Datetime", "Datetime", this));
         ddlTypeRegistry.addDescriptor(new DdlTypeImpl(YdbJdbcCode.UINT8, "Uint8", "Uint8", this));
         ddlTypeRegistry.addDescriptor(new DdlTypeImpl(YdbJdbcCode.DECIMAL_22_9, "Decimal(22, 9)", "Decimal(22, 9)", this));
