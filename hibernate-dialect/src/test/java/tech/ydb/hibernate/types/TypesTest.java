@@ -70,7 +70,12 @@ public class TypesTest {
         for (var uuid : uuids) {
             employee.setUuid(UUID.fromString(uuid));
             inTransaction(session -> session.merge(employee));
-            inTransaction(session -> assertEquals(employee, session.find(Employee.class, employee.getId())));
+            inTransaction(session -> {
+                var actualEmployee = session.find(Employee.class, employee.getId());
+
+                assertEquals(employee, actualEmployee);
+                assertEquals(uuid.toLowerCase(), actualEmployee.getUuid().toString());
+            });
         }
     }
 }
