@@ -1,15 +1,22 @@
 package tech.ydb.lock.provider;
 
+import java.nio.charset.StandardCharsets;
 import java.sql.SQLException;
+import java.time.Instant;
 import java.util.Optional;
 import javax.annotation.PreDestroy;
 import net.javacrumbs.shedlock.core.LockConfiguration;
 import net.javacrumbs.shedlock.core.LockProvider;
 import net.javacrumbs.shedlock.core.SimpleLock;
+import net.javacrumbs.shedlock.support.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import tech.ydb.common.retry.RetryForever;
 import tech.ydb.coordination.CoordinationClient;
+import tech.ydb.coordination.CoordinationSession;
 import tech.ydb.coordination.SemaphoreLease;
+import tech.ydb.coordination.settings.CoordinationSessionSettings;
+import tech.ydb.core.Result;
 import tech.ydb.jdbc.YdbConnection;
 
 /**
@@ -32,10 +39,6 @@ public class YdbCoordinationServiceLockProvider implements LockProvider {
         for (int i = 0; i < ATTEMPT_CREATE_NODE; i++) {
             var status = coordinationClient.createNode(YDB_LOCK_NODE_NAME).join();
 
-            if (status.isSuccess()) {
-                return;
-            }
-
             if (i == ATTEMPT_CREATE_NODE - 1) {
                 status.expectSuccess("Failed created coordination service node: " + YDB_LOCK_NODE_NAME);
             }
@@ -44,30 +47,60 @@ public class YdbCoordinationServiceLockProvider implements LockProvider {
 
     @Override
     public Optional<SimpleLock> lock(LockConfiguration lockConfiguration) {
-        var coordinationSession = coordinationClient.createSession(YDB_LOCK_NODE_NAME);
+        var now = Instant.now();
 
-        coordinationSession.connect().join()
-                .expectSuccess("Failed creating coordination node session");
+        String instanceInfo = "Hostname=" + Utils.getHostname() + ", " +
+                "Current PID=" + ProcessHandle.current().pid() + ", " +
+                "CreatedAt=" + now;
 
-        logger.debug("Created coordination node session");
+        logger.info("Instance[{}] is trying to become a leader...", instanceInfo);
 
-        var semaphoreLease = coordinationSession.acquireEphemeralSemaphore(lockConfiguration.getName(), true,
-                lockConfiguration.getLockAtMostFor()).join();
+        var coordinationSession = coordinationClient.createSession(
+                YDB_LOCK_NODE_NAME, CoordinationSessionSettings.newBuilder()
+                        .withRetryPolicy(new RetryForever(500))
+                        .build()
+        );
+
+        var statusCS = coordinationSession.connect().join();
+
+        if (!statusCS.isSuccess()) {
+            logger.info("Failed creating coordination session [{}]", coordinationSession);
+
+            return Optional.empty();
+        }
+
+        logger.info("Created coordination node session [{}]", coordinationSession);
+
+        Result<SemaphoreLease> semaphoreLease = coordinationSession.acquireEphemeralSemaphore(
+                lockConfiguration.getName(),
+                true,
+                instanceInfo.getBytes(StandardCharsets.UTF_8),
+                lockConfiguration.getLockAtMostFor()
+        ).join();
+
+        logger.debug(coordinationSession.toString());
 
         if (semaphoreLease.isSuccess()) {
-            logger.debug("Semaphore acquired");
+            logger.info("Instance[{}] acquired semaphore[SemaphoreName={}]", instanceInfo,
+                    semaphoreLease.getValue().getSemaphoreName());
 
-            return Optional.of(new YdbSimpleLock(semaphoreLease.getValue()));
+            return Optional.of(new YdbSimpleLock(semaphoreLease.getValue(), instanceInfo, coordinationSession));
         } else {
-            logger.debug("Semaphore is not acquired");
+            logger.info("Instance[{}] did not acquire semaphore", instanceInfo);
+
             return Optional.empty();
         }
     }
 
-    private record YdbSimpleLock(SemaphoreLease semaphoreLease) implements SimpleLock {
+    private record YdbSimpleLock(SemaphoreLease semaphoreLease, String metaInfo,
+                                 CoordinationSession coordinationSession) implements SimpleLock {
         @Override
         public void unlock() {
+            logger.info("Instance[{}] released semaphore[SemaphoreName={}]", metaInfo, semaphoreLease.getSemaphoreName());
+
             semaphoreLease.release().join();
+
+            coordinationSession.close();
         }
     }
 
