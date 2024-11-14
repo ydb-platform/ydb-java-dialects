@@ -2,6 +2,7 @@ package tech.ydb.lock.provider;
 
 import java.nio.charset.StandardCharsets;
 import java.sql.SQLException;
+import java.time.Instant;
 import java.util.Optional;
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
@@ -14,6 +15,7 @@ import org.slf4j.LoggerFactory;
 import tech.ydb.coordination.CoordinationClient;
 import tech.ydb.coordination.CoordinationSession;
 import tech.ydb.coordination.SemaphoreLease;
+import tech.ydb.coordination.settings.DescribeSemaphoreMode;
 import tech.ydb.core.Result;
 import tech.ydb.jdbc.YdbConnection;
 
@@ -25,7 +27,7 @@ public class YdbCoordinationServiceLockProvider implements LockProvider {
     private static final String YDB_LOCK_NODE_NAME = "shared-lock-ydb";
     private static final int ATTEMPT_CREATE_NODE = 10;
     private static final String INSTANCE_INFO =
-            "{Hostname=" + Utils.getHostname() + ", " + "Current PID=" + ProcessHandle.current().pid() + "}";
+            "Hostname=" + Utils.getHostname() + ", " + "Current PID=" + ProcessHandle.current().pid();
     private static final byte[] INSTANCE_INFO_BYTES = INSTANCE_INFO.getBytes(StandardCharsets.UTF_8);
 
     private final YdbConnection ydbConnection;
@@ -66,7 +68,36 @@ public class YdbCoordinationServiceLockProvider implements LockProvider {
 
     @Override
     public Optional<SimpleLock> lock(LockConfiguration lockConfiguration) {
-        logger.info("Instance[{}] is trying to become a leader...", INSTANCE_INFO);
+        var now = Instant.now();
+
+        String instanceInfo = "Hostname=" + Utils.getHostname() + ", " +
+                "Current PID=" + ProcessHandle.current().pid() + ", " +
+                "CreatedAt=" + now;
+
+        logger.info("Instance[{}] is trying to become a leader...", instanceInfo);
+
+        var describeResult = coordinationSession.describeSemaphore(
+                lockConfiguration.getName(),
+                DescribeSemaphoreMode.WITH_OWNERS
+        ).join();
+
+        if (describeResult.isSuccess()) {
+            var describe = describeResult.getValue();
+            var describePayload = new String(describe.getData(), StandardCharsets.UTF_8);
+
+            logger.debug("Received DescribeSemaphore[Name={}, Data={}]", describe.getName(), describePayload);
+
+            Instant createdLeaderTimestampUTC = Instant.parse(describePayload.split(",")[2].split("=")[1]);
+
+            if (now.isAfter(createdLeaderTimestampUTC.plus(lockConfiguration.getLockAtMostFor()))) {
+                var deleteResult = coordinationSession.deleteSemaphore(describe.getName(), true).join();
+                logger.debug("Delete semaphore[Name={}] result: {}", describe.getName(), deleteResult);
+            }
+        } else {
+            // no success, ephemeral semaphore is not created
+
+            logger.debug("Semaphore[Name={}] not found", lockConfiguration.getName());
+        }
 
         Result<SemaphoreLease> semaphoreLease = coordinationSession.acquireEphemeralSemaphore(
                 lockConfiguration.getName(),
