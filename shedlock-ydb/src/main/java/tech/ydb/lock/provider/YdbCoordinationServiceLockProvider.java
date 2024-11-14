@@ -16,6 +16,7 @@ import tech.ydb.coordination.CoordinationClient;
 import tech.ydb.coordination.CoordinationSession;
 import tech.ydb.coordination.SemaphoreLease;
 import tech.ydb.coordination.settings.CoordinationSessionSettings;
+import tech.ydb.coordination.settings.DescribeSemaphoreMode;
 import tech.ydb.core.Result;
 import tech.ydb.jdbc.YdbConnection;
 
@@ -64,12 +65,27 @@ public class YdbCoordinationServiceLockProvider implements LockProvider {
         var statusCS = coordinationSession.connect().join();
 
         if (!statusCS.isSuccess()) {
-            logger.info("Failed creating coordination session [{}]", coordinationSession);
+            logger.warn("Failed creating coordination session [{}]", coordinationSession);
 
             return Optional.empty();
         }
 
-        logger.info("Created coordination node session [{}]", coordinationSession);
+        logger.debug("Created coordination node session [{}]", coordinationSession);
+
+        var describeResult = coordinationSession.describeSemaphore(
+                lockConfiguration.getName(),
+                DescribeSemaphoreMode.WITH_OWNERS
+        ).join();
+
+        if (describeResult.isSuccess()) {
+            var describe = describeResult.getValue();
+
+            if (!describe.getOwnersList().isEmpty()) {
+                var describePayload = new String(describe.getOwnersList().get(0).getData(), StandardCharsets.UTF_8);
+
+                logger.info("Received DescribeSemaphore[Name={}, Data={}]", describe.getName(), describePayload);
+            }
+        }
 
         Result<SemaphoreLease> semaphoreLease = coordinationSession.acquireEphemeralSemaphore(
                 lockConfiguration.getName(),
@@ -81,12 +97,12 @@ public class YdbCoordinationServiceLockProvider implements LockProvider {
         logger.debug(coordinationSession.toString());
 
         if (semaphoreLease.isSuccess()) {
-            logger.info("Instance[{}] acquired semaphore[SemaphoreName={}]", instanceInfo,
+            logger.debug("Instance[{}] acquired semaphore [SemaphoreName={}]", instanceInfo,
                     semaphoreLease.getValue().getSemaphoreName());
 
             return Optional.of(new YdbSimpleLock(semaphoreLease.getValue(), instanceInfo, coordinationSession));
         } else {
-            logger.info("Instance[{}] did not acquire semaphore", instanceInfo);
+            logger.debug("Instance[{}] did not acquire semaphore", instanceInfo);
 
             return Optional.empty();
         }
@@ -96,7 +112,7 @@ public class YdbCoordinationServiceLockProvider implements LockProvider {
                                  CoordinationSession coordinationSession) implements SimpleLock {
         @Override
         public void unlock() {
-            logger.info("Instance[{}] released semaphore[SemaphoreName={}]", metaInfo, semaphoreLease.getSemaphoreName());
+            logger.info("Instance[{}] released semaphore [SemaphoreName={}]", metaInfo, semaphoreLease.getSemaphoreName());
 
             semaphoreLease.release().join();
 
