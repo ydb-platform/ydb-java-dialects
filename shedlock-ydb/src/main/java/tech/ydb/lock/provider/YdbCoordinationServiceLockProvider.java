@@ -26,9 +26,6 @@ public class YdbCoordinationServiceLockProvider implements LockProvider {
     private static final Logger logger = LoggerFactory.getLogger(YdbCoordinationServiceLockProvider.class);
     private static final String YDB_LOCK_NODE_NAME = "shared-lock-ydb";
     private static final int ATTEMPT_CREATE_NODE = 10;
-    private static final String INSTANCE_INFO =
-            "Hostname=" + Utils.getHostname() + ", " + "Current PID=" + ProcessHandle.current().pid();
-    private static final byte[] INSTANCE_INFO_BYTES = INSTANCE_INFO.getBytes(StandardCharsets.UTF_8);
 
     private final YdbConnection ydbConnection;
     private final CoordinationClient coordinationClient;
@@ -102,26 +99,26 @@ public class YdbCoordinationServiceLockProvider implements LockProvider {
         Result<SemaphoreLease> semaphoreLease = coordinationSession.acquireEphemeralSemaphore(
                 lockConfiguration.getName(),
                 true,
-                INSTANCE_INFO_BYTES,
+                instanceInfo.getBytes(StandardCharsets.UTF_8),
                 lockConfiguration.getLockAtMostFor()
         ).join();
 
         if (semaphoreLease.isSuccess()) {
-            logger.info("Instance[{}] acquired semaphore[SemaphoreName={}]", INSTANCE_INFO,
+            logger.info("Instance[{}] acquired semaphore[SemaphoreName={}]", instanceInfo,
                     semaphoreLease.getValue().getSemaphoreName());
 
-            return Optional.of(new YdbSimpleLock(semaphoreLease.getValue()));
+            return Optional.of(new YdbSimpleLock(semaphoreLease.getValue(), instanceInfo));
         } else {
-            logger.info("Instance[{}] did not acquire semaphore", INSTANCE_INFO);
+            logger.info("Instance[{}] did not acquire semaphore", instanceInfo);
 
             return Optional.empty();
         }
     }
 
-    private record YdbSimpleLock(SemaphoreLease semaphoreLease) implements SimpleLock {
+    private record YdbSimpleLock(SemaphoreLease semaphoreLease, String metaInfo) implements SimpleLock {
         @Override
         public void unlock() {
-            logger.info("Instance[{}] released semaphore[SemaphoreName={}]", INSTANCE_INFO, semaphoreLease.getSemaphoreName());
+            logger.info("Instance[{}] released semaphore[SemaphoreName={}]", metaInfo, semaphoreLease.getSemaphoreName());
 
             semaphoreLease.release().join();
         }
