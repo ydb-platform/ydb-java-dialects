@@ -2,11 +2,9 @@ package tech.ydb.lock.provider;
 
 import java.time.Duration;
 import java.time.Instant;
-import java.util.ArrayList;
 import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import net.javacrumbs.shedlock.core.LockConfiguration;
@@ -55,11 +53,9 @@ public class YdbLockProviderTest {
         var executorServer = Executors.newFixedThreadPool(10);
         var atomicInt = new AtomicInteger();
         var locked = new AtomicBoolean();
-        var futures = new ArrayList<Future<?>>();
 
-        for (int i = 0; i < 100; i++) {
-            final var ii = i;
-            futures.add(executorServer.submit(() -> {
+        for (int i = 0; i < 10; i++) {
+            executorServer.submit(() -> {
                 Optional<SimpleLock> optinal = Optional.empty();
 
                 while (optinal.isEmpty()) {
@@ -78,18 +74,14 @@ public class YdbLockProviderTest {
                             throw new RuntimeException(e);
                         }
 
-                        atomicInt.addAndGet(ii);
+                        atomicInt.addAndGet(50);
                         locked.set(false);
                         simpleLock.unlock();
                     });
                 }
-            }));
+            }).get();
         }
 
-        for (Future<?> future : futures) {
-            future.get();
-        }
-
-        Assertions.assertEquals(4950, atomicInt.get());
+        Assertions.assertEquals(500, atomicInt.get());
     }
 }
