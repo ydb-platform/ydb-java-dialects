@@ -87,8 +87,8 @@ public class YdbLockProviderTest {
                             Instant.now(), "semaphore", Duration.ofSeconds(100), Duration.ZERO));
 
                     optinal.ifPresent(simpleLock -> {
-                        if (locked.compareAndSet(false, true)) {
-                            logger.debug("Failed test! System has two leaders");
+                        if (!locked.compareAndSet(false, true)) {
+                            logger.error("Failed test! System has two leaders");
 
                             throw new RuntimeException();
                         }
@@ -100,10 +100,9 @@ public class YdbLockProviderTest {
                         }
 
                         atomicInt.addAndGet(50);
-                        logger.info("Leader does UNLOCK!");
-
-                        simpleLock.unlock();
                         locked.set(false);
+                        logger.info("Leader does UNLOCK!");
+                        simpleLock.unlock();
                     });
 
                     try {
