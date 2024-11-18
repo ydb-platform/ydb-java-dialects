@@ -76,8 +76,6 @@ public class YdbJDBCLockProvider implements LockProvider {
         public void unlock() {
             for (int i = 0; i < ATTEMPT_RELEASE_LOCK; i++) {
                 try {
-                    LOGGER.debug("Instance[{}] trying unlock..", LOCKED_BY);
-
                     doUnlock();
 
                     return;
