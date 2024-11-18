@@ -202,6 +202,39 @@ public class StudentsRepositoryTest {
     }
 
     @Test
+    void studentByGroupNameUsingPragmaHintTest() {
+        inTransaction(
+                session -> {
+                    /*
+                        PRAGMA ydb.HashJoinMode='grace'; PRAGMA Warning("disable", "1101"); select
+                            g1_0.GroupId,
+                            g1_0.GroupName,
+                            s1_0.GroupId,
+                            s1_0.StudentId,
+                            s1_0.StudentName
+                        from
+                            Groups g1_0
+                        join
+                            Students s1_0
+                                on g1_0.GroupId=s1_0.GroupId
+                        where
+                            g1_0.GroupName='M3439'
+                     */
+                    List<Student> students = session
+                            .createQuery("FROM Group g JOIN FETCH g.students WHERE g.name = 'M3439'", Group.class)
+                            .addQueryHint("add_pragma:ydb.HashJoinMode='grace'")
+                            .addQueryHint("add_pragma:Warning(\"disable\", \"1101\")")
+                            .getSingleResult().getStudents();
+
+                    assertEquals(2, students.size());
+
+                    assertEquals("Петров П.П.", students.get(0).getName());
+                    assertEquals("Сидоров С.С.", students.get(1).getName());
+                }
+        );
+    }
+
+    @Test
     void groupsByLecturerIdAndCourseId_Eager_ManyToManyTest() {
         inTransaction(
                 session -> {
@@ -313,8 +346,9 @@ public class StudentsRepositoryTest {
     }
 
     @Test
-    void useIndexAndUseScanHintsTogetherTest() {
+    void useAllHintsTogetherTest() {
         /*
+        PRAGMA Warning("disable", "1101");
         scan select
             g1_0.GroupId,
             g1_0.GroupName
@@ -329,6 +363,7 @@ public class StudentsRepositoryTest {
                             .createQuery("FROM Group g WHERE g.name = 'M3439'", Group.class)
                             .addQueryHint("use_index:group_name_index") // Hibernate
                             .addQueryHint("use_scan")
+                            .addQueryHint("add_pragma:Warning(\"disable\", \"1101\")")
                             .getSingleResult();
 
                     assertEquals("M3439", group.getName());
@@ -337,6 +372,7 @@ public class StudentsRepositoryTest {
 
 
         /*
+        PRAGMA Warning("disable", "1101");
         scan select
             g1_0.GroupId,
             g1_0.GroupName
@@ -349,7 +385,8 @@ public class StudentsRepositoryTest {
                 session -> {
                     Group group = session
                             .createQuery("FROM Group g WHERE g.name = 'M3439'", Group.class)
-                            .setHint(HibernateHints.HINT_COMMENT, "use_index:group_name_index, use_scan") // JPA
+                            .setHint(HibernateHints.HINT_COMMENT,
+                                    "use_index:group_name_index;use_scan;add_pragma:Warning(\"disable\", \"1101\")")
                             .getSingleResult();
 
                     assertEquals("M3439", group.getName());

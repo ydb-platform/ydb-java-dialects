@@ -1,3 +1,7 @@
+## 1.4.0 ##
+
+- Added hint for YQL pragma queries
+
 ## 1.3.0 ##
 
 - Added support UUID YDB type

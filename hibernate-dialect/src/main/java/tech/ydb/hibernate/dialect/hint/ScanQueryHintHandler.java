@@ -17,10 +17,6 @@ public class ScanQueryHintHandler implements QueryHintHandler {
 
     @Override
     public String addQueryHints(String query, List<String> hints) {
-        if (hints.isEmpty()) {
-            return query;
-        }
-
         AtomicBoolean useScan = new AtomicBoolean(false);
         hints.forEach(hint -> {
             if (hint.equals(HINT_USE_SCAN)) {

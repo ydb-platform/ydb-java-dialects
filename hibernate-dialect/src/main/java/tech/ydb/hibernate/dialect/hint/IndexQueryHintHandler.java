@@ -26,10 +26,6 @@ public class IndexQueryHintHandler implements QueryHintHandler {
 
     @Override
     public String addQueryHints(String query, List<String> hints) {
-        if (hints.isEmpty()) {
-            return query;
-        }
-
         var useIndexes = new ArrayList<String>();
         hints.forEach(hint -> {
             if (hint.startsWith(HINT_USE_INDEX)) {

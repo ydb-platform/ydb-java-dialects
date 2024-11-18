@@ -64,6 +64,7 @@ import static tech.ydb.hibernate.dialect.code.YdbJdbcCode.DECIMAL_SHIFT;
 import tech.ydb.hibernate.dialect.exporter.EmptyExporter;
 import tech.ydb.hibernate.dialect.exporter.YdbIndexExporter;
 import tech.ydb.hibernate.dialect.hint.IndexQueryHintHandler;
+import tech.ydb.hibernate.dialect.hint.PragmaQueryHintHandler;
 import tech.ydb.hibernate.dialect.hint.QueryHintHandler;
 import tech.ydb.hibernate.dialect.hint.ScanQueryHintHandler;
 import tech.ydb.hibernate.dialect.translator.YdbSqlAstTranslatorFactory;
@@ -86,7 +87,8 @@ public class YdbDialect extends Dialect {
     private static final Exporter<Constraint> UNIQUE_KEY_EMPTY_EXPORTER = new EmptyExporter<>();
     private static final List<QueryHintHandler> QUERY_HINT_HANDLERS = List.of(
             IndexQueryHintHandler.INSTANCE,
-            ScanQueryHintHandler.INSTANCE
+            ScanQueryHintHandler.INSTANCE,
+            PragmaQueryHintHandler.INSTANCE
     );
     private static final ConcurrentHashMap<Integer, DecimalJdbcType> DECIMAL_JDBC_TYPE_CACHE = new ConcurrentHashMap<>();
 
@@ -203,7 +205,7 @@ public class YdbDialect extends Dialect {
         if (queryOptions.getComment() != null) {
             boolean commentIsHint = false;
 
-            var hints = queryOptions.getComment().split(",");
+            var hints = queryOptions.getComment().split(";");
 
             for (var queryHintHandler : QUERY_HINT_HANDLERS) {
                 for (var hint : hints) {
