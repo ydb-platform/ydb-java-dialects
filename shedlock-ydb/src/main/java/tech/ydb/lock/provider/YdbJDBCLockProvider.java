@@ -75,10 +75,17 @@ public class YdbJDBCLockProvider implements LockProvider {
         @Override
         public void unlock() {
             try (var connection = dataSource.getConnection()) {
-                var ps = connection.prepareStatement(
-                        "UPDATE shedlock SET lock_until = CurrentUtcTimestamp() WHERE name = ?");
-                ps.setObject(1, name);
-                ps.execute();
+                var autoCommit = connection.getAutoCommit();
+
+                try {
+                    connection.setAutoCommit(true);
+                    var ps = connection.prepareStatement(
+                            "UPDATE shedlock SET lock_until = CurrentUtcTimestamp() WHERE name = ?");
+                    ps.setObject(1, name);
+                    ps.execute();
+                } finally {
+                    connection.setAutoCommit(autoCommit);
+                }
             } catch (SQLException e) {
                 LOGGER.error(String.format("Instance[{%s}] release lock is failed", LOCKED_BY), e);
 

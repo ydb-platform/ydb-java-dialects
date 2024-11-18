@@ -3,9 +3,11 @@ package tech.ydb.lock.provider;
 import java.sql.SQLException;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import javax.sql.DataSource;
@@ -67,12 +69,13 @@ public class YdbLockProviderTest {
                             ");");
         }
 
+        var lockFutures = new ArrayList<Future<?>>();
         var executorServer = Executors.newFixedThreadPool(10);
         var atomicInt = new AtomicInteger();
         var locked = new AtomicBoolean();
 
         for (int i = 0; i < 10; i++) {
-            executorServer.submit(() -> {
+            lockFutures.add(executorServer.submit(() -> {
                 Optional<SimpleLock> optinal = Optional.empty();
 
                 while (optinal.isEmpty()) {
@@ -96,9 +99,13 @@ public class YdbLockProviderTest {
                         simpleLock.unlock();
                     });
                 }
-            }).get();
+            }));
         }
 
-        Assertions.assertEquals(500, atomicInt.get());
+        for (var future : lockFutures) {
+            future.get();
+        }
+
+        Assertions.assertEquals(4950, atomicInt.get());
     }
 }
