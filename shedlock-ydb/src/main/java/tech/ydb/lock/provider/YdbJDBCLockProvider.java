@@ -31,19 +31,17 @@ public class YdbJDBCLockProvider implements LockProvider {
             try {
                 connection.setAutoCommit(false);
 
-                var selectPS = connection.prepareStatement("SELECT lock_until, locked_by FROM shedlock " +
-                        "WHERE name = ? AND lock_until > CurrentUtcTimestamp() + ?");
+                var selectPS = connection.prepareStatement("SELECT locked_by, lock_until FROM shedlock " +
+                        "WHERE name = ? AND lock_until > CurrentUtcTimestamp()");
 
                 selectPS.setString(1, lockConfiguration.getName());
-                selectPS.setObject(2, lockConfiguration.getLockAtMostFor());
 
-                var haveLeader = false;
                 try (var rs = selectPS.executeQuery()) {
-                    haveLeader = rs.next();
-                }
-
-                if (haveLeader) {
-                    return Optional.empty();
+                    if (rs.next()) {
+                        LOGGER.debug("Instance[{}] acquire lock is failed. Leader is {}, lock_until = {}",
+                                LOCKED_BY, rs.getString(1), rs.getString(2));
+                        return Optional.empty();
+                    }
                 }
 
                 var upsertPS = connection.prepareStatement("" +
@@ -65,31 +63,50 @@ public class YdbJDBCLockProvider implements LockProvider {
                 connection.setAutoCommit(autoCommit);
             }
         } catch (SQLException e) {
-            LOGGER.debug(String.format("Instance[{%s}] acquire lock is failed", LOCKED_BY), e);
+            LOGGER.debug("Instance[{}] acquire lock is failed", LOCKED_BY);
 
             return Optional.empty();
         }
     }
 
     private record YdbJDBCLock(String name, DataSource dataSource) implements SimpleLock {
+        private static final int ATTEMPT_RELEASE_LOCK = 10;
+
         @Override
         public void unlock() {
+            for (int i = 0; i < ATTEMPT_RELEASE_LOCK; i++) {
+                try {
+                    LOGGER.debug("Instance[{}] trying unlock..", LOCKED_BY);
+
+                    doUnlock();
+
+                    return;
+                } catch (SQLException e) {
+                    if (i == ATTEMPT_RELEASE_LOCK - 1) {
+                        throw new RuntimeException(e);
+                    }
+                }
+            }
+        }
+
+        private void doUnlock() throws SQLException {
             try (var connection = dataSource.getConnection()) {
                 var autoCommit = connection.getAutoCommit();
 
                 try {
                     connection.setAutoCommit(true);
                     var ps = connection.prepareStatement(
-                            "UPDATE shedlock SET lock_until = CurrentUtcTimestamp() WHERE name = ?");
-                    ps.setObject(1, name);
+                            "UPDATE shedlock SET lock_until = CurrentUtcTimestamp() WHERE name = ? and locked_by = ?");
+                    ps.setString(1, name);
+                    ps.setString(2, LOCKED_BY);
                     ps.execute();
                 } finally {
                     connection.setAutoCommit(autoCommit);
                 }
             } catch (SQLException e) {
-                LOGGER.error(String.format("Instance[{%s}] release lock is failed", LOCKED_BY), e);
+                LOGGER.debug(String.format("Instance[{%s}] release lock is failed", LOCKED_BY), e);
 
-                throw new RuntimeException(e);
+                throw e;
             }
         }
     }
