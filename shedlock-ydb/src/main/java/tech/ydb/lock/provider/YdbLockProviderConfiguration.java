@@ -1,10 +1,9 @@
 package tech.ydb.lock.provider;
 
-import java.sql.SQLException;
 import javax.sql.DataSource;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import tech.ydb.jdbc.YdbConnection;
 
 /**
  * @author Kirill Kurdyukov
@@ -13,11 +12,8 @@ import tech.ydb.jdbc.YdbConnection;
 @Configuration
 public class YdbLockProviderConfiguration {
     @Bean
-    public YdbCoordinationServiceLockProvider ydbLockProvider(DataSource dataSource) throws SQLException {
-        var provider = new YdbCoordinationServiceLockProvider(dataSource.getConnection().unwrap(YdbConnection.class));
-
-        provider.init();
-
-        return provider;
+    @ConditionalOnBean(DataSource.class)
+    public YdbJDBCLockProvider ydbLockProvider(DataSource dataSource) {
+        return new YdbJDBCLockProvider(dataSource);
     }
 }

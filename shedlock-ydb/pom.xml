@@ -38,8 +38,8 @@
 
         <junit5.version>5.9.3</junit5.version>
         <log4j2.version>2.17.2</log4j2.version>
-        <ydb.sdk.version>2.2.6</ydb.sdk.version>
-        <ydb.jdbc.version>2.2.2</ydb.jdbc.version>
+        <ydb.sdk.version>2.3.6</ydb.sdk.version>
+        <ydb.jdbc.version>2.3.5</ydb.jdbc.version>
         <spring.boot.version>3.2.3</spring.boot.version>
         <shedlock-spring.version>5.15.0</shedlock-spring.version>
     </properties>
@@ -54,13 +54,6 @@
     <dependencyManagement>
         <dependencies>
             <dependency>
-                <groupId>tech.ydb</groupId>
-                <artifactId>ydb-sdk-bom</artifactId>
-                <version>${ydb.sdk.version}</version>
-                <type>pom</type>
-                <scope>import</scope>
-            </dependency>
-            <dependency>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-dependencies</artifactId>
                 <version>${spring.boot.version}</version>
@@ -71,10 +64,6 @@
     </dependencyManagement>
 
     <dependencies>
-        <dependency>
-            <groupId>tech.ydb</groupId>
-            <artifactId>ydb-sdk-coordination</artifactId>
-        </dependency>
         <dependency>
             <groupId>net.javacrumbs.shedlock</groupId>
             <artifactId>shedlock-spring</artifactId>
@@ -101,6 +90,7 @@
         <dependency>
             <groupId>tech.ydb.test</groupId>
             <artifactId>ydb-junit5-support</artifactId>
+            <version>${ydb.sdk.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>

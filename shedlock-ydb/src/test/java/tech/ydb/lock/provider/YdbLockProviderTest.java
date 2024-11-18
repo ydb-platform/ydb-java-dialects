@@ -1,5 +1,6 @@
 package tech.ydb.lock.provider;
 
+import java.sql.SQLException;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Optional;
@@ -7,6 +8,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import javax.sql.DataSource;
 import net.javacrumbs.shedlock.core.LockConfiguration;
 import net.javacrumbs.shedlock.core.SimpleLock;
 import org.junit.jupiter.api.Assertions;
@@ -46,10 +48,25 @@ public class YdbLockProviderTest {
     }
 
     @Autowired
-    private YdbCoordinationServiceLockProvider lockProvider;
+    private YdbJDBCLockProvider lockProvider;
+
+    @Autowired
+    private DataSource dataSource;
 
     @Test
-    public void integrationTest() throws ExecutionException, InterruptedException {
+    public void integrationTest() throws ExecutionException, InterruptedException, SQLException {
+        try (var connection = dataSource.getConnection()) {
+            var statement = connection.createStatement();
+            statement.execute(
+                    "CREATE TABLE shedlock(" +
+                            "name TEXT NOT NULL, " +
+                            "lock_until TIMESTAMP NOT NULL," +
+                            "locked_at TIMESTAMP NOT NULL," +
+                            "locked_by TEXT NOT NULL, " +
+                            "PRIMARY KEY (name)" +
+                            ");");
+        }
+
         var executorServer = Executors.newFixedThreadPool(10);
         var atomicInt = new AtomicInteger();
         var locked = new AtomicBoolean();
@@ -59,8 +76,8 @@ public class YdbLockProviderTest {
                 Optional<SimpleLock> optinal = Optional.empty();
 
                 while (optinal.isEmpty()) {
-                    optinal = lockProvider.lock(
-                            new LockConfiguration(Instant.now(), "semaphore", Duration.ZERO, Duration.ZERO));
+                    optinal = lockProvider.lock(new LockConfiguration(
+                            Instant.now(), "semaphore", Duration.ofSeconds(10), Duration.ZERO));
 
                     optinal.ifPresent(simpleLock -> {
                         if (locked.get()) {
