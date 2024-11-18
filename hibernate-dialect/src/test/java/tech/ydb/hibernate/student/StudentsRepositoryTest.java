@@ -205,10 +205,25 @@ public class StudentsRepositoryTest {
     void studentByGroupNameUsingPragmaHintTest() {
         inTransaction(
                 session -> {
+                    /*
+                        PRAGMA ydb.HashJoinMode='grace'; PRAGMA Warning("disable", "1101"); select
+                            g1_0.GroupId,
+                            g1_0.GroupName,
+                            s1_0.GroupId,
+                            s1_0.StudentId,
+                            s1_0.StudentName
+                        from
+                            Groups g1_0
+                        join
+                            Students s1_0
+                                on g1_0.GroupId=s1_0.GroupId
+                        where
+                            g1_0.GroupName='M3439'
+                     */
                     List<Student> students = session
                             .createQuery("FROM Group g JOIN FETCH g.students WHERE g.name = 'M3439'", Group.class)
-                            .addQueryHint("pragma:ydb.HashJoinMode='grace'")
-                            .addQueryHint("pragma:Warning(\"disable\", \"1101\")")
+                            .addQueryHint("add_pragma:ydb.HashJoinMode='grace'")
+                            .addQueryHint("add_pragma:Warning(\"disable\", \"1101\")")
                             .getSingleResult().getStudents();
 
                     assertEquals(2, students.size());
@@ -348,7 +363,7 @@ public class StudentsRepositoryTest {
                             .createQuery("FROM Group g WHERE g.name = 'M3439'", Group.class)
                             .addQueryHint("use_index:group_name_index") // Hibernate
                             .addQueryHint("use_scan")
-                            .addQueryHint("pragma:Warning(\"disable\", \"1101\")")
+                            .addQueryHint("add_pragma:Warning(\"disable\", \"1101\")")
                             .getSingleResult();
 
                     assertEquals("M3439", group.getName());
@@ -371,7 +386,7 @@ public class StudentsRepositoryTest {
                     Group group = session
                             .createQuery("FROM Group g WHERE g.name = 'M3439'", Group.class)
                             .setHint(HibernateHints.HINT_COMMENT,
-                                    "use_index:group_name_index;use_scan;pragma:Warning(\"disable\", \"1101\")")
+                                    "use_index:group_name_index;use_scan;add_pragma:Warning(\"disable\", \"1101\")")
                             .getSingleResult();
 
                     assertEquals("M3439", group.getName());

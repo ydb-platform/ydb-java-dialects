@@ -9,7 +9,7 @@ import java.util.stream.Collectors;
 public class PragmaQueryHintHandler implements QueryHintHandler {
     public static final PragmaQueryHintHandler INSTANCE = new PragmaQueryHintHandler();
 
-    private static final String HINT_PRAGMA = "pragma:";
+    private static final String HINT_PRAGMA = "add_pragma:";
 
     @Override
     public String addQueryHints(String query, List<String> hints) {
