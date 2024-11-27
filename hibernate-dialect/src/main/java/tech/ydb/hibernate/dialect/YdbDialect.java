@@ -285,11 +285,6 @@ public class YdbDialect extends Dialect {
     }
 
     @Override
-    public int getInExpressionCountLimit() {
-        return 100;
-    }
-
-    @Override
     public boolean supportsExistsInSelect() {
         return false;
     }
