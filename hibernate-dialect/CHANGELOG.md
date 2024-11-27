@@ -1,3 +1,7 @@
+## 1.4.1 ##
+
+- Deleted `InExpressionCountLimit`
+
 ## 1.4.0 ##
 
 - Added hint for YQL pragma queries
