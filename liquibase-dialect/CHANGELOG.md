@@ -1,3 +1,7 @@
+## 1.1.1 ##
+
+* Read changesets from QueryService
+
 ## 1.1.0 ##
 
 * Supported UUID type in .xml, .yaml, and .json formats
