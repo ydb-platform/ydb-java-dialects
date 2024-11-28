@@ -15,4 +15,3 @@ tech.ydb.liquibase.sqlgenerator.GetViewDefinitionGeneratorYdb
 tech.ydb.liquibase.sqlgenerator.InsertOrUpdateGeneratorYdb
 tech.ydb.liquibase.sqlgenerator.RenameColumnGeneratorYdb
 tech.ydb.liquibase.sqlgenerator.RenameTableGeneratorYdb
-tech.ydb.liquibase.sqlgenerator.SelectFromDatabaseChangeLogGeneratorYdb
