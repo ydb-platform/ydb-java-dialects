@@ -8,9 +8,13 @@ import tech.ydb.data.repository.config.AbstractYdbJdbcConfiguration;
 
 /**
  * @author Madiyar Nurgazin
+ * @author Mikhail Polivakha
  */
 @Configuration
-@EnableJdbcRepositories
+@EnableJdbcRepositories(
+  considerNestedRepositories = true,
+  basePackages = "tech.ydb.data"
+)
 @EnableJdbcAuditing
 @Import(AbstractYdbJdbcConfiguration.class)
 public class YdbJdbcConfiguration {}

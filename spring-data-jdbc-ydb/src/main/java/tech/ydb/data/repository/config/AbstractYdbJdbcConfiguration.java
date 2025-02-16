@@ -1,6 +1,7 @@
 package tech.ydb.data.repository.config;
 
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.data.jdbc.core.convert.DefaultJdbcTypeFactory;
 import org.springframework.data.jdbc.core.convert.JdbcArrayColumns;
@@ -15,9 +16,12 @@ import tech.ydb.data.core.convert.YdbMappingJdbcConverter;
 
 /**
  * @author Madiyar Nurgazin
+ * @author Mikhail Polivakha
  */
 @Configuration
+@Import(JdbcRepositoryBeanPostProcessor.class)
 public class AbstractYdbJdbcConfiguration extends AbstractJdbcConfiguration {
+
     @Override
     public JdbcConverter jdbcConverter(
             JdbcMappingContext mappingContext,
