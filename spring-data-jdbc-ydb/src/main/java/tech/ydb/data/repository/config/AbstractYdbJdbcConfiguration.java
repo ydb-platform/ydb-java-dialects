@@ -1,5 +1,7 @@
 package tech.ydb.data.repository.config;
 
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.data.jdbc.core.convert.DefaultJdbcTypeFactory;
@@ -15,9 +17,16 @@ import tech.ydb.data.core.convert.YdbMappingJdbcConverter;
 
 /**
  * @author Madiyar Nurgazin
+ * @author Mikhail Polivakha
  */
-@Configuration
+@Configuration(proxyBeanMethods = true)
 public class AbstractYdbJdbcConfiguration extends AbstractJdbcConfiguration {
+
+    @Bean
+    public YdbDialectProvider ydbDialectProvider() {
+        return new YdbDialectProvider();
+    }
+
     @Override
     public JdbcConverter jdbcConverter(
             JdbcMappingContext mappingContext,
@@ -31,5 +40,12 @@ public class AbstractYdbJdbcConfiguration extends AbstractJdbcConfiguration {
         );
 
         return new YdbMappingJdbcConverter(mappingContext, relationResolver, conversions, jdbcTypeFactory);
+    }
+
+    @Override
+    public Dialect jdbcDialect(NamedParameterJdbcOperations operations) {
+        return ydbDialectProvider()
+          .getDialect(operations.getJdbcOperations())
+          .orElseThrow(() -> new IllegalStateException(String.format("Cannot determine a dialect for %s; Please provide a Dialect", operations)));
     }
 }

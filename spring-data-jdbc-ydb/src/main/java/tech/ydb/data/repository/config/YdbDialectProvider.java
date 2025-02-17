@@ -16,6 +16,7 @@ import tech.ydb.data.core.dialect.YdbDialect;
  * @author Madiyar Nurgazin
  */
 public class YdbDialectProvider extends DialectResolver.DefaultDialectProvider {
+
     @Override
     public Optional<Dialect> getDialect(JdbcOperations operations) {
         Optional<Dialect> ydbDialect = Optional.ofNullable(
