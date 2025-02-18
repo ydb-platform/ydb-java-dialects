@@ -1,6 +1,8 @@
 package tech.ydb.data.core.dialect;
 
+import java.lang.reflect.Method;
 import java.util.function.Function;
+
 import org.springframework.aop.interceptor.ExposeInvocationInterceptor;
 import org.springframework.data.relational.core.dialect.AbstractDialect;
 import org.springframework.data.relational.core.dialect.InsertRenderContext;
@@ -10,10 +12,12 @@ import org.springframework.data.relational.core.dialect.OrderByNullPrecedence;
 import org.springframework.data.relational.core.sql.IdentifierProcessing;
 import org.springframework.data.relational.core.sql.LockOptions;
 import org.springframework.data.relational.core.sql.Select;
+
 import tech.ydb.data.repository.ViewIndex;
 
 /**
  * @author Madiyar Nurgazin
+ * @author Mikhail Polivakha
  */
 public class YdbDialect extends AbstractDialect {
     public static final YdbDialect INSTANCE = new YdbDialect();
@@ -55,13 +59,23 @@ public class YdbDialect extends AbstractDialect {
     protected Function<Select, CharSequence> getAfterFromTable() {
         return select -> {
             var tables = select.getFrom().getTables();
+
             if (tables.size() != 1) {
                 return "";
             }
 
-            var viewIndex = ExposeInvocationInterceptor.currentInvocation()
-                    .getMethod()
-                    .getAnnotation(ViewIndex.class);
+            Method repositoryMethod = null;
+            try {
+                repositoryMethod = ExposeInvocationInterceptor.currentInvocation().getMethod();
+            } catch (IllegalStateException e) {
+                // the assumption is that JdbcRepositoryBeanPostProcessor made a choice to not expose metadata for this Spring Data JDBC repository
+            }
+
+            if (repositoryMethod == null) {
+                return "";
+            }
+
+            var viewIndex = repositoryMethod.getAnnotation(ViewIndex.class);
 
             if (viewIndex != null && (viewIndex.tableName().isEmpty() ||
                     viewIndex.tableName().equals(tables.get(0).getName().toSql(IdentifierProcessing.NONE)))) {
