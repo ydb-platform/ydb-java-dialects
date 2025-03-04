@@ -1,9 +1,15 @@
 package tech.ydb.jooq.codegen;
 
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
 import org.jooq.*;
 import org.jooq.impl.DSL;
 import org.jooq.meta.*;
 import org.jooq.tools.JooqLogger;
+
 import tech.ydb.jdbc.YdbConnection;
 import tech.ydb.jdbc.context.SchemeExecutor;
 import tech.ydb.jdbc.context.YdbContext;
@@ -16,11 +22,6 @@ import tech.ydb.scheme.description.ListDirectoryResult;
 import tech.ydb.table.description.TableDescription;
 import tech.ydb.table.description.TableIndex;
 import tech.ydb.table.settings.DescribeTableSettings;
-
-import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
 
 public class YdbDatabase extends AbstractDatabase implements ResultQueryDatabase {
     private static final JooqLogger log = JooqLogger.getLogger(YdbDatabase.class);
@@ -39,7 +40,7 @@ public class YdbDatabase extends AbstractDatabase implements ResultQueryDatabase
     }
 
     private String getDatabaseName() {
-        return getContext().getDatabase().substring(1);
+        return getContext().getPrefixPath().substring(1);
     }
 
     @Override
