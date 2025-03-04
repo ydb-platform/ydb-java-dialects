@@ -14,6 +14,7 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.extension.RegisterExtension;
+
 import tech.ydb.test.junit5.YdbHelperExtension;
 
 public abstract class BaseTest {
@@ -66,7 +67,7 @@ public abstract class BaseTest {
     public static void beforeAll() {
         dsl = YDB.using(jdbcUrl());
 
-        dsl.createTable("series")
+        dsl.createTableIfNotExists("series")
                 .column("series_id", YdbTypes.UINT64)
                 .column("title", YdbTypes.UTF8)
                 .column("series_info", YdbTypes.UTF8)
@@ -74,7 +75,7 @@ public abstract class BaseTest {
                 .primaryKey("series_id")
                 .execute();
 
-        dsl.createTable("seasons")
+        dsl.createTableIfNotExists("seasons")
                 .column("series_id", YdbTypes.UINT64)
                 .column("season_id", YdbTypes.UINT64)
                 .column("title", YdbTypes.UTF8)
@@ -83,7 +84,7 @@ public abstract class BaseTest {
                 .primaryKey("series_id", "season_id")
                 .execute();
 
-        dsl.createTable("episodes")
+        dsl.createTableIfNotExists("episodes")
                 .column("series_id", YdbTypes.UINT64)
                 .column("season_id", YdbTypes.UINT64)
                 .column("episode_id", YdbTypes.UINT64)
@@ -92,7 +93,7 @@ public abstract class BaseTest {
                 .primaryKey("series_id", "season_id", "episode_id")
                 .execute();
 
-        dsl.createTable("hard_table")
+        dsl.createTableIfNotExists("hard_table")
                 .column("id", YdbTypes.STRING)
                 .column("first", YdbTypes.JSON)
                 .column("second", YdbTypes.JSONDOCUMENT)
@@ -100,7 +101,7 @@ public abstract class BaseTest {
                 .primaryKey("id")
                 .execute();
 
-        dsl.createTable("date_table")
+        dsl.createTableIfNotExists("date_table")
                 .column("id", YdbTypes.UINT64)
                 .column("int_col", YdbTypes.INT32)
                 .column("percent", YdbTypes.DOUBLE)
@@ -112,7 +113,7 @@ public abstract class BaseTest {
                 .primaryKey("id")
                 .execute();
 
-        CreateTableElementListStep createQuery = dsl.createTable("numeric").column("id", YdbTypes.INT32);
+        CreateTableElementListStep createQuery = dsl.createTableIfNotExists("numeric").column("id", YdbTypes.INT32);
 
         for (int i = 1; i <= 23; i++) {
             createQuery.column(Integer.toString(i), YdbTypes.INT32);

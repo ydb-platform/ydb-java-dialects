@@ -4,7 +4,7 @@
 
     <groupId>tech.ydb.dialects</groupId>
     <artifactId>jooq-ydb-dialect</artifactId>
-    <version>1.0.1</version>
+    <version>1.1.0</version>
 
     <name>YDB JOOQ Dialect module</name>
     <description>YDB JOOQ Dialect module</description>
@@ -52,8 +52,8 @@
 
         <jooq.version>3.19.0</jooq.version>
 
-        <ydb.sdk.version>2.2.6</ydb.sdk.version>
-        <ydb.jdbc.version>2.2.3</ydb.jdbc.version>
+        <ydb.sdk.version>2.3.8</ydb.sdk.version>
+        <ydb.jdbc.version>2.3.7</ydb.jdbc.version>
     </properties>
 
     <dependencies>
