@@ -1,4 +1,4 @@
-package tech.ydb.data.books.repository;
+package tech.ydb.data.all_types_table.repository;
 
 import java.util.List;
 import org.springframework.data.jdbc.repository.query.Query;

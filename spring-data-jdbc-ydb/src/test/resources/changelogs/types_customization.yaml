@@ -1,0 +1,20 @@
+databaseChangeLog:
+  - changeSet:
+      id: "authors"
+      author: "Mikhail Polivakha"
+      changes:
+        - createTable:
+            tableName: simple_entity
+            columns:
+              - column:
+                  name: id
+                  type: bigint
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: name
+                  type: text
+              - column:
+                  name: with_specific_type
+                  type: uint64

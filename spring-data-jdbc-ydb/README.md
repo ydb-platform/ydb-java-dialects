@@ -60,7 +60,7 @@ spring.datasource.driver-class-name=tech.ydb.jdbc.YdbDriver
 spring.datasource.url=jdbc:ydb:grpc://localhost:2136/local
 ```
 
-Java configuration for @YdbType annotation:
+Java configuration for `@YdbType` annotation:
 
 ```java
 @Import(AbstractYdbJdbcConfiguration.class)
