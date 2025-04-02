@@ -7,6 +7,7 @@ import org.hibernate.boot.model.FunctionContributions;
 import org.hibernate.boot.model.TypeContributions;
 import org.hibernate.dialect.Dialect;
 import org.hibernate.dialect.function.CurrentFunction;
+import org.hibernate.dialect.identity.IdentityColumnSupport;
 import org.hibernate.dialect.pagination.LimitHandler;
 import org.hibernate.dialect.pagination.LimitOffsetLimitHandler;
 import org.hibernate.engine.jdbc.dialect.spi.DialectResolutionInfo;
@@ -67,6 +68,7 @@ import tech.ydb.hibernate.dialect.hint.IndexQueryHintHandler;
 import tech.ydb.hibernate.dialect.hint.PragmaQueryHintHandler;
 import tech.ydb.hibernate.dialect.hint.QueryHintHandler;
 import tech.ydb.hibernate.dialect.hint.ScanQueryHintHandler;
+import tech.ydb.hibernate.dialect.identity.YdbIdentityColumnSupport;
 import tech.ydb.hibernate.dialect.translator.YdbSqlAstTranslatorFactory;
 import tech.ydb.hibernate.dialect.types.BigDecimalJavaType;
 import tech.ydb.hibernate.dialect.types.DecimalJdbcType;
@@ -367,5 +369,20 @@ public class YdbDialect extends Dialect {
     @Override
     public boolean supportsColumnCheck() {
         return false;
+    }
+
+    @Override
+    public IdentityColumnSupport getIdentityColumnSupport() {
+        return YdbIdentityColumnSupport.INSTANCE;
+    }
+
+    @Override
+    public boolean supportsInsertReturning() {
+        return true;
+    }
+
+    @Override
+    public boolean supportsInsertReturningGeneratedKeys() {
+        return true;
     }
 }
