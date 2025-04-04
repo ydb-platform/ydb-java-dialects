@@ -14,9 +14,9 @@ import tech.ydb.data.books.entity.Author;
 import tech.ydb.data.books.entity.Book;
 import tech.ydb.data.books.entity.BookAuthor;
 import tech.ydb.data.books.entity.Review;
-import tech.ydb.data.books.repository.AuthorRepository;
-import tech.ydb.data.books.repository.BookRepository;
-import tech.ydb.data.books.repository.ReviewRepository;
+import tech.ydb.data.all_types_table.repository.AuthorRepository;
+import tech.ydb.data.all_types_table.repository.BookRepository;
+import tech.ydb.data.all_types_table.repository.ReviewRepository;
 
 /**
  * @author Madiyar Nurgazin
