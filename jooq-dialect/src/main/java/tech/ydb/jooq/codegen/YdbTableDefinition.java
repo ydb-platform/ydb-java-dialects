@@ -6,6 +6,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+
 import org.jooq.Binding;
 import org.jooq.JSON;
 import org.jooq.JSONB;
@@ -20,7 +21,7 @@ import org.jooq.types.UByte;
 import org.jooq.types.UInteger;
 import org.jooq.types.ULong;
 import org.jooq.types.UShort;
-import tech.ydb.jdbc.YdbConst;
+
 import tech.ydb.jdbc.impl.YdbTypes;
 import tech.ydb.jooq.binding.DateBinding;
 import tech.ydb.jooq.binding.DatetimeBinding;
@@ -36,6 +37,7 @@ import tech.ydb.jooq.binding.YsonBinding;
 import tech.ydb.jooq.value.YSON;
 import tech.ydb.table.description.TableColumn;
 import tech.ydb.table.description.TableDescription;
+import tech.ydb.table.values.DecimalType;
 import tech.ydb.table.values.Type;
 
 public class YdbTableDefinition extends AbstractTableDefinition {
@@ -71,7 +73,7 @@ public class YdbTableDefinition extends AbstractTableDefinition {
                 kind = type.getKind();
             }
 
-            int decimalDigits = kind == Type.Kind.DECIMAL ? YdbConst.SQL_DECIMAL_DEFAULT_PRECISION : 0;
+            int decimalDigits = kind == Type.Kind.DECIMAL ? ((DecimalType) type).getPrecision(): 0;
 
             String typeName = type.toString();
             Class<? extends Binding<?, ?>> binding = getBinding(typeName);
