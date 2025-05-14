@@ -1,6 +1,9 @@
 package tech.ydb.data.core.convert;
 
 import java.sql.SQLType;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+
 import org.springframework.data.convert.CustomConversions;
 import org.springframework.data.jdbc.core.convert.JdbcTypeFactory;
 import org.springframework.data.jdbc.core.convert.MappingJdbcConverter;
@@ -16,6 +19,8 @@ import tech.ydb.table.values.PrimitiveType;
 @SuppressWarnings("removal")
 public class YdbMappingJdbcConverter extends MappingJdbcConverter {
 
+    private final ConcurrentMap<RelationalPersistentProperty, SQLType> typesCache = new ConcurrentHashMap<>();
+
     public YdbMappingJdbcConverter(RelationalMappingContext context, RelationResolver relationResolver,
                                    CustomConversions conversions, JdbcTypeFactory typeFactory) {
         super(context, relationResolver, conversions, typeFactory);
@@ -23,6 +28,10 @@ public class YdbMappingJdbcConverter extends MappingJdbcConverter {
 
     @Override
     public SQLType getTargetSqlType(RelationalPersistentProperty property) {
+        return typesCache.computeIfAbsent(property, this::resolveSqlType);
+    }
+
+    private SQLType resolveSqlType(RelationalPersistentProperty property) {
         // the new api takes precedence
         var ydbType = property.findAnnotation(tech.ydb.data.core.convert.annotation.YdbType.class);
 
