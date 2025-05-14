@@ -11,8 +11,11 @@ import tech.ydb.table.values.PrimitiveType;
 
 /**
  * @author Madiyar Nurgazin
+ * @author Mikhail Polivakha
  */
+@SuppressWarnings("removal")
 public class YdbMappingJdbcConverter extends MappingJdbcConverter {
+
     public YdbMappingJdbcConverter(RelationalMappingContext context, RelationResolver relationResolver,
                                    CustomConversions conversions, JdbcTypeFactory typeFactory) {
         super(context, relationResolver, conversions, typeFactory);
@@ -20,8 +23,19 @@ public class YdbMappingJdbcConverter extends MappingJdbcConverter {
 
     @Override
     public SQLType getTargetSqlType(RelationalPersistentProperty property) {
-        return property.isAnnotationPresent(YdbType.class) ?
-                new YQLType(PrimitiveType.valueOf(property.getRequiredAnnotation(YdbType.class).value())) :
-                super.getTargetSqlType(property);
+        // the new api takes precedence
+        var ydbType = property.findAnnotation(tech.ydb.data.core.convert.annotation.YdbType.class);
+
+        if (ydbType != null) {
+            return new YQLType(ydbType.value());
+        }
+
+        YdbType oldType = property.findAnnotation(YdbType.class);
+
+        if (oldType != null) {
+            return new YQLType(PrimitiveType.valueOf(oldType.value()));
+        }
+
+        return super.getTargetSqlType(property);
     }
 }
