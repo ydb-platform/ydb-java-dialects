@@ -178,8 +178,8 @@
                 <configuration>
                     <environmentVariables>
                         <TESTCONTAINERS_REUSE_ENABLE>true</TESTCONTAINERS_REUSE_ENABLE>
-                        <YDB_ENDPOINT>localhost:2136</YDB_ENDPOINT>
-                        <YDB_DATABASE>/local</YDB_DATABASE>
+<!--                        <YDB_ENDPOINT>localhost:2136</YDB_ENDPOINT>-->
+<!--                        <YDB_DATABASE>/local</YDB_DATABASE>-->
                     </environmentVariables>
                 </configuration>
             </plugin>
