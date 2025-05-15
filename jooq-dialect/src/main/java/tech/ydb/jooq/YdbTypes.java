@@ -52,6 +52,7 @@ public final class YdbTypes {
     public static final DataType<org.jooq.JSON> JSON = newDataType(SQLDataType.JSON, "json", new JsonBinding());
     public static final DataType<org.jooq.JSONB> JSONDOCUMENT = newDataType(SQLDataType.JSONB, "jsondocument", new JsonDocumentBinding());
     public static final DataType<YSON> YSON = newDataType(SQLDataType.OTHER, "yson", new YsonBinding());
+
     public static final DataType<java.util.UUID> UUID = newDataType(SQLDataType.UUID, "uuid", new UuidBinding());
 
     public static final DataType<LocalDate> DATE = newDataType(SQLDataType.LOCALDATE, "date", new DateBinding());

@@ -4,7 +4,7 @@
 
     <groupId>tech.ydb.dialects</groupId>
     <artifactId>jooq-ydb-dialect</artifactId>
-    <version>1.1.0</version>
+    <version>1.1.1-SNAPSHOT</version>
 
     <name>YDB JOOQ Dialect module</name>
     <description>YDB JOOQ Dialect module</description>
@@ -46,9 +46,9 @@
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <maven.compiler.release>17</maven.compiler.release>
-        <maven.compiler.source>17</maven.compiler.source>
-        <maven.compiler.target>17</maven.compiler.target>
+        <maven.compiler.release>21</maven.compiler.release>
+        <maven.compiler.source>21</maven.compiler.source>
+        <maven.compiler.target>21</maven.compiler.target>
 
         <jooq.version>3.19.0</jooq.version>
 
@@ -98,6 +98,50 @@
 
     <build>
         <plugins>
+<!--            <plugin>-->
+<!--                <groupId>org.jooq</groupId>-->
+<!--                <artifactId>jooq-codegen-maven</artifactId>-->
+<!--                <version>3.19.11</version>-->
+<!--                <executions>-->
+<!--                    <execution>-->
+<!--                        <goals>-->
+<!--                            <goal>generate</goal>-->
+<!--                        </goals>-->
+<!--                    </execution>-->
+<!--                </executions>-->
+<!--                <dependencies>-->
+<!--                    <dependency>-->
+<!--                        <groupId>tech.ydb.dialects</groupId>-->
+<!--                        <artifactId>jooq-ydb-dialect</artifactId>-->
+<!--                        <version>${project.version}</version>-->
+<!--                    </dependency>-->
+<!--                    <dependency>-->
+<!--                        <groupId>tech.ydb.jdbc</groupId>-->
+<!--                        <artifactId>ydb-jdbc-driver</artifactId>-->
+<!--                        <version>${ydb.jdbc.version}</version>-->
+<!--                    </dependency>-->
+<!--                </dependencies>-->
+<!--                <configuration>-->
+<!--                    <jdbc>-->
+<!--                        <driver>tech.ydb.jdbc.YdbDriver</driver>-->
+<!--                        <url>jdbc:ydb:grpc://localhost:2136/local</url>-->
+<!--                    </jdbc>-->
+<!--                    <generator>-->
+<!--                        <strategy>-->
+<!--                            <name>tech.ydb.jooq.codegen.YdbGeneratorStrategy</name>-->
+<!--                        </strategy>-->
+<!--                        <database>-->
+<!--                            <name>tech.ydb.jooq.codegen.YdbDatabase</name>-->
+<!--                            &lt;!&ndash; исключение системных таблицы &ndash;&gt;-->
+<!--                            <excludes>.sys.*</excludes>-->
+<!--                        </database>-->
+<!--                        <target>-->
+<!--                            <packageName>jooq.generated.ydb</packageName>-->
+<!--                            <directory>./src/test/java</directory>-->
+<!--                        </target>-->
+<!--                    </generator>-->
+<!--                </configuration>-->
+<!--            </plugin>-->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-javadoc-plugin</artifactId>
@@ -134,7 +178,8 @@
                 <configuration>
                     <environmentVariables>
                         <TESTCONTAINERS_REUSE_ENABLE>true</TESTCONTAINERS_REUSE_ENABLE>
-                        <YDB_DOCKER_IMAGE>cr.yandex/yc/yandex-docker-local-ydb:latest</YDB_DOCKER_IMAGE>
+                        <YDB_ENDPOINT>localhost:2136</YDB_ENDPOINT>
+                        <YDB_DATABASE>/local</YDB_DATABASE>
                     </environmentVariables>
                 </configuration>
             </plugin>

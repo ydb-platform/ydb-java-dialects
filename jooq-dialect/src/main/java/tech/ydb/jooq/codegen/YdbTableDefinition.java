@@ -33,6 +33,7 @@ import tech.ydb.jooq.binding.Uint16Binding;
 import tech.ydb.jooq.binding.Uint32Binding;
 import tech.ydb.jooq.binding.Uint64Binding;
 import tech.ydb.jooq.binding.Uint8Binding;
+import tech.ydb.jooq.binding.UuidBinding;
 import tech.ydb.jooq.binding.YsonBinding;
 import tech.ydb.jooq.value.YSON;
 import tech.ydb.table.description.TableColumn;
@@ -73,7 +74,7 @@ public class YdbTableDefinition extends AbstractTableDefinition {
                 kind = type.getKind();
             }
 
-            int decimalDigits = kind == Type.Kind.DECIMAL ? ((DecimalType) type).getPrecision(): 0;
+            int decimalDigits = kind == Type.Kind.DECIMAL ? ((DecimalType) type).getScale() : 0;
 
             String typeName = type.toString();
             Class<? extends Binding<?, ?>> binding = getBinding(typeName);
@@ -130,6 +131,7 @@ public class YdbTableDefinition extends AbstractTableDefinition {
             case "Uint32" -> Uint32Binding.class;
             case "Uint64" -> Uint64Binding.class;
             case "Yson" -> YsonBinding.class;
+            case "Uuid" -> UuidBinding.class;
             default -> null;
         };
     }
