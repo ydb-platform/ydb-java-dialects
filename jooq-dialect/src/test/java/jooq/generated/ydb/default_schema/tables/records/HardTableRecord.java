@@ -4,6 +4,8 @@
 package jooq.generated.ydb.default_schema.tables.records;
 
 
+import java.util.UUID;
+
 import jooq.generated.ydb.default_schema.tables.HardTable;
 
 import org.jooq.JSON;
@@ -78,6 +80,20 @@ public class HardTableRecord extends UpdatableRecordImpl<HardTableRecord> {
         return (YSON) get(3);
     }
 
+    /**
+     * Setter for <code>DEFAULT_SCHEMA.hard_table.uuid</code>.
+     */
+    public void setUuid(UUID value) {
+        set(4, value);
+    }
+
+    /**
+     * Getter for <code>DEFAULT_SCHEMA.hard_table.uuid</code>.
+     */
+    public UUID getUuid() {
+        return (UUID) get(4);
+    }
+
     // -------------------------------------------------------------------------
     // Primary key information
     // -------------------------------------------------------------------------
@@ -101,13 +117,14 @@ public class HardTableRecord extends UpdatableRecordImpl<HardTableRecord> {
     /**
      * Create a detached, initialised HardTableRecord
      */
-    public HardTableRecord(byte[] id, JSON first, JSONB second, YSON third) {
+    public HardTableRecord(byte[] id, JSON first, JSONB second, YSON third, UUID uuid) {
         super(HardTable.HARD_TABLE);
 
         setId(id);
         setFirst(first);
         setSecond(second);
         setThird(third);
+        setUuid(uuid);
         resetChangedOnNotNull();
     }
 }

@@ -1,3 +1,7 @@
+## 1.1.1 ##
+
+- Supported UUID YDB Type
+
 ## 1.1.0 ##
 - Upgrade to new version of JDBC & SDK
 

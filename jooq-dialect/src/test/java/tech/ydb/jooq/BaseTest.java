@@ -98,6 +98,7 @@ public abstract class BaseTest {
                 .column("first", YdbTypes.JSON)
                 .column("second", YdbTypes.JSONDOCUMENT)
                 .column("third", YdbTypes.YSON)
+                .column("uuid", YdbTypes.UUID)
                 .primaryKey("id")
                 .execute();
 

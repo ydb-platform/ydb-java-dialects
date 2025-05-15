@@ -1,6 +1,7 @@
 package tech.ydb.jooq;
 
 import java.util.List;
+import java.util.UUID;
 import static jooq.generated.ydb.default_schema.Tables.HARD_TABLE;
 import static jooq.generated.ydb.default_schema.Tables.SERIES;
 import jooq.generated.ydb.default_schema.tables.records.HardTableRecord;
@@ -71,10 +72,12 @@ public class InsertTest extends BaseTest {
     @Test
     public void testInsertJsonTypes() {
         HardTableRecord record = new HardTableRecord();
+
         record.setId("test-id".getBytes());
         record.setFirst(JSON.valueOf("{\"key\": \"value\"}"));
         record.setSecond(JSONB.valueOf("{\"list\": [1, 2, 3]}"));
         record.setThird(YSON.valueOf("{\"boolean\" = true}"));
+        record.setUuid(UUID.randomUUID());
 
         dsl.insertInto(HARD_TABLE)
                 .set(record)
@@ -84,6 +87,11 @@ public class InsertTest extends BaseTest {
                 .where(HARD_TABLE.ID.eq("test-id".getBytes()))
                 .fetch();
 
+        Result<HardTableRecord> recordsByUuid = dsl.selectFrom(HARD_TABLE)
+                .where(HARD_TABLE.UUID.eq(record.getUuid()))
+                .fetch();
+
         assertEquals(List.of(record), records);
+        assertEquals(List.of(record), recordsByUuid);
     }
 }
