@@ -4,7 +4,7 @@
 
     <groupId>tech.ydb.dialects</groupId>
     <artifactId>jooq-ydb-dialect</artifactId>
-    <version>1.1.0</version>
+    <version>1.1.1</version>
 
     <name>YDB JOOQ Dialect module</name>
     <description>YDB JOOQ Dialect module</description>
@@ -134,7 +134,6 @@
                 <configuration>
                     <environmentVariables>
                         <TESTCONTAINERS_REUSE_ENABLE>true</TESTCONTAINERS_REUSE_ENABLE>
-                        <YDB_DOCKER_IMAGE>cr.yandex/yc/yandex-docker-local-ydb:latest</YDB_DOCKER_IMAGE>
                     </environmentVariables>
                 </configuration>
             </plugin>

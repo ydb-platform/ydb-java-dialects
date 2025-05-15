@@ -79,7 +79,7 @@ public class DateTable extends TableImpl<DateTableRecord> {
     /**
      * The column <code>DEFAULT_SCHEMA.date_table.big</code>.
      */
-    public final TableField<DateTableRecord, BigDecimal> BIG = createField(DSL.name("big"), SQLDataType.NUMERIC(16, 22), this, "");
+    public final TableField<DateTableRecord, BigDecimal> BIG = createField(DSL.name("big"), SQLDataType.NUMERIC(22, 9), this, "");
 
     /**
      * The column <code>DEFAULT_SCHEMA.date_table.date</code>.

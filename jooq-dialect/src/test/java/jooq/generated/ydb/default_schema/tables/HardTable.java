@@ -31,6 +31,7 @@ import org.jooq.impl.TableImpl;
 
 import tech.ydb.jooq.binding.JsonBinding;
 import tech.ydb.jooq.binding.JsonDocumentBinding;
+import tech.ydb.jooq.binding.UuidBinding;
 import tech.ydb.jooq.binding.YsonBinding;
 import tech.ydb.jooq.value.YSON;
 
@@ -75,6 +76,11 @@ public class HardTable extends TableImpl<HardTableRecord> {
      * The column <code>DEFAULT_SCHEMA.hard_table.third</code>.
      */
     public final TableField<HardTableRecord, YSON> THIRD = createField(DSL.name("third"), SQLDataType.OTHER, this, "", new YsonBinding());
+
+    /**
+     * The column <code>DEFAULT_SCHEMA.hard_table.uuid</code>.
+     */
+    public final TableField<HardTableRecord, java.util.UUID> UUID = createField(DSL.name("uuid"), SQLDataType.UUID, this, "", new UuidBinding());
 
     private HardTable(Name alias, Table<HardTableRecord> aliased) {
         this(alias, aliased, (Field<?>[]) null, null);

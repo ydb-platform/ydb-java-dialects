@@ -4,12 +4,28 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-
-import org.jooq.*;
+import org.jooq.DSLContext;
+import org.jooq.Record12;
+import org.jooq.Record4;
+import org.jooq.Record5;
+import org.jooq.Record6;
+import org.jooq.ResultQuery;
 import org.jooq.impl.DSL;
-import org.jooq.meta.*;
-import org.jooq.tools.JooqLogger;
-
+import org.jooq.meta.AbstractDatabase;
+import org.jooq.meta.ArrayDefinition;
+import org.jooq.meta.CatalogDefinition;
+import org.jooq.meta.DefaultRelations;
+import org.jooq.meta.DomainDefinition;
+import org.jooq.meta.EnumDefinition;
+import org.jooq.meta.IndexDefinition;
+import org.jooq.meta.PackageDefinition;
+import org.jooq.meta.ResultQueryDatabase;
+import org.jooq.meta.RoutineDefinition;
+import org.jooq.meta.SchemaDefinition;
+import org.jooq.meta.SequenceDefinition;
+import org.jooq.meta.TableDefinition;
+import org.jooq.meta.UDTDefinition;
+import org.jooq.meta.XMLSchemaCollectionDefinition;
 import tech.ydb.jdbc.YdbConnection;
 import tech.ydb.jdbc.context.SchemeExecutor;
 import tech.ydb.jdbc.context.YdbContext;
@@ -24,7 +40,6 @@ import tech.ydb.table.description.TableIndex;
 import tech.ydb.table.settings.DescribeTableSettings;
 
 public class YdbDatabase extends AbstractDatabase implements ResultQueryDatabase {
-    private static final JooqLogger log = JooqLogger.getLogger(YdbDatabase.class);
 
     public YdbDatabase() {
         YdbTypes.initialize();
