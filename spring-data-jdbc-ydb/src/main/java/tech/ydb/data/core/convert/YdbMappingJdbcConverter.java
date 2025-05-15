@@ -1,6 +1,9 @@
 package tech.ydb.data.core.convert;
 
 import java.sql.SQLType;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+
 import org.springframework.data.convert.CustomConversions;
 import org.springframework.data.jdbc.core.convert.JdbcTypeFactory;
 import org.springframework.data.jdbc.core.convert.MappingJdbcConverter;
@@ -11,8 +14,13 @@ import tech.ydb.table.values.PrimitiveType;
 
 /**
  * @author Madiyar Nurgazin
+ * @author Mikhail Polivakha
  */
+@SuppressWarnings("removal")
 public class YdbMappingJdbcConverter extends MappingJdbcConverter {
+
+    private final ConcurrentMap<RelationalPersistentProperty, SQLType> typesCache = new ConcurrentHashMap<>();
+
     public YdbMappingJdbcConverter(RelationalMappingContext context, RelationResolver relationResolver,
                                    CustomConversions conversions, JdbcTypeFactory typeFactory) {
         super(context, relationResolver, conversions, typeFactory);
@@ -20,8 +28,23 @@ public class YdbMappingJdbcConverter extends MappingJdbcConverter {
 
     @Override
     public SQLType getTargetSqlType(RelationalPersistentProperty property) {
-        return property.isAnnotationPresent(YdbType.class) ?
-                new YQLType(PrimitiveType.valueOf(property.getRequiredAnnotation(YdbType.class).value())) :
-                super.getTargetSqlType(property);
+        return typesCache.computeIfAbsent(property, this::resolveSqlType);
+    }
+
+    private SQLType resolveSqlType(RelationalPersistentProperty property) {
+        // the new api takes precedence
+        var ydbType = property.findAnnotation(tech.ydb.data.core.convert.annotation.YdbType.class);
+
+        if (ydbType != null) {
+            return new YQLType(ydbType.value());
+        }
+
+        YdbType oldType = property.findAnnotation(YdbType.class);
+
+        if (oldType != null) {
+            return new YQLType(PrimitiveType.valueOf(oldType.value()));
+        }
+
+        return super.getTargetSqlType(property);
     }
 }

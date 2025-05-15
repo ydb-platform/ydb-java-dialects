@@ -1,4 +1,4 @@
-package tech.ydb.data.core.convert;
+package tech.ydb.data.core.convert.annotation;
 
 import java.lang.annotation.Documented;
 import java.lang.annotation.ElementType;
@@ -11,18 +11,15 @@ import tech.ydb.table.values.PrimitiveType;
 /**
  * The annotation for qualification of the target YDB data type.
  *
- * @author Madiyar Nurgazin
  * @author Mikhail Polivakha
- * @deprecated Please, use {@link tech.ydb.data.core.convert.annotation.YdbType} instead because of type safety considerations.
  */
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.FIELD)
-@Deprecated(forRemoval = true)
 @Documented
 public @interface YdbType {
 
     /**
      * The target YDB data type.
      */
-    String value();
+    PrimitiveType value();
 }

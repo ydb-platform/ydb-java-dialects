@@ -9,7 +9,8 @@ import lombok.Data;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.domain.Persistable;
 import org.springframework.data.relational.core.mapping.Table;
-import tech.ydb.data.core.convert.YdbType;
+import tech.ydb.data.core.convert.annotation.YdbType;
+import tech.ydb.table.values.PrimitiveType;
 
 /**
  * @author Madiyar Nurgazin
@@ -18,6 +19,7 @@ import tech.ydb.data.core.convert.YdbType;
 @Data
 @Table("all_types_table")
 public class AllTypesEntity implements Persistable<Integer> {
+
     @Id
     private Integer id;
     private String textColumn;
@@ -29,26 +31,27 @@ public class AllTypesEntity implements Persistable<Integer> {
     private double doubleColumn;
     private BigDecimal decimalColumn;
     private byte[] binaryColumn;
-    @YdbType("Date")
+    @YdbType(PrimitiveType.Date)
     private LocalDate dateColumn;
-    @YdbType("Datetime")
+    @YdbType(PrimitiveType.Datetime)
     private LocalDateTime datetimeColumn;
     private Instant timestampColumn;
-    @YdbType("Json")
+    @YdbType(PrimitiveType.Json)
     private String jsonColumn;
-    @YdbType("JsonDocument")
+    @YdbType(PrimitiveType.JsonDocument)
     private String jsonDocumentColumn;
-    @YdbType("Uint8")
+    @YdbType(PrimitiveType.Uint8)
     private byte uint8Column;
-    @YdbType("Uint16")
+    @YdbType(PrimitiveType.Uint16)
     private short uint16Column;
-    @YdbType("Uint32")
+    @YdbType(PrimitiveType.Uint32)
     private int uint32Column;
-    @YdbType("Uint64")
+    @YdbType(PrimitiveType.Uint64)
     private long uint64Column;
 
     public AllTypesEntity() {
     }
+
     @Override
     public boolean isNew() {
         return false;
