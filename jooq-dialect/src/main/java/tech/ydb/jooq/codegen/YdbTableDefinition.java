@@ -74,7 +74,7 @@ public class YdbTableDefinition extends AbstractTableDefinition {
                 kind = type.getKind();
             }
 
-            int decimalDigits = kind == Type.Kind.DECIMAL ? ((DecimalType) type).getScale() : 0;
+            int scale = kind == Type.Kind.DECIMAL ? ((DecimalType) type).getScale() : 0;
 
             String typeName = type.toString();
             Class<? extends Binding<?, ?>> binding = getBinding(typeName);
@@ -86,7 +86,7 @@ public class YdbTableDefinition extends AbstractTableDefinition {
                     typeName,
                     YdbTypes.getSqlPrecision(type),
                     YdbTypes.getSqlPrecision(type),
-                    decimalDigits,
+                    scale,
                     isNullable,
                     null,
                     DSL.name(typeName),
