@@ -82,6 +82,7 @@
         <dependency>
             <groupId>org.springframework.data</groupId>
             <artifactId>spring-data-jdbc</artifactId>
+            <version>3.5.0-SNAPSHOT</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
@@ -90,7 +91,6 @@
             <version>${ydb.jdbc.version}</version>
             <scope>provided</scope>
         </dependency>
-
         <dependency>
             <groupId>tech.ydb.test</groupId>
             <artifactId>ydb-junit5-support</artifactId>

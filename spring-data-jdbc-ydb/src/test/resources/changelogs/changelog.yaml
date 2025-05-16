@@ -5,6 +5,9 @@ databaseChangeLog:
   - include:
       file: "books.yaml"
       relativeToChangelogFile: true
+  - include:
+      file: "types_customization.yaml"
+      relativeToChangelogFile: true
   - changeSet:
       id: "insert-all-types-table"
       author: "Madiyar Nurgazin"
