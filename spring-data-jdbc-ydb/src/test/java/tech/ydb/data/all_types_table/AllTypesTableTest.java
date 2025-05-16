@@ -7,11 +7,13 @@ import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Optional;
+
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.jdbc.core.JdbcAggregateOperations;
 import org.springframework.data.relational.core.conversion.DbActionExecutionException;
+
 import tech.ydb.data.YdbBaseTest;
 import tech.ydb.data.all_types_table.entity.AllTypesEntity;
 import tech.ydb.data.all_types_table.repository.AllTypesEntityRepository;
@@ -41,6 +43,7 @@ public class AllTypesTableTest extends YdbBaseTest {
         );
         repository.save(expected);
 
+        Assertions.assertEquals(expected.getDecimalColumn(), entity1.get().getDecimalColumn());
         Assertions.assertEquals(expected, entity1.get());
         Assertions.assertEquals(expected.getTextColumn(),
                 repository.findAllByTextColumn("Madiyar Nurgazin").get(0).getTextColumn());
@@ -69,10 +72,11 @@ public class AllTypesTableTest extends YdbBaseTest {
 
         entities = repository.findAllByDateColumnAfterNow();
         Assertions.assertEquals(1, entities.size());
-        Assertions.assertEquals(4, entities.get(0).getId());
+        Assertions.assertEquals(Integer.valueOf(4), entities.get(0).getId());
 
         entity3.setJsonColumn("Not json");
-        Assertions.assertThrows(DbActionExecutionException.class, () -> repository.save(entity3));
+        var ex = Assertions.assertThrows(DbActionExecutionException.class, () -> repository.save(entity3));
+        Assertions.assertTrue(ex.getMessage().startsWith("Failed to execute DbAction.UpdateRoot"));
 
         entity3.setJsonColumn("{\"values\": [1, 2, 3]}");
         AllTypesEntity updated = repository.save(entity3);

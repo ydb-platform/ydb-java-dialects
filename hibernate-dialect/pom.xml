@@ -41,8 +41,8 @@
         <junit5.version>5.9.3</junit5.version>
         <log4j2.version>2.17.2</log4j2.version>
 
-        <ydb.sdk.version>2.3.4</ydb.sdk.version>
-        <ydb.jdbc.version>2.3.3</ydb.jdbc.version>
+        <ydb.sdk.version>2.3.13</ydb.sdk.version>
+        <ydb.jdbc.version>2.3.10</ydb.jdbc.version>
     </properties>
 
     <licenses>
@@ -146,7 +146,6 @@
                     <environmentVariables>
                         <TESTCONTAINERS_REUSE_ENABLE>true</TESTCONTAINERS_REUSE_ENABLE>
                         <YDB_DOCKER_FEATURE_FLAGS>enable_parameterized_decimal</YDB_DOCKER_FEATURE_FLAGS>
-                        <YDB_DOCKER_IMAGE>cr.yandex/yc/yandex-docker-local-ydb:trunk</YDB_DOCKER_IMAGE>
                     </environmentVariables>
                 </configuration>
             </plugin>
