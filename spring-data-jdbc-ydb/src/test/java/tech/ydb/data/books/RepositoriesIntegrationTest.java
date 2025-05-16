@@ -1,14 +1,17 @@
 package tech.ydb.data.books;
 
 import java.time.Instant;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
+
 import tech.ydb.data.YdbBaseTest;
 import tech.ydb.data.books.entity.Author;
 import tech.ydb.data.books.entity.Book;
@@ -32,29 +35,27 @@ public class RepositoriesIntegrationTest extends YdbBaseTest {
 
     @Test
     public void crudTest() {
-        Assertions.assertEquals(1, authorRepository.findAuthorByName("Leo Tolstoy").get(0).getId());
+        Assertions.assertEquals(Long.valueOf(1), authorRepository.findAuthorByName("Leo Tolstoy").get(0).getId());
 
-        Review review1 = createReview(
-                1, 1, "Ivan Ivanov", "Masterpiece!", 10, Instant.parse("2024-03-19T15:52:26Z")
-        );
+        Review review1 = reviewRepository.findById(1L).orElseThrow();
+        Review review2 = reviewRepository.findById(2L).orElseThrow();
 
-        Review review2 = createReview(
-                2, 1, "Sergey Petrov", "Complex work, but I liked it", 9, Instant.parse("2024-03-19T16:14:05Z")
-        );
+        Book book1 = new Book(1, "War and Peace", "1234", 1869);
+        book1.getReviews().add(review1);
+        book1.getReviews().add(review2);
+        book1.getAuthors().add(new BookAuthor(1, 1));
 
-        List<Book> expected = List.of(
-                createBook(1, "War and Peace", "1234", 1869, Set.of(review1, review2), Set.of(new BookAuthor(1, 1))),
-                createBook(2, "Anna Karenina", "5678", 1878, Set.of(), Set.of(new BookAuthor(1, 2)))
-        );
+        Book book2 = new Book(2, "Anna Karenina", "5678", 1878);
+        book1.getAuthors().add(new BookAuthor(1, 2));
+
+        List<Book> expected = List.of(book1, book2);
         Iterable<Book> books = bookRepository.findAll();
         Assertions.assertEquals(expected, books);
 
         Optional<Book> bookO = bookRepository.findBookByTitle("War and Peace");
         Assertions.assertTrue(bookO.isPresent());
 
-        Review review3 = createReview(
-                3, 1, "Madiyar Nurgazin", "Great", 8, Instant.parse("2024-03-19T20:00:00Z")
-        );
+        Review review3 = new Review(3, 1, "Madiyar Nurgazin", "Great", 8, Instant.parse("2024-03-19T20:00:00Z"));
 
         Book book = bookO.get();
         book.getReviews().add(review3);
@@ -63,11 +64,11 @@ public class RepositoriesIntegrationTest extends YdbBaseTest {
         Assertions.assertEquals(3, reviewRepository.count());
 
         review1.setRating(100);
-        review1.setNew(false);
+        review1.setIsNew(false);
         review2.setRating(90);
-        review2.setNew(false);
+        review2.setIsNew(false);
         review3.setRating(80);
-        review3.setNew(false);
+        review3.setIsNew(false);
 
         Set<Review> reviews = Set.of(review1, review2, review3);
         reviewRepository.saveAll(reviews);
@@ -78,13 +79,15 @@ public class RepositoriesIntegrationTest extends YdbBaseTest {
         book = bookO.get();
         Assertions.assertEquals(reviews, book.getReviews());
 
-        Author author1 = createAuthor(2, "Author 1");
-        Author author2 = createAuthor(3, "Author 2");
+        Author author1 = new Author(2, "Author 1");
+        Author author2 = new Author(3, "Author 2");
 
         authorRepository.saveAll(List.of(author1, author2));
         Assertions.assertEquals(3, authorRepository.count());
 
-        book = createBook(3, "Title", "Isbn", 2024, Set.of(), Set.of(new BookAuthor(2, 3), new BookAuthor(3, 3)));
+        book = new Book(3, "Title", "Isbn", 2024);
+        book.getAuthors().add(new BookAuthor(2, 3));
+        book.getAuthors().add(new BookAuthor(3, 3));
         bookRepository.save(book);
 
         expected.get(0).setReviews(Set.of(review1, review2, review3));
@@ -97,7 +100,7 @@ public class RepositoriesIntegrationTest extends YdbBaseTest {
         List<Author> authors = authorRepository.findAuthorsByBookId(3);
         Assertions.assertEquals(Set.of(author1, author2), Set.copyOf(authors));
 
-        Review review = createReview(4, 3, "Reader", "Text", 5, Instant.now());
+        Review review = new Review(4, 3, "Reader", "Text", 5, Instant.now());
         reviewRepository.save(review);
 
         bookRepository.deleteById(3L);
@@ -114,16 +117,12 @@ public class RepositoriesIntegrationTest extends YdbBaseTest {
 
     @Test
     public void pagingAndSortingTest() {
-        Review review1 = createReview(
-                1, 1, "Ivan Ivanov", "Masterpiece!", 10, Instant.parse("2024-03-19T15:52:26Z")
-        );
-        Review review2 = createReview(
-                2, 1, "Sergey Petrov", "Complex work, but I liked it", 9, Instant.parse("2024-03-19T16:14:05Z")
-        );
-        Review review3 = createReview(3, 1, "Reader", "Text", 100, Instant.parse("2024-03-19T21:00:00Z"));
-        Review review4 = createReview(4, 1, "Reader", "Text2", 80, Instant.parse("2024-03-19T22:00:00Z"));
-        Review review5 = createReview(5, 1, "Reader", "Text3", 75, Instant.parse("2024-03-19T23:00:00Z"));
-        Review review6 = createReview(6, 1, "Reader", "Text4", 50, Instant.parse("2024-03-20T00:00:00Z"));
+        Review review1 = reviewRepository.findById(1L).orElseThrow();
+        Review review2 = reviewRepository.findById(2L).orElseThrow();
+        Review review3 = new Review(3, 1, "Reader", "Text", 100, Instant.parse("2024-03-19T21:00:00Z"));
+        Review review4 = new Review(4, 1, "Reader", "Text2", 80, Instant.parse("2024-03-19T22:00:00Z"));
+        Review review5 = new Review(5, 1, "Reader", "Text3", 75, Instant.parse("2024-03-19T23:00:00Z"));
+        Review review6 = new Review(6, 1, "Reader", "Text4", 50, Instant.parse("2024-03-20T00:00:00Z"));
         reviewRepository.saveAll(List.of(review3, review4, review5, review6));
 
         Iterable<Review> reviews = reviewRepository.findByReader(
@@ -137,6 +136,21 @@ public class RepositoriesIntegrationTest extends YdbBaseTest {
         Assertions.assertEquals(List.of(review5, review6), reviews);
 
         reviews = reviewRepository.findAll(Sort.by("created").descending());
+
+        Iterator<Review> it = reviews.iterator();
+        Assertions.assertTrue(it.hasNext());
+        Assertions.assertEquals(review6, it.next());
+        Assertions.assertTrue(it.hasNext());
+        Assertions.assertEquals(review5, it.next());
+        Assertions.assertTrue(it.hasNext());
+        Assertions.assertEquals(review4, it.next());
+        Assertions.assertTrue(it.hasNext());
+        Assertions.assertEquals(review3, it.next());
+        Assertions.assertTrue(it.hasNext());
+        Assertions.assertEquals(review2, it.next());
+        Assertions.assertTrue(it.hasNext());
+        Assertions.assertEquals(review1, it.next());
+
         Assertions.assertEquals(List.of(review6, review5, review4, review3, review2, review1), reviews);
 
         reviews = reviewRepository.findAll(PageRequest.of(0, 3, Sort.by("id"))).getContent();
@@ -147,39 +161,5 @@ public class RepositoriesIntegrationTest extends YdbBaseTest {
 
         reviews = reviewRepository.findAll(PageRequest.of(2, 2)).getContent();
         Assertions.assertEquals(List.of(review5, review6), reviews);
-    }
-
-    private Review createReview(long id, long bookId, String reader, String text, long rating, Instant created) {
-        Review review = new Review();
-        review.setId(id);
-        review.setBookId(bookId);
-        review.setReader(reader);
-        review.setText(text);
-        review.setRating(rating);
-        review.setCreated(created);
-        review.setNew(true);
-        return review;
-    }
-
-    private Book createBook(
-            long id, String title, String isbn, long year, Set<Review> reviews, Set<BookAuthor> authors
-    ) {
-        Book book = new Book();
-        book.setId(id);
-        book.setTitle(title);
-        book.setIsbn(isbn);
-        book.setYear(year);
-        book.setReviews(reviews);
-        book.setAuthors(authors);
-        book.setNew(true);
-        return book;
-    }
-
-    private Author createAuthor(long id, String name) {
-        Author author = new Author();
-        author.setId(id);
-        author.setName(name);
-        author.setNew(true);
-        return author;
     }
 }
