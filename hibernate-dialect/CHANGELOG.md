@@ -1,3 +1,8 @@
+## 1.5.0 ##
+
+- Support for `GenerationType.IDENTITY` with JDBC YDB Driver **2.3.11** and later.
+- Support for `Date32`, `Datetime64`, and `Timestamp64` YDB types.
+
 ## 1.4.1 ##
 
 - Deleted `InExpressionCountLimit`

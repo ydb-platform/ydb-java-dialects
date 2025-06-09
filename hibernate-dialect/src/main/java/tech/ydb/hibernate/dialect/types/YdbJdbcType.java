@@ -1,6 +1,5 @@
 package tech.ydb.hibernate.dialect.types;
 
-
 import java.sql.CallableStatement;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -11,17 +10,18 @@ import org.hibernate.type.descriptor.WrapperOptions;
 import org.hibernate.type.descriptor.java.JavaType;
 import org.hibernate.type.descriptor.jdbc.JdbcType;
 import org.hibernate.type.spi.TypeConfiguration;
-import tech.ydb.hibernate.dialect.code.YdbJdbcCode;
 
 /**
  * @author Kirill Kurdyukov
  */
-public class Uint8JdbcType implements JdbcType {
-    public static final Uint8JdbcType INSTANCE = new Uint8JdbcType();
+public class YdbJdbcType implements JdbcType {
 
-    @Override
-    public int getJdbcTypeCode() {
-        return YdbJdbcCode.UINT8;
+    private final int jdbcTypeCode;
+    private final Class<?> classToken;
+
+    public YdbJdbcType(int jdbcTypeCode, Class<?> classToken) {
+        this.jdbcTypeCode = jdbcTypeCode;
+        this.classToken = classToken;
     }
 
     @Override
@@ -29,20 +29,29 @@ public class Uint8JdbcType implements JdbcType {
             Integer precision,
             Integer scale,
             TypeConfiguration typeConfiguration) {
-        return typeConfiguration.getJavaTypeRegistry().getDescriptor(Integer.class);
+        return typeConfiguration.getJavaTypeRegistry().getDescriptor(classToken);
     }
 
     @Override
+    public Class<?> getPreferredJavaTypeClass(WrapperOptions options) {
+        return classToken;
+    }
+
+    @Override
+    public int getJdbcTypeCode() {
+        return jdbcTypeCode;
+    }
+
     public <X> ValueBinder<X> getBinder(JavaType<X> javaType) {
         return new ValueBinder<>() {
             @Override
             public void bind(PreparedStatement st, X value, int index, WrapperOptions options) throws SQLException {
-                st.setObject(index, javaType.unwrap(value, Integer.class, options), getJdbcTypeCode());
+                st.setObject(index, javaType.unwrap(value, classToken, options), getJdbcTypeCode());
             }
 
             @Override
             public void bind(CallableStatement st, X value, String name, WrapperOptions options) throws SQLException {
-                st.setObject(name, javaType.unwrap(value, Integer.class, options), getJdbcTypeCode());
+                st.setObject(name, javaType.unwrap(value, classToken, options), getJdbcTypeCode());
             }
         };
     }
