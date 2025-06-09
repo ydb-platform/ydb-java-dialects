@@ -12,12 +12,13 @@ import org.hibernate.type.descriptor.java.JavaType;
 import org.hibernate.type.descriptor.jdbc.BasicBinder;
 import org.hibernate.type.descriptor.jdbc.TimestampJdbcType;
 import org.hibernate.type.spi.TypeConfiguration;
+import tech.ydb.hibernate.dialect.code.YdbJdbcCode;
 
 /**
  * @author Kirill Kurdyukov
  */
 public class LocalDateTimeJdbcType extends TimestampJdbcType {
-    public static final int JDBC_TYPE_DATETIME_CODE = 10017;
+
     public static final LocalDateTimeJdbcType INSTANCE = new LocalDateTimeJdbcType();
 
     @Override
@@ -27,12 +28,12 @@ public class LocalDateTimeJdbcType extends TimestampJdbcType {
 
     @Override
     public int getJdbcTypeCode() {
-        return JDBC_TYPE_DATETIME_CODE;
+        return YdbJdbcCode.DATETIME;
     }
 
     @Override
     public String getFriendlyName() {
-        return "DATETIME";
+        return "Datetime";
     }
 
     @Override
@@ -53,14 +54,14 @@ public class LocalDateTimeJdbcType extends TimestampJdbcType {
             protected void doBind(PreparedStatement st, X value, int index, WrapperOptions options) throws SQLException {
                 final LocalDateTime localDateTime = javaType.unwrap(value, LocalDateTime.class, options);
 
-                st.setObject(index, localDateTime, JDBC_TYPE_DATETIME_CODE);
+                st.setObject(index, localDateTime, YdbJdbcCode.DATETIME);
             }
 
             @Override
             protected void doBind(CallableStatement st, X value, String name, WrapperOptions options) throws SQLException {
                 final LocalDateTime localDateTime = javaType.unwrap(value, LocalDateTime.class, options);
 
-                st.setObject(name, localDateTime, JDBC_TYPE_DATETIME_CODE);
+                st.setObject(name, localDateTime, YdbJdbcCode.DATETIME);
             }
         };
     }

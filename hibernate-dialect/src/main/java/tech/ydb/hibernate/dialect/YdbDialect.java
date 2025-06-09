@@ -1,5 +1,8 @@
 package tech.ydb.hibernate.dialect;
 
+import java.time.Duration;
+import java.time.Instant;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
@@ -32,6 +35,7 @@ import static org.hibernate.type.SqlTypes.DECIMAL;
 import static org.hibernate.type.SqlTypes.DOUBLE;
 import static org.hibernate.type.SqlTypes.FLOAT;
 import static org.hibernate.type.SqlTypes.INTEGER;
+import static org.hibernate.type.SqlTypes.INTERVAL_SECOND;
 import static org.hibernate.type.SqlTypes.JSON;
 import static org.hibernate.type.SqlTypes.LONG32NVARCHAR;
 import static org.hibernate.type.SqlTypes.LONG32VARBINARY;
@@ -61,7 +65,6 @@ import org.hibernate.type.descriptor.jdbc.spi.JdbcTypeRegistry;
 import org.hibernate.type.descriptor.sql.internal.DdlTypeImpl;
 import org.hibernate.type.descriptor.sql.spi.DdlTypeRegistry;
 import tech.ydb.hibernate.dialect.code.YdbJdbcCode;
-import static tech.ydb.hibernate.dialect.code.YdbJdbcCode.DECIMAL_SHIFT;
 import tech.ydb.hibernate.dialect.exporter.EmptyExporter;
 import tech.ydb.hibernate.dialect.exporter.YdbIndexExporter;
 import tech.ydb.hibernate.dialect.hint.IndexQueryHintHandler;
@@ -78,8 +81,7 @@ import tech.ydb.hibernate.dialect.types.LocalDateJavaType;
 import tech.ydb.hibernate.dialect.types.LocalDateJdbcType;
 import tech.ydb.hibernate.dialect.types.LocalDateTimeJavaType;
 import tech.ydb.hibernate.dialect.types.LocalDateTimeJdbcType;
-import static tech.ydb.hibernate.dialect.types.LocalDateTimeJdbcType.JDBC_TYPE_DATETIME_CODE;
-import tech.ydb.hibernate.dialect.types.Uint8JdbcType;
+import tech.ydb.hibernate.dialect.types.YdbJdbcType;
 
 /**
  * @author Kirill Kurdyukov
@@ -110,7 +112,7 @@ public class YdbDialect extends Dialect {
             case DOUBLE -> "Double";
             case NUMERIC, DECIMAL -> "Decimal($p, $s)";
             case DATE -> "Date";
-            case JDBC_TYPE_DATETIME_CODE -> "Datetime";
+            case INTERVAL_SECOND -> "Interval";
             case TIME_WITH_TIMEZONE -> "TzDateTime";
             case TIMESTAMP, TIMESTAMP_UTC -> "Timestamp";
             case TIMESTAMP_WITH_TIMEZONE -> "TzTimestamp";
@@ -137,7 +139,12 @@ public class YdbDialect extends Dialect {
         typeContributions.contributeJdbcType(InstantJdbcType.INSTANCE);
 
         // custom jdbc codec
-        typeContributions.contributeJdbcType(Uint8JdbcType.INSTANCE);
+        typeContributions.contributeJdbcType(new YdbJdbcType(YdbJdbcCode.UINT8, Integer.class));
+        typeContributions.contributeJdbcType(new YdbJdbcType(YdbJdbcCode.DATE_32, LocalDate.class));
+        typeContributions.contributeJdbcType(new YdbJdbcType(YdbJdbcCode.DATETIME_64, LocalDateTime.class));
+        typeContributions.contributeJdbcType(new YdbJdbcType(YdbJdbcCode.TIMESTAMP_64, Instant.class));
+        typeContributions.contributeJdbcType(new YdbJdbcType(YdbJdbcCode.INTERVAL_64, Duration.class));
+
         typeContributions.contributeJavaType(BigDecimalJavaType.INSTANCE_22_9);
         typeContributions.contributeJdbcType(new DecimalJdbcType(YdbJdbcCode.DECIMAL_22_9));
         typeContributions.contributeJdbcType(new DecimalJdbcType(YdbJdbcCode.DECIMAL_31_9));
@@ -152,8 +159,14 @@ public class YdbDialect extends Dialect {
         final DdlTypeRegistry ddlTypeRegistry = typeContributions.getTypeConfiguration().getDdlTypeRegistry();
 
         ddlTypeRegistry.addDescriptor(new DdlTypeImpl(UUID, "Uuid", "Uuid", this));
+        ddlTypeRegistry.addDescriptor(new DdlTypeImpl(INTERVAL_SECOND, "Interval", "Interval", this));
+        ddlTypeRegistry.addDescriptor(new DdlTypeImpl(YdbJdbcCode.INTERVAL, "Interval", "Interval", this));
         ddlTypeRegistry.addDescriptor(new DdlTypeImpl(YdbJdbcCode.DATETIME, "Datetime", "Datetime", this));
         ddlTypeRegistry.addDescriptor(new DdlTypeImpl(YdbJdbcCode.UINT8, "Uint8", "Uint8", this));
+        ddlTypeRegistry.addDescriptor(new DdlTypeImpl(YdbJdbcCode.DATE_32, "Date32", "Date32", this));
+        ddlTypeRegistry.addDescriptor(new DdlTypeImpl(YdbJdbcCode.DATETIME_64, "Datetime64", "Datetime64", this));
+        ddlTypeRegistry.addDescriptor(new DdlTypeImpl(YdbJdbcCode.TIMESTAMP_64, "Timestamp64", "Timestamp64", this));
+        ddlTypeRegistry.addDescriptor(new DdlTypeImpl(YdbJdbcCode.INTERVAL_64, "Interval64", "Interval64", this));
         ddlTypeRegistry.addDescriptor(new DdlTypeImpl(YdbJdbcCode.DECIMAL_22_9, "Decimal(22, 9)", "Decimal(22, 9)", this));
         ddlTypeRegistry.addDescriptor(new DdlTypeImpl(YdbJdbcCode.DECIMAL_31_9, "Decimal(31, 9)", "Decimal(31, 9)", this));
         ddlTypeRegistry.addDescriptor(new DdlTypeImpl(YdbJdbcCode.DECIMAL_35_0, "Decimal(35, 0)", "Decimal(35, 0)", this));
@@ -168,7 +181,7 @@ public class YdbDialect extends Dialect {
             int scale,
             JdbcTypeRegistry jdbcTypeRegistry) {
         if ((jdbcTypeCode == NUMERIC || jdbcTypeCode == DECIMAL) && (precision != 0 || scale != 0)) {
-            int sqlCode = DECIMAL_SHIFT + (precision << 6) + scale;
+            int sqlCode = ydbDecimal(precision, scale);
 
             return DECIMAL_JDBC_TYPE_CACHE.computeIfAbsent(sqlCode, DecimalJdbcType::new);
         }
@@ -384,5 +397,9 @@ public class YdbDialect extends Dialect {
     @Override
     public boolean supportsInsertReturningGeneratedKeys() {
         return true;
+    }
+
+    private static int ydbDecimal(int precision, int scale) {
+        return 1 << 14 + (precision << 6) + (scale & 0x111111);
     }
 }

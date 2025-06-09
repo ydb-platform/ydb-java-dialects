@@ -29,7 +29,7 @@ public class YdbJdbcCodeTests {
                 .buildSessionFactory();
 
         /*
-        create table hibernate_test (
+        create table hibernate_test_bigdecimal (
             default_bigDecimal Decimal(22, 9),
             bigDecimal31_9 Decimal(31, 9),
             bigDecimal35_0 Decimal(35, 0),

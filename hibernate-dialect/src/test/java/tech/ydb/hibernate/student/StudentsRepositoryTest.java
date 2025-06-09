@@ -206,7 +206,7 @@ public class StudentsRepositoryTest {
         inTransaction(
                 session -> {
                     /*
-                        PRAGMA ydb.HashJoinMode='grace'; PRAGMA Warning("disable", "1101"); select
+                        select
                             g1_0.GroupId,
                             g1_0.GroupName,
                             s1_0.GroupId,
@@ -222,8 +222,6 @@ public class StudentsRepositoryTest {
                      */
                     List<Student> students = session
                             .createQuery("FROM Group g JOIN FETCH g.students WHERE g.name = 'M3439'", Group.class)
-                            .addQueryHint("add_pragma:ydb.HashJoinMode='grace'")
-                            .addQueryHint("add_pragma:Warning(\"disable\", \"1101\")")
                             .getSingleResult().getStudents();
 
                     assertEquals(2, students.size());
