@@ -8,6 +8,8 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import lombok.Data;
+import org.hibernate.annotations.JdbcTypeCode;
+import tech.ydb.hibernate.dialect.code.YdbJdbcCode;
 
 /**
  * @author Kirill Kurdyukov
@@ -28,4 +30,16 @@ public class TestEntity {
 
     @Column(name = "c_Timestamp", nullable = false)
     private Instant timestamp;
+
+    @JdbcTypeCode(YdbJdbcCode.DATE_32)
+    @Column(name = "c_Date32", nullable = false)
+    private LocalDate date32;
+
+    @JdbcTypeCode(YdbJdbcCode.DATETIME_64)
+    @Column(name = "c_Datetime64", nullable = false)
+    private LocalDateTime datetime64;
+
+    @JdbcTypeCode(YdbJdbcCode.TIMESTAMP_64)
+    @Column(name = "c_Timestamp64", nullable = false)
+    private Instant timestamp64;
 }

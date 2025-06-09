@@ -38,6 +38,9 @@ public class DataTimeTests {
         expected.setDate(date);
         expected.setDatetime(datetime);
         expected.setTimestamp(timestamp);
+        expected.setDate32(date);
+        expected.setDatetime64(datetime);
+        expected.setTimestamp64(timestamp);
 
         inTransaction(session -> session.persist(expected));
         inTransaction(session -> assertEquals(expected, session.find(TestEntity.class, 1)));
