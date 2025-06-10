@@ -7,6 +7,7 @@ package jooq.generated.ydb.default_schema;
 import jooq.generated.ydb.default_schema.tables.DateTable;
 import jooq.generated.ydb.default_schema.tables.Episodes;
 import jooq.generated.ydb.default_schema.tables.HardTable;
+import jooq.generated.ydb.default_schema.tables.Numeric;
 import jooq.generated.ydb.default_schema.tables.Seasons;
 import jooq.generated.ydb.default_schema.tables.Series;
 
@@ -31,6 +32,11 @@ public class Tables {
      * The table <code>DEFAULT_SCHEMA.hard_table</code>.
      */
     public static final HardTable HARD_TABLE = HardTable.HARD_TABLE;
+
+    /**
+     * The table <code>DEFAULT_SCHEMA.numeric</code>.
+     */
+    public static final Numeric NUMERIC = Numeric.NUMERIC;
 
     /**
      * The table <code>DEFAULT_SCHEMA.seasons</code>.

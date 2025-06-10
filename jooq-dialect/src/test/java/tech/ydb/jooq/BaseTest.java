@@ -29,31 +29,44 @@ public abstract class BaseTest {
 
     protected static List<DateTableRecord> getExampleDateRecords() {
         LocalDate date = LocalDate.of(2024, 4, 1);
+        LocalDate date32 = LocalDate.of(1024, 4, 1);
         LocalDateTime datetime = LocalDateTime.of(date, LocalTime.of(13, 29, 30));
+        LocalDateTime datetime64 = LocalDateTime.of(date32, LocalTime.of(13, 29, 30));
         Instant instant = datetime.toInstant(ZoneOffset.UTC).plus(1, ChronoUnit.HOURS);
+        Instant instant64 = datetime64.toInstant(ZoneOffset.UTC).plus(1, ChronoUnit.HOURS);
         Duration duration = Duration.of(1, ChronoUnit.HOURS);
+        Duration duration64 = Duration.of(-1, ChronoUnit.HOURS);
 
         return List.of(
-                new DateTableRecord(ULong.valueOf(1), 2, 0.1, BigDecimal.valueOf(1), date, datetime, instant, duration),
+                new DateTableRecord(ULong.valueOf(1), 2, 0.1, new BigDecimal("1.000000000"),
+                        date, datetime, instant, duration, date32, datetime64, instant64, duration64),
                 new DateTableRecord(
                         ULong.valueOf(2),
                         3,
                         0.2,
-                        BigDecimal.valueOf(2),
+                        new BigDecimal("2.000000000"),
                         date.plusDays(1),
                         datetime.plusDays(1),
                         instant.plus(1, ChronoUnit.DAYS),
-                        duration.plus(1, ChronoUnit.HOURS)
+                        duration.plus(1, ChronoUnit.HOURS),
+                        date32.plusDays(1),
+                        datetime64.plusDays(1),
+                        instant64.plus(1, ChronoUnit.DAYS),
+                        duration64.plus(1, ChronoUnit.HOURS)
                 ),
                 new DateTableRecord(
                         ULong.valueOf(3),
                         4,
                         0.3,
-                        BigDecimal.valueOf(3),
+                        new BigDecimal("3.000000000"),
                         date.plusDays(1),
                         datetime.plusDays(2),
                         instant.plus(2, ChronoUnit.DAYS),
-                        duration.plus(2, ChronoUnit.HOURS)
+                        duration.plus(2, ChronoUnit.HOURS),
+                        date32.plusDays(1),
+                        datetime64.plusDays(2),
+                        instant64.plus(2, ChronoUnit.DAYS),
+                        duration64.plus(2, ChronoUnit.HOURS)
                 )
         );
     }
@@ -111,6 +124,10 @@ public abstract class BaseTest {
                 .column("datetime", YdbTypes.DATETIME)
                 .column("timestamp", YdbTypes.TIMESTAMP)
                 .column("interval", YdbTypes.INTERVAL)
+                .column("date32", YdbTypes.DATE32)
+                .column("datetime64", YdbTypes.DATETIME64)
+                .column("timestamp64", YdbTypes.TIMESTAMP64)
+                .column("interval64", YdbTypes.INTERVAL64)
                 .primaryKey("id")
                 .execute();
 

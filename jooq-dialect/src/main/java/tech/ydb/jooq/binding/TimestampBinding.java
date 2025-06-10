@@ -12,7 +12,6 @@ import static tech.ydb.jooq.binding.BindingTools.indexType;
 import tech.ydb.table.values.PrimitiveType;
 import tech.ydb.table.values.PrimitiveValue;
 
-@SuppressWarnings("resource")
 public final class TimestampBinding extends AbstractBinding<LocalDateTime, Instant> {
 
     private static final int INDEX_TYPE = indexType(PrimitiveType.Timestamp);

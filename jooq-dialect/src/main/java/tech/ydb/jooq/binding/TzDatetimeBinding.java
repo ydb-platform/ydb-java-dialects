@@ -13,7 +13,6 @@ import java.time.ZonedDateTime;
 
 import static tech.ydb.jooq.binding.BindingTools.indexType;
 
-@SuppressWarnings("resource")
 public final class TzDatetimeBinding extends AbstractBinding<ZonedDateTime, ZonedDateTime> {
 
     private static final int INDEX_TYPE = indexType(PrimitiveType.TzDatetime);

@@ -7,11 +7,13 @@ package jooq.generated.ydb.default_schema;
 import jooq.generated.ydb.default_schema.tables.DateTable;
 import jooq.generated.ydb.default_schema.tables.Episodes;
 import jooq.generated.ydb.default_schema.tables.HardTable;
+import jooq.generated.ydb.default_schema.tables.Numeric;
 import jooq.generated.ydb.default_schema.tables.Seasons;
 import jooq.generated.ydb.default_schema.tables.Series;
 import jooq.generated.ydb.default_schema.tables.records.DateTableRecord;
 import jooq.generated.ydb.default_schema.tables.records.EpisodesRecord;
 import jooq.generated.ydb.default_schema.tables.records.HardTableRecord;
+import jooq.generated.ydb.default_schema.tables.records.NumericRecord;
 import jooq.generated.ydb.default_schema.tables.records.SeasonsRecord;
 import jooq.generated.ydb.default_schema.tables.records.SeriesRecord;
 
@@ -35,6 +37,7 @@ public class Keys {
     public static final UniqueKey<DateTableRecord> PK_DATE_TABLE = Internal.createUniqueKey(DateTable.DATE_TABLE, DSL.name("pk_date_table"), new TableField[] { DateTable.DATE_TABLE.ID }, true);
     public static final UniqueKey<EpisodesRecord> PK_EPISODES = Internal.createUniqueKey(Episodes.EPISODES, DSL.name("pk_episodes"), new TableField[] { Episodes.EPISODES.SERIES_ID, Episodes.EPISODES.SEASON_ID, Episodes.EPISODES.EPISODE_ID }, true);
     public static final UniqueKey<HardTableRecord> PK_HARD_TABLE = Internal.createUniqueKey(HardTable.HARD_TABLE, DSL.name("pk_hard_table"), new TableField[] { HardTable.HARD_TABLE.ID }, true);
+    public static final UniqueKey<NumericRecord> PK_NUMERIC = Internal.createUniqueKey(Numeric.NUMERIC, DSL.name("pk_numeric"), new TableField[] { Numeric.NUMERIC.ID }, true);
     public static final UniqueKey<SeasonsRecord> PK_SEASONS = Internal.createUniqueKey(Seasons.SEASONS, DSL.name("pk_seasons"), new TableField[] { Seasons.SEASONS.SERIES_ID, Seasons.SEASONS.SEASON_ID }, true);
     public static final UniqueKey<SeriesRecord> PK_SERIES = Internal.createUniqueKey(Series.SERIES, DSL.name("pk_series"), new TableField[] { Series.SERIES.SERIES_ID }, true);
 }

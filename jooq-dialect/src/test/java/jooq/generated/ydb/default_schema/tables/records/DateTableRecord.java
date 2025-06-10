@@ -137,6 +137,62 @@ public class DateTableRecord extends UpdatableRecordImpl<DateTableRecord> {
         return (Duration) get(7);
     }
 
+    /**
+     * Setter for <code>DEFAULT_SCHEMA.date_table.date32</code>.
+     */
+    public void setDate32(LocalDate value) {
+        set(8, value);
+    }
+
+    /**
+     * Getter for <code>DEFAULT_SCHEMA.date_table.date32</code>.
+     */
+    public LocalDate getDate32() {
+        return (LocalDate) get(8);
+    }
+
+    /**
+     * Setter for <code>DEFAULT_SCHEMA.date_table.datetime64</code>.
+     */
+    public void setDatetime64(LocalDateTime value) {
+        set(9, value);
+    }
+
+    /**
+     * Getter for <code>DEFAULT_SCHEMA.date_table.datetime64</code>.
+     */
+    public LocalDateTime getDatetime64() {
+        return (LocalDateTime) get(9);
+    }
+
+    /**
+     * Setter for <code>DEFAULT_SCHEMA.date_table.timestamp64</code>.
+     */
+    public void setTimestamp64(Instant value) {
+        set(10, value);
+    }
+
+    /**
+     * Getter for <code>DEFAULT_SCHEMA.date_table.timestamp64</code>.
+     */
+    public Instant getTimestamp64() {
+        return (Instant) get(10);
+    }
+
+    /**
+     * Setter for <code>DEFAULT_SCHEMA.date_table.interval64</code>.
+     */
+    public void setInterval64(Duration value) {
+        set(11, value);
+    }
+
+    /**
+     * Getter for <code>DEFAULT_SCHEMA.date_table.interval64</code>.
+     */
+    public Duration getInterval64() {
+        return (Duration) get(11);
+    }
+
     // -------------------------------------------------------------------------
     // Primary key information
     // -------------------------------------------------------------------------
@@ -160,7 +216,7 @@ public class DateTableRecord extends UpdatableRecordImpl<DateTableRecord> {
     /**
      * Create a detached, initialised DateTableRecord
      */
-    public DateTableRecord(ULong id, Integer intCol, Double percent, BigDecimal big, LocalDate date, LocalDateTime datetime, Instant timestamp, Duration interval) {
+    public DateTableRecord(ULong id, Integer intCol, Double percent, BigDecimal big, LocalDate date, LocalDateTime datetime, Instant timestamp, Duration interval, LocalDate date32, LocalDateTime datetime64, Instant timestamp64, Duration interval64) {
         super(DateTable.DATE_TABLE);
 
         setId(id);
@@ -171,6 +227,10 @@ public class DateTableRecord extends UpdatableRecordImpl<DateTableRecord> {
         setDatetime(datetime);
         setTimestamp(timestamp);
         setInterval(interval);
+        setDate32(date32);
+        setDatetime64(datetime64);
+        setTimestamp64(timestamp64);
+        setInterval64(interval64);
         resetChangedOnNotNull();
     }
 }

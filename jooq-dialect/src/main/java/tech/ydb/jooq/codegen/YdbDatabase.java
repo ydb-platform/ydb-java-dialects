@@ -163,7 +163,8 @@ public class YdbDatabase extends AbstractDatabase implements ResultQueryDatabase
                 tableName,
                 "",
                 tableDescription,
-                tablePath
+                tablePath,
+                getContext().getTypes()
         );
     }
 
