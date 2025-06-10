@@ -39,6 +39,9 @@ public final class IntervalBinding extends AbstractBinding<YearToSecond, Duratio
     private static class IntervalConverter implements Converter<YearToSecond, Duration> {
         @Override
         public Duration from(YearToSecond databaseObject) {
+            if (databaseObject == null) {
+                return null;
+            }
             return databaseObject.toDuration();
         }
 
