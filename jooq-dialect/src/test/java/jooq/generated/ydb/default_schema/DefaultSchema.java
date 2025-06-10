@@ -11,7 +11,6 @@ import jooq.generated.ydb.DefaultCatalog;
 import jooq.generated.ydb.default_schema.tables.DateTable;
 import jooq.generated.ydb.default_schema.tables.Episodes;
 import jooq.generated.ydb.default_schema.tables.HardTable;
-import jooq.generated.ydb.default_schema.tables.Numeric;
 import jooq.generated.ydb.default_schema.tables.Seasons;
 import jooq.generated.ydb.default_schema.tables.Series;
 
@@ -49,11 +48,6 @@ public class DefaultSchema extends SchemaImpl {
     public final HardTable HARD_TABLE = HardTable.HARD_TABLE;
 
     /**
-     * The table <code>DEFAULT_SCHEMA.numeric</code>.
-     */
-    public final Numeric NUMERIC = Numeric.NUMERIC;
-
-    /**
      * The table <code>DEFAULT_SCHEMA.seasons</code>.
      */
     public final Seasons SEASONS = Seasons.SEASONS;
@@ -82,7 +76,6 @@ public class DefaultSchema extends SchemaImpl {
             DateTable.DATE_TABLE,
             Episodes.EPISODES,
             HardTable.HARD_TABLE,
-            Numeric.NUMERIC,
             Seasons.SEASONS,
             Series.SERIES
         );
