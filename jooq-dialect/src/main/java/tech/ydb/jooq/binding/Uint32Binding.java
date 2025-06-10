@@ -13,7 +13,6 @@ import java.sql.SQLException;
 
 import static tech.ydb.jooq.binding.BindingTools.indexType;
 
-@SuppressWarnings("resource")
 public final class Uint32Binding extends AbstractBinding<UInteger, UInteger> {
 
     private static final int INDEX_TYPE = indexType(PrimitiveType.Uint32);

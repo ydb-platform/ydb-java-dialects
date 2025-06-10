@@ -4,7 +4,7 @@
 
     <groupId>tech.ydb.dialects</groupId>
     <artifactId>jooq-ydb-dialect</artifactId>
-    <version>1.1.1</version>
+    <version>1.2.0</version>
 
     <name>YDB JOOQ Dialect module</name>
     <description>YDB JOOQ Dialect module</description>
@@ -53,7 +53,7 @@
         <jooq.version>3.19.0</jooq.version>
 
         <ydb.sdk.version>2.3.8</ydb.sdk.version>
-        <ydb.jdbc.version>2.3.7</ydb.jdbc.version>
+        <ydb.jdbc.version>2.3.11</ydb.jdbc.version>
     </properties>
 
     <dependencies>
@@ -134,6 +134,7 @@
                 <configuration>
                     <environmentVariables>
                         <TESTCONTAINERS_REUSE_ENABLE>true</TESTCONTAINERS_REUSE_ENABLE>
+                        <YDB_DOCKER_IMAGE>ydbplatform/local-ydb:trunk</YDB_DOCKER_IMAGE>
                     </environmentVariables>
                 </configuration>
             </plugin>

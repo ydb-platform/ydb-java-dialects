@@ -2,22 +2,26 @@ package tech.ydb.jooq.binding;
 
 import java.sql.SQLException;
 import java.time.Duration;
+import java.time.temporal.ChronoUnit;
+import java.util.concurrent.TimeUnit;
 import org.jooq.BindingGetResultSetContext;
 import org.jooq.BindingSetStatementContext;
 import org.jooq.Converter;
 import org.jooq.impl.AbstractBinding;
-import org.jooq.types.YearToSecond;
+import org.jooq.types.ULong;
 import static tech.ydb.jooq.binding.BindingTools.indexType;
 import tech.ydb.table.values.PrimitiveType;
 import tech.ydb.table.values.PrimitiveValue;
 
-public final class IntervalBinding extends AbstractBinding<YearToSecond, Duration> {
+/**
+ * @author Kirill Kurdyukov
+ */
+public class Interval64Binding extends AbstractBinding<ULong, Duration> {
 
-    private static final int INDEX_TYPE = indexType(PrimitiveType.Interval);
-
+    private static final int INDEX_TYPE = indexType(PrimitiveType.Interval64);
 
     @Override
-    public Converter<YearToSecond, Duration> converter() {
+    public Converter<ULong, Duration> converter() {
         return new IntervalConverter();
     }
 
@@ -26,7 +30,7 @@ public final class IntervalBinding extends AbstractBinding<YearToSecond, Duratio
         if (ctx.value() == null) {
             ctx.statement().setNull(ctx.index(), INDEX_TYPE);
         } else {
-            ctx.statement().setObject(ctx.index(), PrimitiveValue.newInterval(ctx.value()), INDEX_TYPE);
+            ctx.statement().setObject(ctx.index(), PrimitiveValue.newInterval64(ctx.value()), INDEX_TYPE);
         }
     }
 
@@ -36,20 +40,21 @@ public final class IntervalBinding extends AbstractBinding<YearToSecond, Duratio
         ctx.value(value);
     }
 
-    private static class IntervalConverter implements Converter<YearToSecond, Duration> {
+    private static class IntervalConverter implements Converter<ULong, Duration> {
+
         @Override
-        public Duration from(YearToSecond databaseObject) {
-            return databaseObject.toDuration();
+        public Duration from(ULong databaseObject) {
+            return Duration.of(databaseObject.longValue(), ChronoUnit.MICROS);
         }
 
         @Override
-        public YearToSecond to(Duration userObject) {
-            return YearToSecond.valueOf(userObject);
+        public ULong to(Duration userObject) {
+            return ULong.valueOf(TimeUnit.NANOSECONDS.toMicros(userObject.toNanos()));
         }
 
         @Override
-        public Class<YearToSecond> fromType() {
-            return YearToSecond.class;
+        public Class<ULong> fromType() {
+            return ULong.class;
         }
 
         @Override
@@ -58,4 +63,3 @@ public final class IntervalBinding extends AbstractBinding<YearToSecond, Duratio
         }
     }
 }
-

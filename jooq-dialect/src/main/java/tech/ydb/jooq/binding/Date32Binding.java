@@ -1,21 +1,19 @@
 package tech.ydb.jooq.binding;
 
+import java.sql.SQLException;
+import java.time.LocalDate;
 import org.jooq.BindingGetResultSetContext;
 import org.jooq.BindingSetStatementContext;
 import org.jooq.Converter;
 import org.jooq.impl.AbstractBinding;
 import org.jooq.impl.IdentityConverter;
+import static tech.ydb.jooq.binding.BindingTools.indexType;
 import tech.ydb.table.values.PrimitiveType;
 import tech.ydb.table.values.PrimitiveValue;
 
-import java.sql.SQLException;
-import java.time.LocalDate;
+public final class Date32Binding extends AbstractBinding<LocalDate, LocalDate> {
 
-import static tech.ydb.jooq.binding.BindingTools.indexType;
-
-public final class DateBinding extends AbstractBinding<LocalDate, LocalDate> {
-
-    private static final int INDEX_TYPE = indexType(PrimitiveType.Date);
+    private static final int INDEX_TYPE = indexType(PrimitiveType.Date32);
 
     @Override
     public Converter<LocalDate, LocalDate> converter() {
@@ -27,7 +25,7 @@ public final class DateBinding extends AbstractBinding<LocalDate, LocalDate> {
         if (ctx.value() == null) {
             ctx.statement().setNull(ctx.index(), INDEX_TYPE);
         } else {
-            ctx.statement().setObject(ctx.index(), PrimitiveValue.newDate(ctx.value()), INDEX_TYPE);
+            ctx.statement().setObject(ctx.index(), PrimitiveValue.newDate32(ctx.value()), INDEX_TYPE);
         }
     }
 

@@ -22,12 +22,16 @@ import org.jooq.types.UInteger;
 import org.jooq.types.ULong;
 import org.jooq.types.UShort;
 
-import tech.ydb.jdbc.impl.YdbTypes;
+import tech.ydb.jdbc.common.YdbTypes;
+import tech.ydb.jooq.binding.Date32Binding;
 import tech.ydb.jooq.binding.DateBinding;
+import tech.ydb.jooq.binding.Datetime64Binding;
 import tech.ydb.jooq.binding.DatetimeBinding;
+import tech.ydb.jooq.binding.Interval64Binding;
 import tech.ydb.jooq.binding.IntervalBinding;
 import tech.ydb.jooq.binding.JsonBinding;
 import tech.ydb.jooq.binding.JsonDocumentBinding;
+import tech.ydb.jooq.binding.Timestamp64Binding;
 import tech.ydb.jooq.binding.TimestampBinding;
 import tech.ydb.jooq.binding.Uint16Binding;
 import tech.ydb.jooq.binding.Uint32Binding;
@@ -45,11 +49,20 @@ public class YdbTableDefinition extends AbstractTableDefinition {
 
     private final TableDescription tableDescription;
     private final String tablePath;
+    private final YdbTypes ydbTypes;
 
-    public YdbTableDefinition(SchemaDefinition schema, String name, String comment, TableDescription tableDescription, String tablePath) {
+    public YdbTableDefinition(
+            SchemaDefinition schema,
+            String name,
+            String comment,
+            TableDescription tableDescription,
+            String tablePath,
+            YdbTypes ydbTypes
+    ) {
         super(schema, name, comment);
         this.tableDescription = tableDescription;
         this.tablePath = tablePath;
+        this.ydbTypes = ydbTypes;
     }
 
     @Override
@@ -84,8 +97,8 @@ public class YdbTableDefinition extends AbstractTableDefinition {
                     getDatabase(),
                     null,
                     typeName,
-                    YdbTypes.getSqlPrecision(type),
-                    YdbTypes.getSqlPrecision(type),
+                    ydbTypes.getSqlPrecision(type),
+                    ydbTypes.getSqlPrecision(type),
                     scale,
                     isNullable,
                     null,
@@ -94,10 +107,6 @@ public class YdbTableDefinition extends AbstractTableDefinition {
                     binding != null ? binding.getName() : null,
                     javaType != null ? javaType.getName() : null
             );
-
-            if (getName().equals("test")) {
-                System.out.println("Here");
-            }
 
             ColumnDefinition columnDefinition = new DefaultColumnDefinition(
                     getDatabase().getTable(getSchema(), getName()),
@@ -132,18 +141,22 @@ public class YdbTableDefinition extends AbstractTableDefinition {
             case "Uint64" -> Uint64Binding.class;
             case "Yson" -> YsonBinding.class;
             case "Uuid" -> UuidBinding.class;
+            case "Date32" -> Date32Binding.class;
+            case "Datetime64" -> Datetime64Binding.class;
+            case "Timestamp64" -> Timestamp64Binding.class;
+            case "Interval64" -> Interval64Binding.class;
             default -> null;
         };
     }
 
     private static Class<?> getJavaType(String typeName) {
         return switch (typeName) {
-            case "Date" -> LocalDate.class;
-            case "Datetime" -> LocalDateTime.class;
-            case "Interval" -> Duration.class;
+            case "Date", "Date32" -> LocalDate.class;
+            case "Datetime", "Datetime64" -> LocalDateTime.class;
+            case "Interval", "Interval64" -> Duration.class;
             case "Json" -> JSON.class;
             case "JsonDocument" -> JSONB.class;
-            case "Timestamp" -> Instant.class;
+            case "Timestamp", "Timestamp64" -> Instant.class;
             case "Uint8" -> UByte.class;
             case "Uint16" -> UShort.class;
             case "Uint32" -> UInteger.class;

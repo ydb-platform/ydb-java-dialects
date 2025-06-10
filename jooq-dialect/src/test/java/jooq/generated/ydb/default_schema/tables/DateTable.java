@@ -33,9 +33,13 @@ import org.jooq.impl.SQLDataType;
 import org.jooq.impl.TableImpl;
 import org.jooq.types.ULong;
 
+import tech.ydb.jooq.binding.Date32Binding;
 import tech.ydb.jooq.binding.DateBinding;
+import tech.ydb.jooq.binding.Datetime64Binding;
 import tech.ydb.jooq.binding.DatetimeBinding;
+import tech.ydb.jooq.binding.Interval64Binding;
 import tech.ydb.jooq.binding.IntervalBinding;
+import tech.ydb.jooq.binding.Timestamp64Binding;
 import tech.ydb.jooq.binding.TimestampBinding;
 import tech.ydb.jooq.binding.Uint64Binding;
 
@@ -100,6 +104,26 @@ public class DateTable extends TableImpl<DateTableRecord> {
      * The column <code>DEFAULT_SCHEMA.date_table.interval</code>.
      */
     public final TableField<DateTableRecord, Duration> INTERVAL = createField(DSL.name("interval"), SQLDataType.INTERVAL, this, "", new IntervalBinding());
+
+    /**
+     * The column <code>DEFAULT_SCHEMA.date_table.date32</code>.
+     */
+    public final TableField<DateTableRecord, LocalDate> DATE32 = createField(DSL.name("date32"), SQLDataType.LOCALDATE, this, "", new Date32Binding());
+
+    /**
+     * The column <code>DEFAULT_SCHEMA.date_table.datetime64</code>.
+     */
+    public final TableField<DateTableRecord, LocalDateTime> DATETIME64 = createField(DSL.name("datetime64"), SQLDataType.LOCALDATETIME(19), this, "", new Datetime64Binding());
+
+    /**
+     * The column <code>DEFAULT_SCHEMA.date_table.timestamp64</code>.
+     */
+    public final TableField<DateTableRecord, Instant> TIMESTAMP64 = createField(DSL.name("timestamp64"), SQLDataType.INSTANT(26), this, "", new Timestamp64Binding());
+
+    /**
+     * The column <code>DEFAULT_SCHEMA.date_table.interval64</code>.
+     */
+    public final TableField<DateTableRecord, Duration> INTERVAL64 = createField(DSL.name("interval64"), SQLDataType.BIGINTUNSIGNED, this, "", new Interval64Binding());
 
     private DateTable(Name alias, Table<DateTableRecord> aliased) {
         this(alias, aliased, (Field<?>[]) null, null);

@@ -12,7 +12,6 @@ import java.sql.SQLException;
 
 import static tech.ydb.jooq.binding.BindingTools.indexType;
 
-@SuppressWarnings("resource")
 public final class YsonBinding extends AbstractBinding<Object, YSON> {
 
     private static final int INDEX_TYPE = indexType(PrimitiveType.Yson);

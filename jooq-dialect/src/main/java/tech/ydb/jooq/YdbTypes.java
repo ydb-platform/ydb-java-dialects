@@ -58,7 +58,12 @@ public final class YdbTypes {
     public static final DataType<LocalDate> DATE = newDataType(SQLDataType.LOCALDATE, "date", new DateBinding());
     public static final DataType<LocalDateTime> DATETIME = newDataType(SQLDataType.LOCALDATETIME, "datetime", new DatetimeBinding());
     public static final DataType<Instant> TIMESTAMP = newDataType(SQLDataType.INSTANT, "timestamp", new TimestampBinding());
-    public static final DataType<Duration> INTERVAL = newDataType(SQLDataType.BIGINTUNSIGNED, "interval", new IntervalBinding());
+    public static final DataType<Duration> INTERVAL = newDataType(SQLDataType.INTERVAL, "interval", new IntervalBinding());
+
+    public static final DataType<LocalDate> DATE32 = newDataType(SQLDataType.LOCALDATE, "date32", new Date32Binding());
+    public static final DataType<LocalDateTime> DATETIME64 = newDataType(SQLDataType.LOCALDATETIME, "datetime64", new Datetime64Binding());
+    public static final DataType<Instant> TIMESTAMP64 = newDataType(SQLDataType.INSTANT, "timestamp64", new Timestamp64Binding());
+    public static final DataType<Duration> INTERVAL64 = newDataType(SQLDataType.INTERVAL, "interval64", new Interval64Binding());
 
     public static final DataType<ZonedDateTime> TZ_DATE = newDataType(SQLDataType.OTHER, "tzdate", new TzDateBinding());
     public static final DataType<ZonedDateTime> TZ_DATETIME = newDataType(SQLDataType.OTHER, "tzdateTime", new TzDatetimeBinding());

@@ -1,18 +1,19 @@
 package tech.ydb.jooq;
 
+import java.util.List;
+import static jooq.generated.ydb.default_schema.Tables.DATE_TABLE;
+import static jooq.generated.ydb.default_schema.Tables.SERIES;
 import jooq.generated.ydb.default_schema.tables.Series;
 import jooq.generated.ydb.default_schema.tables.records.SeriesRecord;
 import org.jooq.Record2;
 import org.jooq.Result;
+import static org.jooq.impl.DSL.count;
 import org.jooq.types.ULong;
+import org.junit.jupiter.api.Assertions;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-
-import java.util.List;
-
-import static jooq.generated.ydb.default_schema.Tables.SERIES;
-import static org.jooq.impl.DSL.count;
-import static org.junit.jupiter.api.Assertions.*;
 
 public class SelectTest extends BaseTest {
     private static final SeriesRecord FIRST = new SeriesRecord(ULong.valueOf(1), "title", "info", ULong.MIN);
@@ -104,5 +105,23 @@ public class SelectTest extends BaseTest {
                 .fetchInto(SeriesRecord.class);
 
         assertEquals(2, result.size(), "Expected duplicated results due to join on same table");
+    }
+
+    @Test
+    public void selectNewDateTypes() {
+        var dataRecords = getExampleDateRecords();;
+
+        dsl.insertInto(DATE_TABLE)
+                .set(dataRecords)
+                .execute();
+
+        var selectedDataRecords = dsl
+                .selectFrom(DATE_TABLE)
+                .orderBy(DATE_TABLE.ID)
+                .fetch();
+
+        for (int i = 0; i < dataRecords.size(); i++) {
+            Assertions.assertEquals(selectedDataRecords.get(i), dataRecords.get(i));
+        }
     }
 }
