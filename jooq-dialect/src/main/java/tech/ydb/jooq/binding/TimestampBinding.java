@@ -39,10 +39,7 @@ public final class TimestampBinding extends AbstractBinding<LocalDateTime, Insta
     private static class TimestampConverter implements Converter<LocalDateTime, Instant> {
         @Override
         public Instant from(LocalDateTime databaseObject) {
-            if (databaseObject == null) {
-                return null;
-            }
-            return databaseObject.toInstant(ZoneOffset.UTC);
+            return databaseObject == null ? null : databaseObject.toInstant(ZoneOffset.UTC);
         }
 
         @Override
