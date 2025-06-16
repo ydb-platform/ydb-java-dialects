@@ -49,7 +49,7 @@ public class Interval64Binding extends AbstractBinding<ULong, Duration> {
 
         @Override
         public ULong to(Duration userObject) {
-            return ULong.valueOf(TimeUnit.NANOSECONDS.toMicros(userObject.toNanos()));
+            return userObject == null ? null : ULong.valueOf(TimeUnit.NANOSECONDS.toMicros(userObject.toNanos()));
         }
 
         @Override

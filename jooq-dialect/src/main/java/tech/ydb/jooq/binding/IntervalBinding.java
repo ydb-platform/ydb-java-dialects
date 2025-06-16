@@ -44,7 +44,7 @@ public final class IntervalBinding extends AbstractBinding<YearToSecond, Duratio
 
         @Override
         public YearToSecond to(Duration userObject) {
-            return YearToSecond.valueOf(userObject);
+            return userObject == null ? null : YearToSecond.valueOf(userObject);
         }
 
         @Override

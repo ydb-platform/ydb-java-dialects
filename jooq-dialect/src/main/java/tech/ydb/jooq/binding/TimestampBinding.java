@@ -44,7 +44,7 @@ public final class TimestampBinding extends AbstractBinding<LocalDateTime, Insta
 
         @Override
         public LocalDateTime to(Instant userObject) {
-            return LocalDateTime.ofInstant(userObject, ZoneOffset.UTC);
+            return userObject == null ? null : LocalDateTime.ofInstant(userObject, ZoneOffset.UTC);
         }
 
         @Override
