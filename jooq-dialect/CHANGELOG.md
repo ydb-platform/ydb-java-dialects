@@ -1,3 +1,11 @@
+## 1.2.1 ##
+
+- Fixed bug: Handling null values in the Converter ([#190](https://github.com/ydb-platform/ydb-java-dialects/pull/190))
+
+## 1.2.0
+
+- Support for `Date32`, `Datetime64`, and `Timestamp64` YDB types.
+
 ## 1.1.1 ##
 
 - Supported UUID YDB Type
