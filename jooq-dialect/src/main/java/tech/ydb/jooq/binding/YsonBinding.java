@@ -39,7 +39,7 @@ public final class YsonBinding extends AbstractBinding<Object, YSON> {
     private static class YsonConverter implements Converter<Object, YSON> {
         @Override
         public YSON from(Object databaseObject) {
-            return (YSON) databaseObject;
+            return databaseObject == null ? null : (YSON) databaseObject;
         }
 
         @Override

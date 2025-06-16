@@ -44,12 +44,12 @@ public class Interval64Binding extends AbstractBinding<ULong, Duration> {
 
         @Override
         public Duration from(ULong databaseObject) {
-            return Duration.of(databaseObject.longValue(), ChronoUnit.MICROS);
+            return databaseObject == null ? null : Duration.of(databaseObject.longValue(), ChronoUnit.MICROS);
         }
 
         @Override
         public ULong to(Duration userObject) {
-            return ULong.valueOf(TimeUnit.NANOSECONDS.toMicros(userObject.toNanos()));
+            return userObject == null ? null : ULong.valueOf(TimeUnit.NANOSECONDS.toMicros(userObject.toNanos()));
         }
 
         @Override
