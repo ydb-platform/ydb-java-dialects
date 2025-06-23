@@ -1,10 +1,12 @@
 package tech.ydb.flywaydb.database;
 
+import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
+
 import org.flywaydb.core.internal.database.base.Schema;
 import org.flywaydb.core.internal.jdbc.JdbcTemplate;
 
@@ -75,15 +77,13 @@ public class YdbSchema extends Schema<YdbDatabase, YdbTable> {
     }
 
     private List<String> schemaTables() throws SQLException {
-        ResultSet rs = jdbcTemplate.getConnection().getMetaData()
-                .getTables(null, name, null, new String[]{"TABLE"});
-
-        List<String> tables = new ArrayList<>();
-
-        while (rs.next()) {
-            tables.add(database.quote(rs.getString("TABLE_NAME")));
+        DatabaseMetaData md = jdbcTemplate.getConnection().getMetaData();
+        try (ResultSet rs = md.getTables(null, name, null, new String[]{"TABLE"})) {
+            List<String> tables = new ArrayList<>();
+            while (rs.next()) {
+                tables.add(database.quote(rs.getString("TABLE_NAME")));
+            }
+            return tables;
         }
-
-        return tables;
     }
 }
