@@ -1,6 +1,5 @@
 package tech.ydb.liquibase.change;
 
-import com.opencsv.exceptions.CsvMalformedLineException;
 import java.io.IOException;
 import java.sql.ResultSet;
 import java.util.ArrayList;
@@ -9,6 +8,8 @@ import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+
+import com.opencsv.exceptions.CsvMalformedLineException;
 import liquibase.Scope;
 import liquibase.change.ChangeMetaData;
 import liquibase.change.DatabaseChange;
@@ -23,6 +24,7 @@ import liquibase.statement.SqlStatement;
 import liquibase.statement.core.InsertStatement;
 import liquibase.statement.core.RawSqlStatement;
 import liquibase.util.csv.CSVReader;
+
 import tech.ydb.liquibase.database.YdbDatabase;
 
 /**
@@ -60,17 +62,16 @@ public class LoadDataChangeYdb extends LoadDataChange {
             }
 
             JdbcConnection jdbcConnection = (JdbcConnection) database.getConnection();
-            ResultSet resultSet = jdbcConnection.getMetaData()
-                    .getColumns(null, null, tableName, null);
+            try (ResultSet resultSet = jdbcConnection.getMetaData().getColumns(null, null, tableName, null)) {
+                while (resultSet.next()) {
+                    columnToLiquibaseDataType.put(
+                            resultSet.getString("COLUMN_NAME").toLowerCase(),
+                            DataTypeFactory.getInstance()
+                                    .fromDescription(resultSet.getString("TYPE_NAME"), database));
+                }
 
-            while (resultSet.next()) {
-                columnToLiquibaseDataType.put(
-                        resultSet.getString("COLUMN_NAME").toLowerCase(),
-                        DataTypeFactory.getInstance()
-                                .fromDescription(resultSet.getString("TYPE_NAME"), database));
+                return getSqlStatements(database, reader, headers);
             }
-
-            return getSqlStatements(database, reader, headers);
         } catch (CsvMalformedLineException e) {
             throw new RuntimeException("Error parsing " + getRelativeTo() + " on line " + e.getLineNumber() + ": " + e.getMessage());
         } catch (UnexpectedLiquibaseException ule) {
