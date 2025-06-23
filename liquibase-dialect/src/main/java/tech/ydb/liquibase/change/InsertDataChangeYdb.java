@@ -6,6 +6,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+
 import liquibase.change.ChangeMetaData;
 import liquibase.change.ColumnConfig;
 import liquibase.change.DatabaseChange;
@@ -34,14 +35,13 @@ public class InsertDataChangeYdb extends InsertDataChange {
 
         try {
             JdbcConnection jdbcConnection = (JdbcConnection) database.getConnection();
-            ResultSet resultSet = jdbcConnection.getMetaData()
-                    .getColumns(null, null, getTableName(), null);
-
-            while (resultSet.next()) {
-                columnToLiquibaseDataType.put(
-                        resultSet.getString("COLUMN_NAME").toLowerCase(),
-                        DataTypeFactory.getInstance()
-                                .fromDescription(resultSet.getString("TYPE_NAME"), database));
+            try (ResultSet rs = jdbcConnection.getMetaData().getColumns(null, null, getTableName(), null)) {
+                while (rs.next()) {
+                    columnToLiquibaseDataType.put(
+                            rs.getString("COLUMN_NAME").toLowerCase(),
+                            DataTypeFactory.getInstance().fromDescription(rs.getString("TYPE_NAME"), database)
+                    );
+                }
             }
 
             StringBuilder yqlInsert = new StringBuilder()
