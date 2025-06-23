@@ -2,7 +2,9 @@ package tech.ydb.lock.provider;
 
 import java.sql.SQLException;
 import java.util.Optional;
+
 import javax.sql.DataSource;
+
 import net.javacrumbs.shedlock.core.LockConfiguration;
 import net.javacrumbs.shedlock.core.LockProvider;
 import net.javacrumbs.shedlock.core.SimpleLock;
@@ -31,33 +33,30 @@ public class YdbJDBCLockProvider implements LockProvider {
             try {
                 connection.setAutoCommit(false);
 
-                var selectPS = connection.prepareStatement("SELECT locked_by, lock_until FROM shedlock " +
-                        "WHERE name = ? AND lock_until > CurrentUtcTimestamp()");
-
-                selectPS.setString(1, lockConfiguration.getName());
-
-                try (var rs = selectPS.executeQuery()) {
-                    if (rs.next()) {
-                        LOGGER.debug("Instance[{}] acquire lock is failed. Leader is {}, lock_until = {}",
-                                LOCKED_BY, rs.getString(1), rs.getString(2));
-                        return Optional.empty();
+                try (var selectPS = connection.prepareStatement("SELECT locked_by, lock_until FROM shedlock " +
+                        "WHERE name = ? AND lock_until > CurrentUtcTimestamp()")) {
+                    selectPS.setString(1, lockConfiguration.getName());
+                    try (var rs = selectPS.executeQuery()) {
+                        if (rs.next()) {
+                            LOGGER.debug("Instance[{}] acquire lock is failed. Leader is {}, lock_until = {}",
+                                    LOCKED_BY, rs.getString(1), rs.getString(2));
+                            return Optional.empty();
+                        }
                     }
                 }
 
-                var upsertPS = connection.prepareStatement("" +
+                try (var upsertPS = connection.prepareStatement("" +
                         "UPSERT INTO shedlock(name, lock_until, locked_at, locked_by) " +
                         "VALUES (?, Unwrap(CurrentUtcTimestamp() + ?), CurrentUtcTimestamp(), ?)"
-                );
-
-                upsertPS.setObject(1, lockConfiguration.getName());
-                upsertPS.setObject(2, lockConfiguration.getLockAtMostFor());
-                upsertPS.setObject(3, LOCKED_BY);
-                upsertPS.execute();
+                )) {
+                    upsertPS.setObject(1, lockConfiguration.getName());
+                    upsertPS.setObject(2, lockConfiguration.getLockAtMostFor());
+                    upsertPS.setObject(3, LOCKED_BY);
+                    upsertPS.execute();
+                }
 
                 connection.commit();
-
                 LOGGER.debug("Instance[{}] is leader", LOCKED_BY);
-
                 return Optional.of(new YdbJDBCLock(lockConfiguration.getName(), dataSource));
             } finally {
                 connection.setAutoCommit(autoCommit);
