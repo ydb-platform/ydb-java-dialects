@@ -80,7 +80,7 @@ public class UpsertReplaceQueryImpl<R extends Record>
 
         Table<?> t = InlineDerivedTable.inlineDerivedTable(ctx, table(ctx));
         if (t instanceof InlineDerivedTable<?> i) {
-            copy(
+            try (var copyUpsertReplaceQuery = copy(
                     d -> {
                         if (!d.upsertReplaceMaps.isEmpty()) {
                             Table<?> m = DSL.table(name("t"));
@@ -97,7 +97,9 @@ public class UpsertReplaceQueryImpl<R extends Record>
                         }
                     },
                     i.table
-            ).accept0(ctx);
+            )) {
+                copyUpsertReplaceQuery.accept0(ctx);
+            }
         } else {
             accept0(ctx);
         }
