@@ -1,9 +1,5 @@
 package org.jooq.impl;
 
-import org.jooq.*;
-import org.jooq.Record;
-import org.jooq.RenderContext.CastMode;
-
 import java.util.AbstractMap;
 import java.util.AbstractSet;
 import java.util.ArrayList;
@@ -15,7 +11,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
-
+import java.util.stream.IntStream;
+import org.jooq.Context;
+import org.jooq.DataType;
+import org.jooq.Field;
+import org.jooq.Record;
+import org.jooq.RenderContext.CastMode;
+import org.jooq.Select;
+import org.jooq.Table;
 import static org.jooq.impl.Keywords.K_VALUES;
 import static org.jooq.impl.Tools.BooleanDataKey.DATA_STORE_ASSIGNMENT;
 
@@ -72,24 +75,13 @@ public final class FieldMapsForUpsertReplace extends AbstractQueryPart {
     }
 
     public Select<Record> upsertSelect() {
-        Select<Record> select = null;
-
         Map<Field<?>, List<Field<?>>> v = valuesFlattened();
 
-        for (int i = 0; i < rows; i++) {
-            int row = i;
-            Select<Record> iteration = DSL.select(Tools.map(
-                    v.entrySet(), e -> patchDefault0(e.getValue().get(row), e.getKey())
-            ));
-
-            if (select == null) {
-                select = iteration;
-            } else {
-                select = select.unionAll(iteration);
-            }
-        }
-
-        return select;
+        return IntStream.range(0, rows)
+                .mapToObj(row -> (Select<Record>) DSL.select(Tools.map(v.entrySet(),
+                        e -> patchDefault0(e.getValue().get(row), e.getKey()))))
+                .reduce(Select::unionAll)
+                .orElse(null);
     }
 
     private void toSQL92Values(Context<?> ctx) {
