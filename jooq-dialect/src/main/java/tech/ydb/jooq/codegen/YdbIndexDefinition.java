@@ -1,5 +1,8 @@
 package tech.ydb.jooq.codegen;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import org.jooq.SortOrder;
 import org.jooq.meta.AbstractIndexDefinition;
 import org.jooq.meta.ColumnDefinition;
@@ -7,10 +10,8 @@ import org.jooq.meta.DefaultIndexColumnDefinition;
 import org.jooq.meta.IndexColumnDefinition;
 import org.jooq.meta.SchemaDefinition;
 import org.jooq.meta.TableDefinition;
-import tech.ydb.table.description.TableIndex;
 
-import java.util.ArrayList;
-import java.util.List;
+import tech.ydb.table.description.TableIndex;
 
 public class YdbIndexDefinition extends AbstractIndexDefinition {
     private final TableIndex tableIndex;
@@ -29,6 +30,9 @@ public class YdbIndexDefinition extends AbstractIndexDefinition {
 
         for (String column : columns) {
             ColumnDefinition columnDefinition = getTable().getColumn(column);
+            if (columnDefinition == null) {
+                continue;
+            }
 
             IndexColumnDefinition definition = new DefaultIndexColumnDefinition(
                     this,

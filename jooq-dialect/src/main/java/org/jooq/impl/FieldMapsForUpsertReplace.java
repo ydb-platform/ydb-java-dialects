@@ -12,6 +12,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.stream.IntStream;
+
 import org.jooq.Context;
 import org.jooq.DataType;
 import org.jooq.Field;
@@ -19,6 +20,7 @@ import org.jooq.Record;
 import org.jooq.RenderContext.CastMode;
 import org.jooq.Select;
 import org.jooq.Table;
+
 import static org.jooq.impl.Keywords.K_VALUES;
 import static org.jooq.impl.Tools.BooleanDataKey.DATA_STORE_ASSIGNMENT;
 
@@ -78,10 +80,9 @@ public final class FieldMapsForUpsertReplace extends AbstractQueryPart {
         Map<Field<?>, List<Field<?>>> v = valuesFlattened();
 
         return IntStream.range(0, rows)
-                .mapToObj(row -> (Select<Record>) DSL.select(Tools.map(v.entrySet(),
-                        e -> patchDefault0(e.getValue().get(row), e.getKey()))))
+                .mapToObj(row -> (Select<Record>) DSL.select(Tools.map(v.entrySet(), e -> patchDefault0(e.getValue().get(row), e.getKey()))))
                 .reduce(Select::unionAll)
-                .orElse(null);
+                .orElseThrow();
     }
 
     private void toSQL92Values(Context<?> ctx) {
