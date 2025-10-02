@@ -1,3 +1,5 @@
+## 1.5.1 ##
+
 - Fixed @JdbcTypeCode annotation on fields: Json, JsonDocument and others with YdbJdbcCode
 
 ## 1.5.0 ##
