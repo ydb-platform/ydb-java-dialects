@@ -1,3 +1,5 @@
+- Fixed @JdbcTypeCode annotation on fields: Json, JsonDocument and others with YdbJdbcCode
+
 ## 1.5.0 ##
 
 - Support for `GenerationType.IDENTITY` with JDBC YDB Driver **2.3.11** and later.

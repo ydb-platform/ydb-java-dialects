@@ -144,6 +144,27 @@ public class YdbDialect extends Dialect {
         typeContributions.contributeJdbcType(new YdbJdbcType(YdbJdbcCode.DATETIME_64, LocalDateTime.class));
         typeContributions.contributeJdbcType(new YdbJdbcType(YdbJdbcCode.TIMESTAMP_64, Instant.class));
         typeContributions.contributeJdbcType(new YdbJdbcType(YdbJdbcCode.INTERVAL_64, Duration.class));
+        typeContributions.contributeJdbcType(new YdbJdbcType(YdbJdbcCode.JSON, String.class));
+        typeContributions.contributeJdbcType(new YdbJdbcType(YdbJdbcCode.JSON_DOCUMENT, String.class));
+        typeContributions.contributeJdbcType(new YdbJdbcType(YdbJdbcCode.BOOL, Boolean.class));
+        typeContributions.contributeJdbcType(new YdbJdbcType(YdbJdbcCode.INT8, Integer.class));
+        typeContributions.contributeJdbcType(new YdbJdbcType(YdbJdbcCode.INT16, Integer.class));
+        typeContributions.contributeJdbcType(new YdbJdbcType(YdbJdbcCode.UINT16, Integer.class));
+        typeContributions.contributeJdbcType(new YdbJdbcType(YdbJdbcCode.INT32, Integer.class));
+        typeContributions.contributeJdbcType(new YdbJdbcType(YdbJdbcCode.UINT32, Integer.class));
+        typeContributions.contributeJdbcType(new YdbJdbcType(YdbJdbcCode.INT64, Integer.class));
+        typeContributions.contributeJdbcType(new YdbJdbcType(YdbJdbcCode.UINT64, Integer.class));
+        typeContributions.contributeJdbcType(new YdbJdbcType(YdbJdbcCode.FLOAT, Float.class));
+        typeContributions.contributeJdbcType(new YdbJdbcType(YdbJdbcCode.DOUBLE, Double.class));
+        typeContributions.contributeJdbcType(new YdbJdbcType(YdbJdbcCode.BYTES, byte[].class));
+        typeContributions.contributeJdbcType(new YdbJdbcType(YdbJdbcCode.TEXT, String.class));
+        typeContributions.contributeJdbcType(new YdbJdbcType(YdbJdbcCode.YSON, byte[].class));
+        typeContributions.contributeJdbcType(new YdbJdbcType(YdbJdbcCode.JSON, String.class));
+        typeContributions.contributeJdbcType(new YdbJdbcType(YdbJdbcCode.UUID, java.util.UUID.class));
+        typeContributions.contributeJdbcType(new YdbJdbcType(YdbJdbcCode.DATE, LocalDate.class));
+        typeContributions.contributeJdbcType(new YdbJdbcType(YdbJdbcCode.DATETIME, LocalDateTime.class));
+        typeContributions.contributeJdbcType(new YdbJdbcType(YdbJdbcCode.TIMESTAMP, Instant.class));
+        typeContributions.contributeJdbcType(new YdbJdbcType(YdbJdbcCode.INTERVAL, Duration.class));
 
         typeContributions.contributeJavaType(BigDecimalJavaType.INSTANCE_22_9);
         typeContributions.contributeJdbcType(new DecimalJdbcType(YdbJdbcCode.DECIMAL_22_9));
@@ -171,6 +192,26 @@ public class YdbDialect extends Dialect {
         ddlTypeRegistry.addDescriptor(new DdlTypeImpl(YdbJdbcCode.DECIMAL_31_9, "Decimal(31, 9)", "Decimal(31, 9)", this));
         ddlTypeRegistry.addDescriptor(new DdlTypeImpl(YdbJdbcCode.DECIMAL_35_0, "Decimal(35, 0)", "Decimal(35, 0)", this));
         ddlTypeRegistry.addDescriptor(new DdlTypeImpl(YdbJdbcCode.DECIMAL_35_9, "Decimal(35, 9)", "Decimal(35, 9)", this));
+        ddlTypeRegistry.addDescriptor(new DdlTypeImpl(YdbJdbcCode.JSON, "Json", "Json", this));
+        ddlTypeRegistry.addDescriptor(new DdlTypeImpl(YdbJdbcCode.JSON_DOCUMENT, "JsonDocument", "JsonDocument", this));
+        ddlTypeRegistry.addDescriptor(new DdlTypeImpl(YdbJdbcCode.BOOL, "Bool", "Bool", this));
+        ddlTypeRegistry.addDescriptor(new DdlTypeImpl(YdbJdbcCode.INT8, "Int8", "Int8", this));
+        ddlTypeRegistry.addDescriptor(new DdlTypeImpl(YdbJdbcCode.INT16, "Int16", "Int16", this));
+        ddlTypeRegistry.addDescriptor(new DdlTypeImpl(YdbJdbcCode.UINT16, "Uint16", "Uint16", this));
+        ddlTypeRegistry.addDescriptor(new DdlTypeImpl(YdbJdbcCode.INT32, "Int32", "Int32", this));
+        ddlTypeRegistry.addDescriptor(new DdlTypeImpl(YdbJdbcCode.UINT32, "Uint32", "Uint32", this));
+        ddlTypeRegistry.addDescriptor(new DdlTypeImpl(YdbJdbcCode.INT64, "Int64", "Int64", this));
+        ddlTypeRegistry.addDescriptor(new DdlTypeImpl(YdbJdbcCode.UINT64, "Uint64", "Uint64", this));
+        ddlTypeRegistry.addDescriptor(new DdlTypeImpl(YdbJdbcCode.FLOAT, "Float", "Float", this));
+        ddlTypeRegistry.addDescriptor(new DdlTypeImpl(YdbJdbcCode.DOUBLE, "Double", "Double", this));
+        ddlTypeRegistry.addDescriptor(new DdlTypeImpl(YdbJdbcCode.BYTES, "Bytes", "Bytes", this));
+        ddlTypeRegistry.addDescriptor(new DdlTypeImpl(YdbJdbcCode.TEXT, "Text", "Text", this));
+        ddlTypeRegistry.addDescriptor(new DdlTypeImpl(YdbJdbcCode.YSON, "Yson", "Yson", this));
+        ddlTypeRegistry.addDescriptor(new DdlTypeImpl(YdbJdbcCode.UUID, "Uuid", "Uuid", this));
+        ddlTypeRegistry.addDescriptor(new DdlTypeImpl(YdbJdbcCode.DATE, "Date", "Date", this));
+        ddlTypeRegistry.addDescriptor(new DdlTypeImpl(YdbJdbcCode.DATETIME, "Datetime", "Datetime", this));
+        ddlTypeRegistry.addDescriptor(new DdlTypeImpl(YdbJdbcCode.TIMESTAMP, "Timestamp", "Timestamp", this));
+        ddlTypeRegistry.addDescriptor(new DdlTypeImpl(YdbJdbcCode.INTERVAL, "Interval", "Interval", this));
     }
 
     @Override
