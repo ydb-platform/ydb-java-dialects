@@ -1,7 +1,9 @@
 package tech.ydb.jooq.codegen;
 
 import org.jooq.codegen.DefaultGeneratorStrategy;
+import org.jooq.impl.YdbTableImpl;
 import org.jooq.meta.Definition;
+import org.jooq.meta.TableDefinition;
 import org.jooq.tools.StringUtils;
 
 public class YdbGeneratorStrategy extends DefaultGeneratorStrategy {
@@ -35,5 +37,13 @@ public class YdbGeneratorStrategy extends DefaultGeneratorStrategy {
     @Override
     public String getJavaIdentifier(Definition definition) {
         return definition.getInputName().toUpperCase(getTargetLocale());
+    }
+
+    @Override
+    public String getJavaClassExtends(Definition definition, Mode mode) {
+        if (definition instanceof TableDefinition && YdbGeneratorStrategy.Mode.DEFAULT.equals(mode)) {
+            return YdbTableImpl.class.getName();
+        }
+        return super.getJavaClassExtends(definition, mode);
     }
 }
