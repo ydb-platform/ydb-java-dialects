@@ -38,6 +38,9 @@ public class YdbListener implements VisitListener {
     private void addQuoteForName(VisitContext context) {
         QueryPart part = context.queryPart();
         if (part instanceof Name) {
+            if (Name.Quoted.SYSTEM.equals(((Name) part).quoted())) {
+                return;
+            }
             RenderContext renderContext = context.renderContext();
             if (renderContext != null) {
                 renderContext.sql(quote);
