@@ -38,6 +38,15 @@ public class SelectTest extends BaseTest {
     }
 
     @Test
+    public void selectAllFromUsingPrimaryKey() {
+        Result<SeriesRecord> series = dsl
+                .selectFrom(SERIES.viewPrimaryKey())
+                .fetch();
+
+        assertEquals(List.of(FIRST, SECOND), series);
+    }
+
+    @Test
     public void selectFromWhereText() {
         Result<SeriesRecord> series = dsl
                 .selectFrom(SERIES)
