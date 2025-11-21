@@ -1,3 +1,7 @@
+## 1.3.0 ##
+
+- Added support for using view primary keys in `HintedTable`.
+
 ## 1.2.1 ##
 
 - Fixed bug: Handling null values in the Converter ([#190](https://github.com/ydb-platform/ydb-java-dialects/pull/190))
