@@ -166,6 +166,15 @@
     </build>
     <profiles>
         <profile>
+            <id>spring-boot-minimal</id>
+            <activation>
+                <activeByDefault>true</activeByDefault>
+            </activation>
+            <properties>
+                <spring.version>3.4.0</spring.version>
+            </properties>
+        </profile>
+        <profile>
             <id>spring-boot3</id>
             <properties>
                 <spring.version>3.5.7</spring.version>
@@ -173,9 +182,6 @@
         </profile>
         <profile>
             <id>spring-boot4</id>
-            <activation>
-                <activeByDefault>true</activeByDefault>
-            </activation>
             <properties>
                 <spring.version>4.0.0</spring.version>
             </properties>

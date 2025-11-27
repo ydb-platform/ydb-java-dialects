@@ -22,7 +22,7 @@ that provides support for working with [YDB](https://ydb.tech).
 To use this Spring Data JDBC YDB Dialect, you'll need:
 
 - Java 17 or above.
-- Spring Data JDBC 3.5+
+- Spring Data JDBC 3.4+
 - [YDB JDBC Driver](https://github.com/ydb-platform/ydb-jdbc-driver)
 - Access to a YDB Database instance
 

@@ -32,6 +32,10 @@ jobs:
           distribution: 'temurin'
           cache: 'maven'
 
+      - name: Download dependencies (Default)
+        working-directory: ./spring-data-jdbc-ydb
+        run: mvn $MAVEN_ARGS dependency:resolve-plugins dependency:go-offline
+
       - name: Download dependencies (Spring Boot 3)
         working-directory: ./spring-data-jdbc-ydb
         run: mvn $MAVEN_ARGS -Pspring-boot3 dependency:resolve-plugins dependency:go-offline
@@ -61,7 +65,7 @@ jobs:
 
       - name: Build spring-data-jdbc YDB dialect
         working-directory: ./spring-data-jdbc-ydb
-        run: mvn $MAVEN_ARGS -DskipTests=true package
+        run: mvn $MAVEN_ARGS package
 
       - name: Tests with Spring Boot 3
         working-directory: ./spring-data-jdbc-ydb
@@ -69,7 +73,7 @@ jobs:
 
       - name: Tests with Spring Boot 4
         working-directory: ./spring-data-jdbc-ydb
-        run: mvn $MAVEN_ARGS -Pspring-boot3 test
+        run: mvn $MAVEN_ARGS -Pspring-boot4 test
 
   examples:
     name: Spring Data JDBC YDB Dialect Examples

@@ -4,7 +4,7 @@ import java.lang.reflect.Method;
 import java.util.function.Function;
 
 import org.springframework.aop.interceptor.ExposeInvocationInterceptor;
-import org.springframework.data.jdbc.core.dialect.JdbcArrayColumns;
+import org.springframework.data.jdbc.core.convert.JdbcArrayColumns;
 import org.springframework.data.jdbc.core.dialect.JdbcDialect;
 import org.springframework.data.relational.core.dialect.AbstractDialect;
 import org.springframework.data.relational.core.dialect.InsertRenderContext;
@@ -131,6 +131,7 @@ public class YdbDialect extends AbstractDialect implements JdbcDialect {
     }
 
     @Override
+    @SuppressWarnings("removal")
     public JdbcArrayColumns getArraySupport() {
         return JdbcArrayColumns.Unsupported.INSTANCE;
     }
