@@ -14,13 +14,40 @@ env:
   MAVEN_ARGS: --batch-mode --update-snapshots -Dstyle.color=always
 
 jobs:
+  prepare:
+    name: Prepare Maven cache
+    runs-on: ubuntu-24.04
+
+    env:
+        MAVEN_ARGS: --batch-mode -Dstyle.color=always
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          java-version: '8'
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: Download dependencies (Spring Boot 3)
+        working-directory: ./spring-data-jdbc-ydb
+        run: mvn $MAVEN_ARGS -Pspring-boot3 dependency:resolve-plugins dependency:go-offline
+
+      - name: Download dependencies (Spring Boot 4)
+        working-directory: ./spring-data-jdbc-ydb
+        run: mvn $MAVEN_ARGS -Pspring-boot4 dependency:resolve-plugins dependency:go-offline
+
   build:
-    name: Spring Data JDBC YDB Dialect
-    runs-on: ubuntu-latest
+    name: Spring Data JDBC YDB Dialect build & tests
+    runs-on: ubuntu-24.04
+    needs: prepare
 
     strategy:
       matrix:
-        java: [ '17', '21' ]
+        java: [ '17', '21', '24' ]
 
     steps:
       - uses: actions/checkout@v4
@@ -32,15 +59,38 @@ jobs:
           distribution: 'temurin'
           cache: maven
 
+      - name: Build spring-data-jdbc YDB dialect
+        working-directory: ./spring-data-jdbc-ydb
+        run: mvn $MAVEN_ARGS -DskipTests=true package
+
+      - name: Tests with Spring Boot 3
+        working-directory: ./spring-data-jdbc-ydb
+        run: mvn $MAVEN_ARGS -Pspring-boot3 test
+
+      - name: Tests with Spring Boot 4
+        working-directory: ./spring-data-jdbc-ydb
+        run: mvn $MAVEN_ARGS -Pspring-boot3 test
+
+  examples:
+    name: Spring Data JDBC YDB Dialect Examples
+    runs-on: ubuntu-24.04
+    needs: build
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          java-version: 17
+          distribution: 'temurin'
+          cache: maven
+
       - name: Extract spring-data-jdbc YDB dialect version
         working-directory: ./spring-data-jdbc-ydb
         run: |
           VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
           echo "SPRING_DATA_JDBC_DIALECT_VERSION=$VERSION" >> "$GITHUB_ENV"
-
-      - name: Download spring-data-jdbc YDB dialect dependencies
-        working-directory: ./spring-data-jdbc-ydb
-        run: mvn $MAVEN_ARGS dependency:go-offline
 
       - name: Build spring-data-jdbc YDB dialect
         working-directory: ./spring-data-jdbc-ydb
