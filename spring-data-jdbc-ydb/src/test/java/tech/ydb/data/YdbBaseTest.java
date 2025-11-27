@@ -1,25 +1,24 @@
 package tech.ydb.data;
 
 import org.junit.jupiter.api.extension.RegisterExtension;
-import org.springframework.boot.test.autoconfigure.data.jdbc.AutoConfigureDataJdbc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.transaction.annotation.Transactional;
+
 import tech.ydb.test.junit5.YdbHelperExtension;
 
 /**
  * @author Madiyar Nurgazin
  */
 @SpringBootTest(classes = YdbJdbcConfiguration.class)
-@AutoConfigureDataJdbc
 @Transactional
 public abstract class YdbBaseTest {
     @RegisterExtension
     private static final YdbHelperExtension ydb = new YdbHelperExtension();
 
     @DynamicPropertySource
-    private static void propertySource(DynamicPropertyRegistry registry) {
+    public static void propertySource(DynamicPropertyRegistry registry) {
         registry.add("spring.datasource.url", YdbBaseTest::jdbcUrl);
     }
 

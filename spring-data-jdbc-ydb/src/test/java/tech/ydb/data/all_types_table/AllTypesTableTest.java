@@ -5,6 +5,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -12,7 +13,7 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.jdbc.core.JdbcAggregateOperations;
-import org.springframework.data.relational.core.conversion.DbActionExecutionException;
+import org.springframework.jdbc.UncategorizedSQLException;
 
 import tech.ydb.data.YdbBaseTest;
 import tech.ydb.data.all_types_table.entity.AllTypesEntity;
@@ -57,7 +58,8 @@ public class AllTypesTableTest extends YdbBaseTest {
         aggregateOperations.insert(entity2);
         Assertions.assertEquals(2, repository.countDistinctTextColumn());
 
-        List<AllTypesEntity> entities = repository.findAll();
+        List<AllTypesEntity> entities = new ArrayList<>();
+        repository.findAll().forEach(entities::add);
         Assertions.assertEquals(4, entities.size());
 
         repository.deleteById(1);
@@ -75,8 +77,12 @@ public class AllTypesTableTest extends YdbBaseTest {
         Assertions.assertEquals(Integer.valueOf(4), entities.get(0).getId());
 
         entity3.setJsonColumn("Not json");
-        var ex = Assertions.assertThrows(DbActionExecutionException.class, () -> repository.save(entity3));
-        Assertions.assertTrue(ex.getMessage().startsWith("Failed to execute DbAction.UpdateRoot"));
+        Throwable ex = Assertions.assertThrows(Exception.class, () -> repository.save(entity3));
+        if (ex != null && !(ex instanceof UncategorizedSQLException)) {
+            ex = ex.getCause();
+        }
+        Assertions.assertTrue(ex instanceof UncategorizedSQLException);
+        Assertions.assertTrue(ex != null && ex.getMessage().contains("Invalid Json value (S_ERROR)]"));
 
         entity3.setJsonColumn("{\"values\": [1, 2, 3]}");
         AllTypesEntity updated = repository.save(entity3);
