@@ -1,2 +1,1 @@
-org.springframework.data.jdbc.core.dialect.DialectResolver$JdbcDialectProvider=tech.ydb.data.repository.config.YdbDialectProvider
-
+org.springframework.data.jdbc.repository.config.DialectResolver$JdbcDialectProvider=tech.ydb.data.repository.config.YdbDialectProvider

@@ -4,10 +4,10 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.data.jdbc.core.convert.DefaultJdbcTypeFactory;
+import org.springframework.data.jdbc.core.convert.JdbcArrayColumns;
 import org.springframework.data.jdbc.core.convert.JdbcConverter;
 import org.springframework.data.jdbc.core.convert.JdbcCustomConversions;
 import org.springframework.data.jdbc.core.convert.RelationResolver;
-import org.springframework.data.jdbc.core.dialect.JdbcArrayColumns;
 import org.springframework.data.jdbc.core.dialect.JdbcDialect;
 import org.springframework.data.jdbc.core.mapping.JdbcMappingContext;
 import org.springframework.data.jdbc.repository.config.AbstractJdbcConfiguration;
@@ -25,7 +25,7 @@ import tech.ydb.data.core.convert.YdbMappingJdbcConverter;
 public class AbstractYdbJdbcConfiguration extends AbstractJdbcConfiguration {
 
     // Spring Boot 4 support
-    @SuppressWarnings("override")
+    @SuppressWarnings({"override", "removal"})
     public JdbcConverter jdbcConverter(
             JdbcMappingContext mappingContext,
             NamedParameterJdbcOperations operations,
@@ -41,7 +41,7 @@ public class AbstractYdbJdbcConfiguration extends AbstractJdbcConfiguration {
     }
 
     // Spring Boot 3 support
-    @SuppressWarnings("override")
+    @SuppressWarnings({"override", "removal"})
     public JdbcConverter jdbcConverter(
             JdbcMappingContext mappingContext,
             NamedParameterJdbcOperations operations,

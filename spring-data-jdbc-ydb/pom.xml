@@ -165,12 +165,6 @@
         </plugins>
     </build>
     <profiles>
-<!--        <profile>
-            <id>spring-boot2</id>
-            <properties>
-                <spring.version>2.7.18</spring.version>
-            </properties>
-        </profile>-->
         <profile>
             <id>spring-boot3</id>
             <properties>
