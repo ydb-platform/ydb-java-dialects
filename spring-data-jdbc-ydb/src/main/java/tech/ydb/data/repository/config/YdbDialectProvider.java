@@ -5,11 +5,12 @@ import java.sql.SQLException;
 import java.util.Locale;
 import java.util.Optional;
 
-import org.springframework.data.jdbc.repository.config.DialectResolver;
+import org.springframework.data.jdbc.core.dialect.DialectResolver;
+import org.springframework.data.jdbc.core.dialect.JdbcDialect;
 import org.springframework.data.relational.core.dialect.Dialect;
 import org.springframework.jdbc.core.ConnectionCallback;
 import org.springframework.jdbc.core.JdbcOperations;
-import org.springframework.lang.Nullable;
+
 import tech.ydb.data.core.dialect.YdbDialect;
 
 /**
@@ -29,8 +30,7 @@ public class YdbDialectProvider extends DialectResolver.DefaultDialectProvider {
         return super.getDialect(operations);
     }
 
-    @Nullable
-    private static Dialect getDialect(Connection connection) throws SQLException {
+    private static JdbcDialect getDialect(Connection connection) throws SQLException {
         if ("ydb".contains(connection.getMetaData().getDatabaseProductName().toLowerCase(Locale.ENGLISH))) {
             return YdbDialect.INSTANCE;
         }
