@@ -4,6 +4,8 @@ import java.lang.reflect.Method;
 import java.util.function.Function;
 
 import org.springframework.aop.interceptor.ExposeInvocationInterceptor;
+import org.springframework.data.jdbc.core.convert.JdbcArrayColumns;
+import org.springframework.data.jdbc.core.dialect.JdbcDialect;
 import org.springframework.data.relational.core.dialect.AbstractDialect;
 import org.springframework.data.relational.core.dialect.InsertRenderContext;
 import org.springframework.data.relational.core.dialect.LimitClause;
@@ -19,8 +21,10 @@ import tech.ydb.data.repository.ViewIndex;
  * @author Madiyar Nurgazin
  * @author Mikhail Polivakha
  */
-public class YdbDialect extends AbstractDialect {
+public class YdbDialect extends AbstractDialect implements JdbcDialect {
     public static final YdbDialect INSTANCE = new YdbDialect();
+
+    private static final IdentifierProcessing.Quoting QUOTING = new IdentifierProcessing.Quoting("`");
 
     private static final LimitClause LIMIT_CLAUSE = new LimitClause() {
 
@@ -46,10 +50,12 @@ public class YdbDialect extends AbstractDialect {
     };
 
     private static final LockClause LOCK_CLAUSE = new LockClause() {
+        @Override
         public String getLock(LockOptions lockOptions) {
             throw new UnsupportedOperationException("YDB does not support pessimistic locks");
         }
 
+        @Override
         public LockClause.Position getClausePosition() {
             return null;
         }
@@ -99,10 +105,17 @@ public class YdbDialect extends AbstractDialect {
 
     @Override
     public IdentifierProcessing getIdentifierProcessing() {
-        return IdentifierProcessing.create(
-                new IdentifierProcessing.Quoting("`"),
-                IdentifierProcessing.LetterCasing.AS_IS
-        );
+        return new IdentifierProcessing() {
+            @Override
+            public String quote(String identifier) {
+                return QUOTING.apply(identifier);
+            }
+
+            @Override
+            public String standardizeLetterCase(String identifier) {
+                return identifier;
+            }
+        };
     }
 
     @Override
@@ -115,5 +128,11 @@ public class YdbDialect extends AbstractDialect {
     @Override
     public OrderByNullPrecedence orderByNullHandling() {
         return OrderByNullPrecedence.NONE;
+    }
+
+    @Override
+    @SuppressWarnings("removal")
+    public JdbcArrayColumns getArraySupport() {
+        return JdbcArrayColumns.Unsupported.INSTANCE;
     }
 }

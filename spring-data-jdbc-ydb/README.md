@@ -6,12 +6,12 @@
 
 ## Overview
 
-This project is an extension for Spring Data JDBC 
+This project is an extension for Spring Data JDBC
 that provides support for working with [YDB](https://ydb.tech).
 
 ### Features
 
-- Full support for basic operations with Spring Data JDBC 
+- Full support for basic operations with Spring Data JDBC
 - Supported VIEW INDEX statement from @ViewIndex annotation on method your Repository
 - @YdbType explicitly specifies the YDB data type (Json example in String type)
 
@@ -22,7 +22,7 @@ that provides support for working with [YDB](https://ydb.tech).
 To use this Spring Data JDBC YDB Dialect, you'll need:
 
 - Java 17 or above.
-- Spring Data JDBC 3+
+- Spring Data JDBC 3.4+
 - [YDB JDBC Driver](https://github.com/ydb-platform/ydb-jdbc-driver)
 - Access to a YDB Database instance
 
@@ -35,7 +35,7 @@ For Maven, add the following dependency to your pom.xml:
     <groupId>tech.ydb.dialects</groupId>
     <artifactId>spring-data-jdbc-ydb</artifactId>
     <!-- Set actual version -->
-    <version>${spring.data.jdbc.ydb.version}</version> 
+    <version>${spring.data.jdbc.ydb.version}</version>
 </dependency>
 ```
 

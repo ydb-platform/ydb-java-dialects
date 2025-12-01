@@ -50,7 +50,6 @@
         <maven.compiler.source>17</maven.compiler.source>
 
         <junit5.version>5.10.2</junit5.version>
-        <spring.version>3.4.0</spring.version>
         <liquibase.version>4.24.0</liquibase.version>
 
         <ydb.sdk.version>2.3.13</ydb.sdk.version>
@@ -166,6 +165,34 @@
         </plugins>
     </build>
     <profiles>
+        <profile>
+            <id>spring-boot-minimal</id>
+            <activation>
+                <activeByDefault>true</activeByDefault>
+            </activation>
+            <properties>
+                <spring.version>3.4.0</spring.version>
+            </properties>
+        </profile>
+        <profile>
+            <id>spring-boot3</id>
+            <properties>
+                <spring.version>3.5.7</spring.version>
+            </properties>
+        </profile>
+        <profile>
+            <id>spring-boot4</id>
+            <properties>
+                <spring.version>4.0.0</spring.version>
+            </properties>
+            <dependencies>
+                <dependency>
+                    <groupId>org.springframework.boot</groupId>
+                    <artifactId>spring-boot-starter-liquibase</artifactId>
+                    <scope>test</scope>
+                </dependency>
+            </dependencies>
+        </profile>
         <profile>
             <id>ossrh-s01</id>
             <activation>
