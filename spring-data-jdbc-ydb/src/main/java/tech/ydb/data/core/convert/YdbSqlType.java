@@ -7,7 +7,7 @@ import java.sql.SQLType;
  *
  * @author Aleksandr Gorshenin
  */
-class YdbSqlType implements SQLType, Serializable {
+public class YdbSqlType implements SQLType, Serializable {
     private static final long serialVersionUID = -5722445668088782880L;
 
     private final String name;
