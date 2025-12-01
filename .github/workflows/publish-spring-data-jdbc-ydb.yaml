@@ -44,12 +44,12 @@ jobs:
       - name: Download dependencies
         run: |
           cd spring-data-jdbc-ydb
-          mvn $MAVEN_ARGS dependency:go-offline
+          mvn $MAVEN_ARGS -Pspring-boot-minimal dependency:go-offline
 
       - name: Build with Maven
         run: |
           cd spring-data-jdbc-ydb
-          mvn $MAVEN_ARGS package
+          mvn $MAVEN_ARGS -Pspring-boot-minimal package
 
   publish:
     name: Publish Spring Data JDBC YDB Dialect
@@ -79,7 +79,7 @@ jobs:
       - name: Publish package
         run: |
           cd spring-data-jdbc-ydb
-          mvn $MAVEN_ARGS -Possrh-s01 -Dgpg.passphrase=${{ secrets.MAVEN_OSSRH_GPG_PASSWORD }} clean deploy
+          mvn $MAVEN_ARGS -Possrh-s01,spring-boot-minimal -Dgpg.passphrase=${{ secrets.MAVEN_OSSRH_GPG_PASSWORD }} clean deploy
         env:
           MAVEN_USERNAME: ${{ secrets.MAVEN_OSSRH_USERNAME }}
           MAVEN_PASSWORD: ${{ secrets.MAVEN_OSSRH_TOKEN }}
