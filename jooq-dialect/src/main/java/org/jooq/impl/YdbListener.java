@@ -11,6 +11,8 @@ import org.jooq.VisitListener;
  */
 public class YdbListener implements VisitListener {
 
+    private static final String DATA_KEY_FIELD_MAP_FOR_UPDATE_QUALIFY = "YDB_FIELD_MAP_FOR_UPDATE_QUALIFY_VALUE";
+
     private final String quote;
 
     private volatile int hintedTableStartSize;
@@ -23,6 +25,7 @@ public class YdbListener implements VisitListener {
     public void visitStart(VisitContext context) {
         addQuoteForName(context);
         visitStartHint(context);
+        disableQualifyForFieldMapForUpdate(context);
     }
 
     @Override
@@ -33,6 +36,7 @@ public class YdbListener implements VisitListener {
         } catch (NoSuchFieldException | IllegalAccessException e) {
             throw new RuntimeException(e);
         }
+        restoreQualifyForFieldMapForUpdate(context);
     }
 
     private void addQuoteForName(VisitContext context) {
@@ -44,6 +48,26 @@ public class YdbListener implements VisitListener {
             RenderContext renderContext = context.renderContext();
             if (renderContext != null) {
                 renderContext.sql(quote);
+            }
+        }
+    }
+
+    private void disableQualifyForFieldMapForUpdate(VisitContext context) {
+        if (context.queryPart() instanceof FieldMapForUpdate) {
+            RenderContext renderContext = context.renderContext();
+            if (renderContext != null) {
+                context.data(DATA_KEY_FIELD_MAP_FOR_UPDATE_QUALIFY, renderContext.qualify());
+                renderContext.qualify(false);
+            }
+        }
+    }
+
+    private void restoreQualifyForFieldMapForUpdate(VisitContext context) {
+        if (context.queryPart() instanceof FieldMapForUpdate) {
+            RenderContext renderContext = context.renderContext();
+            Boolean qualify = (Boolean) context.data().remove(DATA_KEY_FIELD_MAP_FOR_UPDATE_QUALIFY);
+            if (renderContext != null && qualify != null) {
+                renderContext.qualify(qualify);
             }
         }
     }
