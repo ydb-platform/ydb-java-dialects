@@ -1,0 +1,10 @@
+CREATE TABLE IF NOT EXISTS COMPONENT_CONFIG
+(
+    `ID` Utf8 NOT NULL,
+    `COMPONENT_ID` Utf8 NOT NULL,
+    `NAME` Utf8 NOT NULL,
+    `VALUE` Utf8,
+
+    INDEX idx_compo_config_compo GLOBAL ON (COMPONENT_ID),
+    PRIMARY KEY (ID)
+);

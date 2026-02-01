@@ -1,0 +1,9 @@
+CREATE TABLE IF NOT EXISTS REALM_ATTRIBUTE
+(
+    NAME     Utf8 NOT NULL,
+    REALM_ID Utf8 NOT NULL,
+    VALUE    Utf8,
+
+    INDEX    realm_attributes_idx_realm_id GLOBAL ON (REALM_ID),
+    PRIMARY KEY (NAME, REALM_ID),
+);

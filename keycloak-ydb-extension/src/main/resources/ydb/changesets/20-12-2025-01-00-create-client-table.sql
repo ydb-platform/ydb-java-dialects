@@ -1,0 +1,32 @@
+CREATE TABLE IF NOT EXISTS CLIENT
+(
+    `ID`                           Utf8 NOT NULL,
+    `ENABLED`                      Bool DEFAULT false,
+    `FULL_SCOPE_ALLOWED`           Bool DEFAULT false,
+    `CLIENT_ID`                    Utf8,
+    `NOT_BEFORE`                   Int32,
+    `PUBLIC_CLIENT`                Bool DEFAULT false,
+    `SECRET`                       Utf8,
+    `BASE_URL`                     Utf8,
+    `BEARER_ONLY`                  Bool DEFAULT false,
+    `MANAGEMENT_URL`               Utf8,
+    `SURROGATE_AUTH_REQUIRED`      Bool DEFAULT false,
+    `REALM_ID`                     Utf8,
+    `PROTOCOL`                     Utf8,
+    `NODE_REREG_TIMEOUT`           Int32 DEFAULT 0,
+    `FRONTCHANNEL_LOGOUT`          Bool DEFAULT false,
+    `CONSENT_REQUIRED`             Bool DEFAULT false,
+    `NAME`                         Utf8,
+    `SERVICE_ACCOUNTS_ENABLED`     Bool DEFAULT false,
+    `CLIENT_AUTHENTICATOR_TYPE`    Utf8,
+    `ROOT_URL`                     Utf8,
+    `DESCRIPTION`                  Utf8,
+    `REGISTRATION_TOKEN`           Utf8,
+    `STANDARD_FLOW_ENABLED`        Bool DEFAULT true,
+    `IMPLICIT_FLOW_ENABLED`        Bool DEFAULT false,
+    `DIRECT_ACCESS_GRANTS_ENABLED` Bool DEFAULT false,
+    `ALWAYS_DISPLAY_IN_CONSOLE`    Bool DEFAULT false,
+
+    INDEX idx_client_id GLOBAL ON (`CLIENT_ID`),
+    PRIMARY KEY (`ID`)
+);
