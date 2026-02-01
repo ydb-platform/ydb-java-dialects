@@ -24,6 +24,13 @@ public class YdbSqlAstTranslator<T extends JdbcOperation> extends AbstractSqlAst
             FetchClauseType fetchClauseType,
             boolean renderOffsetRowsKeyword
     ) {
+        // Workaround on this issue:
+        // https://github.com/ydb-platform/ydb/issues/33136
+        if (offsetExpression != null && fetchExpression == null) {
+            appendSql(" limit ");
+            appendSql(Long.toString(Long.MAX_VALUE));
+        }
+
         if (fetchExpression != null) {
             appendSql(" limit ");
             getClauseStack().push(Clause.FETCH);

@@ -108,6 +108,23 @@ public class StudentsRepositoryTest {
     }
 
     @Test
+    void studentsOffsetTest() {
+        inTransaction(
+                session -> {
+                    Query<Student> studentQuery = session
+                            .createQuery("FROM Student ORDER BY name", Student.class)
+                            .setFirstResult(4);
+
+                    List<Student> students = studentQuery.getResultList();
+
+                    assertEquals(2, students.size());
+                    assertEquals("Петров П.П.", students.get(0).getName());
+                    assertEquals("Сидоров С.С.", students.get(1).getName());
+                }
+        );
+    }
+
+    @Test
     void studentsLimitAndOffsetTest() {
         inTransaction(
                 session -> {
