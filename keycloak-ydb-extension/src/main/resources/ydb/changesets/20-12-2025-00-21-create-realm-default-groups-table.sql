@@ -1,0 +1,8 @@
+CREATE TABLE IF NOT EXISTS `REALM_DEFAULT_GROUPS`
+(
+    `REALM_ID` Utf8 NOT NULL,
+    `GROUP_ID` Utf8 NOT NULL,
+
+    INDEX      idx_realm_def_grp_realm GLOBAL ON (`REALM_ID`),
+    PRIMARY KEY (`REALM_ID`, `GROUP_ID`)
+);

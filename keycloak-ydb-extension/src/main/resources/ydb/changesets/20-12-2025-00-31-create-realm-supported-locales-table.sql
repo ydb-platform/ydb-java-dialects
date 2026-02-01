@@ -1,0 +1,8 @@
+CREATE TABLE IF NOT EXISTS `REALM_SUPPORTED_LOCALES`
+(
+    `REALM_ID` Utf8 NOT NULL,
+    `VALUE`    Utf8 NOT NULL,
+
+    INDEX     idx_realm_supp_local_realm GLOBAL ON (`REALM_ID`),
+    PRIMARY KEY (`REALM_ID`, `VALUE`)
+);

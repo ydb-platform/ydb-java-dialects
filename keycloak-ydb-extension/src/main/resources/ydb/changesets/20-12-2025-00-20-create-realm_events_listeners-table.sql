@@ -1,0 +1,8 @@
+CREATE TABLE IF NOT EXISTS REALM_EVENTS_LISTENERS
+(
+    `REALM_ID` Utf8 NOT NULL,
+    `VALUE`    Utf8 NOT NULL,
+
+    INDEX      idx_realm_evt_list_realm GLOBAL ON (`REALM_ID`),
+    PRIMARY KEY (`REALM_ID`, `VALUE`)
+);

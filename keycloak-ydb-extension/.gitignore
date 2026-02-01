@@ -1,0 +1,4 @@
+dependency-reduced-pom.xml
+
+# jar files of keycloak-ydb-extension
+docker/providers
