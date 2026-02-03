@@ -2,7 +2,7 @@
 [![Maven metadata URL](https://img.shields.io/maven-metadata/v?metadataUrl=https%3A%2F%2Frepo1.maven.org%2Fmaven2%2Ftech%2Fydb%2Fdialects%2Fhibernate-ydb-dialect%2Fmaven-metadata.xml)](https://mvnrepository.com/artifact/tech.ydb.dialects/hibernate-ydb-dialect)
 [![CI](https://img.shields.io/github/actions/workflow/status/ydb-platform/ydb-java-dialects/ci-hibernate-dialect.yaml?branch=main&label=CI)](https://github.com/ydb-platform/ydb-java-dialects/actions/workflows/ci-hibernate-dialect.yaml)
 
-# YDB Dialect for Hibernate 6+
+# YDB Dialect for Hibernate 6.*
 
 ## Overview
 
@@ -21,10 +21,10 @@ features while using YDB as your underlying database.
 
 ### Requirements
 
-To use this Hibernate YDB Dialect, you'll need:
+To use this Hibernate V6 YDB Dialect, you'll need:
 
 - Java 17 or above.
-- Hibernate version 6+
+- Hibernate version 6.*
 - [YDB JDBC Driver](https://github.com/ydb-platform/ydb-jdbc-driver)
 - Access to a YDB Database instance
 

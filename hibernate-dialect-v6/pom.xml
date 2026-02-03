@@ -10,8 +10,8 @@
 
     <packaging>jar</packaging>
 
-    <name>Hibernate YDB Dialect</name>
-    <description>Support Hibernate YDB (YQL) Dialect</description>
+    <name>Hibernate V6 YDB Dialect</name>
+    <description>Support Hibernate version 6 YDB (YQL) Dialect</description>
     <url>https://github.com/ydb-platform/ydb-java-dialects</url>
 
     <developers>
