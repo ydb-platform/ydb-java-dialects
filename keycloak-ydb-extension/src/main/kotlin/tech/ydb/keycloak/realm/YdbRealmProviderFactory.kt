@@ -6,18 +6,18 @@ import org.keycloak.models.KeycloakSession
 import org.keycloak.models.KeycloakSessionFactory
 import org.keycloak.models.RealmProviderFactory
 import org.keycloak.provider.EnvironmentDependentProviderFactory
+import org.keycloak.connections.jpa.JpaConnectionProvider
 import tech.ydb.keycloak.config.ProviderPriority.PROVIDER_PRIORITY
 import tech.ydb.keycloak.config.YdbProfile.IS_YDB_PROFILE_ENABLED
-import tech.ydb.keycloak.connection.YdbConnectionProvider
 
 class YdbRealmProviderFactory() : RealmProviderFactory<YdbRealmProvider>, EnvironmentDependentProviderFactory {
 
   private val logger = Logger.getLogger(YdbRealmProviderFactory::class.java)
 
   override fun create(session: KeycloakSession): YdbRealmProvider {
-    val provider = session.getProvider(YdbConnectionProvider::class.java)?.let {
+    val provider = session.getProvider(JpaConnectionProvider::class.java)?.let {
       YdbRealmProvider(session, it.entityManager)
-    } ?: error("YdbConnectionProvider is not configured")
+    } ?: error("JpaConnectionProvider is not configured in YDB")
 
     logger.info("YdbRealmProvider successfully created")
 
