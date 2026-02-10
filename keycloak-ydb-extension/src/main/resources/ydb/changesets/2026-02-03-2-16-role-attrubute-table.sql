@@ -1,0 +1,11 @@
+CREATE TABLE IF NOT EXISTS ROLE_ATTRIBUTE
+(
+    `ID`      Utf8 NOT NULL,
+    `ROLE_ID` Utf8 NOT NULL,
+    `NAME`    Utf8 NOT NULL,
+    `VALUE`   Utf8,
+
+    INDEX idx_role_attribute GLOBAL ON (ROLE_ID),
+--     FOREIGN KEY (ROLE_ID) REFERENCES KEYCLOAK_ROLE (ID),
+    PRIMARY KEY (ID)
+);

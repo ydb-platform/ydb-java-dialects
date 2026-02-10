@@ -57,4 +57,4 @@ CREATE TABLE IF NOT EXISTS REALM
     INDEX                        realm_name_unique GLOBAL UNIQUE ON (NAME),
     INDEX                        idx_realm_master_adm_cli GLOBAL ON (MASTER_ADMIN_CLIENT),
     PRIMARY KEY (ID)
-)
+);

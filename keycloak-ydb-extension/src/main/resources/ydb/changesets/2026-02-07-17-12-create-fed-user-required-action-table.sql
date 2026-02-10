@@ -1,0 +1,13 @@
+CREATE TABLE IF NOT EXISTS FED_USER_REQUIRED_ACTION
+(
+    `REQUIRED_ACTION`     Utf8 NOT NULL DEFAULT " ",
+    `USER_ID`             Utf8 NOT NULL,
+    `REALM_ID`            Utf8 NOT NULL,
+    `STORAGE_PROVIDER_ID` Utf8,
+
+    INDEX idx_fu_required_action GLOBAL ON (USER_ID, REQUIRED_ACTION),
+    INDEX idx_fu_required_action_ru GLOBAL ON (REALM_ID, USER_ID),
+    INDEX idx_fed_req_action_realm GLOBAL ON (REALM_ID),
+--     FOREIGN KEY (REALM_ID) REFERENCES REALM (ID),
+    PRIMARY KEY (REQUIRED_ACTION, USER_ID)
+);

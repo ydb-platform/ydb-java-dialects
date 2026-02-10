@@ -1,0 +1,18 @@
+CREATE TABLE IF NOT EXISTS RESOURCE_SERVER_RESOURCE
+(
+    `ID`                   Utf8 NOT NULL,
+    `NAME`                 Utf8 NOT NULL,
+    `TYPE`                 Utf8,
+    `ICON_URI`             Utf8,
+    `OWNER`                Utf8 NOT NULL,
+    `RESOURCE_SERVER_ID`   Utf8 NOT NULL,
+    `OWNER_MANAGED_ACCESS` Bool NOT NULL DEFAULT false,
+    `DISPLAY_NAME`         Utf8,
+
+    INDEX idx_res_srv_res_res_srv GLOBAL ON (RESOURCE_SERVER_ID),
+    INDEX idx_res_srv_res_owner GLOBAL ON (OWNER),
+-- TODO: maybe create  UNIQUE index `ON (NAME, OWNER, RESOURCE_SERVER_ID),`
+--     CONSTRAINT `UK_FRSR6T700S9V50BU18WS5HA6` GLOBAL UNIQUE ON (NAME, OWNER, RESOURCE_SERVER_ID),
+--     FOREIGN KEY (RESOURCE_SERVER_ID) REFERENCES RESOURCE_SERVER (ID),
+    PRIMARY KEY (ID)
+);

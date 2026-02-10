@@ -6,5 +6,5 @@ create table IF NOT EXISTS REALM_REQUIRED_CREDENTIAL
     INPUT      Bool      not null default false,
     SECRET     Bool      not null default false,
 
-    primary key (REALM_ID, TYPE)
+    PRIMARY KEY (REALM_ID, TYPE)
 );

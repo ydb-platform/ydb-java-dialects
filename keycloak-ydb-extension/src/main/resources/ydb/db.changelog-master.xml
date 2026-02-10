@@ -4,5 +4,226 @@
   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
-  <includeAll path="ydb/changesets" relativeToChangelogFile="false"/>
+  <changeSet id="2025-12-17-21-07-create-realm-table" author="keycloak-ydb-extension">
+    <sqlFile path="ydb/changesets/2025-12-17-21-07-create-realm-table.sql"/>
+  </changeSet>
+  <changeSet id="2025-12-17-21-29-create-realm-attributes-table" author="keycloak-ydb-extension">
+    <sqlFile path="ydb/changesets/2025-12-17-21-29-create-realm-attributes-table.sql"/>
+  </changeSet>
+  <changeSet id="2025-12-17-22-00-create-realm-required-credentials-table" author="keycloak-ydb-extension">
+    <sqlFile path="ydb/changesets/2025-12-17-22-00-create-realm-required-credentials-table.sql"/>
+  </changeSet>
+  <changeSet id="2025-12-20-00-20-create-realm_events_listeners-table" author="keycloak-ydb-extension">
+    <sqlFile path="ydb/changesets/2025-12-20-00-20-create-realm_events_listeners-table.sql"/>
+  </changeSet>
+  <changeSet id="2025-12-20-00-21-create-realm-default-groups-table" author="keycloak-ydb-extension">
+    <sqlFile path="ydb/changesets/2025-12-20-00-21-create-realm-default-groups-table.sql"/>
+  </changeSet>
+  <changeSet id="2025-12-20-00-28-create-realm-enabled-event-types-table" author="keycloak-ydb-extension">
+    <sqlFile path="ydb/changesets/2025-12-20-00-28-create-realm-enabled-event-types-table.sql"/>
+  </changeSet>
+  <changeSet id="2025-12-20-00-29-create-realm-localizations-table" author="keycloak-ydb-extension">
+    <sqlFile path="ydb/changesets/2025-12-20-00-29-create-realm-localizations-table.sql"/>
+  </changeSet>
+  <changeSet id="2025-12-20-00-30-create-realm-smtp-config-table" author="keycloak-ydb-extension">
+    <sqlFile path="ydb/changesets/2025-12-20-00-30-create-realm-smtp-config-table.sql"/>
+  </changeSet>
+  <changeSet id="2025-12-20-00-31-create-realm-supported-locales-table" author="keycloak-ydb-extension">
+    <sqlFile path="ydb/changesets/2025-12-20-00-31-create-realm-supported-locales-table.sql"/>
+  </changeSet>
+  <changeSet id="2025-12-20-00-34-create-default-client-scope-table" author="keycloak-ydb-extension">
+    <sqlFile path="ydb/changesets/2025-12-20-00-34-create-default-client-scope-table.sql"/>
+  </changeSet>
+  <changeSet id="2025-12-20-00-36-create-authentication-flow-table" author="keycloak-ydb-extension">
+    <sqlFile path="ydb/changesets/2025-12-20-00-36-create-authentication-flow-table.sql"/>
+  </changeSet>
+  <changeSet id="2025-12-20-00-38-create-authentication-execution-table" author="keycloak-ydb-extension">
+    <sqlFile path="ydb/changesets/2025-12-20-00-38-create-authentication-execution-table.sql"/>
+  </changeSet>
+  <changeSet id="2025-12-20-00-42-create-authenticator-config-table" author="keycloak-ydb-extension">
+    <sqlFile path="ydb/changesets/2025-12-20-00-42-create-authenticator-config-table.sql"/>
+  </changeSet>
+  <changeSet id="2025-12-20-00-44-create-required-action-provider-table" author="keycloak-ydb-extension">
+    <sqlFile path="ydb/changesets/2025-12-20-00-44-create-required-action-provider-table.sql"/>
+  </changeSet>
+  <changeSet id="2025-12-20-00-45-create-required-action-config-table" author="keycloak-ydb-extension">
+    <sqlFile path="ydb/changesets/2025-12-20-00-45-create-required-action-config-table.sql"/>
+  </changeSet>
+  <changeSet id="2025-12-20-00-46-create-authenticator-config-entry-table" author="keycloak-ydb-extension">
+    <sqlFile path="ydb/changesets/2025-12-20-00-46-create-authenticator-config-entry-table.sql"/>
+  </changeSet>
+  <changeSet id="2025-12-20-00-47-create-component-table" author="keycloak-ydb-extension">
+    <sqlFile path="ydb/changesets/2025-12-20-00-47-create-component-table.sql"/>
+  </changeSet>
+  <changeSet id="2025-12-20-00-48-create-component-config-table" author="keycloak-ydb-extension">
+    <sqlFile path="ydb/changesets/2025-12-20-00-48-create-component-config-table.sql"/>
+  </changeSet>
+  <changeSet id="2025-12-20-01-00-create-client-table" author="keycloak-ydb-extension">
+    <sqlFile path="ydb/changesets/2025-12-20-01-00-create-client-table.sql"/>
+  </changeSet>
+  <changeSet id="2025-12-20-01-01-create-event-entity-table" author="keycloak-ydb-extension">
+    <sqlFile path="ydb/changesets/2025-12-20-01-01-create-event-entity-table.sql"/>
+  </changeSet>
+  <changeSet id="2026-02-01-15-04-keycloak-role-table" author="keycloak-ydb-extension">
+    <sqlFile path="ydb/changesets/2026-02-01-15-04-keycloak-role-table.sql"/>
+  </changeSet>
+  <changeSet id="2026-02-01-16-04-composite-role-table" author="keycloak-ydb-extension">
+    <sqlFile path="ydb/changesets/2026-02-01-16-04-composite-role-table.sql"/>
+  </changeSet>
+  <changeSet id="2026-02-03-2-16-role-attrubute-table" author="keycloak-ydb-extension">
+    <sqlFile path="ydb/changesets/2026-02-03-2-16-role-attrubute-table.sql"/>
+  </changeSet>
+  <changeSet id="2026-02-06-06-00-create-migration-model-table" author="keycloak-ydb-extension">
+    <sqlFile path="ydb/changesets/2026-02-06-06-00-create-migration-model-table.sql"/>
+  </changeSet>
+  <changeSet id="2026-02-06-21-24-create-client-attributes-table" author="keycloak-ydb-extension">
+    <sqlFile path="ydb/changesets/2026-02-06-21-24-create-client-attributes-table.sql"/>
+  </changeSet>
+  <changeSet id="2026-02-06-21-34-create-redirect-uris-table" author="keycloak-ydb-extension">
+    <sqlFile path="ydb/changesets/2026-02-06-21-34-create-redirect-uris-table.sql"/>
+  </changeSet>
+  <changeSet id="2026-02-06-21-35-create-protocol-mappers-table" author="keycloak-ydb-extension">
+    <sqlFile path="ydb/changesets/2026-02-06-21-35-create-protocol-mappers-table.sql"/>
+  </changeSet>
+  <changeSet id="2026-02-06-21-38-create-protocol-mapper-config-table" author="keycloak-ydb-extension">
+    <sqlFile path="ydb/changesets/2026-02-06-21-38-create-protocol-mapper-config-table.sql"/>
+  </changeSet>
+  <changeSet id="2026-02-07-02-06-create-scope-mapping-table" author="keycloak-ydb-extension">
+    <sqlFile path="ydb/changesets/2026-02-07-02-06-create-scope-mapping-table.sql"/>
+  </changeSet>
+  <changeSet id="2026-02-07-03-53-create-web-origins-table" author="keycloak-ydb-extension">
+    <sqlFile path="ydb/changesets/2026-02-07-03-53-create-web-origins-table.sql"/>
+  </changeSet>
+  <changeSet id="2026-02-07-15-38-create-client-scope-table" author="keycloak-ydb-extension">
+    <sqlFile path="ydb/changesets/2026-02-07-15-38-create-client-scope-table.sql"/>
+  </changeSet>
+  <changeSet id="2026-02-07-15-50-create-client-scope-attributes-table" author="keycloak-ydb-extension">
+    <sqlFile path="ydb/changesets/2026-02-07-15-50-create-client-scope-attributes-table.sql"/>
+  </changeSet>
+  <changeSet id="2026-02-07-15-51-create-client-scope-client-table" author="keycloak-ydb-extension">
+    <sqlFile path="ydb/changesets/2026-02-07-15-51-create-client-scope-client-table.sql"/>
+  </changeSet>
+  <changeSet id="2026-02-07-15-52-create-client-scope-role-mapping-table" author="keycloak-ydb-extension">
+    <sqlFile path="ydb/changesets/2026-02-07-15-52-create-client-scope-role-mapping-table.sql"/>
+  </changeSet>
+  <changeSet id="2026-02-07-16-00-create-user-entity-table" author="keycloak-ydb-extension">
+    <sqlFile path="ydb/changesets/2026-02-07-16-00-create-user-entity-table.sql"/>
+  </changeSet>
+  <changeSet id="2026-02-07-16-02-create-user-role-mapping-table" author="keycloak-ydb-extension">
+    <sqlFile path="ydb/changesets/2026-02-07-16-02-create-user-role-mapping-table.sql"/>
+  </changeSet>
+  <changeSet id="2026-02-07-16-05-create-identity-provider-table" author="keycloak-ydb-extension">
+    <sqlFile path="ydb/changesets/2026-02-07-16-05-create-identity-provider-table.sql"/>
+  </changeSet>
+  <changeSet id="2026-02-07-16-06-create-identity-provider-config-table" author="keycloak-ydb-extension">
+    <sqlFile path="ydb/changesets/2026-02-07-16-06-create-identity-provider-config-table.sql"/>
+  </changeSet>
+  <changeSet id="2026-02-07-16-07-create-identity-provider-mapper-table" author="keycloak-ydb-extension">
+    <sqlFile path="ydb/changesets/2026-02-07-16-07-create-identity-provider-mapper-table.sql"/>
+  </changeSet>
+  <changeSet id="2026-02-07-16-09-create-credential-table" author="keycloak-ydb-extension">
+    <sqlFile path="ydb/changesets/2026-02-07-16-09-create-credential-table.sql"/>
+  </changeSet>
+  <changeSet id="2026-02-07-16-11-create-user-attribute-table" author="keycloak-ydb-extension">
+    <sqlFile path="ydb/changesets/2026-02-07-16-11-create-user-attribute-table.sql"/>
+  </changeSet>
+  <changeSet id="2026-02-07-16-15-create-revoked-token-table" author="keycloak-ydb-extension">
+    <sqlFile path="ydb/changesets/2026-02-07-16-15-create-revoked-token-table.sql"/>
+  </changeSet>
+  <changeSet id="2026-02-07-16-19-create-client-auth-flow-bindings-table" author="keycloak-ydb-extension">
+    <sqlFile path="ydb/changesets/2026-02-07-16-19-create-client-auth-flow-bindings-table.sql"/>
+  </changeSet>
+  <changeSet id="2026-02-07-16-21-create-client-node-registrations-table" author="keycloak-ydb-extension">
+    <sqlFile path="ydb/changesets/2026-02-07-16-21-create-client-node-registrations-table.sql"/>
+  </changeSet>
+  <changeSet id="2026-02-07-16-24-create-user-required-action-table" author="keycloak-ydb-extension">
+    <sqlFile path="ydb/changesets/2026-02-07-16-24-create-user-required-action-table.sql"/>
+  </changeSet>
+  <changeSet id="2026-02-07-16-26-create-offline-client-session-table" author="keycloak-ydb-extension">
+    <sqlFile path="ydb/changesets/2026-02-07-16-26-create-offline-client-session-table.sql"/>
+  </changeSet>
+  <changeSet id="2026-02-07-16-27-create-offline-user-session-table" author="keycloak-ydb-extension">
+    <sqlFile path="ydb/changesets/2026-02-07-16-27-create-offline-user-session-table.sql"/>
+  </changeSet>
+  <changeSet id="2026-02-07-16-37-create-user-group-membership-table" author="keycloak-ydb-extension">
+    <sqlFile path="ydb/changesets/2026-02-07-16-37-create-user-group-membership-table.sql"/>
+  </changeSet>
+  <changeSet id="2026-02-07-16-40-create-keycloak-group-table" author="keycloak-ydb-extension">
+    <sqlFile path="ydb/changesets/2026-02-07-16-40-create-keycloak-group-table.sql"/>
+  </changeSet>
+  <changeSet id="2026-02-07-16-53-create-org-table" author="keycloak-ydb-extension">
+    <sqlFile path="ydb/changesets/2026-02-07-16-53-create-org-table.sql"/>
+  </changeSet>
+  <changeSet id="2026-02-07-16-55-create-org-domain-table" author="keycloak-ydb-extension">
+    <sqlFile path="ydb/changesets/2026-02-07-16-55-create-org-domain-table.sql"/>
+  </changeSet>
+  <changeSet id="2026-02-07-17-04-create-user-consent-table" author="keycloak-ydb-extension">
+    <sqlFile path="ydb/changesets/2026-02-07-17-04-create-user-consent-table.sql"/>
+  </changeSet>
+  <changeSet id="2026-02-07-17-05-create-user-consent-client-scope-table" author="keycloak-ydb-extension">
+    <sqlFile path="ydb/changesets/2026-02-07-17-05-create-user-consent-client-scope-table.sql"/>
+  </changeSet>
+  <changeSet id="2026-02-07-17-08-create-federated-identity-table" author="keycloak-ydb-extension">
+    <sqlFile path="ydb/changesets/2026-02-07-17-08-create-federated-identity-table.sql"/>
+  </changeSet>
+  <changeSet id="2026-02-07-17-09-create-fed-user-consent-table" author="keycloak-ydb-extension">
+    <sqlFile path="ydb/changesets/2026-02-07-17-09-create-fed-user-consent-table.sql"/>
+  </changeSet>
+  <changeSet id="2026-02-07-17-10-create-fed-user-consent-cl-scope-table" author="keycloak-ydb-extension">
+    <sqlFile path="ydb/changesets/2026-02-07-17-10-create-fed-user-consent-cl-scope-table.sql"/>
+  </changeSet>
+  <changeSet id="2026-02-07-17-11-create-fed-user-credential-table" author="keycloak-ydb-extension">
+    <sqlFile path="ydb/changesets/2026-02-07-17-11-create-fed-user-credential-table.sql"/>
+  </changeSet>
+  <changeSet id="2026-02-07-17-12-create-fed-user-group-membership-table" author="keycloak-ydb-extension">
+    <sqlFile path="ydb/changesets/2026-02-07-17-12-create-fed-user-group-membership-table.sql"/>
+  </changeSet>
+  <changeSet id="2026-02-07-17-12-create-fed-user-required-action-table" author="keycloak-ydb-extension">
+    <sqlFile path="ydb/changesets/2026-02-07-17-12-create-fed-user-required-action-table.sql"/>
+  </changeSet>
+  <changeSet id="2026-02-07-17-13-create-fed-user-role-mapping-table" author="keycloak-ydb-extension">
+    <sqlFile path="ydb/changesets/2026-02-07-17-13-create-fed-user-role-mapping-table.sql"/>
+  </changeSet>
+  <changeSet id="2026-02-07-17-14-create-federated-user-table" author="keycloak-ydb-extension">
+    <sqlFile path="ydb/changesets/2026-02-07-17-14-create-federated-user-table.sql"/>
+  </changeSet>
+  <changeSet id="2026-02-07-17-15-create-broker-link-table" author="keycloak-ydb-extension">
+    <sqlFile path="ydb/changesets/2026-02-07-17-15-create-broker-link-table.sql"/>
+  </changeSet>
+  <changeSet id="2026-02-07-17-16-create-fed-user-attribute-table" author="keycloak-ydb-extension">
+    <sqlFile path="ydb/changesets/2026-02-07-17-16-create-fed-user-attribute-table.sql"/>
+  </changeSet>
+  <changeSet id="2026-02-07-17-17-create-group-attribute-table" author="keycloak-ydb-extension">
+    <sqlFile path="ydb/changesets/2026-02-07-17-17-create-group-attribute-table.sql"/>
+  </changeSet>
+  <changeSet id="2026-02-07-17-18-create-group-role-mapping-table" author="keycloak-ydb-extension">
+    <sqlFile path="ydb/changesets/2026-02-07-17-18-create-group-role-mapping-table.sql"/>
+  </changeSet>
+  <changeSet id="2026-02-08-19-53-create-resource-server-table" author="keycloak-ydb-extension">
+    <sqlFile path="ydb/changesets/2026-02-08-19-53-create-resource-server-table.sql"/>
+  </changeSet>
+  <changeSet id="2026-02-08-19-54-create-resource-server-policy-table" author="keycloak-ydb-extension">
+    <sqlFile path="ydb/changesets/2026-02-08-19-54-create-resource-server-policy-table.sql"/>
+  </changeSet>
+  <changeSet id="2026-02-08-19-56-create-resource-server-resource-table" author="keycloak-ydb-extension">
+    <sqlFile path="ydb/changesets/2026-02-08-19-56-create-resource-server-resource-table.sql"/>
+  </changeSet>
+  <changeSet id="2026-02-08-19-57-create-resource-attribute-table" author="keycloak-ydb-extension">
+    <sqlFile path="ydb/changesets/2026-02-08-19-57-create-resource-attribute-table.sql"/>
+  </changeSet>
+  <changeSet id="2026-02-08-19-58-create-resource-policy-table" author="keycloak-ydb-extension">
+    <sqlFile path="ydb/changesets/2026-02-08-19-58-create-resource-policy-table.sql"/>
+  </changeSet>
+  <changeSet id="2026-02-08-19-59-create-resource-server-scope-table" author="keycloak-ydb-extension">
+    <sqlFile path="ydb/changesets/2026-02-08-19-59-create-resource-server-scope-table.sql"/>
+  </changeSet>
+  <changeSet id="2026-02-08-20-00-create-resource-scope-table" author="keycloak-ydb-extension">
+    <sqlFile path="ydb/changesets/2026-02-08-20-00-create-resource-scope-table.sql"/>
+  </changeSet>
+  <changeSet id="2026-02-08-20-01-create-resource-server-perm-ticket-table" author="keycloak-ydb-extension">
+    <sqlFile path="ydb/changesets/2026-02-08-20-01-create-resource-server-perm-ticket-table.sql"/>
+  </changeSet>
+  <changeSet id="2026-02-08-20-02-create-resource-uris-table" author="keycloak-ydb-extension">
+    <sqlFile path="ydb/changesets/2026-02-08-20-02-create-resource-uris-table.sql"/>
+  </changeSet>
 </databaseChangeLog>
