@@ -40,17 +40,21 @@ services:
     volumes:
       - ./providers/keycloak-ydb-extension-1.0-SNAPSHOT.jar:/opt/keycloak/providers/keycloak-ydb-extension-1.0-SNAPSHOT.jar
     environment:
-      # YDB Configuration
+      # Use dev-file for the built-in datasource so it never sees the YDB URL (no "driver does not support URL" error).
+      # YDB JDBC URL (config key ydbJdbcUrl / ydb-url; env KC_SPI_CONNECTIONS_JPA_DEFAULT_YDB_JDBC_URL).
+      - KC_SPI_CONNECTIONS_JPA_DEFAULT_YDB_JDBC_URL=jdbc:ydb:grpc://ydb:2136/local
+      - KC_SPI_CONNECTIONS_JPA_SHOW_SQL=true
       - KC_COMMUNITY_DATASTORE_YDB_ENABLED=true
-      - KC_SPI_YDB_CONNECTION_DEFAULT_JDBC_URL=jdbc:ydb:grpc://ydb:2136/local
-      - KC_SPI_YDB_CONNECTION_DEFAULT_CREATE_SCHEMA=true
-      # Keycloak Admin
+      # Disable default JPA and Liquibase providers so H2 is not used (only YDB is used).
+      - KC_SPI_CONNECTIONS_JPA_QUARKUS_ENABLED=false
+      - KC_SPI_CONNECTIONS_LIQUIBASE_QUARKUS_ENABLED=false
+      # Admin
       - KEYCLOAK_ADMIN=admin
       - KEYCLOAK_ADMIN_PASSWORD=admin
     entrypoint: /opt/keycloak/bin/kc.sh
     command: >
-      -v start-dev 
-      --cache=local 
+      -v start-dev
+      --cache=local
       --features-disabled=authorization,admin-fine-grained-authz,organization
     ports:
       - 9090:8080

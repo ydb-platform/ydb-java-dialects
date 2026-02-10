@@ -40,7 +40,7 @@ class YdbRealmProviderFactory() : RealmProviderFactory<YdbRealmProvider>, Enviro
 
   override fun isSupported(scope: Config.Scope): Boolean = IS_YDB_PROFILE_ENABLED
 
-  override fun order(): Int = PROVIDER_PRIORITY + 1
+  override fun order(): Int = PROVIDER_PRIORITY
 
   private companion object {
     private const val ID = "ydb-realm-provider-factory"

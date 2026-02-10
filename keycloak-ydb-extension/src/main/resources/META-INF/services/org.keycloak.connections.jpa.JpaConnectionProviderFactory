@@ -1,1 +1,1 @@
-tech.ydb.keycloak.connection.DefaultYdbConnectionProviderFactory
+tech.ydb.keycloak.connection.YdbConnectionProviderFactoryImpl

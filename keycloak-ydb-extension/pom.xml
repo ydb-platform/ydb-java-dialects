@@ -202,6 +202,9 @@
       <groupId>tech.ydb.dialects</groupId>
       <artifactId>hibernate-ydb-dialect</artifactId>
       <version>${hibernate.ydb.dialect.version}</version>
+<!--      TODO: WITHOUT hibernate-v7 it does not work-->
+<!--      <artifactId>hibernate-ydb-dialect-v7</artifactId>-->
+<!--      <version>0.9.1</version>-->
     </dependency>
 
     <dependency>
