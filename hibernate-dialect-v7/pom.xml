@@ -5,21 +5,25 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>tech.ydb.dialects</groupId>
-    <artifactId>hibernate-ydb-dialect</artifactId>
-    <version>1.5.1</version>
+    <artifactId>hibernate-ydb-dialect-v7</artifactId>
+    <version>0.9.1</version>
 
     <packaging>jar</packaging>
 
-    <name>Hibernate V6 YDB Dialect</name>
-    <description>Support Hibernate version 6 YDB (YQL) Dialect</description>
+    <name>Hibernate V7 YDB Dialect</name>
+    <description>Support Hibernate version 7 YDB (YQL) Dialect</description>
     <url>https://github.com/ydb-platform/ydb-java-dialects</url>
 
     <developers>
         <developer>
-            <name>Kirill Kurdyukov</name>
-            <email>kurdyukov-kir@ydb.tech</email>
-            <organization>YDB</organization>
-            <organizationUrl>https://ydb.tech/</organizationUrl>
+          <name>Ainur Mukhtarov</name>
+          <email>aikamyx2004@gmail.com</email>
+        </developer>
+        <developer>
+          <name>Kirill Kurdyukov</name>
+          <email>kurdyukov-kir@ydb.tech</email>
+          <organization>YDB</organization>
+          <organizationUrl>https://ydb.tech/</organizationUrl>
         </developer>
     </developers>
 

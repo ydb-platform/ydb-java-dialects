@@ -1,8 +1,10 @@
+TODO: Add here some new urls
+
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://github.com/ydb-platform/ydb-java-dialects/blob/main/LICENSE.md)
 [![Maven metadata URL](https://img.shields.io/maven-metadata/v?metadataUrl=https%3A%2F%2Frepo1.maven.org%2Fmaven2%2Ftech%2Fydb%2Fdialects%2Fhibernate-ydb-dialect%2Fmaven-metadata.xml)](https://mvnrepository.com/artifact/tech.ydb.dialects/hibernate-ydb-dialect)
 [![CI](https://img.shields.io/github/actions/workflow/status/ydb-platform/ydb-java-dialects/ci-hibernate-dialect.yaml?branch=main&label=CI)](https://github.com/ydb-platform/ydb-java-dialects/actions/workflows/ci-hibernate-dialect.yaml)
 
-# YDB Dialect for Hibernate 6.*
+# YDB Dialect for Hibernate 7.*
 
 ## Overview
 
@@ -21,10 +23,10 @@ features while using YDB as your underlying database.
 
 ### Requirements
 
-To use this Hibernate V6 YDB Dialect, you'll need:
+To use this Hibernate V7 YDB Dialect, you'll need:
 
 - Java 17 or above.
-- Hibernate version 6.*
+- Hibernate version 7.*
 - [YDB JDBC Driver](https://github.com/ydb-platform/ydb-jdbc-driver)
 - Access to a YDB Database instance
 
@@ -35,7 +37,7 @@ For Maven, add the following dependency to your pom.xml:
 ```xml
 <dependency>
     <groupId>tech.ydb.dialects</groupId>
-    <artifactId>hibernate-ydb-dialect</artifactId>
+    <artifactId>hibernate-ydb-dialect-v7</artifactId>
     <!-- Set actual version -->
     <version>${hibernate.ydb.dialect.version}</version> 
 </dependency>
@@ -45,7 +47,7 @@ For Gradle, add the following to your build.gradle (or build.gradle.kts):
 
 ```groovy
 dependencies {
-    implementation 'tech.ydb.dialects:hibernate-ydb-dialect:$version' // Set actual version
+    implementation 'tech.ydb.dialects:hibernate-ydb-dialect-v7:$version' // Set actual version
 }
 ```
 
@@ -91,4 +93,4 @@ An example of a simple Spring Data JPA repository can be found at the following
 
 ## Support and Contact
 
-For support, you can open issues in the repository issue tracker with tag `hibernate-v6`.
+For support, you can open issues in the repository issue tracker with tag `hibernate-v7`.
