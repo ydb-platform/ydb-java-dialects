@@ -2,10 +2,10 @@ package tech.ydb.hibernate.dialect.identity;
 
 import java.sql.JDBCType;
 import org.hibernate.MappingException;
-import org.hibernate.dialect.Dialect;
 import org.hibernate.dialect.identity.IdentityColumnSupportImpl;
-import org.hibernate.id.PostInsertIdentityPersister;
+import org.hibernate.generator.EventType;
 import org.hibernate.id.insert.GetGeneratedKeysDelegate;
+import org.hibernate.persister.entity.EntityPersister;
 import static org.hibernate.type.SqlTypes.BIGINT;
 import static org.hibernate.type.SqlTypes.INTEGER;
 import static org.hibernate.type.SqlTypes.SMALLINT;
@@ -40,10 +40,7 @@ public class YdbIdentityColumnSupport extends IdentityColumnSupportImpl {
     }
 
     @Override
-    public GetGeneratedKeysDelegate buildGetGeneratedKeysDelegate(
-            PostInsertIdentityPersister persister,
-            Dialect dialect
-    ) {
-        return new GetGeneratedKeysDelegate(persister, dialect, false);
+    public GetGeneratedKeysDelegate buildGetGeneratedKeysDelegate(EntityPersister persister) {
+        return new GetGeneratedKeysDelegate(persister, false, EventType.INSERT);
     }
 }

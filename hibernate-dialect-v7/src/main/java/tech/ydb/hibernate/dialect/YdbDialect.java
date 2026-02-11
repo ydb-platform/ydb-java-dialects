@@ -14,9 +14,9 @@ import org.hibernate.dialect.identity.IdentityColumnSupport;
 import org.hibernate.dialect.pagination.LimitHandler;
 import org.hibernate.dialect.pagination.LimitOffsetLimitHandler;
 import org.hibernate.engine.jdbc.dialect.spi.DialectResolutionInfo;
-import org.hibernate.mapping.Constraint;
 import org.hibernate.mapping.ForeignKey;
 import org.hibernate.mapping.Index;
+import org.hibernate.mapping.UniqueKey;
 import org.hibernate.query.spi.QueryOptions;
 import org.hibernate.service.ServiceRegistry;
 import org.hibernate.sql.ast.SqlAstTranslatorFactory;
@@ -88,7 +88,7 @@ import tech.ydb.hibernate.dialect.types.YdbJdbcType;
  */
 public class YdbDialect extends Dialect {
     private static final Exporter<ForeignKey> FOREIGN_KEY_EMPTY_EXPORTER = new EmptyExporter<>();
-    private static final Exporter<Constraint> UNIQUE_KEY_EMPTY_EXPORTER = new EmptyExporter<>();
+    private static final Exporter<UniqueKey> UNIQUE_KEY_EMPTY_EXPORTER = new EmptyExporter<>();
     private static final List<QueryHintHandler> QUERY_HINT_HANDLERS = List.of(
             IndexQueryHintHandler.INSTANCE,
             ScanQueryHintHandler.INSTANCE,
@@ -411,7 +411,7 @@ public class YdbDialect extends Dialect {
     }
 
     @Override
-    public Exporter<Constraint> getUniqueKeyExporter() {
+    public Exporter<UniqueKey> getUniqueKeyExporter() {
         return UNIQUE_KEY_EMPTY_EXPORTER;
     }
 
