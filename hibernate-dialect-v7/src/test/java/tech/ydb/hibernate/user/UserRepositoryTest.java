@@ -83,7 +83,7 @@ public class UserRepositoryTest {
                             .createQuery("select current date", Date.class).getSingleResult();
 
                     LocalDateTime localDateTime = session
-                            .createQuery("select current time", LocalDateTime.class)
+                            .createQuery("select local datetime", LocalDateTime.class)
                             .getSingleResult();
                 }
         ));

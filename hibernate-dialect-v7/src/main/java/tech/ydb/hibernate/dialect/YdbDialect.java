@@ -6,10 +6,8 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
-import org.hibernate.boot.model.FunctionContributions;
 import org.hibernate.boot.model.TypeContributions;
 import org.hibernate.dialect.Dialect;
-import org.hibernate.dialect.function.CurrentFunction;
 import org.hibernate.dialect.identity.IdentityColumnSupport;
 import org.hibernate.dialect.pagination.LimitHandler;
 import org.hibernate.dialect.pagination.LimitOffsetLimitHandler;
@@ -22,7 +20,6 @@ import org.hibernate.service.ServiceRegistry;
 import org.hibernate.sql.ast.SqlAstTranslatorFactory;
 import org.hibernate.sql.ast.spi.SqlAppender;
 import org.hibernate.tool.schema.spi.Exporter;
-import org.hibernate.type.BasicType;
 import static org.hibernate.type.SqlTypes.BIGINT;
 import static org.hibernate.type.SqlTypes.BINARY;
 import static org.hibernate.type.SqlTypes.BIT;
@@ -57,7 +54,6 @@ import static org.hibernate.type.SqlTypes.TINYINT;
 import static org.hibernate.type.SqlTypes.UUID;
 import static org.hibernate.type.SqlTypes.VARBINARY;
 import static org.hibernate.type.SqlTypes.VARCHAR;
-import org.hibernate.type.StandardBasicTypes;
 import org.hibernate.type.descriptor.java.UUIDJavaType;
 import org.hibernate.type.descriptor.jdbc.JdbcType;
 import org.hibernate.type.descriptor.jdbc.UUIDJdbcType;
@@ -233,21 +229,6 @@ public class YdbDialect extends Dialect {
     @Override
     public int getDefaultDecimalPrecision() {
         return 22;
-    }
-
-    @Override
-    public void initializeFunctionRegistry(FunctionContributions functionContributions) {
-        super.initializeFunctionRegistry(functionContributions);
-
-        final BasicType<LocalDateTime> localDateTimeType = functionContributions
-                .getTypeConfiguration()
-                .getBasicTypeRegistry()
-                .resolve(StandardBasicTypes.LOCAL_DATE_TIME);
-
-        functionContributions.getFunctionRegistry().register(
-                "current_time",
-                new CurrentFunction("current_time", currentTime(), localDateTimeType)
-        );
     }
 
     @Override
