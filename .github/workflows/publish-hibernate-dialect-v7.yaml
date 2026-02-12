@@ -1,4 +1,4 @@
-name: Publish YDB Hibernate Dialect
+name: Publish YDB Hibernate Dialect v7
 
 on:
   push:
