@@ -3,12 +3,12 @@ name: YDB Hibernate Dialect CI with Maven
 on:
   push:
     paths:
-      - 'hibernate-dialect/**'
+      - 'hibernate-dialect-v7/**'
     branches:
       - main
   pull_request:
     paths:
-      - 'hibernate-dialect/**'
+      - 'hibernate-dialect-v7/**'
 
 env:
   MAVEN_ARGS: --batch-mode --update-snapshots -Dstyle.color=always
@@ -33,17 +33,17 @@ jobs:
           cache: maven
 
       - name: Extract Hibernate Dialect version
-        working-directory: ./hibernate-dialect
+        working-directory: ./hibernate-dialect-v7
         run: |
           VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
           echo "HIBERNATE_DIALECT_VERSION=$VERSION" >> "$GITHUB_ENV"
 
       - name: Download Hibernate Dialect dependencies
-        working-directory: ./hibernate-dialect
+        working-directory: ./hibernate-dialect-v7
         run: mvn $MAVEN_ARGS dependency:go-offline
 
       - name: Build Hibernate Dialect
-        working-directory: ./hibernate-dialect
+        working-directory: ./hibernate-dialect-v7
         run: mvn $MAVEN_ARGS install
 
       - uses: actions/checkout@v4
