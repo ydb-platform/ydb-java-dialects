@@ -6,6 +6,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
+import org.hibernate.boot.model.FunctionContributions;
 import org.hibernate.boot.model.TypeContributions;
 import org.hibernate.dialect.Dialect;
 import org.hibernate.dialect.identity.IdentityColumnSupport;
@@ -16,6 +17,7 @@ import org.hibernate.mapping.ForeignKey;
 import org.hibernate.mapping.Index;
 import org.hibernate.mapping.UniqueKey;
 import org.hibernate.query.spi.QueryOptions;
+import org.hibernate.query.sqm.function.SqmFunctionRegistry;
 import org.hibernate.service.ServiceRegistry;
 import org.hibernate.sql.ast.SqlAstTranslatorFactory;
 import org.hibernate.sql.ast.spi.SqlAppender;
@@ -229,6 +231,23 @@ public class YdbDialect extends Dialect {
     @Override
     public int getDefaultDecimalPrecision() {
         return 22;
+    }
+
+    @Override
+    public void initializeFunctionRegistry(FunctionContributions functionContributions) {
+        super.initializeFunctionRegistry(functionContributions);
+
+        final SqmFunctionRegistry functionRegistry = functionContributions.getFunctionRegistry();
+
+        functionRegistry.registerPattern(
+                "lower",
+                "Unicode::ToLower(?1)"
+        );
+
+        functionRegistry.registerPattern(
+                "upper",
+                "Unicode::ToUpper(?1)"
+        );
     }
 
     @Override

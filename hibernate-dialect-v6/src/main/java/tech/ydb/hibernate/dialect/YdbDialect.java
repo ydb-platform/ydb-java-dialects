@@ -18,6 +18,7 @@ import org.hibernate.mapping.Constraint;
 import org.hibernate.mapping.ForeignKey;
 import org.hibernate.mapping.Index;
 import org.hibernate.query.spi.QueryOptions;
+import org.hibernate.query.sqm.function.SqmFunctionRegistry;
 import org.hibernate.service.ServiceRegistry;
 import org.hibernate.sql.ast.SqlAstTranslatorFactory;
 import org.hibernate.sql.ast.spi.SqlAppender;
@@ -239,14 +240,25 @@ public class YdbDialect extends Dialect {
     public void initializeFunctionRegistry(FunctionContributions functionContributions) {
         super.initializeFunctionRegistry(functionContributions);
 
+        final SqmFunctionRegistry functionRegistry = functionContributions.getFunctionRegistry();
         final BasicType<LocalDateTime> localDateTimeType = functionContributions
                 .getTypeConfiguration()
                 .getBasicTypeRegistry()
                 .resolve(StandardBasicTypes.LOCAL_DATE_TIME);
 
-        functionContributions.getFunctionRegistry().register(
+        functionRegistry.register(
                 "current_time",
                 new CurrentFunction("current_time", currentTime(), localDateTimeType)
+        );
+
+        functionRegistry.registerPattern(
+                "lower",
+                "Unicode::ToLower(?1)"
+        );
+
+        functionRegistry.registerPattern(
+                "upper",
+                "Unicode::ToUpper(?1)"
         );
     }
 

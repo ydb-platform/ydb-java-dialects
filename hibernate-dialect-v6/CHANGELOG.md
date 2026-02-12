@@ -1,3 +1,7 @@
+## 1.5.3 ##
+
+- Support `lower` and `upper` functions
+
 ## 1.5.2 ##
 
 - Set LIMIT Long.MAX_VALUE in case, when there is offset without limit. Workaround on this issue https://github.com/ydb-platform/ydb/issues/33136
