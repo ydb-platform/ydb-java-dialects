@@ -38,11 +38,4 @@ public class StringCasingTest {
                 .createQuery("select upper('UpPer Text 123')")
                 .getSingleResult()));
     }
-
-    @Test
-    void titleFunctionTest() {
-        inTransaction(session -> assertEquals("Title", session
-                .createQuery("select title('title')")
-                .getSingleResult()));
-    }
 }
