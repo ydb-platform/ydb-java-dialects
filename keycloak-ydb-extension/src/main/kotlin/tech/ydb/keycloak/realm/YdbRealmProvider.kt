@@ -4,11 +4,14 @@ import jakarta.persistence.EntityManager
 import org.keycloak.common.util.StackUtil
 import org.keycloak.models.ClientModel
 import org.keycloak.models.ClientModel.ClientRemovedEvent
+import org.keycloak.models.ClientScopeModel
+import org.keycloak.models.ClientScopeModel.ClientScopeRemovedEvent
 import org.keycloak.models.KeycloakSession
 import org.keycloak.models.RealmModel
 import org.keycloak.models.jpa.JpaRealmProvider
 import org.keycloak.models.jpa.RealmAdapter
 import org.keycloak.models.jpa.entities.ClientEntity
+import org.keycloak.models.jpa.entities.ClientScopeEntity
 import org.keycloak.models.jpa.entities.RealmEntity
 
 
@@ -105,6 +108,36 @@ class YdbRealmProvider(
       throw e
     }
 
+    return true
+  }
+
+  override fun removeClientScope(realm: RealmModel, id: String?): Boolean {
+    if (id == null) return false
+    val clientScope = getClientScopeById(realm, id)
+    if (clientScope == null) return false
+
+    keycloakSession.users().preRemove(clientScope)
+    realm.removeDefaultClientScope(clientScope)
+    // YDB does not support FOR UPDATE (PESSIMISTIC_WRITE)
+    val clientScopeEntity = em.find(ClientScopeEntity::class.java, id)
+
+    em.createNamedQuery("deleteClientScopeClientMappingByClientScope")
+      .setParameter("clientScopeId", clientScope.id).executeUpdate()
+    em.createNamedQuery("deleteClientScopeRoleMappingByClientScope").setParameter("clientScope", clientScopeEntity)
+      .executeUpdate()
+    em.remove(clientScopeEntity)
+
+    keycloakSession.keycloakSessionFactory.publish(object : ClientScopeRemovedEvent {
+      override fun getKeycloakSession(): KeycloakSession {
+        return this@YdbRealmProvider.keycloakSession
+      }
+
+      override fun getClientScope(): ClientScopeModel {
+        return clientScope
+      }
+    })
+
+    em.flush()
     return true
   }
 }
