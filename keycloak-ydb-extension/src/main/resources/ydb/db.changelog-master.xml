@@ -226,4 +226,25 @@
   <changeSet id="2026-02-08-20-02-create-resource-uris-table" author="keycloak-ydb-extension">
     <sqlFile path="ydb/changesets/2026-02-08-20-02-create-resource-uris-table.sql"/>
   </changeSet>
+  <changeSet id="2026-02-15-13-45-create-policy-config-table" author="keycloak-ydb-extension">
+    <sqlFile path="ydb/changesets/2026-02-15-13-45-create-policy-config-table.sql"/>
+  </changeSet>
+  <changeSet id="2026-02-15-15-18-create-idp-mapper-config-table" author="keycloak-ydb-extension">
+    <sqlFile path="ydb/changesets/2026-02-15-15-18-create-idp-mapper-config-table.sql"/>
+  </changeSet>
+  <changeSet id="2026-02-15-15-21-create-client-initial-access-table" author="keycloak-ydb-extension">
+    <sqlFile path="ydb/changesets/2026-02-15-15-21-create-client-initial-access-table.sql"/>
+  </changeSet>
+  <changeSet id="2026-02-15-15-23-create-user-federation-provider-table" author="keycloak-ydb-extension">
+    <sqlFile path="ydb/changesets/2026-02-15-15-23-create-user-federation-provider-table.sql"/>
+  </changeSet>
+  <changeSet id="2026-02-15-15-24-create-user-federation-config-table" author="keycloak-ydb-extension">
+    <sqlFile path="ydb/changesets/2026-02-15-15-24-create-user-federation-config-table.sql"/>
+  </changeSet>
+  <changeSet id="2026-02-15-15-25-create-user-federation-mapper-table.sql" author="keycloak-ydb-extension">
+    <sqlFile path="ydb/changesets/2026-02-15-15-25-create-user-federation-mapper-table.sql"/>
+  </changeSet>
+  <changeSet id="2026-02-15-15-29-create-user-federation-mapper-config-table" author="keycloak-ydb-extension">
+    <sqlFile path="ydb/changesets/2026-02-15-15-29-create-user-federation-mapper-config-table.sql"/>
+  </changeSet>
 </databaseChangeLog>

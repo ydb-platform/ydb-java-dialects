@@ -1,0 +1,11 @@
+CREATE TABLE IF NOT EXISTS IDP_MAPPER_CONFIG
+(
+    `IDP_MAPPER_ID` Utf8 NOT NULL,
+    `VALUE`         Utf8,
+    `NAME`          Utf8 NOT NULL,
+
+    INDEX idx_idp_mapper_config_mapper GLOBAL ON (IDP_MAPPER_ID),
+    INDEX idx_idp_mapper_config_name GLOBAL ON (NAME),
+--     FOREIGN KEY (IDP_MAPPER_ID) REFERENCES IDENTITY_PROVIDER_MAPPER (ID),
+    PRIMARY KEY (IDP_MAPPER_ID, NAME)
+);

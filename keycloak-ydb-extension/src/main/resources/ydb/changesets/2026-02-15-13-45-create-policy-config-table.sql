@@ -1,0 +1,11 @@
+CREATE TABLE IF NOT EXISTS POLICY_CONFIG
+(
+    `POLICY_ID` Utf8 NOT NULL,
+    `NAME`      Utf8 NOT NULL,
+    `VALUE`     Utf8,
+
+    INDEX idx_policy_config_policy GLOBAL ON (POLICY_ID),
+    INDEX idx_policy_config_name GLOBAL ON (NAME),
+--     FOREIGN KEY (POLICY_ID) REFERENCES RESOURCE_SERVER_POLICY (ID),
+    PRIMARY KEY (POLICY_ID, NAME)
+);
