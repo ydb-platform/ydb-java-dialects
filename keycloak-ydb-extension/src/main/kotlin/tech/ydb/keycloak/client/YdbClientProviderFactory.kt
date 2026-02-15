@@ -20,10 +20,10 @@ class YdbClientProviderFactory : JpaClientProviderFactory() {
   private lateinit var clientSearchableAttributes: Set<String>
 
   override fun init(config: Config.Scope) {
-    var searchableAttrsArr = config.getArray("searchableAttributes")
+    var searchableAttrsArr = config.getArray("searchableAttributes")?.toList()
     if (searchableAttrsArr == null) {
       val s = System.getProperty("keycloak.client.searchableAttributes")
-      searchableAttrsArr = s?.split("\\s*,\\s*".toRegex())?.dropLastWhile { it.isEmpty() }?.toTypedArray()
+      searchableAttrsArr = s?.split("\\s*,\\s*".toRegex())
     }
     val s = HashSet(REQUIRED_SEARCHABLE_ATTRIBUTES)
     if (searchableAttrsArr != null) {
