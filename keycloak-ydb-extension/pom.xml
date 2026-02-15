@@ -23,7 +23,7 @@
     <ydb-jdbc-driver.version>2.3.20</ydb-jdbc-driver.version>
 
     <hikaricp.version>7.0.2</hikaricp.version>
-    <hibernate.ydb.dialect.version>1.5.1</hibernate.ydb.dialect.version>
+    <hibernate-v7.ydb.dialect.version>0.9.1</hibernate-v7.ydb.dialect.version>
   </properties>
 
   <build>
@@ -200,11 +200,8 @@
 
     <dependency>
       <groupId>tech.ydb.dialects</groupId>
-      <artifactId>hibernate-ydb-dialect</artifactId>
-      <version>${hibernate.ydb.dialect.version}</version>
-<!--      TODO: WITHOUT hibernate-v7 it does not work-->
-<!--      <artifactId>hibernate-ydb-dialect-v7</artifactId>-->
-<!--      <version>0.9.1</version>-->
+      <artifactId>hibernate-ydb-dialect-v7</artifactId>
+      <version>${hibernate-v7.ydb.dialect.version}</version>
     </dependency>
 
     <dependency>
