@@ -28,7 +28,7 @@ Alternative: you can set `KC_DB_URL` instead of `KC_YDB_URL`; the extension will
 From the project root:
 
 ```bash
-./run-keycloack-with-ydb.sh
+./run-keycloak-with-ydb.sh
 ```
 
 This builds the extension, copies the JAR to `docker/providers/`, and starts Keycloak + YDB via `docker/docker-compose.yml`.

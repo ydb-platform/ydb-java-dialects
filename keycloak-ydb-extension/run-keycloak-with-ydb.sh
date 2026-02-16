@@ -7,8 +7,8 @@ mkdir -p docker/providers
 JAR_FILE="target/keycloak-ydb-extension-1.0-SNAPSHOT.jar"
 
 if [ ! -f "$JAR_FILE" ]; then
-    echo "Ошибка: Файл $JAR_FILE не найден!"
-    echo "Сборка проекта, возможно, завершилась неудачно."
+    echo "Error: File $JAR_FILE not found!"
+    echo "The project build may have failed."
     exit 1
 fi
 
