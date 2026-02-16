@@ -55,7 +55,6 @@ services:
     command: >
       -v start-dev
       --cache=local
-      --features-disabled=authorization,admin-fine-grained-authz,organization
     ports:
       - 9090:8080
     networks:
