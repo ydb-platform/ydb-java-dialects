@@ -1,6 +1,6 @@
 ## 1.5.3 ##
 
-- Support `lower` and `upper` functions
+- Support `lower`, `upper` and `concat` functions
 
 ## 1.5.2 ##
 

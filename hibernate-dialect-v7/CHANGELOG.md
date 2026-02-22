@@ -1,3 +1,7 @@
+## 0.9.2 ##
+
+- Support `concat` function
+
 ## 0.9.1 ##
 
 - Full CRUD operations
