@@ -12,7 +12,8 @@ import org.keycloak.models.jpa.JpaClientProviderFactory
 import org.keycloak.models.jpa.entities.RealmAttributes
 import org.keycloak.protocol.saml.SamlConfigAttributes
 import org.keycloak.provider.ProviderEvent
-import tech.ydb.keycloak.config.ProviderPriority.PROVIDER_PRIORITY
+import tech.ydb.keycloak.config.ProviderConfig.PROVIDER_ID
+import tech.ydb.keycloak.config.ProviderConfig.PROVIDER_PRIORITY
 import tech.ydb.keycloak.realm.YdbRealmProvider
 
 class YdbClientProviderFactory : JpaClientProviderFactory() {
@@ -56,6 +57,8 @@ class YdbClientProviderFactory : JpaClientProviderFactory() {
   }
 
   override fun order(): Int = PROVIDER_PRIORITY
+
+  override fun getId(): String = PROVIDER_ID
 
   private companion object{
     private val REQUIRED_SEARCHABLE_ATTRIBUTES = listOf(

@@ -25,7 +25,8 @@ import org.keycloak.models.utils.KeycloakModelUtils
 import org.keycloak.provider.ServerInfoAwareProviderFactory
 import tech.ydb.hibernate.dialect.YdbDialect
 import tech.ydb.jdbc.YdbDriver
-import tech.ydb.keycloak.config.ProviderPriority.PROVIDER_PRIORITY
+import tech.ydb.keycloak.config.ProviderConfig.PROVIDER_ID
+import tech.ydb.keycloak.config.ProviderConfig.PROVIDER_PRIORITY
 import tech.ydb.keycloak.connection.YdbConnectionProviderFactoryImpl.Companion.MigrationStrategy.*
 import java.io.File
 import java.sql.Connection
@@ -78,7 +79,7 @@ class YdbConnectionProviderFactoryImpl : JpaConnectionProviderFactory, ServerInf
     KeycloakModelUtils.runJobInTransaction(factory) { session -> migrateModel(session) }
   }
 
-  private fun resolveJdbcUrl(): String = requireNotNull(config["ydbJdbcUrl"]) {
+  private fun resolveJdbcUrl(): String = requireNotNull(config["jdbcUrl"]) {
     "YDB JDBC URL is required"
   }
 
@@ -143,7 +144,7 @@ class YdbConnectionProviderFactoryImpl : JpaConnectionProviderFactory, ServerInf
     }
   }
 
-  override fun getId(): String = "default"
+  override fun getId(): String = PROVIDER_ID
 
   override fun order(): Int = PROVIDER_PRIORITY
 

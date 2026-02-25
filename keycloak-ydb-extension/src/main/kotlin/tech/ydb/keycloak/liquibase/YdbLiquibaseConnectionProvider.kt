@@ -9,7 +9,8 @@ import org.jboss.logging.Logger
 import org.keycloak.Config
 import org.keycloak.connections.jpa.updater.liquibase.conn.DefaultLiquibaseConnectionProvider
 import org.keycloak.connections.jpa.updater.liquibase.conn.KeycloakLiquibase
-import tech.ydb.keycloak.config.ProviderPriority.PROVIDER_PRIORITY
+import tech.ydb.keycloak.config.ProviderConfig.PROVIDER_ID
+import tech.ydb.keycloak.config.ProviderConfig.PROVIDER_PRIORITY
 import tech.ydb.liquibase.database.YdbDatabase
 import java.sql.Connection
 
@@ -68,7 +69,6 @@ class YdbLiquibaseConnectionProvider : DefaultLiquibaseConnectionProvider() {
   }
 
   companion object {
-    const val PROVIDER_ID: String = "ydb-liquibase"
     const val YDB_MASTER_CHANGELOG: String = "ydb/db.changelog-master.xml"
 
     private const val DEFAULT_INDEX_CREATION_THRESHOLD = 300000L
