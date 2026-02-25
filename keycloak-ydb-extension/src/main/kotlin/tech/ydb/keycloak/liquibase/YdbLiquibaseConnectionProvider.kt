@@ -9,13 +9,11 @@ import org.jboss.logging.Logger
 import org.keycloak.Config
 import org.keycloak.connections.jpa.updater.liquibase.conn.DefaultLiquibaseConnectionProvider
 import org.keycloak.connections.jpa.updater.liquibase.conn.KeycloakLiquibase
-import org.keycloak.provider.EnvironmentDependentProviderFactory
 import tech.ydb.keycloak.config.ProviderPriority.PROVIDER_PRIORITY
-import tech.ydb.keycloak.config.YdbProfile
 import tech.ydb.liquibase.database.YdbDatabase
 import java.sql.Connection
 
-class YdbLiquibaseConnectionProvider : DefaultLiquibaseConnectionProvider(), EnvironmentDependentProviderFactory {
+class YdbLiquibaseConnectionProvider : DefaultLiquibaseConnectionProvider() {
 
   private var indexCreationThreshold: Long = DEFAULT_INDEX_CREATION_THRESHOLD
 
@@ -27,8 +25,6 @@ class YdbLiquibaseConnectionProvider : DefaultLiquibaseConnectionProvider(), Env
   override fun getId(): String = PROVIDER_ID
 
   override fun order(): Int = PROVIDER_PRIORITY
-
-  override fun isSupported(scope: Config.Scope): Boolean = YdbProfile.IS_YDB_PROFILE_ENABLED
 
   override fun getLiquibase(connection: Connection, defaultSchema: String?): KeycloakLiquibase {
     val database = newYdbDatabase(connection)

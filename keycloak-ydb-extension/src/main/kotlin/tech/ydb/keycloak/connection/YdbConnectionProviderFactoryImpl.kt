@@ -22,12 +22,10 @@ import org.keycloak.models.KeycloakSessionFactory
 import org.keycloak.models.dblock.DBLockManager
 import org.keycloak.models.dblock.DBLockProvider
 import org.keycloak.models.utils.KeycloakModelUtils
-import org.keycloak.provider.EnvironmentDependentProviderFactory
 import org.keycloak.provider.ServerInfoAwareProviderFactory
 import tech.ydb.hibernate.dialect.YdbDialect
 import tech.ydb.jdbc.YdbDriver
 import tech.ydb.keycloak.config.ProviderPriority.PROVIDER_PRIORITY
-import tech.ydb.keycloak.config.YdbProfile.IS_YDB_PROFILE_ENABLED
 import tech.ydb.keycloak.connection.YdbConnectionProviderFactoryImpl.Companion.MigrationStrategy.*
 import java.io.File
 import java.sql.Connection
@@ -35,9 +33,7 @@ import java.sql.DriverManager
 import java.util.*
 import kotlin.properties.Delegates
 
-class YdbConnectionProviderFactoryImpl : JpaConnectionProviderFactory,
-  ServerInfoAwareProviderFactory,
-  EnvironmentDependentProviderFactory {
+class YdbConnectionProviderFactoryImpl : JpaConnectionProviderFactory, ServerInfoAwareProviderFactory {
 
   private val logger: Logger = Logger.getLogger(YdbConnectionProviderFactoryImpl::class.java)
 
@@ -65,10 +61,6 @@ class YdbConnectionProviderFactoryImpl : JpaConnectionProviderFactory,
   }
 
   override fun init(scope: Config.Scope) {
-    if (!isSupported(scope)) {
-      logger.debug("YDB JPA disabled (profile not enabled), skipping init")
-      return
-    }
     config = scope
   }
 
@@ -155,8 +147,6 @@ class YdbConnectionProviderFactoryImpl : JpaConnectionProviderFactory,
   override fun getId(): String = "default"
 
   override fun order(): Int = PROVIDER_PRIORITY
-
-  override fun isSupported(scope: Config.Scope): Boolean = IS_YDB_PROFILE_ENABLED
 
   override fun getConnection(): Connection {
     try {

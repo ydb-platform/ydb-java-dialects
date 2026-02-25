@@ -5,12 +5,10 @@ import org.keycloak.Config
 import org.keycloak.models.KeycloakSession
 import org.keycloak.models.KeycloakSessionFactory
 import org.keycloak.models.RealmProviderFactory
-import org.keycloak.provider.EnvironmentDependentProviderFactory
 import org.keycloak.connections.jpa.JpaConnectionProvider
 import tech.ydb.keycloak.config.ProviderPriority.PROVIDER_PRIORITY
-import tech.ydb.keycloak.config.YdbProfile.IS_YDB_PROFILE_ENABLED
 
-class YdbRealmProviderFactory() : RealmProviderFactory<YdbRealmProvider>, EnvironmentDependentProviderFactory {
+class YdbRealmProviderFactory() : RealmProviderFactory<YdbRealmProvider> {
 
   private val logger = Logger.getLogger(YdbRealmProviderFactory::class.java)
 
@@ -37,8 +35,6 @@ class YdbRealmProviderFactory() : RealmProviderFactory<YdbRealmProvider>, Enviro
   }
 
   override fun getId(): String = ID
-
-  override fun isSupported(scope: Config.Scope): Boolean = IS_YDB_PROFILE_ENABLED
 
   override fun order(): Int = PROVIDER_PRIORITY
 

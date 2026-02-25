@@ -44,7 +44,6 @@ services:
       # YDB JDBC URL (config key ydbJdbcUrl / ydb-url; env KC_SPI_CONNECTIONS_JPA_DEFAULT_YDB_JDBC_URL).
       - KC_SPI_CONNECTIONS_JPA_DEFAULT_YDB_JDBC_URL=jdbc:ydb:grpc://ydb:2136/local
       - KC_SPI_CONNECTIONS_JPA_SHOW_SQL=true
-      - KC_COMMUNITY_DATASTORE_YDB_ENABLED=true
       # Disable default JPA and Liquibase providers so H2 is not used (only YDB is used).
       - KC_SPI_CONNECTIONS_JPA_QUARKUS_ENABLED=false
       - KC_SPI_CONNECTIONS_LIQUIBASE_QUARKUS_ENABLED=false

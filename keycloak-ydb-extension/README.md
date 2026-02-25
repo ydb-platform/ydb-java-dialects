@@ -11,12 +11,11 @@ When using YDB you must avoid giving the YDB URL to Keycloak’s default datasou
 | Variable | Value | Purpose |
 |----------|--------|---------|
 | `KC_DB` | `dev-file` | Built-in datasource uses dev-file; it never sees the YDB URL. |
-| `KC_YDB_URL` | `jdbc:ydb:grpc://host:2136/database` | JDBC URL used by this extension. |
-| `KC_COMMUNITY_DATASTORE_YDB_ENABLED` | `true` | Enables this extension’s JPA provider. |
+| `KC_SPI_CONNECTIONS_JPA_DEFAULT_YDB_JDBC_URL` | `jdbc:ydb:grpc://host:2136/database` | JDBC URL used by this extension (required). |
 | `KC_SPI_CONNECTIONS_JPA_QUARKUS_ENABLED` | `false` | Disables the default Quarkus JPA provider so H2 is not used. |
 | `KC_SPI_CONNECTIONS_LIQUIBASE_QUARKUS_ENABLED` | `false` | Disables the default Quarkus Liquibase provider (migrations are run by this extension). |
 
-Alternative: you can set `KC_DB_URL` instead of `KC_YDB_URL`; the extension will use it when the YDB profile is enabled. Then still set `KC_DB=dev-file` so the default pool is not created with that URL.
+The extension is enabled when its JAR is in the `providers` directory and the YDB JDBC URL is configured. No separate “enable” flag is required.
 
 ## Getting started
 
