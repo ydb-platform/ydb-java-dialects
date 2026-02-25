@@ -78,9 +78,8 @@ class YdbConnectionProviderFactoryImpl : JpaConnectionProviderFactory, ServerInf
     KeycloakModelUtils.runJobInTransaction(factory) { session -> migrateModel(session) }
   }
 
-  // TODO: FIND OUT HOW IT SMTH LIKE spi.connections-jpa.default.ydb-jdbc-url
   private fun resolveJdbcUrl(): String = requireNotNull(config["ydbJdbcUrl"]) {
-    " YDB JDBC URL is required. Set env variable KC_SPI_CONNECTIONS_JPA_DEFAULT_YDB_JDBC_URL=<jdbc url> "
+    "YDB JDBC URL is required"
   }
 
   private fun createOrUpdateSchema(

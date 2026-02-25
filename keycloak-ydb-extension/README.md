@@ -31,3 +31,4 @@ From the project root:
 ```
 
 This builds the extension, copies the JAR to `docker/providers/`, and starts Keycloak + YDB via `docker/docker-compose.yml`.
+All Keycloak options (YDB URL, admin user, etc.) are set in `docker/conf/keycloak.conf`; override with environment variables if needed.
