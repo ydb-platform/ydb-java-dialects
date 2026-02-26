@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <groupId>tech.ydb</groupId>
+  <artifactId>keycloak-ydb-extension-parent</artifactId>
+  <version>1.0-SNAPSHOT</version>
+  <packaging>pom</packaging>
+
+  <name>keycloak-ydb-extension-parent</name>
+  <description>Keycloak extension storing data in YDB</description>
+
+  <modules>
+    <module>core</module>
+    <module>test</module>
+  </modules>
+
+  <properties>
+    <java.version>21</java.version>
+    <maven.compiler.source>${java.version}</maven.compiler.source>
+    <maven.compiler.target>${java.version}</maven.compiler.target>
+    <maven.compiler.release>${java.version}</maven.compiler.release>
+
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+
+    <kotlin.version>2.2.21</kotlin.version>
+    <kotlin.code.style>official</kotlin.code.style>
+    <kotlin.compiler.jvmTarget>21</kotlin.compiler.jvmTarget>
+
+    <keycloak.version>26.4.7</keycloak.version>
+
+    <ydb-jdbc-driver.version>2.3.20</ydb-jdbc-driver.version>
+    <liquibase-ydb-dialect>1.1.1</liquibase-ydb-dialect>
+
+    <hikaricp.version>7.0.2</hikaricp.version>
+    <hibernate-v7.ydb.dialect.version>0.9.1</hibernate-v7.ydb.dialect.version>
+  </properties>
+
+  <dependencyManagement>
+    <dependencies>
+      <dependency>
+        <groupId>org.keycloak</groupId>
+        <artifactId>keycloak-parent</artifactId>
+        <version>${keycloak.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+      <dependency>
+        <groupId>org.junit</groupId>
+        <artifactId>junit-bom</artifactId>
+        <version>5.14.3</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+      <dependency>
+        <groupId>tech.ydb</groupId>
+        <artifactId>keycloak-ydb-extension</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
+
+  <build>
+    <pluginManagement>
+      <plugins>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-compiler-plugin</artifactId>
+          <version>3.13.0</version>
+          <configuration>
+            <source>21</source>
+            <target>21</target>
+          </configuration>
+        </plugin>
+        <plugin>
+          <groupId>org.jetbrains.kotlin</groupId>
+          <artifactId>kotlin-maven-plugin</artifactId>
+          <version>${kotlin.version}</version>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-source-plugin</artifactId>
+          <version>3.2.1</version>
+          <executions>
+            <execution>
+              <id>attach-sources</id>
+              <goals>
+                <goal>jar-no-fork</goal>
+              </goals>
+            </execution>
+          </executions>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-surefire-plugin</artifactId>
+          <version>3.5.4</version>
+        </plugin>
+        <plugin>
+          <artifactId>maven-failsafe-plugin</artifactId>
+          <version>3.5.4</version>
+        </plugin>
+      </plugins>
+    </pluginManagement>
+  </build>
+</project>

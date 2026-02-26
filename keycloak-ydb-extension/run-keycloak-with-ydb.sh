@@ -1,10 +1,10 @@
 rm -f docker/providers/keycloak-ydb-extension-1.0-SNAPSHOT.jar
 
-mvn clean package
+mvn -f core/pom.xml clean package
 
 mkdir -p docker/providers
 
-JAR_FILE="target/keycloak-ydb-extension-1.0-SNAPSHOT.jar"
+JAR_FILE="core/target/keycloak-ydb-extension-1.0-SNAPSHOT.jar"
 
 if [ ! -f "$JAR_FILE" ]; then
     echo "Error: File $JAR_FILE not found!"
