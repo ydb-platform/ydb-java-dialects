@@ -63,6 +63,7 @@ import org.hibernate.type.descriptor.jdbc.UUIDJdbcType;
 import org.hibernate.type.descriptor.jdbc.spi.JdbcTypeRegistry;
 import org.hibernate.type.descriptor.sql.internal.DdlTypeImpl;
 import org.hibernate.type.descriptor.sql.spi.DdlTypeRegistry;
+import org.hibernate.type.spi.TypeConfiguration;
 import tech.ydb.hibernate.dialect.code.YdbJdbcCode;
 import tech.ydb.hibernate.dialect.exporter.EmptyExporter;
 import tech.ydb.hibernate.dialect.exporter.YdbIndexExporter;
@@ -70,6 +71,9 @@ import tech.ydb.hibernate.dialect.hint.IndexQueryHintHandler;
 import tech.ydb.hibernate.dialect.hint.PragmaQueryHintHandler;
 import tech.ydb.hibernate.dialect.hint.QueryHintHandler;
 import tech.ydb.hibernate.dialect.hint.ScanQueryHintHandler;
+import org.hibernate.query.sqm.produce.function.FunctionParameterType;
+import org.hibernate.query.sqm.produce.function.StandardFunctionArgumentTypeResolvers;
+import org.hibernate.type.StandardBasicTypes;
 import tech.ydb.hibernate.dialect.identity.YdbIdentityColumnSupport;
 import tech.ydb.hibernate.dialect.translator.YdbSqlAstTranslatorFactory;
 import tech.ydb.hibernate.dialect.types.BigDecimalJavaType;
@@ -251,6 +255,7 @@ public class YdbDialect extends Dialect {
         super.initializeFunctionRegistry(functionContributions);
 
         final SqmFunctionRegistry functionRegistry = functionContributions.getFunctionRegistry();
+        final TypeConfiguration typeConfig = functionContributions.getTypeConfiguration();
 
         functionRegistry.registerPattern(
                 "lower",
@@ -261,6 +266,14 @@ public class YdbDialect extends Dialect {
                 "upper",
                 "Unicode::ToUpper(?1)"
         );
+
+        functionRegistry.patternDescriptorBuilder("concat", "(?1||?2...)")
+                .setInvariantType(typeConfig.getBasicTypeRegistry().resolve(StandardBasicTypes.STRING))
+                .setMinArgumentCount(1)
+                .setArgumentTypeResolver(
+                        StandardFunctionArgumentTypeResolvers.impliedOrInvariant(typeConfig, FunctionParameterType.STRING))
+                .setArgumentListSignature("(STRING string0[, STRING string1[, ...]])")
+                .register();
     }
 
     @Override
