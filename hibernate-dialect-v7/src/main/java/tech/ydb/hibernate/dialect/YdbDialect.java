@@ -9,6 +9,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import org.hibernate.boot.model.FunctionContributions;
 import org.hibernate.boot.model.TypeContributions;
 import org.hibernate.dialect.Dialect;
+import org.hibernate.internal.util.config.ConfigurationHelper;
 import org.hibernate.dialect.identity.IdentityColumnSupport;
 import org.hibernate.dialect.pagination.LimitHandler;
 import org.hibernate.dialect.pagination.LimitOffsetLimitHandler;
@@ -94,8 +95,20 @@ public class YdbDialect extends Dialect {
     );
     private static final ConcurrentHashMap<Integer, DecimalJdbcType> DECIMAL_JDBC_TYPE_CACHE = new ConcurrentHashMap<>();
 
+    /**
+     * When true, FOR UPDATE / FOR SHARE lock hints are ignored and an empty string is returned.
+     * Configured via {@value tech.ydb.hibernate.dialect.YdbSettings#IGNORE_LOCK_HINTS}.
+     * Default is {@code false} to support backward compatibility
+     */
+    private final boolean ignoreLockHints;
+
     public YdbDialect(DialectResolutionInfo dialectResolutionInfo) {
         super(dialectResolutionInfo);
+        ignoreLockHints = ConfigurationHelper.getBoolean(
+            YdbSettings.IGNORE_LOCK_HINTS,
+            dialectResolutionInfo.getConfigurationValues(),
+            false
+        );
     }
 
     @Override
@@ -392,6 +405,9 @@ public class YdbDialect extends Dialect {
 
     @Override
     public String getForUpdateString() {
+        if (ignoreLockHints) {
+            return "";
+        }
         throw new UnsupportedOperationException("YDB does not support FOR UPDATE statement");
     }
 
