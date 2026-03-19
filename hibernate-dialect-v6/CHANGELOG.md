@@ -1,3 +1,8 @@
+TODO: Set actual version
+## 1.5.3 ##
+
+- Add u suffix to string literals to everywhere used Utf8 type instead of String
+
 ## 1.5.3 ##
 
 - Support `lower`, `upper` and `concat` functions

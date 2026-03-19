@@ -465,6 +465,12 @@ public class YdbDialect extends Dialect {
         return true;
     }
 
+    @Override
+    public void appendLiteral(SqlAppender appender, String literal) {
+        super.appendLiteral(appender, literal);
+        appender.append('u');
+    }
+
     private static int ydbDecimal(int precision, int scale) {
         return 1 << 14 + (precision << 6) + (scale & 0x111111);
     }
