@@ -6,6 +6,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import tech.ydb.test.junit5.YdbHelperExtension;
 
+import java.util.List;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static tech.ydb.hibernate.TestUtils.*;
 
@@ -20,6 +22,7 @@ public class StringFunctionsTest {
     @BeforeAll
     static void beforeAll() {
         SESSION_FACTORY = basedConfiguration()
+                .addAnnotatedClass(StringEntity.class)
                 .setProperty(AvailableSettings.URL, jdbcUrl(ydb))
                 .buildSessionFactory();
     }
@@ -47,5 +50,26 @@ public class StringFunctionsTest {
         inTransaction(session -> assertEquals("text", session
                 .createQuery("select concat('text')")
                 .getSingleResult()));
+    }
+
+    @Test
+    void lowerOnColumnWithLikeTest() {
+        inTransaction(session -> {
+            StringEntity entity = new StringEntity();
+            entity.id = 1;
+            entity.name = "test entity";
+            session.persist(entity);
+        });
+
+        inTransaction(session -> {
+            List<StringEntity> result = session
+                    .createQuery(
+                            "select e from StringEntity e where lower(e.name) like lower(concat('%', :search, '%'))",
+                            StringEntity.class
+                    )
+                    .setParameter("search", "test")
+                    .getResultList();
+            assertEquals(1, result.size());
+        });
     }
 }
