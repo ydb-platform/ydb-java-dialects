@@ -1,3 +1,8 @@
+TODO: Set actual version
+## 0.9.x ##
+
+- Fixed `lower` and `upper` functions: replaced `Unicode::ToLower`/`Unicode::ToUpper` with YQL built-in functions compatible with `Text`/`String` column types
+
 ## 1.5.3 ##
 
 - Support `lower`, `upper` and `concat` functions

@@ -259,12 +259,12 @@ public class YdbDialect extends Dialect {
 
         functionRegistry.registerPattern(
                 "lower",
-                "Unicode::ToLower(?1)"
+                "String::AsciiToLower(?1)"
         );
 
         functionRegistry.registerPattern(
                 "upper",
-                "Unicode::ToUpper(?1)"
+                "String::AsciiToUpper(?1)"
         );
 
         functionRegistry.patternDescriptorBuilder("concat", "(?1||?2...)")
