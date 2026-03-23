@@ -1,3 +1,8 @@
+TODO: use actual version
+## 0.9.x ##
+
+- Disable ordinal SELECT item references (`ORDER BY 1`, `GROUP BY 1`) — YDB does not support them
+
 ## 0.9.2 ##
 
 - Support `concat` function

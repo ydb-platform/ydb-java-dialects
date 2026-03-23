@@ -1,3 +1,7 @@
+## 1.5.x ##
+
+- Disable ordinal SELECT item references (`ORDER BY 1`, `GROUP BY 1`) — YDB does not support them
+
 ## 1.5.3 ##
 
 - Support `lower`, `upper` and `concat` functions
