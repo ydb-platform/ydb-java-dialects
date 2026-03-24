@@ -1,8 +1,8 @@
-package tech.ydb.exposed.dialect
+package tech.ydb.exposed.dialect.unit.connection
 
-import org.junit.jupiter.api.Assertions.assertNotNull
+import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.Test
-
+import tech.ydb.exposed.dialect.basic.YdbDialectProvider
 
 class ConnectionTest {
     @Test
@@ -12,6 +12,6 @@ class ConnectionTest {
             driver = "tech.ydb.jdbc.YdbDriver"
         )
 
-        assertNotNull(db)
+        Assertions.assertNotNull(db)
     }
 }

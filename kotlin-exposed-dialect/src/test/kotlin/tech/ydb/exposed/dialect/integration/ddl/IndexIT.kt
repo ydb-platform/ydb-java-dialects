@@ -1,10 +1,10 @@
-package tech.ydb.exposed.dialect
+package tech.ydb.exposed.dialect.integration.ddl
 
-import org.jetbrains.exposed.v1.core.*
+import org.jetbrains.exposed.v1.core.Table
 import org.jetbrains.exposed.v1.jdbc.SchemaUtils
-import org.jetbrains.exposed.v1.jdbc.transactions.transaction
-import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.Test
+import tech.ydb.exposed.dialect.integration.base.BaseYdbTest
 
 class IndexIT : BaseYdbTest() {
 
@@ -22,6 +22,6 @@ class IndexIT : BaseYdbTest() {
 
         // Проверяем, что индекс создан через DSL (фактически SQL выполняется через SchemaUtils)
         val indices = Customers.indices
-        assertTrue(indices.any { it.columns.contains(Customers.email) })
+        Assertions.assertTrue(indices.any { it.columns.contains(Customers.email) })
     }
 }

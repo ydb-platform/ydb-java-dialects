@@ -1,11 +1,10 @@
-package tech.ydb.exposed.dialect
+package tech.ydb.exposed.dialect.functions
 
 import org.jetbrains.exposed.v1.core.Column
 import org.jetbrains.exposed.v1.core.Op
 import org.jetbrains.exposed.v1.core.Table
 import org.jetbrains.exposed.v1.core.Transaction
 import org.jetbrains.exposed.v1.core.vendors.FunctionProvider
-
 
 class YdbFunctionProvider: FunctionProvider() {
     override fun random(seed: Int?): String = "Random()"

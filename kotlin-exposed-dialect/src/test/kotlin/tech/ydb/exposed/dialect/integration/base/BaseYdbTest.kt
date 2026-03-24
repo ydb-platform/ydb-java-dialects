@@ -1,10 +1,11 @@
-package tech.ydb.exposed.dialect
+package tech.ydb.exposed.dialect.integration.base
 
 import org.jetbrains.exposed.v1.jdbc.Database
 import org.jetbrains.exposed.v1.jdbc.JdbcTransaction
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
+import tech.ydb.exposed.dialect.basic.YdbDialectProvider
 
 abstract class BaseYdbTest {
 

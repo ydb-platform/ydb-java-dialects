@@ -1,4 +1,4 @@
-package tech.ydb.exposed.dialect
+package tech.ydb.exposed.dialect.transaction
 
 import org.jetbrains.exposed.v1.core.Transaction
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction

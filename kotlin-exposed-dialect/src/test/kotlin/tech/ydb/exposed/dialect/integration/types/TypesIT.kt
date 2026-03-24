@@ -1,9 +1,8 @@
-package tech.ydb.exposed.dialect
+package tech.ydb.exposed.dialect.integration.types
 
-import org.jetbrains.exposed.v1.core.*
-import org.jetbrains.exposed.v1.jdbc.*
+import org.jetbrains.exposed.v1.core.Table
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
-import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.Test
 
 class TypesIT {
@@ -22,8 +21,8 @@ class TypesIT {
 
             val ddl = TestTable.ddl.joinToString(" ")
 
-            assertTrue(ddl.contains("Int32"))
-            assertTrue(ddl.contains("Utf8") || ddl.contains("String"))
+            Assertions.assertTrue(ddl.contains("Int32"))
+            Assertions.assertTrue(ddl.contains("Utf8") || ddl.contains("String"))
         }
     }
 }

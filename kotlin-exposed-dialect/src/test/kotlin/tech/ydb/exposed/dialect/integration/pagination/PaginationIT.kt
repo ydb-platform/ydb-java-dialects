@@ -1,11 +1,12 @@
-package tech.ydb.exposed.dialect
+package tech.ydb.exposed.dialect.integration.pagination
 
-import org.jetbrains.exposed.v1.core.*
+import org.jetbrains.exposed.v1.core.Table
 import org.jetbrains.exposed.v1.jdbc.SchemaUtils
 import org.jetbrains.exposed.v1.jdbc.insert
 import org.jetbrains.exposed.v1.jdbc.selectAll
-import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.Test
+import tech.ydb.exposed.dialect.integration.base.BaseYdbTest
 
 class PaginationIT : BaseYdbTest() {
 
@@ -24,6 +25,6 @@ class PaginationIT : BaseYdbTest() {
         Items.insert { it[id] = 3; it[name] = "C" }
 
         val rows = Items.selectAll().limit(2).toList()
-        assertEquals(2, rows.size)
+        Assertions.assertEquals(2, rows.size)
     }
 }

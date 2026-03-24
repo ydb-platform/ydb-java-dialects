@@ -1,10 +1,12 @@
-package tech.ydb.exposed.dialect
+package tech.ydb.exposed.dialect.integration.upsert
 
-import org.jetbrains.exposed.v1.core.*
+import org.jetbrains.exposed.v1.core.Table
 import org.jetbrains.exposed.v1.jdbc.SchemaUtils
 import org.jetbrains.exposed.v1.jdbc.selectAll
-import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.Test
+import tech.ydb.exposed.dialect.functions.YdbFunctionProvider
+import tech.ydb.exposed.dialect.integration.base.BaseYdbTest
 
 class UpsertIT : BaseYdbTest() {
 
@@ -37,6 +39,6 @@ class UpsertIT : BaseYdbTest() {
 
         // Проверяем результат
         val row = Products.selectAll().single()
-        assertEquals("Item1", row[Products.name])
+        Assertions.assertEquals("Item1", row[Products.name])
     }
 }

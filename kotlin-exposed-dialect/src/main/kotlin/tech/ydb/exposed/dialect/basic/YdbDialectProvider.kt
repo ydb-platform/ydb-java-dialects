@@ -1,11 +1,10 @@
-package tech.ydb.exposed.dialect
+package tech.ydb.exposed.dialect.basic
 
 import org.jetbrains.exposed.v1.core.DatabaseConfig
 import org.jetbrains.exposed.v1.jdbc.Database
 
-
 object YdbDialectProvider {
-    
+
     fun connect(
         url: String = "jdbc:ydb:grpc://localhost:2136/local",
         driver: String = "tech.ydb.jdbc.YdbDriver",
@@ -13,7 +12,7 @@ object YdbDialectProvider {
         password: String = ""
     ): Database {
 
-        val config = DatabaseConfig {
+        val config = DatabaseConfig.Companion {
             defaultFetchSize = 1000
         }
 

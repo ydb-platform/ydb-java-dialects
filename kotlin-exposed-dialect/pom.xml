@@ -107,12 +107,14 @@
 
     <build>
         <plugins>
+
             <!-- Kotlin -->
             <plugin>
                 <groupId>org.jetbrains.kotlin</groupId>
                 <artifactId>kotlin-maven-plugin</artifactId>
                 <version>${kotlin.version}</version>
                 <executions>
+
                     <execution>
                         <id>compile</id>
                         <phase>compile</phase>
@@ -121,11 +123,9 @@
                         </goals>
                         <configuration>
                             <jvmTarget>17</jvmTarget>
-                            <sourceDirs>
-                                <sourceDir>src/main/kotlin</sourceDir>
-                            </sourceDirs>
                         </configuration>
                     </execution>
+
                     <execution>
                         <id>test-compile</id>
                         <phase>test-compile</phase>
@@ -134,22 +134,11 @@
                         </goals>
                         <configuration>
                             <jvmTarget>17</jvmTarget>
-                            <sourceDirs>
-                                <sourceDir>src/test/kotlin</sourceDir>
-                                <sourceDir>src/integrationTest/kotlin</sourceDir>
-                            </sourceDirs>
                         </configuration>
                     </execution>
+
                 </executions>
             </plugin>
-<!--            <plugin>-->
-<!--                <groupId>org.apache.maven.plugins</groupId>-->
-<!--                <artifactId>maven-surefire-plugin</artifactId>-->
-<!--                <version>3.1.0</version>-->
-<!--                <configuration>-->
-<!--                    <useModulePath>false</useModulePath>-->
-<!--                </configuration>-->
-<!--            </plugin>-->
 
             <!-- Unit tests -->
             <plugin>
@@ -158,7 +147,6 @@
                 <version>3.1.0</version>
                 <configuration>
                     <useModulePath>false</useModulePath>
-                    <!-- запускает только unit -->
                     <includes>
                         <include>**/*Test.kt</include>
                     </includes>
@@ -182,46 +170,13 @@
                         </goals>
                         <configuration>
                             <includes>
-                                <include>**/*IT</include>
+                                <include>**/*IT.kt</include>
                             </includes>
                         </configuration>
                     </execution>
                 </executions>
             </plugin>
 
-            <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>build-helper-maven-plugin</artifactId>
-                <version>3.5.0</version>
-                <executions>
-                    <!-- integration tests -->
-                    <execution>
-                        <id>add-integration-test-source</id>
-                        <phase>generate-test-sources</phase>
-                        <goals>
-                            <goal>add-test-source</goal>
-                        </goals>
-                        <configuration>
-                            <sources>
-                                <source>src/integrationTest/kotlin</source>
-                            </sources>
-                        </configuration>
-                    </execution>
-                    <!-- unit tests; to delete warning -->
-                    <execution>
-                        <id>add-test-source-kotlin</id>
-                        <phase>generate-test-sources</phase>
-                        <goals>
-                            <goal>add-test-source</goal>
-                        </goals>
-                        <configuration>
-                            <sources>
-                                <source>src/test/kotlin</source>
-                            </sources>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
         </plugins>
     </build>
 </project>

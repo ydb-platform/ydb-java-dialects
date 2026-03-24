@@ -1,7 +1,6 @@
-package tech.ydb.exposed.dialect
+package tech.ydb.exposed.dialect.types
 
 import org.jetbrains.exposed.v1.core.vendors.DataTypeProvider
-
 
 class YdbDataTypeProvider : DataTypeProvider() {
     override fun binaryType(): String = "String"

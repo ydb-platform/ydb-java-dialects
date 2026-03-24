@@ -1,7 +1,8 @@
-package tech.ydb.exposed.dialect
+package tech.ydb.exposed.dialect.unit.transaction
 
-import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.Test
+import tech.ydb.exposed.dialect.transaction.ydbTransaction
 import java.sql.SQLException
 import java.util.concurrent.atomic.AtomicInteger
 
@@ -24,8 +25,8 @@ class YdbRetryingTransactionTest {
             -1
         }
 
-        assertEquals(42, result)
-        assertEquals(3, attempts.get())
+        Assertions.assertEquals(42, result)
+        Assertions.assertEquals(3, attempts.get())
     }
 
     @Test
@@ -43,6 +44,6 @@ class YdbRetryingTransactionTest {
         } catch (_: SQLException) {
         }
 
-        assertEquals(1, attempts)
+        Assertions.assertEquals(1, attempts)
     }
 }

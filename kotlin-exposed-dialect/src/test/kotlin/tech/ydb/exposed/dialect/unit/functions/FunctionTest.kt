@@ -1,9 +1,10 @@
-package tech.ydb.exposed.dialect
+package tech.ydb.exposed.dialect.unit.functions
 
 import org.jetbrains.exposed.v1.core.*
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
+import tech.ydb.exposed.dialect.functions.YdbFunctionProvider
 
 object Users : Table("users") {
 
