@@ -6,6 +6,8 @@ import org.hibernate.sql.ast.Clause;
 import org.hibernate.sql.ast.spi.AbstractSqlAstTranslator;
 import org.hibernate.sql.ast.tree.Statement;
 import org.hibernate.sql.ast.tree.expression.Expression;
+import org.hibernate.sql.ast.tree.expression.QueryLiteral;
+import org.hibernate.sql.ast.tree.predicate.LikePredicate;
 import org.hibernate.sql.exec.spi.JdbcOperation;
 
 /**
@@ -49,6 +51,50 @@ public class YdbSqlAstTranslator<T extends JdbcOperation> extends AbstractSqlAst
             } finally {
                 getClauseStack().pop();
             }
+        }
+    }
+
+    @Override
+    public void visitLikePredicate(LikePredicate likePredicate) {
+        if (likePredicate.isCaseSensitive()) {
+            likePredicate.getMatchExpression().accept(this);
+            if (likePredicate.isNegated()) {
+                appendSql(" not");
+            }
+            appendSql(" like ");
+            likePredicate.getPattern().accept(this);
+            if (likePredicate.getEscapeCharacter() != null) {
+                appendSql(" escape ");
+                acceptEscapeCharacter(likePredicate);
+            }
+        } else {
+            if (getDialect().supportsCaseInsensitiveLike()) {
+                likePredicate.getMatchExpression().accept(this);
+                if (likePredicate.isNegated()) {
+                    appendSql(" not");
+                }
+                appendSql(WHITESPACE);
+                appendSql(getDialect().getCaseInsensitiveLike());
+                appendSql(WHITESPACE);
+                likePredicate.getPattern().accept(this);
+                if (likePredicate.getEscapeCharacter() != null) {
+                    appendSql(" escape ");
+                    acceptEscapeCharacter(likePredicate);
+                }
+            } else {
+                renderCaseInsensitiveLikeEmulation(likePredicate.getMatchExpression(), likePredicate.getPattern(), likePredicate.getEscapeCharacter(), likePredicate.isNegated());
+            }
+        }
+    }
+
+    private void acceptEscapeCharacter(LikePredicate likePredicate) {
+        if (likePredicate.getEscapeCharacter() instanceof QueryLiteral<?> queryLiteral
+                && queryLiteral.getLiteralValue() instanceof Character value) {
+            appendSql('\'');
+            appendSql(value);
+            appendSql('\'');
+        } else {
+            likePredicate.getEscapeCharacter().accept(this);
         }
     }
 }
