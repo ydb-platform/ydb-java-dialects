@@ -445,6 +445,11 @@ public class YdbDialect extends Dialect {
     }
 
     @Override
+    public boolean supportsOrdinalSelectItemReference() {
+        return false;
+    }
+
+    @Override
     public boolean supportsColumnCheck() {
         return false;
     }

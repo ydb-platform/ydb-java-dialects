@@ -1,6 +1,9 @@
 package tech.ydb.hibernate.student;
 
 import java.util.List;
+
+import jakarta.persistence.Tuple;
+import jakarta.persistence.criteria.*;
 import org.hibernate.cfg.AvailableSettings;
 import org.hibernate.cfg.Configuration;
 import org.hibernate.jpa.HibernateHints;
@@ -341,6 +344,56 @@ public class StudentsRepositoryTest {
         assertEquals("Теория информации", courses.get(3).getName());
         assertEquals("Математический анализ", courses.get(4).getName());
         assertEquals("Технологии Java", courses.get(5).getName());
+    }
+
+    @Test
+    void groupsOrderByGroupNameCriteriaTest() {
+        inTransaction(
+                session -> {
+                    CriteriaBuilder cb = session.getCriteriaBuilder();
+                    CriteriaQuery<String> cq = cb.createQuery(String.class);
+                    Root<Group> group = cq.from(Group.class);
+
+                    Path<String> name = group.get("name");
+
+                    cq.select(name);
+                    cq.orderBy(cb.asc(name));
+
+                    List<String> results = session.createQuery(cq).getResultList();
+
+                    assertEquals(List.of("M3238", "M3239", "M3435", "M3439"), results);
+                }
+        );
+    }
+
+    @Test
+    void studentsCountPerGroupCriteriaTest() {
+        inTransaction(
+                session -> {
+                    CriteriaBuilder cb = session.getCriteriaBuilder();
+                    CriteriaQuery<Tuple> cq = cb.createTupleQuery();
+                    Root<Group> group = cq.from(Group.class);
+                    Join<Group, Student> students = group.join("students");
+
+                    Path<String> groupName = group.get("name");
+
+                    cq.multiselect(groupName, cb.count(students));
+                    cq.groupBy(groupName);
+                    cq.orderBy(cb.asc(groupName));
+
+                    List<Tuple> results = session.createQuery(cq).getResultList();
+
+                    assertEquals(4, results.size());
+                    assertEquals("M3238", results.get(0).get(0));
+                    assertEquals(1L, results.get(0).get(1));
+                    assertEquals("M3239", results.get(1).get(0));
+                    assertEquals(1L, results.get(1).get(1));
+                    assertEquals("M3435", results.get(2).get(0));
+                    assertEquals(2L, results.get(2).get(1));
+                    assertEquals("M3439", results.get(3).get(0));
+                    assertEquals(2L, results.get(3).get(1));
+                }
+        );
     }
 
     @Test
