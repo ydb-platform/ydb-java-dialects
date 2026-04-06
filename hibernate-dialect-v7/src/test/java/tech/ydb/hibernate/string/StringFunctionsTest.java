@@ -85,4 +85,24 @@ public class StringFunctionsTest {
             assertEquals(1, result.size());
         });
     }
+
+    @Test
+    void likeWithEscapeCharLiteralTest() {
+        inTransaction(session -> {
+            StringEntity entity = new StringEntity();
+            entity.id = 60;
+            entity.name = "скидка 50% на всё";
+            session.persist(entity);
+        });
+
+        inTransaction(session -> {
+            List<StringEntity> result = session
+                    .createQuery(
+                            "select e from StringEntity e where e.name like '%50!%%' escape '!'",
+                            StringEntity.class
+                    )
+                    .getResultList();
+            assertEquals(1, result.size());
+        });
+    }
 }
