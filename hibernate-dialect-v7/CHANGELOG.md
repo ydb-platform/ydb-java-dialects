@@ -1,7 +1,7 @@
 TODO: Set actual version
 ## 0.9.x ##
 
-- Add u suffix to string literals to everywhere used Utf8 type instead of String
+- Add u suffix to string literals to everywhere used Utf8 type instead of String. For escape symbol added custom translation to it had String type, not Utf8.
 
 ## 0.9.2 ##
 
