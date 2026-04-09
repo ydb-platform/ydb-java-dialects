@@ -7,6 +7,8 @@ class YdbDataTypeProvider : DataTypeProvider() {
 
     override fun hexToDb(hexString: String): String = "'$hexString'"
 
+    override fun shortType(): String = "Int16"
+
     override fun integerType(): String = "Int32"
 
     override fun longType(): String = "Int64"
@@ -28,8 +30,6 @@ class YdbDataTypeProvider : DataTypeProvider() {
     override fun doubleType(): String = "Double"
 
     override fun dateTimeType(): String = "Datetime"
-
-    override fun shortType(): String = "Int16"
 
     override fun jsonType(): String = "Json"
 }

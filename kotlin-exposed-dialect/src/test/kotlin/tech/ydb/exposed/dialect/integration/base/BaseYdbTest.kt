@@ -29,6 +29,11 @@ abstract class BaseYdbTest {
         // Очистка таблиц после тестов
     }
 
+//    protected fun tx(block: () -> Unit) =
+//        YdbTransactionManager.transactionWithRetry(db) {
+//            block()
+//        }
+
     // Утилита для упрощения вызова transaction
     protected fun tx(block: JdbcTransaction.() -> Unit) = transaction(db) { block() }
 }
