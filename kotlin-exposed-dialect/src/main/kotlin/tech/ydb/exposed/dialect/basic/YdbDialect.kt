@@ -11,7 +11,7 @@ import org.jetbrains.exposed.v1.core.vendors.VendorDialect
 import tech.ydb.exposed.dialect.types.YdbDataTypeProvider
 import tech.ydb.exposed.dialect.functions.YdbFunctionProvider
 
-class YdbDialect: VendorDialect("ydb", YdbDataTypeProvider(), YdbFunctionProvider()) {
+class YdbDialect: VendorDialect("YDB", YdbDataTypeProvider(), YdbFunctionProvider()) {
 
 //    override val name: String = "ydb"
 
@@ -23,8 +23,6 @@ class YdbDialect: VendorDialect("ydb", YdbDataTypeProvider(), YdbFunctionProvide
 //        val columns = pkColumns.joinToString(", ") { it.name }
 //        return "PRIMARY KEY ($columns)"
 //    }
-
-
 
     override fun createIndex(index: Index): String {
         val columns = index.columns.joinToString(", ") { it.name }

@@ -9,6 +9,8 @@ class YdbDataTypeProvider : DataTypeProvider() {
 
     override fun shortType(): String = "Int16"
 
+    override fun integerAutoincType(): String = "Int32"
+
     override fun integerType(): String = "Int32"
 
     override fun longType(): String = "Int64"
