@@ -11,7 +11,7 @@ import org.jetbrains.exposed.v1.core.vendors.VendorDialect
 import tech.ydb.exposed.dialect.types.YdbDataTypeProvider
 import tech.ydb.exposed.dialect.functions.YdbFunctionProvider
 
-class YdbDialect: VendorDialect("YDB", YdbDataTypeProvider(), YdbFunctionProvider()) {
+class YdbDialect: VendorDialect("ydb", YdbDataTypeProvider(), YdbFunctionProvider()) {
 
 //    override val name: String = "ydb"
 
