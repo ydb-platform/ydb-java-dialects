@@ -1,12 +1,7 @@
 package tech.ydb.exposed.dialect.basic
 
-import org.jetbrains.exposed.v1.core.Column
-import org.jetbrains.exposed.v1.core.ColumnDiff
+
 import org.jetbrains.exposed.v1.core.Index
-import org.jetbrains.exposed.v1.core.Table
-import org.jetbrains.exposed.v1.core.vendors.DataTypeProvider
-import org.jetbrains.exposed.v1.core.vendors.DatabaseDialect
-import org.jetbrains.exposed.v1.core.vendors.FunctionProvider
 import org.jetbrains.exposed.v1.core.vendors.VendorDialect
 import tech.ydb.exposed.dialect.types.YdbDataTypeProvider
 import tech.ydb.exposed.dialect.functions.YdbFunctionProvider

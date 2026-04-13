@@ -4,11 +4,12 @@ import org.jetbrains.exposed.v1.core.Table
 import org.jetbrains.exposed.v1.jdbc.SchemaUtils
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.Test
+import tech.ydb.exposed.dialect.basic.YdbTable
 import tech.ydb.exposed.dialect.integration.base.BaseYdbTest
 
 class IndexIT : BaseYdbTest() {
 
-    object Customers : Table("customers") {
+    object Customers : YdbTable("customers") {
         val id = integer("id")
         val name = varchar("name", 255)
         val email = varchar("email", 255)

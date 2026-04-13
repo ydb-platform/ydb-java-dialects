@@ -6,11 +6,12 @@ import org.jetbrains.exposed.v1.jdbc.insert
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.Test
+import tech.ydb.exposed.dialect.basic.YdbTable
 import tech.ydb.exposed.dialect.integration.base.BaseYdbTest
 
 class PaginationIT : BaseYdbTest() {
 
-    object Items : Table("items") {
+    object Items : YdbTable("items") {
         val id = integer("id")
         val name = varchar("name", 255)
         override val primaryKey = PrimaryKey(id)

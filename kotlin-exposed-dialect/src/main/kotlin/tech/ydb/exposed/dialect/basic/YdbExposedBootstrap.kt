@@ -19,10 +19,9 @@ object YdbExposedBootstrap {
             dialect = DIALECT_NAME
         )
 
-        // Оставляйте это только если у вас уже есть рабочий YdbDialectMetadata.
-        // Иначе пока можно не регистрировать metadata вовсе.
-        // Database.registerDialectMetadata(DIALECT_NAME) {
-        //     YdbDialectMetadata()
-        // }
+        Database.registerDialectMetadata(DIALECT_NAME) {
+            YdbDialectMetadata()
+        }
+
     }
 }
