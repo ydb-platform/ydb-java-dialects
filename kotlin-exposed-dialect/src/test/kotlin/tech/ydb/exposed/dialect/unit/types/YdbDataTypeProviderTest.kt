@@ -16,9 +16,9 @@ class YdbDataTypeProviderTest {
     }
 
     @Test
-    fun `should map string types`() {
+    fun `should map string and binary types`() {
         Assertions.assertEquals("Utf8", provider.varcharType(255))
-        Assertions.assertEquals("String", provider.textType())
+        Assertions.assertEquals("Utf8", provider.textType())
         Assertions.assertEquals("String", provider.binaryType())
         Assertions.assertEquals("String", provider.binaryType(100))
     }
@@ -48,6 +48,7 @@ class YdbDataTypeProviderTest {
     fun `should map date and time types`() {
         Assertions.assertEquals("Date", provider.dateType())
         Assertions.assertEquals("Datetime", provider.dateTimeType())
+        Assertions.assertEquals("Timestamp", provider.timestampType())
     }
 
     @Test

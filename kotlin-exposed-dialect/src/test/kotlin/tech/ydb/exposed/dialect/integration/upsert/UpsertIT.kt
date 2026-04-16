@@ -1,5 +1,6 @@
 package tech.ydb.exposed.dialect.integration.upsert
 
+import org.jetbrains.exposed.v1.core.Table
 import org.jetbrains.exposed.v1.jdbc.SchemaUtils
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.junit.jupiter.api.Assertions
@@ -15,6 +16,8 @@ class UpsertIT : BaseYdbTest() {
         val name = varchar("name", 255)
         override val primaryKey = PrimaryKey(id)
     }
+
+    override val tables: List<Table> = listOf(Products)
 
     @Test
     fun `should perform UPSERT`() = tx {

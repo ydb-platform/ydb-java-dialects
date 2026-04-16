@@ -20,11 +20,10 @@ class CrudIT : BaseYdbTest() {
         override val primaryKey = PrimaryKey(id)
     }
 
+    override val tables: List<Table> = listOf(Users)
+
     @Test
     fun `should perform full CRUD`() = tx {
-        SchemaUtils.create(Users)
-
-        // CREATE
         Users.insert { it[id] = 1; it[name] = "Alice" }
 
         // READ

@@ -1,10 +1,10 @@
 package tech.ydb.exposed.dialect.basic
 
-
 import org.jetbrains.exposed.v1.core.Index
 import org.jetbrains.exposed.v1.core.vendors.VendorDialect
 import tech.ydb.exposed.dialect.types.YdbDataTypeProvider
 import tech.ydb.exposed.dialect.functions.YdbFunctionProvider
+import org.jetbrains.exposed.v1.jdbc.transactions.TransactionManager
 
 class YdbDialect: VendorDialect("ydb", YdbDataTypeProvider(), YdbFunctionProvider()) {
 
@@ -44,6 +44,46 @@ class YdbDialect: VendorDialect("ydb", YdbDataTypeProvider(), YdbFunctionProvide
         return "ALTER TABLE $tableName DROP INDEX $indexName"
     }
 
+    fun setTtl(table: YdbTable): String {
+        val tr = TransactionManager.current()
+        val ttl = table.getTtlSettings()
+            ?: error("TTL is not configured for table ${table.tableName}")
+
+        val sqlType = ttl.column.columnType.sqlType()
+        val supported = when (ttl.mode) {
+            YdbTtlColumnMode.DATE_TYPE ->
+                sqlType == "Date" || sqlType == "Datetime" || sqlType == "Timestamp"
+
+            YdbTtlColumnMode.SECONDS,
+            YdbTtlColumnMode.MILLISECONDS,
+            YdbTtlColumnMode.MICROSECONDS,
+            YdbTtlColumnMode.NANOSECONDS ->
+                sqlType == "Uint32" || sqlType == "Uint64" || sqlType == "DyNumber"
+        }
+
+        require(supported) {
+            "YDB TTL does not support column '${ttl.column.name}' of type '$sqlType' for mode '${ttl.mode}'"
+        }
+
+        return buildString {
+            append("ALTER TABLE ")
+            append(tr.identity(table))
+            append(" SET (TTL = Interval(\"")
+            append(ttl.intervalIso8601)
+            append("\") ON ")
+            append(tr.identity(ttl.column))
+            ttl.mode.toSql()?.let {
+                append(" AS ")
+                append(it)
+            }
+            append(")")
+        }
+    }
+
+    fun resetTtl(table: YdbTable): String {
+        val tr = TransactionManager.current()
+        return "ALTER TABLE ${tr.identity(table)} RESET (TTL)"
+    }
 //    /**
 //     * YDB не поддерживает ALTER COLUMN напрямую.
 //     * Обычно требуется пересоздание таблицы.

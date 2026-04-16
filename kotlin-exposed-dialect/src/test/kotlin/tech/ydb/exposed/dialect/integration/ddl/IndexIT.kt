@@ -6,6 +6,7 @@ import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.Test
 import tech.ydb.exposed.dialect.basic.YdbTable
 import tech.ydb.exposed.dialect.integration.base.BaseYdbTest
+import tech.ydb.exposed.dialect.integration.crud.CrudIT.Users
 
 class IndexIT : BaseYdbTest() {
 
@@ -17,10 +18,10 @@ class IndexIT : BaseYdbTest() {
         val emailIndex = index(true, email) // UNIQUE INDEX
     }
 
+    override val tables: List<Table> = listOf(Customers)
+
     @Test
     fun `should create indexes`() = tx {
-        SchemaUtils.create(Customers)
-
         // Проверяем, что индекс создан через DSL (фактически SQL выполняется через SchemaUtils)
         val indices = Customers.indices
         Assertions.assertTrue(indices.any { it.columns.contains(Customers.email) })

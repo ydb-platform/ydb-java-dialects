@@ -10,9 +10,7 @@ class YdbDataTypeProvider : DataTypeProvider() {
 
     override fun shortType(): String = "Int16"
     override fun integerType(): String = "Int32"
-
     override fun integerAutoincType(): String = "Int32"
-
 
     override fun longType(): String = "Int64"
     override fun booleanType(): String = "Bool"
@@ -28,7 +26,6 @@ class YdbDataTypeProvider : DataTypeProvider() {
 
     override fun dateType(): String = "Date"
     override fun dateTimeType(): String = "Datetime"
-
     override fun timestampType(): String = "Timestamp"
 
     override fun jsonType(): String = "Json"

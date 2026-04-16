@@ -1,7 +1,10 @@
 package tech.ydb.exposed.dialect.integration.base
 
+import org.jetbrains.exposed.v1.core.Table
 import org.jetbrains.exposed.v1.jdbc.Database
 import org.jetbrains.exposed.v1.jdbc.JdbcTransaction
+import org.jetbrains.exposed.v1.jdbc.SchemaUtils
+import org.jetbrains.exposed.v1.jdbc.transactions.TransactionManager
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
@@ -12,6 +15,8 @@ abstract class BaseYdbTest {
 
     protected lateinit var db: Database
 
+    protected open val tables: List<Table> = emptyList()
+
     @BeforeEach
     fun setupDatabase() {
         db = YdbDialectProvider.connect(
@@ -21,14 +26,35 @@ abstract class BaseYdbTest {
     }
 
     @BeforeEach
-    fun setup() {
-        // Пока пусто
+    fun setupSchema() = transaction(
+        db = db,
+        transactionIsolation = Connection.TRANSACTION_SERIALIZABLE,
+        readOnly = false
+    ) {
+        if (tables.isNotEmpty()) {
+            runCatching { SchemaUtils.drop(*tables.toTypedArray()) }
+            SchemaUtils.create(*tables.toTypedArray())
+        }
     }
 
     @AfterEach
-    fun teardown() {
+    fun teardownSchema() {
         if (!::db.isInitialized) return
-        // Пока cleanup не делаем
+
+        transaction(
+            db = db,
+            transactionIsolation = Connection.TRANSACTION_SERIALIZABLE,
+            readOnly = false
+        ) {
+            if (tables.isNotEmpty()) {
+                runCatching { SchemaUtils.drop(*tables.toTypedArray()) }
+                SchemaUtils.create(*tables.toTypedArray())
+            }
+        }
+
+        runCatching {
+            TransactionManager.closeAndUnregister(db)
+        }
     }
 
     protected fun tx(block: JdbcTransaction.() -> Unit) =
@@ -36,15 +62,6 @@ abstract class BaseYdbTest {
             db = db,
             transactionIsolation = Connection.TRANSACTION_SERIALIZABLE,
             readOnly = false
-        ) {
-            block()
-        }
-
-    protected fun roTx(block: JdbcTransaction.() -> Unit) =
-        transaction(
-            db = db,
-            transactionIsolation = Connection.TRANSACTION_SERIALIZABLE,
-            readOnly = true
         ) {
             block()
         }

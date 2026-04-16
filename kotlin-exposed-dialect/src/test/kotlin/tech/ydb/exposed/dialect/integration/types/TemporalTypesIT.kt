@@ -1,5 +1,6 @@
 package tech.ydb.exposed.dialect.integration.types
 
+import org.jetbrains.exposed.v1.core.Table
 import org.jetbrains.exposed.v1.javatime.date
 import org.jetbrains.exposed.v1.javatime.datetime
 import org.jetbrains.exposed.v1.javatime.timestamp
@@ -25,10 +26,10 @@ class TemporalTypesIT : BaseYdbTest() {
         override val primaryKey = PrimaryKey(id)
     }
 
+    override val tables: List<Table> = listOf(TemporalTypes)
+
     @Test
     fun `should round-trip temporal types`() = tx {
-        SchemaUtils.create(TemporalTypes)
-
         val dateValue = LocalDate.of(2026, 4, 13)
         val dateTimeValue = LocalDateTime.of(2026, 4, 13, 14, 30, 15)
         val timestampValue = Instant.parse("2026-04-13T11:30:15Z")

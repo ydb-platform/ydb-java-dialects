@@ -1,7 +1,6 @@
 package tech.ydb.exposed.dialect.integration.pagination
 
 import org.jetbrains.exposed.v1.core.Table
-import org.jetbrains.exposed.v1.jdbc.SchemaUtils
 import org.jetbrains.exposed.v1.jdbc.insert
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.junit.jupiter.api.Assertions
@@ -17,13 +16,22 @@ class PaginationIT : BaseYdbTest() {
         override val primaryKey = PrimaryKey(id)
     }
 
+    override val tables: List<Table> = listOf(Items)
+
     @Test
     fun `should support LIMIT`() = tx {
-        SchemaUtils.create(Items)
-
-        Items.insert { it[id] = 1; it[name] = "A" }
-        Items.insert { it[id] = 2; it[name] = "B" }
-        Items.insert { it[id] = 3; it[name] = "C" }
+        Items.insert {
+            it[id] = 1
+            it[name] = "one"
+        }
+        Items.insert {
+            it[id] = 2
+            it[name] = "two"
+        }
+        Items.insert {
+            it[id] = 3
+            it[name] = "three"
+        }
 
         val rows = Items.selectAll().limit(2).toList()
         Assertions.assertEquals(2, rows.size)
