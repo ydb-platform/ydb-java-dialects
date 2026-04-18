@@ -53,7 +53,7 @@ class OptimisticLockingIT : BaseYdbTest() {
         Documents.insert {
             it[id] = 1
             it[title] = "draft"
-            it[version] = 1
+            it[version] = 5
         }
 
         val updated = YdbOptimisticLocking.updateWithVersion(
@@ -70,6 +70,6 @@ class OptimisticLockingIT : BaseYdbTest() {
 
         val row = Documents.selectAll().single()
         assertEquals("draft", row[Documents.title])
-        assertEquals(1, row[Documents.version])
+        assertEquals(5, row[Documents.version])
     }
 }
