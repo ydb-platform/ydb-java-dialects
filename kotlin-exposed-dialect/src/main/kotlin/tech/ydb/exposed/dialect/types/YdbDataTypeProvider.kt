@@ -10,7 +10,10 @@ class YdbDataTypeProvider : DataTypeProvider() {
 
     override fun shortType(): String = "Int16"
     override fun integerType(): String = "Int32"
-    override fun integerAutoincType(): String = "Int32"
+    override fun integerAutoincType(): String =
+        throw UnsupportedOperationException(
+            "YDB does not support AUTO_INCREMENT. Use YdbUuidIdTable, YdbUuidStringIdTable, or YdbUlidTable instead."
+        )
 
     override fun longType(): String = "Int64"
     override fun booleanType(): String = "Bool"

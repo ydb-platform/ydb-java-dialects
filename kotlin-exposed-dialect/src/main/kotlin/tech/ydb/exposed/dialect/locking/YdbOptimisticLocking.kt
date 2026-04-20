@@ -2,6 +2,7 @@ package tech.ydb.exposed.dialect.locking
 
 import org.jetbrains.exposed.v1.core.Column
 import org.jetbrains.exposed.v1.core.Table
+import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.core.statements.UpdateBuilder
 import org.jetbrains.exposed.v1.jdbc.select
@@ -17,24 +18,25 @@ object YdbOptimisticLocking {
         expectedVersion: Int,
         body: (UpdateBuilder<*>) -> Unit
     ): Boolean {
-        val currentRow = table
+        val currentVersion = table
             .select(idColumn, versionColumn)
             .where { idColumn eq idValue }
             .singleOrNull()
+            ?.get(versionColumn)
             ?: return false
 
-        val currentVersion = currentRow[versionColumn]
         if (currentVersion != expectedVersion) {
             return false
         }
 
-        val updatedRows = table.update(
-            where = { idColumn eq idValue }
+        table.update(
+            where = { (idColumn eq idValue) and (versionColumn eq expectedVersion) }
         ) { stmt ->
             body(stmt)
             stmt[versionColumn] = expectedVersion + 1
         }
 
-        return updatedRows == 1
+        return true
     }
 }
+

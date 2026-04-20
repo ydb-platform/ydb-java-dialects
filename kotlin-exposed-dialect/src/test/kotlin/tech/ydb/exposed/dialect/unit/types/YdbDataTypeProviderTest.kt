@@ -52,8 +52,10 @@ class YdbDataTypeProviderTest {
     }
 
     @Test
-    fun `should map autoincrement type`() {
-        Assertions.assertEquals("Int32", provider.integerAutoincType())
+    fun `should reject autoincrement type`() {
+        Assertions.assertThrows(UnsupportedOperationException::class.java) {
+            provider.integerAutoincType()
+        }
     }
 
     @Test

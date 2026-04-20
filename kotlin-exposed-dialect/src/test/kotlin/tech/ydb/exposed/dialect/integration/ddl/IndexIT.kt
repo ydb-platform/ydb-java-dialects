@@ -1,6 +1,7 @@
 package tech.ydb.exposed.dialect.integration.ddl
 
 import org.jetbrains.exposed.v1.core.Table
+import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import tech.ydb.exposed.dialect.basic.YdbDialect
@@ -77,5 +78,17 @@ class IndexIT : BaseYdbTest() {
         assertTrue(sql.contains("ALTER TABLE"), sql)
         assertTrue(sql.contains("ADD INDEX email_lookup_idx GLOBAL"), sql)
         assertTrue(sql.contains("ON (`email`)") || sql.contains("ON (email)"), sql)
+    }
+
+    @Test
+    fun `should read existing indexes from jdbc metadata`() = tx {
+        val indexes = db.dialectMetadata.existingIndices(Customers).getValue(Customers)
+        val byName = indexes.associateBy { it.indexName }
+
+        assertTrue("customers_email" in byName.keys, indexes.joinToString { it.indexName })
+        assertTrue("email_name_cover_idx" in byName.keys, indexes.joinToString { it.indexName })
+
+        assertEquals(listOf(Customers.email), byName.getValue("customers_email").columns)
+        assertEquals(listOf(Customers.email), byName.getValue("email_name_cover_idx").columns)
     }
 }

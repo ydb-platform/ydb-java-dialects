@@ -4,6 +4,7 @@ import org.jetbrains.exposed.v1.core.SortOrder
 import org.jetbrains.exposed.v1.core.Table
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.jdbc.batchInsert
+import org.jetbrains.exposed.v1.jdbc.batchUpsert
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -79,5 +80,41 @@ class BatchOperationsIT : BaseYdbTest() {
         assertEquals(2, banana[BatchItems.id])
         assertEquals(20, banana[BatchItems.quantity])
         assertTrue(banana[BatchItems.name].startsWith("ban"))
+    }
+
+    @Test
+    fun `should support batch upsert`() = tx {
+        BatchItems.batchInsert(
+            listOf(
+                ItemRow(1, "apple", 10),
+                ItemRow(2, "banana", 20)
+            )
+        ) { item ->
+            this[BatchItems.id] = item.id
+            this[BatchItems.name] = item.name
+            this[BatchItems.quantity] = item.quantity
+        }
+
+        BatchItems.batchUpsert(
+            listOf(
+                ItemRow(1, "apple-updated", 11),
+                ItemRow(3, "orange", 30)
+            )
+        ) { item ->
+            this[BatchItems.id] = item.id
+            this[BatchItems.name] = item.name
+            this[BatchItems.quantity] = item.quantity
+        }
+
+        val rows = BatchItems
+            .selectAll()
+            .orderBy(BatchItems.id to SortOrder.ASC)
+            .toList()
+
+        assertEquals(3, rows.size)
+        assertEquals("apple-updated", rows[0][BatchItems.name])
+        assertEquals(11, rows[0][BatchItems.quantity])
+        assertEquals("banana", rows[1][BatchItems.name])
+        assertEquals("orange", rows[2][BatchItems.name])
     }
 }

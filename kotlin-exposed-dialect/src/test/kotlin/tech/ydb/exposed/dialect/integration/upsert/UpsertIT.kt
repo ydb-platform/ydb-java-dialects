@@ -3,6 +3,7 @@ package tech.ydb.exposed.dialect.integration.upsert
 import org.jetbrains.exposed.v1.core.Table
 import org.jetbrains.exposed.v1.jdbc.SchemaUtils
 import org.jetbrains.exposed.v1.jdbc.selectAll
+import org.jetbrains.exposed.v1.jdbc.upsert
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.Test
 import tech.ydb.exposed.dialect.basic.YdbTable
@@ -43,5 +44,21 @@ class UpsertIT : BaseYdbTest() {
 
         val row = Products.selectAll().single()
         Assertions.assertEquals("Item1", row[Products.name])
+    }
+
+    @Test
+    fun `should perform UPSERT through Exposed DSL`() = tx {
+        Products.upsert {
+            it[id] = 1
+            it[name] = "Item1"
+        }
+
+        Products.upsert {
+            it[id] = 1
+            it[name] = "Item2"
+        }
+
+        val row = Products.selectAll().single()
+        Assertions.assertEquals("Item2", row[Products.name])
     }
 }

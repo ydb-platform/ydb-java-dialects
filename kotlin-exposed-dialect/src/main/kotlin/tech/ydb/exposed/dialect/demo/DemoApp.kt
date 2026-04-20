@@ -1,14 +1,14 @@
 package tech.ydb.exposed.dialect.demo
 
-import org.jetbrains.exposed.v1.core.asLiteral
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.jdbc.SchemaUtils
 import org.jetbrains.exposed.v1.jdbc.deleteWhere
-import org.jetbrains.exposed.v1.jdbc.insert
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import org.jetbrains.exposed.v1.jdbc.update
+import org.jetbrains.exposed.v1.jdbc.upsert
 import tech.ydb.exposed.dialect.basic.YdbDialectProvider
+import tech.ydb.exposed.dialect.pagination.keysetPageAsc
 import tech.ydb.exposed.dialect.types.ydbDecimalLiteral
 import java.math.BigDecimal
 
@@ -19,15 +19,15 @@ fun main() {
     )
 
     transaction(db) {
-        println("== Подготовка схемы ==")
-        SchemaUtils.drop(DemoProducts)
+        println("== Schema setup ==")
+        runCatching { SchemaUtils.drop(DemoProducts) }
         SchemaUtils.create(DemoProducts)
 
         println("DDL:")
         DemoProducts.ddl.forEach { println(it) }
 
         println()
-        println("== CREATE ==")
+        println("== UPSERT seed data ==")
         seedDemoData()
 
         DemoProducts.selectAll()
@@ -37,7 +37,7 @@ fun main() {
             }
 
         println()
-        println("== READ по category ==")
+        println("== READ by category ==")
         DemoProducts.selectAll()
             .where { DemoProducts.category eq "books" }
             .orderBy(DemoProducts.id)
@@ -65,7 +65,7 @@ fun main() {
         println("== KEYSET PAGINATION ==")
         val page1 = DemoProducts
             .selectAll()
-            .keysetPage(DemoProducts.id, lastValue = null, limit = 2)
+            .keysetPageAsc(DemoProducts.id, lastValue = null, limit = 2)
             .toList()
 
         println("page1:")
@@ -77,7 +77,7 @@ fun main() {
 
         val page2 = DemoProducts
             .selectAll()
-            .keysetPage(DemoProducts.id, lastValue = lastSeenId, limit = 2)
+            .keysetPageAsc(DemoProducts.id, lastValue = lastSeenId, limit = 2)
             .toList()
 
         println("page2:")
@@ -98,7 +98,7 @@ fun main() {
 }
 
 private fun seedDemoData() {
-    DemoProducts.insert {
+    DemoProducts.upsert {
         it[id] = 1
         it[sku] = "BOOK-001"
         it[name] = "Kotlin in Action"
@@ -106,7 +106,7 @@ private fun seedDemoData() {
         it[price] = BigDecimal("39.90")
     }
 
-    DemoProducts.insert {
+    DemoProducts.upsert {
         it[id] = 2
         it[sku] = "BOOK-002"
         it[name] = "Distributed Systems"
@@ -114,7 +114,7 @@ private fun seedDemoData() {
         it[price] = BigDecimal("42.50")
     }
 
-    DemoProducts.insert {
+    DemoProducts.upsert {
         it[id] = 3
         it[sku] = "HW-001"
         it[name] = "Mechanical Keyboard"
@@ -122,7 +122,7 @@ private fun seedDemoData() {
         it[price] = BigDecimal("129.99")
     }
 
-    DemoProducts.insert {
+    DemoProducts.upsert {
         it[id] = 4
         it[sku] = "HW-002"
         it[name] = "USB-C Dock"
