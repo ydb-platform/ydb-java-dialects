@@ -1,370 +1,400 @@
-## Kotlin Exposed YDB Dialect
+# Kotlin Exposed YDB Dialect
 
-SQL dialect and JDBC integration layer that allows using [JetBrains Exposed](https://github.com/JetBrains/Exposed) DSL/DAO with [YDB](https://ydb.tech).
+Модуль добавляет поддержку YDB для Kotlin Exposed через JDBC. Диалект описывает YDB-специфичную генерацию SQL и DDL, маппинг типов, работу с `UPSERT`, secondary indexes, TTL, транзакциями и вспомогательными сценариями Exposed DSL/DAO.
 
-The module provides YDB-specific SQL generation, DDL support, type mappings, UPSERT support, transaction helpers, pagination helpers, tests, CI, and a small demo application.
-
-### Module Coordinates
+Проект предназначен для использования в составе репозитория `ydb-java-dialects` как отдельный Maven-модуль:
 
 ```xml
-<dependency>
-    <groupId>tech.ydb.dialects</groupId>
-    <artifactId>kotlin-exposed-ydb-dialect</artifactId>
-    <version>0.1.0</version>
-</dependency>
+<groupId>tech.ydb.dialects</groupId>
+<artifactId>kotlin-exposed-ydb-dialect</artifactId>
+<version>0.1.0</version>
 ```
 
-The artifact is currently intended to be built from this repository:
+## Требования
 
-```bash
-mvn clean install
-```
-
-### Requirements
-
-- JDK 17+
+- JDK 17 или новее
 - Maven
-- Docker / Docker Compose for integration tests and local demo
-- Local YDB instance for integration tests
+- Docker и Docker Compose для интеграционных тестов и локального demo
+- YDB JDBC Driver
+- JetBrains Exposed 1.x
 
-The module uses the YDB JDBC driver and Exposed 1.x APIs.
+## Подключение к YDB
 
-### Quick Start
-
-Start local YDB:
-
-```bash
-docker compose up -d
-```
-
-Connect to YDB through the dialect provider:
+Для подключения используется `YdbDialectProvider`. Он регистрирует JDBC-драйвер YDB, metadata provider и передаёт Exposed явный dialect.
 
 ```kotlin
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
-import tech.ydb.exposed.dialect.YdbDialectProvider
+import tech.ydb.exposed.dialect.basic.YdbDialectProvider
 
-val database = YdbDialectProvider.connect(
+val db = YdbDialectProvider.connect(
     url = "jdbc:ydb:grpc://localhost:2136/local",
     user = "",
     password = ""
 )
 
-transaction(database) {
+transaction(db) {
     // Exposed DSL / DAO code
 }
 ```
 
-### Table Example
+По умолчанию используется JDBC driver:
 
-YDB requires every table to have an explicit primary key.
+```text
+tech.ydb.jdbc.YdbDriver
+```
+
+## Пример таблицы
+
+YDB требует, чтобы у каждой таблицы был явно задан `PRIMARY KEY`. Для YDB-специфичных возможностей можно наследоваться от `YdbTable`.
 
 ```kotlin
-import org.jetbrains.exposed.v1.core.Table
-import tech.ydb.exposed.dialect.ddl.secondaryIndex
+import tech.ydb.exposed.dialect.basic.YdbIndexScope
+import tech.ydb.exposed.dialect.basic.YdbIndexSyncMode
+import tech.ydb.exposed.dialect.basic.YdbTable
 import tech.ydb.exposed.dialect.types.ydbDecimal
 
-object Products : Table("products") {
+object Products : YdbTable("products") {
     val id = integer("id")
     val sku = varchar("sku", 64)
     val name = varchar("name", 255)
     val category = varchar("category", 128)
-    val price = ydbDecimal("price", precision = 22, scale = 9)
+    val price = ydbDecimal("price", precision = 10, scale = 2)
 
     override val primaryKey = PrimaryKey(id)
 
     init {
         index(isUnique = false, sku)
-        secondaryIndex("products_category_idx", category)
+
+        secondaryIndex(
+            name = "products_category_idx",
+            category,
+            unique = false,
+            scope = YdbIndexScope.GLOBAL,
+            syncMode = YdbIndexSyncMode.ASYNC,
+            coverColumns = listOf(name, price)
+        )
     }
 }
 ```
 
+Такой класс генерирует YDB-compatible `CREATE TABLE` с primary key и secondary index.
+
+## Основные возможности
+
+### SQL и DDL
+
+Реализованы:
+
+- регистрация YDB dialect для Exposed JDBC;
+- генерация YDB-compatible `LIMIT` / `OFFSET`;
+- генерация `UPSERT`;
+- генерация `CREATE TABLE` с обязательным `PRIMARY KEY`;
+- создание и удаление secondary indexes;
+- поддержка YDB global secondary indexes;
+- поддержка `COVER` columns для secondary indexes;
+- TTL для таблиц;
+- чтение существующих индексов через JDBC metadata.
+
 ### UPSERT
 
-YDB has native `UPSERT`, and the dialect maps Exposed `upsert` calls to YDB-compatible SQL.
+YDB имеет собственную команду `UPSERT`. Диалект формирует SQL в формате, который ожидает YDB, включая обязательный список колонок:
+
+```sql
+UPSERT INTO products (id, sku, name) VALUES (?, ?, ?)
+```
+
+Пример через Exposed DSL:
 
 ```kotlin
 import org.jetbrains.exposed.v1.jdbc.upsert
-import tech.ydb.exposed.dialect.types.ydbDecimalLiteral
 import java.math.BigDecimal
 
 Products.upsert {
     it[id] = 1
-    it[sku] = "book-001"
-    it[name] = "YDB recipes"
+    it[sku] = "BOOK-001"
+    it[name] = "Kotlin in Action"
     it[category] = "books"
-    it[price] = ydbDecimalLiteral(BigDecimal("19.990000000"))
+    it[price] = BigDecimal("39.90")
 }
 ```
 
-YDB requires an explicit column list for `UPSERT INTO ... VALUES (...)`; the dialect generates it automatically for Exposed DSL calls.
+### Типы данных
 
-### Generated IDs
+Поддерживаются стандартные и YDB-специфичные типы:
 
-YDB does not support SQL `AUTO_INCREMENT` in the usual relational database sense. The dialect rejects `autoIncrement()` explicitly.
+- `Int16`, `Int32`, `Int64`;
+- `Uint64`;
+- `Float`, `Double`;
+- `Bool`;
+- `Utf8`;
+- `String` для бинарных данных;
+- `Date`;
+- `Datetime`;
+- `Timestamp`;
+- `Interval`;
+- `Decimal(p, s)`;
+- `Uuid`;
+- UUID как `Utf8`;
+- UUID как bytes / `String`;
+- `Json`.
 
-For application-side generated identifiers, use the provided helpers:
+Для дополнительных типов доступны extension-функции:
 
 ```kotlin
-import tech.ydb.exposed.dialect.basic.YdbUuidStringIdTable
-import tech.ydb.exposed.dialect.basic.YdbUlidTable
+ydbDecimal("price", precision = 10, scale = 2)
+ydbInterval("duration")
+ydbJson("payload")
+ydbUuid("id")
+ydbUuidUtf8("external_id")
+ydbUuidBytes("binary_uuid")
+ydbUint64("counter")
+```
 
-object Users : YdbUuidStringIdTable("users") {
-    val name = varchar("name", 255)
-}
+Для update-expression сценариев с decimal можно использовать literal helper:
+
+```kotlin
+import tech.ydb.exposed.dialect.types.ydbDecimalLiteral
+import java.math.BigDecimal
+
+it.update(Products.price, ydbDecimalLiteral(BigDecimal("45.00"), 10, 2))
+```
+
+## Идентификаторы без AUTO_INCREMENT
+
+YDB не использует SQL `AUTO_INCREMENT` в привычном для реляционных СУБД виде. Диалект явно отклоняет `autoIncrement()` и предоставляет application-side генерацию идентификаторов.
+
+Доступны:
+
+- `YdbGeneratedIds.uuid()`;
+- `YdbGeneratedIds.uuidString()`;
+- `YdbGeneratedIds.ulid()`;
+- `YdbUuidIdTable`;
+- `YdbUuidStringIdTable`;
+- `YdbUlidTable`;
+- `YdbStringIdTable`.
+
+Пример:
+
+```kotlin
+import tech.ydb.exposed.dialect.basic.YdbUlidTable
 
 object Events : YdbUlidTable("events") {
     val payload = text("payload")
 }
 ```
 
-Available helpers include:
+## Транзакции и retry
 
-- `YdbUuidIdTable`
-- `YdbUuidStringIdTable`
-- `YdbUlidTable`
-- `YdbGeneratedIds.uuid()`
-- `YdbGeneratedIds.uuidString()`
-- `YdbGeneratedIds.ulid()`
+Модуль работает со стандартными Exposed JDBC transactions и добавляет helper для повторного выполнения транзакций при retriable-ошибках YDB.
 
-### Type Mapping
+Поддерживаются режимы:
 
-The dialect provides YDB-aware mappings for common Exposed column types and additional YDB-specific helpers.
+- `READ_WRITE`;
+- `READ_ONLY`.
 
-Supported groups:
+Retry classifier обрабатывает типичные статусы и сообщения YDB, включая:
 
-- integer types: `Int16`, `Int32`, `Int64`
-- unsigned integer helpers, including `Uint64`
-- floating-point types: `Float`, `Double`
-- `Bool`
-- text/string values
-- binary values
-- `Date`
-- `Datetime`
-- `Timestamp`
-- `Interval`
-- `Decimal(p, s)`
-- UUID:
-    - native YDB UUID representation
-    - UUID as UTF-8 string
-    - UUID as bytes
-- JSON
+- `ABORTED`;
+- `UNAVAILABLE`;
+- `OVERLOADED`;
+- `BAD_SESSION`;
+- `SESSION_EXPIRED`;
+- `SESSION_BUSY`;
+- `TIMEOUT`;
+- `UNDETERMINED`.
 
-For decimal columns and decimal update expressions, prefer the dialect helpers:
+Повторы выполняются с backoff и jitter.
 
-```kotlin
-val price = ydbDecimal("price", precision = 22, scale = 9)
-```
+## Пагинация
 
-```kotlin
-it[price] = ydbDecimalLiteral(BigDecimal("12.490000000"))
-```
+Обычная пагинация через `LIMIT` поддерживается на уровне dialect.
 
-### DDL Support
-
-Supported DDL features:
-
-- `CREATE TABLE`
-- mandatory `PRIMARY KEY`
-- YDB-compatible column type generation
-- secondary indexes / global secondary indexes
-- TTL helpers
-- `ALTER TABLE ... ADD INDEX` for supported secondary index scenarios
-
-### TTL
-
-The dialect includes helpers for YDB TTL expressions and table-level TTL settings. TTL support is covered by unit and integration tests for several supported YDB column modes.
-
-### Pagination
-
-Standard Exposed `LIMIT` is supported.
-
-The module also provides keyset pagination helpers for YDB-friendly pagination over ordered keys:
+Для больших таблиц также доступен keyset pagination helper:
 
 ```kotlin
 import tech.ydb.exposed.dialect.pagination.keysetPageAsc
 
 val page = Products
     .selectAll()
-    .orderBy(Products.id)
     .keysetPageAsc(Products.id, lastValue = null, limit = 20)
     .toList()
 ```
 
-### Transactions and Retries
+Для обратного порядка используется `keysetPageDesc`.
 
-The dialect works with standard Exposed JDBC transactions on top of the YDB JDBC driver.
+## Optimistic Locking
 
-The project also includes retry classification and retry helpers for typical YDB retriable failures, including abort and timeout-like scenarios. Retry behavior is covered by unit tests and integration smoke tests.
+Для сценариев с версионированием строк добавлен helper `YdbOptimisticLocking.updateWithVersion`. Он проверяет текущую версию строки и выполняет update только если версия совпадает с ожидаемой.
 
-### DSL and DAO Compatibility
+Типовой сценарий:
 
-The following Exposed scenarios are covered by tests:
+- строка содержит колонку `version`;
+- клиент передаёт ожидаемую версию;
+- helper обновляет строку и увеличивает `version`;
+- если версия устарела, update не выполняется.
 
-- basic connection
-- CRUD
-- UPSERT
-- batch operations
-- DAO smoke workflow
-- generated UUID/ULID identifiers
-- joins
-- subqueries
-- many-to-many relation through a join table
-- optimistic locking with a version column
-- keyset pagination
-- secondary indexes
-- TTL
-- YDB-specific types
+## Совместимость с Exposed DSL / DAO
 
-### MERGE Support
+Интеграционные тесты покрывают следующие сценарии:
 
-ANSI `MERGE` is not implemented by this dialect.
+- подключение к YDB;
+- CRUD через Exposed DSL;
+- `UPSERT`;
+- batch operations;
+- DAO smoke workflow;
+- generated UUID / ULID identifiers;
+- secondary indexes;
+- TTL;
+- JOIN;
+- подзапросы;
+- many-to-many через связующую таблицу;
+- optimistic locking;
+- keyset pagination;
+- работу с YDB-типами.
 
-YDB has native `UPSERT`, but Exposed `MERGE` has broader conditional semantics. Translating Exposed `MERGE` to YDB `UPSERT` would be misleading, so the dialect explicitly rejects `MERGE` calls with an `UnsupportedOperationException`.
+## Локальный запуск YDB
 
-Use `upsert` or batch UPSERT-style operations instead.
+В модуле есть `docker-compose.yml` для локальной YDB.
 
-### Limitations
-
-Important limitations:
-
-- Every YDB table must have an explicit primary key.
-- `AUTO_INCREMENT` is not supported. Use application-side UUID/ULID generation.
-- ANSI `MERGE` is not supported. Use `UPSERT`.
-- Unique secondary indexes are not treated as a supported portable feature in this dialect.
-- Foreign keys are not enforced as a primary modeling mechanism for YDB in this project.
-- Schema metadata support is intentionally focused on the parts Exposed needs for tested workflows, especially table/index inspection.
-- Some advanced YDB/YQL features are outside the current Exposed dialect surface.
-
-### Running Tests
-
-Start local YDB:
+Запуск:
 
 ```bash
 docker compose up -d
 ```
 
-Run all unit and integration tests:
-
-```bash
-mvn clean install
-```
-
-The build runs:
-
-- unit tests through Surefire
-- integration tests through Failsafe
-- packaging and local Maven installation
-
-Stop local YDB:
-
-```bash
-docker compose down -v
-```
-
-### Demo Application
-
-The demo application shows the dialect against a real local YDB instance.
-
-It demonstrates:
-
-- YDB connection through `YdbDialectProvider`
-- table creation
-- primary key requirement
-- secondary index creation
-- UPSERT seed data
-- read queries
-- update
-- delete
-- decimal values
-- keyset pagination
-- generated DDL output
-
-Start YDB:
-
-```bash
-docker compose up -d
-```
-
-Run demo on Linux, macOS, or cmd:
-
-```bash
-mvn compile exec:java -Dexec.mainClass="tech.ydb.exposed.dialect.demo.DemoAppKt"
-```
-
-Run demo in PowerShell:
-
-```powershell
-mvn --% compile exec:java -Dexec.mainClass=tech.ydb.exposed.dialect.demo.DemoAppKt
-```
-
-By default, the demo uses:
+YDB будет доступна по адресу:
 
 ```text
 jdbc:ydb:grpc://localhost:2136/local
 ```
 
-You can override connection settings with environment variables:
-
-- `YDB_JDBC_URL`
-- `YDB_USER`
-- `YDB_PASSWORD`
-
-### CI
-
-The repository contains a GitHub Actions workflow for this module.
-
-The CI workflow:
-
-- checks out the repository
-- sets up JDK
-- starts local YDB with Docker Compose
-- waits until YDB is reachable
-- runs `mvn clean install`
-- prints YDB logs on failure
-- stops and removes the local YDB container
-
-### Project Structure
-
-Main areas:
-
-- `src/main/kotlin/tech/ydb/exposed/dialect/basic`
-  Dialect registration, metadata, generated ID helpers, table helpers.
-
-- `src/main/kotlin/tech/ydb/exposed/dialect/functions`
-  SQL function provider, LIMIT, UPSERT, MERGE rejection.
-
-- `src/main/kotlin/tech/ydb/exposed/dialect/types`
-  YDB-specific column types and type helpers.
-
-- `src/main/kotlin/tech/ydb/exposed/dialect/ddl`
-  YDB DDL extensions such as secondary indexes and TTL.
-
-- `src/main/kotlin/tech/ydb/exposed/dialect/pagination`
-  Keyset pagination helpers.
-
-- `src/main/kotlin/tech/ydb/exposed/dialect/transaction`
-  Retry classification and transaction helpers.
-
-- `src/main/kotlin/tech/ydb/exposed/dialect/demo`
-  Console demo application.
-
-- `src/test/kotlin`
-  Unit and integration tests.
-
-### Current Status
-
-The dialect is implemented as a working YDB integration for Exposed DSL/DAO within the tested feature set.
-
-Current test coverage includes:
-
-- 61 unit tests
-- 48 integration tests
-
-The latest local verification passed with:
+Web UI:
 
 ```text
-Tests run: 61, Failures: 0, Errors: 0, Skipped: 0
-Tests run: 48, Failures: 0, Errors: 0, Skipped: 0
-BUILD SUCCESS
+http://localhost:8765
 ```
+
+Остановка:
+
+```bash
+docker compose down -v
+```
+
+## Тесты
+
+Полная проверка:
+
+```bash
+mvn clean install
+```
+
+Команда запускает:
+
+- unit tests через Maven Surefire;
+- integration tests через Maven Failsafe;
+- сборку jar;
+- установку artifact в локальный Maven repository.
+
+Интеграционные тесты рассчитаны на локальную YDB, поднятую через Docker Compose.
+
+## Demo Application
+
+Demo-приложение находится в package:
+
+```text
+tech.ydb.exposed.dialect.demo
+```
+
+Оно показывает:
+
+- подключение к YDB;
+- создание таблицы;
+- генерацию DDL;
+- secondary index с `COVER`;
+- `UPSERT`;
+- чтение данных;
+- update decimal-поля;
+- keyset pagination;
+- delete.
+
+Запуск в PowerShell:
+
+```powershell
+mvn --% exec:java -Dexec.mainClass=tech.ydb.exposed.dialect.demo.DemoAppKt
+```
+
+Если классы ещё не скомпилированы:
+
+```powershell
+mvn --% compile exec:java -Dexec.mainClass=tech.ydb.exposed.dialect.demo.DemoAppKt
+```
+
+Запуск в Linux, macOS или cmd:
+
+```bash
+mvn exec:java -Dexec.mainClass=tech.ydb.exposed.dialect.demo.DemoAppKt
+```
+
+## CI
+
+Для модуля подготовлен GitHub Actions workflow. Он:
+
+- запускается при изменениях в `kotlin-exposed-dialect`;
+- поднимает локальную YDB через Docker Compose;
+- ожидает доступности YDB;
+- выполняет `mvn clean install`;
+- выводит логи YDB при ошибке;
+- останавливает контейнер после завершения.
+
+## Структура модуля
+
+```text
+src/main/kotlin/tech/ydb/exposed/dialect/basic
+```
+
+Базовые классы dialect, registration/bootstrap, table helpers, generated IDs, TTL, secondary indexes и metadata.
+
+```text
+src/main/kotlin/tech/ydb/exposed/dialect/functions
+```
+
+Генерация SQL-конструкций dialect: `UPSERT`, `LIMIT`, обработка `MERGE`.
+
+```text
+src/main/kotlin/tech/ydb/exposed/dialect/types
+```
+
+YDB data type provider и custom column types.
+
+```text
+src/main/kotlin/tech/ydb/exposed/dialect/transaction
+```
+
+Retry classifier и transaction helpers.
+
+```text
+src/main/kotlin/tech/ydb/exposed/dialect/pagination
+```
+
+Keyset pagination helpers.
+
+```text
+src/main/kotlin/tech/ydb/exposed/dialect/locking
+```
+
+Optimistic locking helper.
+
+```text
+src/main/kotlin/tech/ydb/exposed/dialect/demo
+```
+
+Консольное demo-приложение.
+
+## Особенности реализации
+
+- Для каждой таблицы требуется явный `PRIMARY KEY`.
+- `AUTO_INCREMENT` не используется; вместо него предусмотрены UUID/ULID helpers.
+- `UPSERT` реализован через native YDB syntax.
+- ANSI `MERGE` не преобразуется в `UPSERT`, поскольку эти операции не являются полными эквивалентами.
+- `UNIQUE` secondary indexes и `FOREIGN KEY` не используются как основной механизм моделирования в YDB в рамках данного dialect.
+- Metadata layer покрывает сценарии, необходимые для реализованных и протестированных DDL/DSL workflow.

@@ -8,15 +8,11 @@ import org.jetbrains.exposed.v1.jdbc.Query
 import org.jetbrains.exposed.v1.jdbc.andWhere
 
 /**
- * Keyset pagination helper for YDB-oriented Exposed queries.
- *
  * ASC:
- *   SELECT ... WHERE key > :lastValue ORDER BY key ASC LIMIT :limit
- *
+ * SELECT ... WHERE key > :lastValue ORDER BY key ASC LIMIT :limit
  * DESC:
- *   SELECT ... WHERE key < :lastValue ORDER BY key DESC LIMIT :limit
- *
- * Intended for sortable columns, ideally primary key columns.
+ * SELECT ... WHERE key < :lastValue ORDER BY key DESC LIMIT :limit
+ * Intended for sortable columns, ideally primary key columns
  */
 fun <T : Comparable<T>> Query.keysetPage(
     column: Column<T>,

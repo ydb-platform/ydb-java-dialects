@@ -1,6 +1,5 @@
 package tech.ydb.exposed.dialect.transaction
 
-import java.sql.SQLException
 import kotlin.math.min
 import kotlin.random.Random
 
