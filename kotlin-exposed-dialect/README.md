@@ -2,14 +2,6 @@
 
 Модуль добавляет поддержку YDB для Kotlin Exposed через JDBC. Диалект описывает YDB-специфичную генерацию SQL и DDL, маппинг типов, работу с `UPSERT`, secondary indexes, TTL, транзакциями и вспомогательными сценариями Exposed DSL/DAO.
 
-Проект предназначен для использования в составе репозитория `ydb-java-dialects` как отдельный Maven-модуль:
-
-```xml
-<groupId>tech.ydb.dialects</groupId>
-<artifactId>kotlin-exposed-ydb-dialect</artifactId>
-<version>0.1.0</version>
-```
-
 ## Требования
 
 - JDK 17 или новее
@@ -290,10 +282,8 @@ mvn clean install
 
 Команда запускает:
 
-- unit tests через Maven Surefire;
-- integration tests через Maven Failsafe;
-- сборку jar;
-- установку artifact в локальный Maven repository.
+- unit tests;
+- integration tests;
 
 Интеграционные тесты рассчитаны на локальную YDB, поднятую через Docker Compose.
 
@@ -337,14 +327,7 @@ mvn exec:java -Dexec.mainClass=tech.ydb.exposed.dialect.demo.DemoAppKt
 
 ## CI
 
-Для модуля подготовлен GitHub Actions workflow. Он:
-
-- запускается при изменениях в `kotlin-exposed-dialect`;
-- поднимает локальную YDB через Docker Compose;
-- ожидает доступности YDB;
-- выполняет `mvn clean install`;
-- выводит логи YDB при ошибке;
-- останавливает контейнер после завершения.
+Для модуля подготовлен GitHub Actions workflow.
 
 ## Структура модуля
 
@@ -397,4 +380,3 @@ src/main/kotlin/tech/ydb/exposed/dialect/demo
 - `UPSERT` реализован через native YDB syntax.
 - ANSI `MERGE` не преобразуется в `UPSERT`, поскольку эти операции не являются полными эквивалентами.
 - `UNIQUE` secondary indexes и `FOREIGN KEY` не используются как основной механизм моделирования в YDB в рамках данного dialect.
-- Metadata layer покрывает сценарии, необходимые для реализованных и протестированных DDL/DSL workflow.
