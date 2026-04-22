@@ -1,4 +1,4 @@
-package tech.ydb.exposed.dialect.demo
+package tech.ydb.exposed.dialect.example
 
 import tech.ydb.exposed.dialect.basic.YdbIndexScope
 import tech.ydb.exposed.dialect.basic.YdbIndexSyncMode
