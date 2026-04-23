@@ -48,7 +48,12 @@ object YdbRetryingTransactions {
 
                 val sleepMs = YdbRetryClassifier.backoffMillis(decision.backoffKind, attempt)
                 if (sleepMs > 0) {
-                    Thread.sleep(sleepMs)
+                    try {
+                        Thread.sleep(sleepMs)
+                    } catch (e: InterruptedException) {
+                        Thread.currentThread().interrupt()
+                        throw e
+                    }
                 }
             }
         }

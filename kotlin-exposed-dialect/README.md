@@ -65,6 +65,14 @@ object Products : YdbTable("products") {
             syncMode = YdbIndexSyncMode.ASYNC,
             coverColumns = listOf(name, price)
         )
+
+        secondaryIndex(
+            name = "products_sku_unique_idx",
+            sku,
+            unique = true,
+            scope = YdbIndexScope.GLOBAL,
+            syncMode = YdbIndexSyncMode.SYNC
+        )
     }
 }
 ```
@@ -83,6 +91,7 @@ object Products : YdbTable("products") {
 - генерация `CREATE TABLE` с обязательным `PRIMARY KEY`;
 - создание и удаление secondary indexes;
 - поддержка YDB global secondary indexes;
+- поддержка `UNIQUE` secondary indexes;
 - поддержка `COVER` columns для secondary indexes;
 - TTL для таблиц;
 - чтение существующих индексов через JDBC metadata.
@@ -109,7 +118,26 @@ Products.upsert {
     it[price] = BigDecimal("39.90")
 }
 ```
+### Secondary indexes
 
+Диалект поддерживает два способа объявления индекса:
+
+- стандартный Exposed API:
+  ```kotlin
+  index(isUnique = false, sku)
+  ```
+- YDB-специфичный API:
+  ```kotlin
+  secondaryIndex(
+      name = "products_category_idx",
+      category,
+      unique = false,
+      scope = YdbIndexScope.GLOBAL,
+      syncMode = YdbIndexSyncMode.ASYNC,
+      coverColumns = listOf(name, price)
+  )
+  ```
+  
 ### Типы данных
 
 Поддерживаются стандартные и YDB-специфичные типы:
@@ -391,4 +419,5 @@ example/src/main/kotlin/tech/ydb/exposed/dialect/example
 - `AUTO_INCREMENT` не используется; вместо него предусмотрены UUID/ULID helpers.
 - `UPSERT` реализован через native YDB syntax.
 - ANSI `MERGE` не преобразуется в `UPSERT`, поскольку эти операции не являются полными эквивалентами.
-- `UNIQUE` secondary indexes и `FOREIGN KEY` не используются как основной механизм моделирования в YDB в рамках данного dialect.
+- `UNIQUE` secondary indexes поддерживаются на уровне генерации DDL. Такие индексы используются для проверки уникальности значений; при нарушении уникальности YDB возвращает ошибку выполнения операции.
+- `FOREIGN KEY` не используется как основной механизм моделирования в YDB в рамках данного dialect.

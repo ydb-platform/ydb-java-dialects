@@ -12,7 +12,7 @@ Initial release of the Kotlin Exposed dialect for YDB.
 - Native YDB `UPSERT` generation for Exposed DSL.
 - Explicit handling of unsupported ANSI `MERGE` scenarios.
 - YDB-compatible `CREATE TABLE` generation with mandatory primary key.
-- Secondary index generation, including global indexes and cover columns.
+- Secondary index generation, including global indexes, unique indexes and cover columns.
 - TTL support for supported YDB column modes.
 - JDBC metadata support for reading existing indexes.
 - Custom column types for decimal, interval, JSON, UUID variants and unsigned integer values.

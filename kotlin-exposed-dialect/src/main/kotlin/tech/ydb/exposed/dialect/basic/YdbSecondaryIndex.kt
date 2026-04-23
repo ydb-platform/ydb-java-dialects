@@ -34,10 +34,6 @@ internal fun renderYdbSecondaryIndex(spec: YdbSecondaryIndexSpec): String {
         "Only GLOBAL secondary indexes are supported by YDB row-oriented tables in this dialect"
     }
 
-    require(!spec.unique) {
-        "UNIQUE secondary indexes are not supported by the current YDB runtime used by this dialect"
-    }
-
     val columnsSql = spec.columns.joinToString(", ") { tr.identity(it) }
     val coverSql = spec.coverColumns
         .takeIf { it.isNotEmpty() }
@@ -53,6 +49,10 @@ internal fun renderYdbSecondaryIndex(spec: YdbSecondaryIndexSpec): String {
         append(spec.name)
         append(" ")
         append(spec.scope.name)
+
+        if (spec.unique) {
+            append(" UNIQUE")
+        }
 
         if (spec.syncMode != YdbIndexSyncMode.SYNC) {
             append(" ")

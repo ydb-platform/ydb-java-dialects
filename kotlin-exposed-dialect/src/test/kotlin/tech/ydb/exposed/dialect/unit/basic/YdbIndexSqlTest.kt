@@ -94,4 +94,26 @@ class YdbIndexSqlTest {
             assertTrue(sql.contains("ON (`email`)") || sql.contains("ON (email)"), sql)
         }
     }
+
+    @Test
+    fun `should render unique ydb specific alter table secondary index sql`() {
+        transaction(db) {
+            val dialect = db.dialect as YdbDialect
+
+            val sql = dialect.createSecondaryIndex(
+                table = IndexedTable,
+                spec = YdbSecondaryIndexSpec(
+                    name = "email_unique_lookup_idx",
+                    columns = listOf(IndexedTable.email),
+                    unique = true,
+                    scope = YdbIndexScope.GLOBAL,
+                    syncMode = YdbIndexSyncMode.SYNC
+                )
+            )
+
+            assertTrue(sql.contains("ALTER TABLE"), sql)
+            assertTrue(sql.contains("ADD INDEX email_unique_lookup_idx GLOBAL UNIQUE"), sql)
+            assertTrue(sql.contains("ON (`email`)") || sql.contains("ON (email)"), sql)
+        }
+    }
 }

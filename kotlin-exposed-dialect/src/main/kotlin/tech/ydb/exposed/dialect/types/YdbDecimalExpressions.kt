@@ -11,6 +11,9 @@ class YdbDecimalLiteral(
 ) : Expression<BigDecimal>() {
 
     override fun toQueryBuilder(queryBuilder: QueryBuilder) {
+        require(value.scale() <= scale) {
+            "Decimal value $value has scale ${value.scale()}, which exceeds the allowed scale $scale"
+        }
         val normalized = value.setScale(scale).toPlainString()
         queryBuilder.append("""Decimal("$normalized", $precision, $scale)""")
     }

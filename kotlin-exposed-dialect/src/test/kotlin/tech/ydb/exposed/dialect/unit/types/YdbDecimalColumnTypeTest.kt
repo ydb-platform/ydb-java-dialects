@@ -51,4 +51,25 @@ class YdbDecimalColumnTypeTest {
         assertEquals(BigDecimal("123.40"), type.notNullValueToDB(BigDecimal("123.4")))
         assertEquals("123.40", type.nonNullValueToString(BigDecimal("123.4")))
     }
+
+    @Test
+    fun `should reject decimal with scale greater than column scale`() {
+        val type = YdbDecimalColumnType(10, 2)
+
+        val error1 = assertThrows(IllegalArgumentException::class.java) {
+            type.notNullValueToDB(BigDecimal("123.456"))
+        }
+        assertEquals(
+            "YDB Decimal value 123.456 has scale 3, which exceeds column scale 2",
+            error1.message
+        )
+
+        val error2 = assertThrows(IllegalArgumentException::class.java) {
+            type.nonNullValueToString(BigDecimal("123.456"))
+        }
+        assertEquals(
+            "YDB Decimal value 123.456 has scale 3, which exceeds column scale 2",
+            error2.message
+        )
+    }
 }

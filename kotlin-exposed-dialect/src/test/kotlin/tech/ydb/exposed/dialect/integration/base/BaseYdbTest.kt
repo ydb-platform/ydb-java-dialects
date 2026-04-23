@@ -48,7 +48,6 @@ abstract class BaseYdbTest {
         ) {
             if (tables.isNotEmpty()) {
                 runCatching { SchemaUtils.drop(*tables.toTypedArray()) }
-                SchemaUtils.create(*tables.toTypedArray())
             }
         }
 

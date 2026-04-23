@@ -26,10 +26,17 @@ class YdbDecimalColumnType(
     }
 
     override fun notNullValueToDB(value: BigDecimal): Any =
-        value.setScale(scale)
+        normalizeScale(value)
 
     override fun nonNullValueToString(value: BigDecimal): String =
-        value.setScale(scale).toPlainString()
+        normalizeScale(value).toPlainString()
+
+    private fun normalizeScale(value: BigDecimal): BigDecimal {
+        require(value.scale() <= scale) {
+            "YDB Decimal value $value has scale ${value.scale()}, which exceeds column scale $scale"
+        }
+        return value.setScale(scale)
+    }
 }
 
 class YdbIntervalColumnType : ColumnType<Duration>() {
