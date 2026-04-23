@@ -5,11 +5,11 @@ on:
     branches: [ main, master ]
     paths:
       - "kotlin-exposed-dialect/**"
-      - ".github/workflows/ci-exposed-ydb-dialect.yml"
+      - ".github/workflows/ci-exposed-ydb-dialect.yaml"
   pull_request:
     paths:
       - "kotlin-exposed-dialect/**"
-      - ".github/workflows/ci-exposed-ydb-dialect.yml"
+      - ".github/workflows/ci-exposed-ydb-dialect.yaml"
 
 jobs:
   build-and-test:
