@@ -6,7 +6,7 @@
 
 - JDK 17 или новее
 - Maven
-- Docker и Docker Compose для интеграционных тестов и локального demo
+- Docker и Docker Compose для интеграционных тестов и локального example-приложения
 - YDB JDBC Driver
 - JetBrains Exposed 1.x
 
@@ -289,13 +289,14 @@ mvn clean install
 
 ## Demo Application
 
-Demo-приложение находится в package:
+Demo-приложение вынесено в отдельный модуль::
 
 ```text
-tech.ydb.exposed.dialect.demo
+example
 ```
 
-Оно показывает:
+Он не входит в библиотечный jar и предназначен для демонстрации использования dialect.
+Приложение показывает:
 
 - подключение к YDB;
 - создание таблицы;
@@ -307,22 +308,33 @@ tech.ydb.exposed.dialect.demo
 - keyset pagination;
 - delete.
 
+Перед запуском example-модуля библиотеку нужно установить в локальный Maven repository:
+
+```powershell
+mvn clean install
+```
+
+После этого example можно запускать отдельно.
+
 Запуск в PowerShell:
 
 ```powershell
-mvn --% exec:java -Dexec.mainClass=tech.ydb.exposed.dialect.demo.DemoAppKt
+cd example
+mvn --% exec:java -Dexec.mainClass=tech.ydb.exposed.dialect.example.DemoAppKt
 ```
 
 Если классы ещё не скомпилированы:
 
 ```powershell
-mvn --% compile exec:java -Dexec.mainClass=tech.ydb.exposed.dialect.demo.DemoAppKt
+cd example
+mvn --% compile exec:java -Dexec.mainClass=tech.ydb.exposed.dialect.example.DemoAppKt
 ```
 
 Запуск в Linux, macOS или cmd:
 
 ```bash
-mvn exec:java -Dexec.mainClass=tech.ydb.exposed.dialect.demo.DemoAppKt
+cd example
+mvn exec:java -Dexec.mainClass=tech.ydb.exposed.dialect.example.DemoAppKt
 ```
 
 ## CI
@@ -368,10 +380,10 @@ src/main/kotlin/tech/ydb/exposed/dialect/locking
 Optimistic locking helper.
 
 ```text
-src/main/kotlin/tech/ydb/exposed/dialect/demo
+example/src/main/kotlin/tech/ydb/exposed/dialect/example
 ```
 
-Консольное demo-приложение.
+Отдельное demo-приложение.
 
 ## Особенности реализации
 
