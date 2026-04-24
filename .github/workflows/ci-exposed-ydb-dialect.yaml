@@ -1,0 +1,66 @@
+name: CI - Kotlin Exposed YDB Dialect
+
+on:
+  push:
+    branches: [ main, master ]
+    paths:
+      - "kotlin-exposed-dialect/**"
+      - ".github/workflows/ci-exposed-ydb-dialect.yaml"
+  pull_request:
+    paths:
+      - "kotlin-exposed-dialect/**"
+      - ".github/workflows/ci-exposed-ydb-dialect.yaml"
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: kotlin-exposed-dialect
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: maven
+          cache-dependency-path: kotlin-exposed-dialect/pom.xml
+
+      - name: Show Docker and Compose versions
+        run: |
+          docker version
+          docker compose version
+
+      - name: Start local YDB with docker compose
+        run: docker compose up -d
+
+      - name: Wait for YDB gRPC port
+        shell: bash
+        run: |
+          for i in {1..60}; do
+            if (echo > /dev/tcp/127.0.0.1/2136) >/dev/null 2>&1; then
+              echo "YDB is reachable on port 2136"
+              exit 0
+            fi
+            echo "Waiting for YDB..."
+            sleep 2
+          done
+          echo "YDB did not become ready in time"
+          docker compose logs || true
+          exit 1
+
+      - name: Run Maven build
+        run: mvn --batch-mode --update-snapshots clean install
+
+      - name: Dump YDB logs on failure
+        if: failure()
+        run: docker compose logs
+
+      - name: Stop YDB
+        if: always()
+        run: docker compose down -v

@@ -1,0 +1,12 @@
+services:
+  ydb:
+    image: ydbplatform/local-ydb:latest
+    container_name: ydb-local
+    hostname: localhost
+    ports:
+      - "2136:2136"
+      - "8765:8765"
+    environment:
+      GRPC_PORT: 2136
+      MON_PORT: 8765
+#      YDB_GRPC_PUBLIC_HOST: localhost
