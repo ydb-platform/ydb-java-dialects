@@ -1,7 +1,11 @@
 package tech.ydb.exposed.dialect.unit.basic
 
+import org.jetbrains.exposed.v1.core.Function
+import org.jetbrains.exposed.v1.core.Index
+import org.jetbrains.exposed.v1.core.QueryBuilder
 import org.jetbrains.exposed.v1.jdbc.Database
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
+import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
@@ -57,6 +61,37 @@ class YdbIndexSqlTest {
             assertTrue(sql.contains("ADD INDEX"), sql)
             assertTrue(sql.contains("GLOBAL ON"), sql)
             assertTrue(sql.contains("email"), sql)
+        }
+    }
+
+    @Test
+    fun `should reject functional indexes`() {
+        transaction(db) {
+            val dialect = db.dialect as YdbDialect
+            val functionIndex = Index(
+                columns = emptyList(),
+                unique = false,
+                customName = "email_lower_idx",
+                indexType = null,
+                filterCondition = null,
+                functions = listOf(
+                    object : Function<String>(IndexedTable.email.columnType) {
+                        override fun toQueryBuilder(queryBuilder: QueryBuilder) {
+                            queryBuilder.append("LOWER(email)")
+                        }
+                    }
+                ),
+                functionsTable = IndexedTable
+            )
+
+            val error = assertThrows(UnsupportedOperationException::class.java) {
+                dialect.createIndex(functionIndex)
+            }
+
+            assertTrue(
+                error.message == "YDB dialect does not support functional indexes",
+                error.message
+            )
         }
     }
 

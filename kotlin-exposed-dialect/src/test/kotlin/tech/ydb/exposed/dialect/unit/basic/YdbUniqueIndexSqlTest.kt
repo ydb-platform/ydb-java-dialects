@@ -1,5 +1,6 @@
 package tech.ydb.exposed.dialect.unit.basic
 
+import org.jetbrains.exposed.v1.core.Index
 import org.jetbrains.exposed.v1.jdbc.Database
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -50,6 +51,27 @@ class YdbUniqueIndexSqlTest {
             assertTrue(sql.contains("ADD INDEX"), sql)
             assertTrue(sql.contains("GLOBAL UNIQUE"), sql)
             assertTrue(sql.contains("ON (`email`)") || sql.contains("ON (email)"), sql)
+        }
+    }
+
+    @Test
+    fun `should quote custom index name through identifier manager`() {
+        transaction(db) {
+            val dialect = db.dialect as YdbDialect
+            val index = Index(
+                columns = listOf(T.email),
+                unique = false,
+                customName = "select",
+                indexType = null,
+                filterCondition = null,
+                functions = emptyList(),
+                functionsTable = T
+            )
+
+            val sql = dialect.createIndex(index)
+
+            assertTrue(sql.contains("ADD INDEX"), sql)
+            assertTrue(sql.contains("`select`") || sql.contains("\"select\""), sql)
         }
     }
 

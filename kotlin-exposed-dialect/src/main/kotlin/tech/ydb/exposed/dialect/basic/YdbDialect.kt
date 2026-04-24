@@ -12,12 +12,15 @@ class YdbDialect : VendorDialect("ydb", YdbDataTypeProvider(), YdbFunctionProvid
 
     override fun createIndex(index: Index): String {
         val tr = runCatching { TransactionManager.current() }.getOrNull()
+        if (!index.functions.isNullOrEmpty()) {
+            throw UnsupportedOperationException("YDB dialect does not support functional indexes")
+        }
 
         val columns = index.columns.joinToString(", ") { column ->
             tr?.identity(column) ?: column.name
         }
 
-        val indexName = index.indexName
+        val indexName = tr?.db?.identifierManager?.cutIfNecessaryAndQuote(index.indexName) ?: index.indexName
         val tableName = tr?.identity(index.table) ?: index.table.tableName
         val unique = index.extractUniqueFlag()
 
