@@ -27,23 +27,25 @@ class DisabledRetryIntegrationTest extends YdbDockerTest {
     }
 
     @ParameterizedTest(name = "Retry disabled")
-    @EnumSource(value = StatusCode.class, names = {
-            "ABORTED", "UNAVAILABLE", "OVERLOADED"
-    })
+    @EnumSource(
+            value = StatusCode.class,
+            names = {"ABORTED", "UNAVAILABLE", "OVERLOADED"})
     void shouldNotRetryWhenRetryDisabledExecuteQuery(StatusCode code) {
         DeterministicErrorChannel.configure().onError("executeQuery", 1, code);
 
-        assertThrows(Exception.class, () -> userService.saveRaw(createUser(1L, "user1", "first1", "last1")));
+        assertThrows(
+                Exception.class, () -> userService.saveRaw(createUser(1L, "user1", "first1", "last1")));
     }
 
     @ParameterizedTest(name = "Retry disabled")
-    @EnumSource(value = StatusCode.class, names = {
-            "ABORTED", "UNAVAILABLE", "OVERLOADED"
-    })
+    @EnumSource(
+            value = StatusCode.class,
+            names = {"ABORTED", "UNAVAILABLE", "OVERLOADED"})
     void shouldNotRetryWhenRetryDisabledCommit(StatusCode code) {
         DeterministicErrorChannel.configure().onError("commitTransaction", 1, code);
 
-        assertThrows(Exception.class, () -> userService.saveRaw(createUser(2L, "user2", "first2", "last2")));
+        assertThrows(
+                Exception.class, () -> userService.saveRaw(createUser(2L, "user2", "first2", "last2")));
     }
 
     private User createUser(Long id, String username, String firstname, String lastname) {

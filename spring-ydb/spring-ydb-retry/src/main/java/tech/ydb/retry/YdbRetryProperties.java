@@ -11,7 +11,6 @@ public class YdbRetryProperties {
     private int fastBackoffBaseMs = YdbRetryPolicyConfig.DEFAULT_FAST_BACKOFF_BASE_MS;
     private int slowCapBackoffMs = YdbRetryPolicyConfig.DEFAULT_SLOW_CAP_BACKOFF_MS;
     private int fastCapBackoffMs = YdbRetryPolicyConfig.DEFAULT_FAST_CAP_BACKOFF_MS;
-    private boolean idempotent = YdbRetryPolicyConfig.DEFAULT_IDEMPOTENT;
 
     public boolean isEnabled() {
         return enabled;
@@ -61,14 +60,6 @@ public class YdbRetryProperties {
         this.fastCapBackoffMs = fastCapBackoffMs;
     }
 
-    public boolean isIdempotent() {
-        return idempotent;
-    }
-
-    public void setIdempotent(boolean idempotent) {
-        this.idempotent = idempotent;
-    }
-
     public YdbRetryPolicyConfig toConfig() {
         return new YdbRetryPolicyConfig(
                 enabled,
@@ -76,8 +67,6 @@ public class YdbRetryProperties {
                 slowBackoffBaseMs,
                 fastBackoffBaseMs,
                 slowCapBackoffMs,
-                fastCapBackoffMs,
-                idempotent
-        );
+                fastCapBackoffMs);
     }
 }

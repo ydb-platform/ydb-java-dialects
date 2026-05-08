@@ -10,7 +10,6 @@ public final class YdbRetryPolicyConfig {
     public static final int DEFAULT_FAST_BACKOFF_BASE_MS = 5;
     public static final int DEFAULT_SLOW_CAP_BACKOFF_MS = 5_000;
     public static final int DEFAULT_FAST_CAP_BACKOFF_MS = 500;
-    public static final boolean DEFAULT_IDEMPOTENT = false;
 
     private final boolean enabled;
     private final int maxRetries;
@@ -20,7 +19,6 @@ public final class YdbRetryPolicyConfig {
     private final int fastCapBackoffMs;
     private final int slowPow;
     private final int fastPow;
-    private final boolean idempotent;
 
     public YdbRetryPolicyConfig() {
         this(
@@ -29,22 +27,23 @@ public final class YdbRetryPolicyConfig {
                 DEFAULT_SLOW_BACKOFF_BASE_MS,
                 DEFAULT_FAST_BACKOFF_BASE_MS,
                 DEFAULT_SLOW_CAP_BACKOFF_MS,
-                DEFAULT_FAST_CAP_BACKOFF_MS,
-                DEFAULT_IDEMPOTENT
-        );
+                DEFAULT_FAST_CAP_BACKOFF_MS);
     }
 
-    public YdbRetryPolicyConfig(boolean enabled, int maxRetries, int slowBackoffBaseMs, int fastBackoffBaseMs,
-                                int slowCapBackoffMs, int fastCapBackoffMs) {
-        this(enabled, maxRetries, slowBackoffBaseMs, fastBackoffBaseMs, slowCapBackoffMs, fastCapBackoffMs, false);
-    }
-
-    public YdbRetryPolicyConfig(boolean enabled, int maxRetries, int slowBackoffBaseMs, int fastBackoffBaseMs,
-                                int slowCapBackoffMs, int fastCapBackoffMs, boolean idempotent) {
+    public YdbRetryPolicyConfig(
+            boolean enabled,
+            int maxRetries,
+            int slowBackoffBaseMs,
+            int fastBackoffBaseMs,
+            int slowCapBackoffMs,
+            int fastCapBackoffMs) {
         if (maxRetries < 1) {
             throw new IllegalArgumentException("maxRetries must be >= 1");
         }
-        if (slowBackoffBaseMs < 0 || fastBackoffBaseMs < 0 || slowCapBackoffMs < 0 || fastCapBackoffMs < 0) {
+        if (slowBackoffBaseMs < 0
+                || fastBackoffBaseMs < 0
+                || slowCapBackoffMs < 0
+                || fastCapBackoffMs < 0) {
             throw new IllegalArgumentException("backoff values must be >= 0");
         }
         this.enabled = enabled;
@@ -55,14 +54,13 @@ public final class YdbRetryPolicyConfig {
         this.maxRetries = maxRetries;
         this.slowPow = powerForCap(this.slowCapBackoffMs);
         this.fastPow = powerForCap(this.fastCapBackoffMs);
-        this.idempotent = idempotent;
     }
 
     public long getJitter(long bound) {
         if (bound <= 0) {
             return 0;
         }
-        return ThreadLocalRandom.current().nextLong(bound);
+        return ThreadLocalRandom.current().nextLong(bound + 1);
     }
 
     public boolean isEnabled() {
@@ -97,46 +95,49 @@ public final class YdbRetryPolicyConfig {
         return fastPow;
     }
 
-    public boolean isIdempotent() {
-        return idempotent;
-    }
-
     public YdbRetryPolicyConfig merge(@Nullable YdbTransactional transactionPolicy) {
         if (transactionPolicy == null) {
             return this;
         }
         return new YdbRetryPolicyConfig(
                 enabled && transactionPolicy.enabled(),
-                checkCandidate("maxRetries", transactionPolicy.maxRetries(), maxRetries),
-                checkCandidate("slowBackoffBaseMs", transactionPolicy.slowBackoffBaseMs(), slowBackoffBaseMs),
-                checkCandidate("fastBackoffBaseMs", transactionPolicy.fastBackoffBaseMs(), fastBackoffBaseMs),
-                checkCandidate("slowCapBackoffMs", transactionPolicy.slowCapBackoffMs(), slowCapBackoffMs),
-                checkCandidate("fastCapBackoffMs", transactionPolicy.fastCapBackoffMs(), fastCapBackoffMs),
-                checkIdempotent(transactionPolicy.idempotent(), idempotent)
-        );
+                mergeMaxRetries(transactionPolicy.maxRetries(), maxRetries),
+                mergeNonNegativeInt(
+                        "slowBackoffBaseMs", transactionPolicy.slowBackoffBaseMs(), slowBackoffBaseMs),
+                mergeNonNegativeInt(
+                        "fastBackoffBaseMs", transactionPolicy.fastBackoffBaseMs(), fastBackoffBaseMs),
+                mergeNonNegativeInt(
+                        "slowCapBackoffMs", transactionPolicy.slowCapBackoffMs(), slowCapBackoffMs),
+                mergeNonNegativeInt(
+                        "fastCapBackoffMs", transactionPolicy.fastCapBackoffMs(), fastCapBackoffMs));
     }
 
-    private static int checkCandidate(String name, int candidate, int fallback) throws IllegalArgumentException {
+    private static int mergeMaxRetries(int candidate, int fallback) {
+        return switch (candidate) {
+            case -1 -> fallback;
+            case 0 -> throw new IllegalArgumentException(
+                    "maxRetries must not be 0; use enabled = false to disable retry");
+            default -> {
+                if (candidate < -1) {
+                    throw new IllegalArgumentException("maxRetries must be -1 or >= 1");
+                }
+                yield candidate;
+            }
+        };
+    }
+
+    private static int mergeNonNegativeInt(String name, int candidate, int fallback)
+            throws IllegalArgumentException {
         if (candidate < -1) {
             throw new IllegalArgumentException(String.format("%s is invalid", name));
         }
         return candidate == -1 ? fallback : candidate;
     }
 
-    private static boolean checkIdempotent(int candidate, boolean fallback) {
-        if (candidate == -1) {
-            return fallback;
-        }
-        if (candidate < -1 || candidate > 1) {
-            throw new IllegalArgumentException("idempotent must be -1, 0, or 1");
-        }
-        return candidate == 1;
-    }
-
     private static int powerForCap(int capMs) {
-        if (capMs <= 1) {
-            return 1;
+        if (capMs <= 0) {
+            return 0;
         }
-        return Math.max(1, (int) (Math.log(capMs) / Math.log(2)));
+        return Integer.SIZE - Integer.numberOfLeadingZeros(capMs);
     }
 }

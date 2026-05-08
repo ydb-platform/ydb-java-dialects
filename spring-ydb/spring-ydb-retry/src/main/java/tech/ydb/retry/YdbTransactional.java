@@ -67,5 +67,5 @@ public @interface YdbTransactional {
 
     int fastCapBackoffMs() default -1;
 
-    int idempotent() default -1;
+    boolean idempotent() default false;
 }

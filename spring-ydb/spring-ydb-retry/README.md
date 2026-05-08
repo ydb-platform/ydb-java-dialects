@@ -54,7 +54,7 @@ Use `@YdbTransactional` as a drop-in replacement for `@Transactional` with addit
 retry parameters:
 
 ```java
-@YdbTransactional(maxRetries = 5, idempotent = 1)
+@YdbTransactional(maxRetries = 5, idempotent = true)
 public void save(User user) {
     // retried up to 5 times on YDB retryable errors
 }
@@ -79,6 +79,6 @@ ydb.transaction.retry.slow-cap-backoff-ms=5000
 ydb.transaction.retry.fast-backoff-base-ms=5
 ydb.transaction.retry.fast-cap-backoff-ms=500
 
-# Enable idempotent retry for non-deterministic errors (default: false)
-ydb.transaction.retry.idempotent=false
 ```
+
+Idempotent-only retry is configured per method via `@YdbTransactional(idempotent = true)`.

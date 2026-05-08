@@ -1,13 +1,12 @@
 package tech.ydb.slo;
 
+import java.sql.Timestamp;
+import java.time.LocalDateTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import tech.ydb.retry.YdbTransactional;
-
-import java.sql.Timestamp;
-import java.time.LocalDateTime;
 
 @Service
 public class SloService {
@@ -23,36 +22,62 @@ public class SloService {
         this.jdbcTemplate = jdbcTemplate;
     }
 
-    @YdbTransactional
-    public void upsert(String guid, int id, String payloadStr, double payloadDouble,
-                       LocalDateTime payloadTimestamp) {
-        jdbcTemplate.update("UPSERT INTO " + TABLE_NAME + " (guid, id, payload_str, payload_double, payload_timestamp) VALUES (?, ?, ?, ?, ?)",
-                guid, id, payloadStr, payloadDouble, Timestamp.valueOf(payloadTimestamp)
-        );
+    @YdbTransactional(idempotent = true)
+    public void upsert(
+            String guid,
+            int id,
+            String payloadStr,
+            double payloadDouble,
+            LocalDateTime payloadTimestamp) {
+        jdbcTemplate.update(
+                "UPSERT INTO "
+                        + TABLE_NAME
+                        + " (guid, id, payload_str, payload_double, payload_timestamp) VALUES (?, ?, ?, ?, ?)",
+                guid,
+                id,
+                payloadStr,
+                payloadDouble,
+                Timestamp.valueOf(payloadTimestamp));
     }
 
-    @YdbTransactional
-    public void upsert2(String guid, int id, String payloadStr, double payloadDouble,
-                        LocalDateTime payloadTimestamp) {
-        jdbcTemplate.update("UPSERT INTO " + TABLE_NAME + " (guid, id, payload_str, payload_double, payload_timestamp) VALUES (?, ?, ?, ?, ?)",
-                guid, id, payloadStr, payloadDouble, Timestamp.valueOf(payloadTimestamp)
-        );
+    @YdbTransactional(idempotent = true)
+    public void upsert2(
+            String guid,
+            int id,
+            String payloadStr,
+            double payloadDouble,
+            LocalDateTime payloadTimestamp) {
+        jdbcTemplate.update(
+                "UPSERT INTO "
+                        + TABLE_NAME
+                        + " (guid, id, payload_str, payload_double, payload_timestamp) VALUES (?, ?, ?, ?, ?)",
+                guid,
+                id,
+                payloadStr,
+                payloadDouble,
+                Timestamp.valueOf(payloadTimestamp));
 
         jdbcTemplate.update(
-                "UPSERT INTO " + TABLE_NAME + " (guid, id, payload_str, payload_double, payload_timestamp) VALUES (?, ?, ?, ?, ?)",
-                guid, id + SECOND_UPSERT_ID_OFFSET, payloadStr,
-                payloadDouble, Timestamp.valueOf(payloadTimestamp)
-        );
+                "UPSERT INTO "
+                        + TABLE_NAME
+                        + " (guid, id, payload_str, payload_double, payload_timestamp) VALUES (?, ?, ?, ?, ?)",
+                guid,
+                id + SECOND_UPSERT_ID_OFFSET,
+                payloadStr,
+                payloadDouble,
+                Timestamp.valueOf(payloadTimestamp));
     }
 
-    @YdbTransactional(readOnly = true)
+    @YdbTransactional(idempotent = true, readOnly = true)
     public String select(String guid, int id) {
-        return jdbcTemplate.queryForObject("SELECT payload_str FROM " + TABLE_NAME + " WHERE guid = ? AND id = ?",
-                String.class, guid, id
-        );
+        return jdbcTemplate.queryForObject(
+                "SELECT payload_str FROM " + TABLE_NAME + " WHERE guid = ? AND id = ?",
+                String.class,
+                guid,
+                id);
     }
 
-    @YdbTransactional(readOnly = true)
+    @YdbTransactional(idempotent = true, readOnly = true)
     public int selectMaxId() {
         Integer result = jdbcTemplate.queryForObject(SELECT_MAX_ID_SQL, Integer.class);
         return result != null ? result : 0;

@@ -22,19 +22,25 @@ abstract class InterceptorTestSupport {
         TransactionSynchronizationManager.clear();
     }
 
-    static TestableInterceptor interceptorWithConfig(boolean enabled, int maxRetries, int slowBase, int fastBase,
-                                                     int slowCap, int fastCap, boolean isIdempotent) {
-        return interceptorWithSleeper(enabled, maxRetries, slowBase, fastBase, slowCap, fastCap, isIdempotent, delay -> {
-        });
+    static TestableInterceptor interceptorWithConfig(
+            boolean enabled, int maxRetries, int slowBase, int fastBase, int slowCap, int fastCap) {
+        return interceptorWithSleeper(
+                enabled, maxRetries, slowBase, fastBase, slowCap, fastCap, delay -> {
+                });
     }
 
-    static TestableInterceptor interceptorWithSleeper(boolean enabled, int maxRetries, int slowBase, int fastBase,
-                                                      int slowCap, int fastCap, boolean isIdempotent,
-                                                      BackoffSleeper sleeper) {
-        TestableInterceptor interceptor = new TestableInterceptor(
-                new YdbRetryPolicyConfig(enabled, maxRetries, slowBase, fastBase, slowCap, fastCap, isIdempotent),
-                sleeper
-        );
+    static TestableInterceptor interceptorWithSleeper(
+            boolean enabled,
+            int maxRetries,
+            int slowBase,
+            int fastBase,
+            int slowCap,
+            int fastCap,
+            BackoffSleeper sleeper) {
+        TestableInterceptor interceptor =
+                new TestableInterceptor(
+                        new YdbRetryPolicyConfig(enabled, maxRetries, slowBase, fastBase, slowCap, fastCap),
+                        sleeper);
         interceptor.setTransactionAttributeSource(new AnnotationTransactionAttributeSource());
         return interceptor;
     }
@@ -71,8 +77,7 @@ abstract class InterceptorTestSupport {
         private final Deque<Object> outcomes = new ArrayDeque<>();
         private final AtomicInteger attempts = new AtomicInteger();
 
-        TestableInterceptor(YdbRetryPolicyConfig retryConfig,
-                            BackoffSleeper backoffSleeper) {
+        TestableInterceptor(YdbRetryPolicyConfig retryConfig, BackoffSleeper backoffSleeper) {
             super(retryConfig, backoffSleeper);
         }
 
@@ -91,8 +96,8 @@ abstract class InterceptorTestSupport {
         }
 
         @Override
-        protected Object invokeWithinTransaction(Method method, Class<?> targetClass, InvocationCallback invocation)
-                throws Throwable {
+        protected Object invokeWithinTransaction(
+                Method method, Class<?> targetClass, InvocationCallback invocation) throws Throwable {
             attempts.incrementAndGet();
             Object result = outcomes.removeFirst();
             if (result instanceof Throwable throwable) {
@@ -160,7 +165,12 @@ abstract class InterceptorTestSupport {
             return "ok";
         }
 
-        @YdbTransactional(maxRetries = 100, slowBackoffBaseMs = 200, fastBackoffBaseMs = 10, slowCapBackoffMs = 10000, fastCapBackoffMs = 12)
+        @YdbTransactional(
+                maxRetries = 100,
+                slowBackoffBaseMs = 200,
+                fastBackoffBaseMs = 10,
+                slowCapBackoffMs = 10000,
+                fastCapBackoffMs = 12)
         public String ydbNewTransactionSettings() {
             return "ok";
         }
@@ -170,12 +180,17 @@ abstract class InterceptorTestSupport {
             return "ok";
         }
 
-        @YdbTransactional(maxRetries = 5, idempotent = 1)
+        @YdbTransactional(maxRetries = 0)
+        public String ydbZeroMaxRetries() {
+            return "ok";
+        }
+
+        @YdbTransactional(maxRetries = 5, idempotent = true)
         public String ydbIdempotentRetry() {
             return "ok";
         }
 
-        @YdbTransactional(maxRetries = 3, idempotent = 0)
+        @YdbTransactional(maxRetries = 3)
         public String ydbNonIdempotentRetry() {
             return "ok";
         }

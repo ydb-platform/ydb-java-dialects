@@ -20,7 +20,8 @@ import tech.ydb.core.StatusCode;
 import tech.ydb.proto.StatusCodesProtos;
 import tech.ydb.proto.query.YdbQuery;
 
-public class DeterministicErrorChannel implements Consumer<ManagedChannelBuilder<?>>, ClientInterceptor {
+public class DeterministicErrorChannel
+        implements Consumer<ManagedChannelBuilder<?>>, ClientInterceptor {
 
     private record ErrorRule(String methodName, int callNumber, StatusCode code) {
         boolean matches(String method, int callNum) {
@@ -29,15 +30,20 @@ public class DeterministicErrorChannel implements Consumer<ManagedChannelBuilder
     }
 
     private static final List<ErrorRule> rules = new CopyOnWriteArrayList<>();
-    private static final ConcurrentHashMap<String, AtomicInteger> counters = new ConcurrentHashMap<>();
+    private static final ConcurrentHashMap<String, AtomicInteger> counters =
+            new ConcurrentHashMap<>();
 
     private static final DeterministicErrorChannel INSTANCE = new DeterministicErrorChannel();
 
-    private static final Map<String, Function<StatusCodesProtos.StatusIds.StatusCode, ?>> RESPONSE_BUILDERS = Map.of(
-            "ExecuteQuery", code -> YdbQuery.ExecuteQueryResponsePart.newBuilder().setStatus(code).build(),
-            "BeginTransaction", code -> YdbQuery.BeginTransactionResponse.newBuilder().setStatus(code).build(),
-            "CommitTransaction", code -> YdbQuery.CommitTransactionResponse.newBuilder().setStatus(code).build()
-            );
+    private static final Map<String, Function<StatusCodesProtos.StatusIds.StatusCode, ?>>
+            RESPONSE_BUILDERS =
+            Map.of(
+                    "ExecuteQuery",
+                    code -> YdbQuery.ExecuteQueryResponsePart.newBuilder().setStatus(code).build(),
+                    "BeginTransaction",
+                    code -> YdbQuery.BeginTransactionResponse.newBuilder().setStatus(code).build(),
+                    "CommitTransaction",
+                    code -> YdbQuery.CommitTransactionResponse.newBuilder().setStatus(code).build());
 
     public DeterministicErrorChannel() {
         loadFromSystemProperty();
@@ -87,7 +93,8 @@ public class DeterministicErrorChannel implements Consumer<ManagedChannelBuilder
 
         for (ErrorRule rule : rules) {
             if (rule.matches(shortName, callNum)) {
-                Function<StatusCodesProtos.StatusIds.StatusCode, ?> builderFn = RESPONSE_BUILDERS.get(shortName);
+                Function<StatusCodesProtos.StatusIds.StatusCode, ?> builderFn =
+                        RESPONSE_BUILDERS.get(shortName);
                 if (builderFn != null) {
                     StatusCodesProtos.StatusIds.StatusCode protoCode = toProto(rule.code());
                     RespT errorMsg = (RespT) builderFn.apply(protoCode);
@@ -104,9 +111,7 @@ public class DeterministicErrorChannel implements Consumer<ManagedChannelBuilder
             return StatusCodesProtos.StatusIds.StatusCode.valueOf(code.name());
         } catch (IllegalArgumentException ex) {
             throw new IllegalArgumentException(
-                    "Status " + code + " is not a YDB protobuf response status. ",
-                    ex
-            );
+                    "Status " + code + " is not a YDB protobuf response status. ", ex);
         }
     }
 
@@ -119,10 +124,12 @@ public class DeterministicErrorChannel implements Consumer<ManagedChannelBuilder
 
         @Override
         public void start(Listener<RespT> listener, Metadata headers) {
-            ForkJoinPool.commonPool().execute(() -> {
-                listener.onMessage(errorMsg);
-                listener.onClose(Status.OK, new Metadata());
-            });
+            ForkJoinPool.commonPool()
+                    .execute(
+                            () -> {
+                                listener.onMessage(errorMsg);
+                                listener.onClose(Status.OK, new Metadata());
+                            });
         }
 
         @Override

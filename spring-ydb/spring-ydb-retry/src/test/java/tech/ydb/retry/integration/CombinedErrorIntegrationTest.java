@@ -62,7 +62,8 @@ class CombinedErrorIntegrationTest extends YdbDockerTest {
                 .onError("executeQuery", 1, StatusCode.ABORTED)
                 .onError("commitTransaction", 1, StatusCode.SCHEME_ERROR);
 
-        assertThrows(Exception.class, () -> userService.save(createUser(3L, "user3", "first3", "last3")));
+        assertThrows(
+                Exception.class, () -> userService.save(createUser(3L, "user3", "first3", "last3")));
 
         assertEquals(2, DeterministicErrorChannel.getCallCount("executeQuery"));
         assertEquals(1, DeterministicErrorChannel.getCallCount("commitTransaction"));

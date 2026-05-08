@@ -6,9 +6,19 @@ import io.opentelemetry.api.common.Attributes;
 import io.opentelemetry.api.metrics.DoubleHistogram;
 import io.opentelemetry.api.metrics.LongCounter;
 import io.opentelemetry.api.metrics.Meter;
+import java.security.MessageDigest;
+import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.CommandLineRunner;
@@ -18,17 +28,6 @@ import tech.ydb.core.Status;
 import tech.ydb.jdbc.exception.YdbStatusable;
 import tech.ydb.retry.YdbRetryProperties;
 
-import java.time.Instant;
-import java.security.MessageDigest;
-import java.time.LocalDateTime;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.ThreadLocalRandom;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
-
 @Component
 public class SloRunner implements CommandLineRunner {
 
@@ -36,10 +35,8 @@ public class SloRunner implements CommandLineRunner {
     private static final String OPERATIONS_METRIC_NAME = "slo.operations";
     private static final String DURATION_METRIC_NAME = "slo.operation.duration.seconds";
     private static final String DURATION_METRIC_UNIT = "s";
-    private static final List<Double> DURATION_BUCKETS = List.of(
-            0.001, 0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5,
-            1.0, 2.5, 5.0, 10.0, 30.0
-    );
+    private static final List<Double> DURATION_BUCKETS =
+            List.of(0.001, 0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0, 10.0, 30.0);
 
     private static final String TABLE_NAME = "slo_test_table";
     private static final String READ_OPERATION = "read";
@@ -65,9 +62,13 @@ public class SloRunner implements CommandLineRunner {
     private static final AttributeKey<String> STATUS_KEY = AttributeKey.stringKey("status");
     private static final AttributeKey<String> ERROR_TYPE_KEY = AttributeKey.stringKey("error_type");
 
-    public SloRunner(JdbcTemplate jdbcTemplate, SloService sloService, SloConfig config,
-                     YdbRetryProperties retryProperties, SloResultWriter resultWriter,
-                     OpenTelemetry openTelemetry) {
+    public SloRunner(
+            JdbcTemplate jdbcTemplate,
+            SloService sloService,
+            SloConfig config,
+            YdbRetryProperties retryProperties,
+            SloResultWriter resultWriter,
+            OpenTelemetry openTelemetry) {
         this.jdbcTemplate = jdbcTemplate;
         this.sloService = sloService;
         this.config = config;
@@ -75,14 +76,16 @@ public class SloRunner implements CommandLineRunner {
         this.resultWriter = resultWriter;
 
         Meter meter = openTelemetry.getMeter("slo");
-        this.operationsCounter = meter.counterBuilder(OPERATIONS_METRIC_NAME)
-                .setDescription("Total number of SLO operations")
-                .build();
-        this.durationHistogram = meter.histogramBuilder(DURATION_METRIC_NAME)
-                .setDescription("SLO operation latency")
-                .setUnit(DURATION_METRIC_UNIT)
-                .setExplicitBucketBoundariesAdvice(DURATION_BUCKETS)
-                .build();
+        this.operationsCounter =
+                meter.counterBuilder(OPERATIONS_METRIC_NAME)
+                        .setDescription("Total number of SLO operations")
+                        .build();
+        this.durationHistogram =
+                meter.histogramBuilder(DURATION_METRIC_NAME)
+                        .setDescription("SLO operation latency")
+                        .setUnit(DURATION_METRIC_UNIT)
+                        .setExplicitBucketBoundariesAdvice(DURATION_BUCKETS)
+                        .build();
     }
 
     @Override
@@ -102,20 +105,24 @@ public class SloRunner implements CommandLineRunner {
         for (int attempt = 0; attempt < 10; attempt++) {
             try {
                 jdbcTemplate.execute(
-                        "CREATE TABLE " + TABLE_NAME + " (" +
-                                "guid Text, " +
-                                "id Int32, " +
-                                "payload_str Text, " +
-                                "payload_double Double, " +
-                                "payload_timestamp Timestamp, " +
-                                "PRIMARY KEY (guid, id)" +
-                                ")"
-                );
+                        "CREATE TABLE "
+                                + TABLE_NAME
+                                + " ("
+                                + "guid Text, "
+                                + "id Int32, "
+                                + "payload_str Text, "
+                                + "payload_double Double, "
+                                + "payload_timestamp Timestamp, "
+                                + "PRIMARY KEY (guid, id)"
+                                + ")");
                 log.info("Created table {}", TABLE_NAME);
                 return;
             } catch (Exception e) {
                 String msg = e.getMessage();
-                if (msg != null && (msg.contains("already exists") || msg.contains("ALREADY_EXISTS") || msg.contains("path exist"))) {
+                if (msg != null
+                        && (msg.contains("already exists")
+                        || msg.contains("ALREADY_EXISTS")
+                        || msg.contains("path exist"))) {
                     log.info("Table slo_test_table already exists");
                     return;
                 }
@@ -154,8 +161,13 @@ public class SloRunner implements CommandLineRunner {
 
     private void runWorkload(String runId) {
         String ref = config.getRef();
-        log.info("Starting workload: runId={}, ref={}, readRps={}, writeRps={}, time={}s",
-                runId, ref, config.getReadRps(), config.getWriteRps(), config.getRunTimeSeconds());
+        log.info(
+                "Starting workload: runId={}, ref={}, readRps={}, writeRps={}, time={}s",
+                runId,
+                ref,
+                config.getReadRps(),
+                config.getWriteRps(),
+                config.getRunTimeSeconds());
 
         ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(2);
         ExecutorService workers = Executors.newFixedThreadPool(20);
@@ -164,17 +176,27 @@ public class SloRunner implements CommandLineRunner {
         int readsPerInterval = Math.max(1, config.getReadRps() / 10);
         int writesPerInterval = Math.max(1, config.getWriteRps() / 10);
 
-        ScheduledFuture<?> readFuture = scheduler.scheduleAtFixedRate(() -> {
-            for (int i = 0; i < readsPerInterval; i++) {
-                workers.submit(() -> doRead(ref));
-            }
-        }, 0, intervalMs, TimeUnit.MILLISECONDS);
+        ScheduledFuture<?> readFuture =
+                scheduler.scheduleAtFixedRate(
+                        () -> {
+                            for (int i = 0; i < readsPerInterval; i++) {
+                                workers.submit(() -> doRead(ref));
+                            }
+                        },
+                        0,
+                        intervalMs,
+                        TimeUnit.MILLISECONDS);
 
-        ScheduledFuture<?> writeFuture = scheduler.scheduleAtFixedRate(() -> {
-            for (int i = 0; i < writesPerInterval; i++) {
-                workers.submit(() -> doWrite(ref));
-            }
-        }, 0, intervalMs, TimeUnit.MILLISECONDS);
+        ScheduledFuture<?> writeFuture =
+                scheduler.scheduleAtFixedRate(
+                        () -> {
+                            for (int i = 0; i < writesPerInterval; i++) {
+                                workers.submit(() -> doWrite(ref));
+                            }
+                        },
+                        0,
+                        intervalMs,
+                        TimeUnit.MILLISECONDS);
 
         try {
             Thread.sleep(TimeUnit.SECONDS.toMillis(config.getRunTimeSeconds()));
@@ -255,23 +277,25 @@ public class SloRunner implements CommandLineRunner {
     }
 
     private void incrementCounter(String ref, String operationType, String status, String errorType) {
-        Attributes attrs = Attributes.builder()
-                .put(REF_KEY, ref)
-                .put(OP_TYPE_KEY, operationType)
-                .put(STATUS_KEY, status)
-                .put(ERROR_TYPE_KEY, errorType)
-                .build();
+        Attributes attrs =
+                Attributes.builder()
+                        .put(REF_KEY, ref)
+                        .put(OP_TYPE_KEY, operationType)
+                        .put(STATUS_KEY, status)
+                        .put(ERROR_TYPE_KEY, errorType)
+                        .build();
         operationsCounter.add(1, attrs);
     }
 
-    private void recordLatency(String ref, String operationType, String status, String errorType,
-                                long durationNanos) {
-        Attributes attrs = Attributes.builder()
-                .put(REF_KEY, ref)
-                .put(OP_TYPE_KEY, operationType)
-                .put(STATUS_KEY, status)
-                .put(ERROR_TYPE_KEY, errorType)
-                .build();
+    private void recordLatency(
+            String ref, String operationType, String status, String errorType, long durationNanos) {
+        Attributes attrs =
+                Attributes.builder()
+                        .put(REF_KEY, ref)
+                        .put(OP_TYPE_KEY, operationType)
+                        .put(STATUS_KEY, status)
+                        .put(ERROR_TYPE_KEY, errorType)
+                        .build();
         durationHistogram.record(durationNanos / 1_000_000_000.0, attrs);
     }
 
@@ -322,27 +346,22 @@ public class SloRunner implements CommandLineRunner {
 
     private void writeRunSummaryFile(String runId, Instant startedAt, Instant finishedAt) {
         resultWriter.writeSummary(
-                config,
-                retryProperties,
-                sloStats.calculate(runId, startedAt, finishedAt, sloStats)
-        );
+                config, retryProperties, sloStats.calculate(runId, startedAt, finishedAt, sloStats));
     }
 
     private void waitForPrometheusScrapes(String runId) {
-        log.info(
-                "Waiting {}s before shutdown to allow final Prometheus scrapes: runId={}",
-                10,
-                runId
-        );
+        log.info("Waiting {}s before shutdown to allow final Prometheus scrapes: runId={}", 10, runId);
         try {
             Thread.sleep(TimeUnit.SECONDS.toMillis(10));
         } catch (InterruptedException interruptedException) {
             Thread.currentThread().interrupt();
-            throw new RuntimeException("Interrupted while waiting for final Prometheus scrapes", interruptedException);
+            throw new RuntimeException(
+                    "Interrupted while waiting for final Prometheus scrapes", interruptedException);
         }
     }
 
-    private static void awaitTermination(String name, ExecutorService executorService, long timeout, TimeUnit unit) {
+    private static void awaitTermination(
+            String name, ExecutorService executorService, long timeout, TimeUnit unit) {
         try {
             if (!executorService.awaitTermination(timeout, unit)) {
                 throw new IllegalStateException(name + " did not terminate in time");
@@ -352,5 +371,4 @@ public class SloRunner implements CommandLineRunner {
             throw new RuntimeException(name + " termination interrupted", interruptedException);
         }
     }
-
 }

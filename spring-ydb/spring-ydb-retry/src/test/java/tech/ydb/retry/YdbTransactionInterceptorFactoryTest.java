@@ -34,7 +34,6 @@ class YdbTransactionInterceptorFactoryTest {
         YdbRetryProperties properties = new YdbRetryProperties();
         properties.setEnabled(false);
         properties.setMaxRetries(3);
-        properties.setIdempotent(true);
         YdbTransactionInterceptorFactory factory = new YdbTransactionInterceptorFactory();
         factory.setRetryProperties(properties);
         factory.setTransactionAttributeSource(new AnnotationTransactionAttributeSource());

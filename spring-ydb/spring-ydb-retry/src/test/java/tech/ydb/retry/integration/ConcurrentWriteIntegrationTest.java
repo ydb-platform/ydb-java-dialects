@@ -32,8 +32,9 @@ class ConcurrentWriteIntegrationTest extends YdbDockerTest {
     @Test
     void shouldInsertConcurrently() throws Exception {
         ConcurrentRunner.with(10)
-                .execute(idx -> userService.save(
-                        new User(1000L + idx, "user" + idx, "first" + idx, "last" + idx)))
+                .execute(
+                        idx ->
+                                userService.save(new User(1000L + idx, "user" + idx, "first" + idx, "last" + idx)))
                 .awaitCompletion(30, TimeUnit.SECONDS)
                 .assertAllSucceeded();
 
@@ -47,8 +48,9 @@ class ConcurrentWriteIntegrationTest extends YdbDockerTest {
         DeterministicErrorChannel.configure().onError("commitTransaction", 1, StatusCode.ABORTED);
 
         ConcurrentRunner.with(5)
-                .execute(idx -> userService.save(
-                        new User(200L + idx, "user" + idx, "first" + idx, "last" + idx)))
+                .execute(
+                        idx ->
+                                userService.save(new User(200L + idx, "user" + idx, "first" + idx, "last" + idx)))
                 .awaitCompletion(30, TimeUnit.SECONDS)
                 .assertAllSucceeded();
     }
@@ -74,8 +76,9 @@ class ConcurrentWriteIntegrationTest extends YdbDockerTest {
                 .onError("executeQuery", 2, StatusCode.BAD_SESSION);
 
         ConcurrentRunner.with(3)
-                .execute(idx -> userService.save(
-                        new User(300L + idx, "user" + idx, "first" + idx, "last" + idx)))
+                .execute(
+                        idx ->
+                                userService.save(new User(300L + idx, "user" + idx, "first" + idx, "last" + idx)))
                 .awaitCompletion(30, TimeUnit.SECONDS)
                 .assertAllSucceeded();
 

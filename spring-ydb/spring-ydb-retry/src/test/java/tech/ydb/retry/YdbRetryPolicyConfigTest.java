@@ -41,32 +41,38 @@ class YdbRetryPolicyConfigTest extends InterceptorTestSupport {
 
     @Test
     void shouldThrowWhenMaxRetriesIsZero() {
-        assertThrows(IllegalArgumentException.class, () -> new YdbRetryPolicyConfig(true, 0, 0, 0, 0, 0));
+        assertThrows(
+                IllegalArgumentException.class, () -> new YdbRetryPolicyConfig(true, 0, 0, 0, 0, 0));
     }
 
     @Test
     void shouldThrowWhenMaxRetriesIsNegative() {
-        assertThrows(IllegalArgumentException.class, () -> new YdbRetryPolicyConfig(true, -1, 0, 0, 0, 0));
+        assertThrows(
+                IllegalArgumentException.class, () -> new YdbRetryPolicyConfig(true, -1, 0, 0, 0, 0));
     }
 
     @Test
     void shouldThrowWhenSlowBackoffBaseIsNegative() {
-        assertThrows(IllegalArgumentException.class, () -> new YdbRetryPolicyConfig(true, 1, -1, 0, 0, 0));
+        assertThrows(
+                IllegalArgumentException.class, () -> new YdbRetryPolicyConfig(true, 1, -1, 0, 0, 0));
     }
 
     @Test
     void shouldThrowWhenFastBackoffBaseIsNegative() {
-        assertThrows(IllegalArgumentException.class, () -> new YdbRetryPolicyConfig(true, 1, 0, -1, 0, 0));
+        assertThrows(
+                IllegalArgumentException.class, () -> new YdbRetryPolicyConfig(true, 1, 0, -1, 0, 0));
     }
 
     @Test
     void shouldThrowWhenSlowCapIsNegative() {
-        assertThrows(IllegalArgumentException.class, () -> new YdbRetryPolicyConfig(true, 1, 0, 0, -1, 0));
+        assertThrows(
+                IllegalArgumentException.class, () -> new YdbRetryPolicyConfig(true, 1, 0, 0, -1, 0));
     }
 
     @Test
     void shouldThrowWhenFastCapIsNegative() {
-        assertThrows(IllegalArgumentException.class, () -> new YdbRetryPolicyConfig(true, 1, 0, 0, 0, -1));
+        assertThrows(
+                IllegalArgumentException.class, () -> new YdbRetryPolicyConfig(true, 1, 0, 0, 0, -1));
     }
 
     @Test
@@ -80,8 +86,8 @@ class YdbRetryPolicyConfigTest extends InterceptorTestSupport {
         YdbRetryPolicyConfig original = new YdbRetryPolicyConfig(true, 5, 100, 20, 2000, 300);
 
         Method method = YdbTransactionalTestService.class.getMethod("defaultRetry");
-        YdbTransactional annotation = AnnotatedElementUtils.findMergedAnnotation(method, YdbTransactional.class);
-
+        YdbTransactional annotation =
+                AnnotatedElementUtils.findMergedAnnotation(method, YdbTransactional.class);
 
         YdbRetryPolicyConfig merged = original.merge(annotation);
 
@@ -97,7 +103,8 @@ class YdbRetryPolicyConfigTest extends InterceptorTestSupport {
         YdbRetryPolicyConfig original = new YdbRetryPolicyConfig(true, 5, 100, 20, 2000, 300);
 
         Method method = YdbTransactionalTestService.class.getMethod("ydbNewTransactionSettings");
-        YdbTransactional annotation = AnnotatedElementUtils.findMergedAnnotation(method, YdbTransactional.class);
+        YdbTransactional annotation =
+                AnnotatedElementUtils.findMergedAnnotation(method, YdbTransactional.class);
 
         YdbRetryPolicyConfig merged = original.merge(annotation);
 
@@ -113,7 +120,8 @@ class YdbRetryPolicyConfigTest extends InterceptorTestSupport {
         YdbRetryPolicyConfig original = new YdbRetryPolicyConfig(true, 5, 100, 20, 2000, 300);
 
         Method method = YdbTransactionalTestService.class.getMethod("ydbCustomRetry");
-        YdbTransactional annotation = AnnotatedElementUtils.findMergedAnnotation(method, YdbTransactional.class);
+        YdbTransactional annotation =
+                AnnotatedElementUtils.findMergedAnnotation(method, YdbTransactional.class);
 
         YdbRetryPolicyConfig merged = original.merge(annotation);
 
@@ -130,9 +138,25 @@ class YdbRetryPolicyConfigTest extends InterceptorTestSupport {
         YdbRetryPolicyConfig original = new YdbRetryPolicyConfig(true, 5, 100, 20, 2000, 300);
 
         Method method = YdbTransactionalTestService.class.getMethod("ydbNegativeMaxRetries");
-        YdbTransactional annotation = AnnotatedElementUtils.findMergedAnnotation(method, YdbTransactional.class);
+        YdbTransactional annotation =
+                AnnotatedElementUtils.findMergedAnnotation(method, YdbTransactional.class);
 
         assertThrows(IllegalArgumentException.class, () -> original.merge(annotation));
+    }
+
+    @Test
+    void shouldRejectZeroMaxRetriesAtAnnotationMergeTime() throws NoSuchMethodException {
+        YdbRetryPolicyConfig original = new YdbRetryPolicyConfig(true, 5, 100, 20, 2000, 300);
+
+        Method method = YdbTransactionalTestService.class.getMethod("ydbZeroMaxRetries");
+        YdbTransactional annotation =
+                AnnotatedElementUtils.findMergedAnnotation(method, YdbTransactional.class);
+
+        IllegalArgumentException exception =
+                assertThrows(IllegalArgumentException.class, () -> original.merge(annotation));
+
+        assertEquals(
+                "maxRetries must not be 0; use enabled = false to disable retry", exception.getMessage());
     }
 
     @Test
@@ -141,8 +165,7 @@ class YdbRetryPolicyConfigTest extends InterceptorTestSupport {
         long bound = 100;
         for (int i = 0; i < 50; i++) {
             long jitter = config.getJitter(bound);
-            assertTrue(jitter >= 0 && jitter < bound,
-                    "Jitter " + jitter + " out of range [0, " + bound + ")");
+            assertTrue(jitter >= 0 && jitter <= bound);
         }
     }
 
@@ -150,8 +173,8 @@ class YdbRetryPolicyConfigTest extends InterceptorTestSupport {
     void powShouldBeComputedFromCapValues() {
         YdbRetryPolicyConfig config = new YdbRetryPolicyConfig(true, 5, 100, 20, 2000, 300);
 
-        int expectedSlowPow = (int) (Math.log(2000) / Math.log(2));
-        int expectedFastPow = (int) (Math.log(300) / Math.log(2));
+        int expectedSlowPow = Integer.SIZE - Integer.numberOfLeadingZeros(2000);
+        int expectedFastPow = Integer.SIZE - Integer.numberOfLeadingZeros(300);
 
         assertEquals(expectedSlowPow, config.getSlowPow());
         assertEquals(expectedFastPow, config.getFastPow());
@@ -165,76 +188,17 @@ class YdbRetryPolicyConfigTest extends InterceptorTestSupport {
     }
 
     @Test
-    void powForZeroCapShouldBeOne() {
+    void powForCapTwoShouldBeTwo() {
+        YdbRetryPolicyConfig config = new YdbRetryPolicyConfig(true, 1, 0, 0, 2, 2);
+        assertEquals(2, config.getSlowPow());
+        assertEquals(2, config.getFastPow());
+    }
+
+    @Test
+    void powForZeroCapShouldBeZero() {
         YdbRetryPolicyConfig config = new YdbRetryPolicyConfig(true, 1, 0, 0, 0, 0);
-        assertEquals(1, config.getSlowPow());
-        assertEquals(1, config.getFastPow());
-    }
-
-    @Test
-    void defaultConstructorShouldSetIdempotentFalse() {
-        YdbRetryPolicyConfig config = new YdbRetryPolicyConfig();
-        assertFalse(config.isIdempotent());
-    }
-
-    @Test
-    void fiveArgConstructorShouldSetIdempotentFalse() {
-        YdbRetryPolicyConfig config = new YdbRetryPolicyConfig(true, 5, 100, 20, 2000, 300);
-        assertFalse(config.isIdempotent());
-    }
-
-    @Test
-    void sixArgConstructorShouldSetIdempotentTrue() {
-        YdbRetryPolicyConfig config = new YdbRetryPolicyConfig(true, 5, 100, 20, 2000, 300, true);
-        assertTrue(config.isIdempotent());
-    }
-
-    @Test
-    void mergeWithIdempotentAnnotationShouldSetIdempotentTrue() throws NoSuchMethodException {
-        YdbRetryPolicyConfig original = new YdbRetryPolicyConfig(true, 5, 100, 20, 2000, 300, false);
-
-        Method method = YdbTransactionalTestService.class.getMethod("ydbIdempotentRetry");
-        YdbTransactional annotation = AnnotatedElementUtils.findMergedAnnotation(method, YdbTransactional.class);
-
-        YdbRetryPolicyConfig merged = original.merge(annotation);
-
-        assertTrue(merged.isIdempotent());
-    }
-
-    @Test
-    void mergeWithNonIdempotentAnnotationShouldSetIdempotentFalse() throws NoSuchMethodException {
-        YdbRetryPolicyConfig original = new YdbRetryPolicyConfig(true, 5, 100, 20, 2000, 300, true);
-
-        Method method = YdbTransactionalTestService.class.getMethod("ydbNonIdempotentRetry");
-        YdbTransactional annotation = AnnotatedElementUtils.findMergedAnnotation(method, YdbTransactional.class);
-
-        YdbRetryPolicyConfig merged = original.merge(annotation);
-
-        assertFalse(merged.isIdempotent());
-    }
-
-    @Test
-    void mergeWithDefaultAnnotationShouldInheritIdempotentFromConfig() throws NoSuchMethodException {
-        YdbRetryPolicyConfig original = new YdbRetryPolicyConfig(true, 5, 100, 20, 2000, 300, true);
-
-        Method method = YdbTransactionalTestService.class.getMethod("defaultRetry");
-        YdbTransactional annotation = AnnotatedElementUtils.findMergedAnnotation(method, YdbTransactional.class);
-
-        YdbRetryPolicyConfig merged = original.merge(annotation);
-
-        assertTrue(merged.isIdempotent());
-    }
-
-    @Test
-    void mergeWithDefaultAnnotationShouldInheritIdempotentFalseFromConfig() throws NoSuchMethodException {
-        YdbRetryPolicyConfig original = new YdbRetryPolicyConfig(true, 5, 100, 20, 2000, 300, false);
-
-        Method method = YdbTransactionalTestService.class.getMethod("defaultRetry");
-        YdbTransactional annotation = AnnotatedElementUtils.findMergedAnnotation(method, YdbTransactional.class);
-
-        YdbRetryPolicyConfig merged = original.merge(annotation);
-
-        assertFalse(merged.isIdempotent());
+        assertEquals(0, config.getSlowPow());
+        assertEquals(0, config.getFastPow());
     }
 
     @Test
@@ -254,7 +218,8 @@ class YdbRetryPolicyConfigTest extends InterceptorTestSupport {
         YdbRetryPolicyConfig original = new YdbRetryPolicyConfig(false, 5, 100, 20, 2000, 300);
 
         Method method = YdbTransactionalTestService.class.getMethod("ydbCustomRetry");
-        YdbTransactional annotation = AnnotatedElementUtils.findMergedAnnotation(method, YdbTransactional.class);
+        YdbTransactional annotation =
+                AnnotatedElementUtils.findMergedAnnotation(method, YdbTransactional.class);
 
         YdbRetryPolicyConfig merged = original.merge(annotation);
 
@@ -266,7 +231,8 @@ class YdbRetryPolicyConfigTest extends InterceptorTestSupport {
         YdbRetryPolicyConfig original = new YdbRetryPolicyConfig(true, 5, 100, 20, 2000, 300);
 
         Method method = YdbTransactionalTestService.class.getMethod("defaultRetry");
-        YdbTransactional annotation = AnnotatedElementUtils.findMergedAnnotation(method, YdbTransactional.class);
+        YdbTransactional annotation =
+                AnnotatedElementUtils.findMergedAnnotation(method, YdbTransactional.class);
 
         YdbRetryPolicyConfig merged = original.merge(annotation);
 
@@ -274,11 +240,13 @@ class YdbRetryPolicyConfigTest extends InterceptorTestSupport {
     }
 
     @Test
-    void mergeWithDefaultAnnotationShouldKeepEnabledFalseWhenConfigDisabled() throws NoSuchMethodException {
+    void mergeWithDefaultAnnotationShouldKeepEnabledFalseWhenConfigDisabled()
+            throws NoSuchMethodException {
         YdbRetryPolicyConfig original = new YdbRetryPolicyConfig(false, 5, 100, 20, 2000, 300);
 
         Method method = YdbTransactionalTestService.class.getMethod("defaultRetry");
-        YdbTransactional annotation = AnnotatedElementUtils.findMergedAnnotation(method, YdbTransactional.class);
+        YdbTransactional annotation =
+                AnnotatedElementUtils.findMergedAnnotation(method, YdbTransactional.class);
 
         YdbRetryPolicyConfig merged = original.merge(annotation);
 
@@ -290,7 +258,8 @@ class YdbRetryPolicyConfigTest extends InterceptorTestSupport {
         YdbRetryPolicyConfig original = new YdbRetryPolicyConfig(true, 5, 100, 20, 2000, 300);
 
         Method method = YdbTransactionalTestService.class.getMethod("ydbRetryDisabled");
-        YdbTransactional annotation = AnnotatedElementUtils.findMergedAnnotation(method, YdbTransactional.class);
+        YdbTransactional annotation =
+                AnnotatedElementUtils.findMergedAnnotation(method, YdbTransactional.class);
 
         YdbRetryPolicyConfig merged = original.merge(annotation);
 
@@ -298,11 +267,13 @@ class YdbRetryPolicyConfigTest extends InterceptorTestSupport {
     }
 
     @Test
-    void mergeWithEnabledAnnotationShouldNotOverrideDisabledGlobalConfig() throws NoSuchMethodException {
+    void mergeWithEnabledAnnotationShouldNotOverrideDisabledGlobalConfig()
+            throws NoSuchMethodException {
         YdbRetryPolicyConfig original = new YdbRetryPolicyConfig(false, 5, 100, 20, 2000, 300);
 
         Method method = YdbTransactionalTestService.class.getMethod("ydbRetryEnabled");
-        YdbTransactional annotation = AnnotatedElementUtils.findMergedAnnotation(method, YdbTransactional.class);
+        YdbTransactional annotation =
+                AnnotatedElementUtils.findMergedAnnotation(method, YdbTransactional.class);
 
         YdbRetryPolicyConfig merged = original.merge(annotation);
 

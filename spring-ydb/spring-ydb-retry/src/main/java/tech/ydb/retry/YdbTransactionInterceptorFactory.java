@@ -9,7 +9,8 @@ import org.springframework.transaction.TransactionManager;
 import org.springframework.transaction.annotation.TransactionManagementConfigurer;
 import org.springframework.transaction.interceptor.TransactionAttributeSource;
 
-public class YdbTransactionInterceptorFactory implements FactoryBean<YdbTransactionInterceptor>, BeanFactoryAware {
+public class YdbTransactionInterceptorFactory
+        implements FactoryBean<YdbTransactionInterceptor>, BeanFactoryAware {
 
     private YdbRetryProperties retryProperties;
     private TransactionAttributeSource transactionAttributeSource;
@@ -32,10 +33,7 @@ public class YdbTransactionInterceptorFactory implements FactoryBean<YdbTransact
 
     @Override
     public YdbTransactionInterceptor getObject() {
-        YdbTransactionInterceptor interceptor = new YdbTransactionInterceptor(
-                retryProperties.toConfig(),
-                Thread::sleep
-        );
+        YdbTransactionInterceptor interceptor = new YdbTransactionInterceptor(retryProperties.toConfig(), Thread::sleep);
         interceptor.setTransactionAttributeSource(transactionAttributeSource);
         if (beanFactory != null) {
             interceptor.setBeanFactory(beanFactory);
@@ -55,9 +53,7 @@ public class YdbTransactionInterceptorFactory implements FactoryBean<YdbTransact
             return null;
         }
 
-        TransactionManagementConfigurer configurer = beanFactory
-                .getBeanProvider(TransactionManagementConfigurer.class)
-                .getIfAvailable();
+        TransactionManagementConfigurer configurer = beanFactory.getBeanProvider(TransactionManagementConfigurer.class).getIfAvailable();
         if (configurer == null) {
             return null;
         }

@@ -28,12 +28,12 @@ public class UserService {
         userRepository.save(user);
     }
 
-    @YdbTransactional(idempotent = 1)
+    @YdbTransactional(idempotent = true)
     public void saveIdempotent(User user) {
         userRepository.save(user);
     }
 
-    @YdbTransactional(maxRetries = 50, idempotent = 1)
+    @YdbTransactional(maxRetries = 50, idempotent = true)
     public void updateFirstname(Long id, String firstname) {
         userRepository.findById(id);
         userRepository.updateFirstnameById(id, firstname);

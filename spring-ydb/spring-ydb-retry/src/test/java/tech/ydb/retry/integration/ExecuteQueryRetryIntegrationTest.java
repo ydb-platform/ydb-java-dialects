@@ -31,10 +31,9 @@ class ExecuteQueryRetryIntegrationTest extends YdbDockerTest {
     }
 
     @ParameterizedTest(name = "ExecuteQuery")
-    @EnumSource(value = StatusCode.class, names = {
-            "ABORTED", "UNAVAILABLE", "OVERLOADED", "BAD_SESSION",
-            "SESSION_BUSY"
-    })
+    @EnumSource(
+            value = StatusCode.class,
+            names = {"ABORTED", "UNAVAILABLE", "OVERLOADED", "BAD_SESSION", "SESSION_BUSY"})
     void shouldRecoverFromRetryableError(StatusCode code) {
         DeterministicErrorChannel.configure().onError("executeQuery", 1, code);
 
@@ -45,9 +44,9 @@ class ExecuteQueryRetryIntegrationTest extends YdbDockerTest {
     }
 
     @ParameterizedTest(name = "ExecuteQuery")
-    @EnumSource(value = StatusCode.class, names = {
-            "ABORTED", "UNAVAILABLE", "OVERLOADED", "BAD_SESSION"
-    })
+    @EnumSource(
+            value = StatusCode.class,
+            names = {"ABORTED", "UNAVAILABLE", "OVERLOADED", "BAD_SESSION"})
     void shouldRecoverFromMultipleRetryableErrors(StatusCode code) {
         DeterministicErrorChannel.configure()
                 .onError("executeQuery", 1, code)
@@ -72,13 +71,14 @@ class ExecuteQueryRetryIntegrationTest extends YdbDockerTest {
     }
 
     @ParameterizedTest(name = "ExecuteQuery")
-    @EnumSource(value = StatusCode.class, names = {
-            "SCHEME_ERROR", "GENERIC_ERROR", "PRECONDITION_FAILED"
-    })
+    @EnumSource(
+            value = StatusCode.class,
+            names = {"SCHEME_ERROR", "GENERIC_ERROR", "PRECONDITION_FAILED"})
     void shouldNotRetryNonRetryableError(StatusCode code) {
         DeterministicErrorChannel.configure().onError("executeQuery", 1, code);
 
-        assertThrows(Exception.class, () -> userService.save(createUser(4L, "user4", "first4", "last4")));
+        assertThrows(
+                Exception.class, () -> userService.save(createUser(4L, "user4", "first4", "last4")));
         assertEquals(1, DeterministicErrorChannel.getCallCount("executeQuery"));
     }
 

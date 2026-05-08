@@ -82,10 +82,11 @@ public class SloStats {
 
     public Map<String, Long> errorCountsSnapshot() {
         return errorCounts.entrySet().stream()
-                .sorted(Map.Entry.<String, LongAdder>comparingByValue(
-                        Comparator.comparingLong(LongAdder::sum)
-                ).reversed())
-                .collect(LinkedHashMap::new,
+                .sorted(
+                        Map.Entry.<String, LongAdder>comparingByValue(Comparator.comparingLong(LongAdder::sum))
+                                .reversed())
+                .collect(
+                        LinkedHashMap::new,
                         (map, entry) -> map.put(entry.getKey(), entry.getValue().sum()),
                         LinkedHashMap::putAll);
     }
@@ -105,10 +106,8 @@ public class SloStats {
         }
     }
 
-    public SloResultWriter.RunSummary calculate(String runId,
-                                                Instant startedAt,
-                                                Instant finishedAt,
-                                                SloStats runStats) {
+    public SloResultWriter.RunSummary calculate(
+            String runId, Instant startedAt, Instant finishedAt, SloStats runStats) {
         long readSuccess = runStats.getReadSuccess();
         long readFailure = runStats.getReadFailure();
         long writeSuccess = runStats.getWriteSuccess();
@@ -116,7 +115,11 @@ public class SloStats {
         long totalSuccess = readSuccess + writeSuccess;
         long totalFailure = readFailure + writeFailure;
         long totalOperations = totalSuccess + totalFailure;
-        double failureRatePercent = totalOperations == 0 ? 0.0 : (double) totalFailure * PERCENT_FACTOR / totalOperations;
+        double failureRatePercent =
+                totalOperations == 0 ? 0.0 : (double) totalFailure * PERCENT_FACTOR / totalOperations;
+        List<Long> overallLatencies = sortedLatenciesSnapshot(runStats.overallLatenciesNanos);
+        List<Long> readLatencies = sortedLatenciesSnapshot(runStats.readLatenciesNanos);
+        List<Long> writeLatencies = sortedLatenciesSnapshot(runStats.writeLatenciesNanos);
 
         return new SloResultWriter.RunSummary(
                 runId,
@@ -130,26 +133,37 @@ public class SloStats {
                 readFailure,
                 writeSuccess,
                 writeFailure,
-                formatPercentileMillis(runStats.overallLatenciesSnapshot(), PERCENTILE_50),
-                formatPercentileMillis(runStats.overallLatenciesSnapshot(), PERCENTILE_95),
-                formatPercentileMillis(runStats.overallLatenciesSnapshot(), PERCENTILE_99),
-                formatPercentileMillis(runStats.readLatenciesSnapshot(), PERCENTILE_50),
-                formatPercentileMillis(runStats.readLatenciesSnapshot(), PERCENTILE_95),
-                formatPercentileMillis(runStats.readLatenciesSnapshot(), PERCENTILE_99),
-                formatPercentileMillis(runStats.writeLatenciesSnapshot(), PERCENTILE_50),
-                formatPercentileMillis(runStats.writeLatenciesSnapshot(), PERCENTILE_95),
-                formatPercentileMillis(runStats.writeLatenciesSnapshot(), PERCENTILE_99),
-                runStats.errorCountsSnapshot()
-        );
+                formatPercentileMillis(overallLatencies, PERCENTILE_50),
+                formatPercentileMillis(overallLatencies, PERCENTILE_95),
+                formatPercentileMillis(overallLatencies, PERCENTILE_99),
+                formatPercentileMillis(readLatencies, PERCENTILE_50),
+                formatPercentileMillis(readLatencies, PERCENTILE_95),
+                formatPercentileMillis(readLatencies, PERCENTILE_99),
+                formatPercentileMillis(writeLatencies, PERCENTILE_50),
+                formatPercentileMillis(writeLatencies, PERCENTILE_95),
+                formatPercentileMillis(writeLatencies, PERCENTILE_99),
+                runStats.errorCountsSnapshot());
+    }
+
+    private static List<Long> sortedLatenciesSnapshot(List<Long> latenciesNanos) {
+        List<Long> snapshot = snapshotLatencies(latenciesNanos);
+        snapshot.sort(Long::compareTo);
+        return snapshot;
     }
 
     private static String formatPercentileMillis(List<Long> latenciesNanos, double percentile) {
         if (latenciesNanos.isEmpty()) {
             return EMPTY_PERCENTILE;
         }
-        latenciesNanos.sort(Long::compareTo);
-        int index = Math.min(latenciesNanos.size() - 1, (int) Math.ceil(percentile * latenciesNanos.size()) - 1);
-        double millis = latenciesNanos.get(index) / NANOS_IN_MILLISECOND;
+        double millis = percentileValue(latenciesNanos, percentile) / NANOS_IN_MILLISECOND;
         return String.format(Locale.ROOT, LATENCY_FORMAT, millis);
+    }
+
+    private static long percentileValue(List<Long> sortedLatenciesNanos, double percentile) {
+        int index =
+                Math.min(
+                        sortedLatenciesNanos.size() - 1,
+                        (int) Math.ceil(percentile * sortedLatenciesNanos.size()) - 1);
+        return sortedLatenciesNanos.get(index);
     }
 }

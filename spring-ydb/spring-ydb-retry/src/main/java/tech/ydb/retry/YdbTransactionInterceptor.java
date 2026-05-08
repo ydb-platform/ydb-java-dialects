@@ -25,8 +25,7 @@ public class YdbTransactionInterceptor extends TransactionInterceptor {
         this(new YdbRetryPolicyConfig(), Thread::sleep);
     }
 
-    YdbTransactionInterceptor(YdbRetryPolicyConfig retryConfig,
-                              BackoffSleeper backoffSleeper) {
+    YdbTransactionInterceptor(YdbRetryPolicyConfig retryConfig, BackoffSleeper backoffSleeper) {
         this.retryConfig = retryConfig;
         this.backoffSleeper = backoffSleeper;
     }
@@ -45,27 +44,30 @@ public class YdbTransactionInterceptor extends TransactionInterceptor {
         if (isParticipatingInExistingTransaction(txAttr)) {
             log.debug(
                     "YDB retry is disabled for method {} because it participates in an existing transaction",
-                    invocation.getMethod().toGenericString()
-            );
+                    invocation.getMethod().toGenericString());
             return this.invokeWithinTransaction(invocation.getMethod(), targetClass, createCallback(invocation));
         }
 
         YdbTransactional ydbTransactional = resolveYdbTransactionAnnotation(invocation.getMethod(), targetClass);
         YdbRetryPolicyConfig retryConfig = this.retryConfig.merge(ydbTransactional);
+        boolean isIdempotent = ydbTransactional != null && ydbTransactional.idempotent();
 
         if (!retryConfig.isEnabled()) {
             log.debug("YDB retry is disabled for method {}", invocation.getMethod().toGenericString());
             return this.invokeWithinTransaction(invocation.getMethod(), targetClass, createCallback(invocation));
         }
 
-        return invokeWithinTransactionWithRetryContext(invocation, targetClass, retryConfig);
+        return invokeWithinTransactionWithRetryContext(invocation, targetClass, retryConfig, isIdempotent);
     }
 
     @Nullable
-    private Object invokeWithinTransactionWithRetryContext(final MethodInvocation invocation,
-                                                           @Nullable Class<?> targetClass,
-                                                           YdbRetryPolicyConfig retryConfig) throws Throwable {
-        for (int attempt = 1; attempt <= retryConfig.getMaxRetries() + 1; attempt++) {
+    private Object invokeWithinTransactionWithRetryContext(
+            final MethodInvocation invocation,
+            @Nullable Class<?> targetClass,
+            YdbRetryPolicyConfig retryConfig,
+            boolean isIdempotent)
+            throws Throwable {
+        for (int attempt = 0; ; attempt++) {
             try {
                 return this.invokeWithinTransaction(invocation.getMethod(), targetClass, createCallback(invocation));
             } catch (Throwable ex) {
@@ -73,17 +75,16 @@ public class YdbTransactionInterceptor extends TransactionInterceptor {
                     throw ex;
                 }
                 StatusCode statusCode = extractStatusCode(ex);
-                if (!YdbRetryPolicy.shouldRetry(statusCode, retryConfig.isIdempotent())) {
+                if (!YdbRetryPolicy.shouldRetry(statusCode, isIdempotent)) {
                     throw ex;
                 }
-                if (attempt == retryConfig.getMaxRetries() + 1) {
+                if (attempt >= retryConfig.getMaxRetries()) {
                     throw ex;
                 }
-                long delay = YdbDelayCalculator.calculateDelay(statusCode, retryConfig, attempt - 1);
+                long delay = YdbDelayCalculator.calculateDelay(statusCode, retryConfig, attempt);
                 sleep(delay, ex);
             }
         }
-        throw new IllegalStateException("retry loop finished unexpectedly");
     }
 
     private void sleep(long delay, Throwable originalException) throws Throwable {
@@ -108,9 +109,12 @@ public class YdbTransactionInterceptor extends TransactionInterceptor {
     }
 
     @Nullable
-    private YdbTransactional resolveYdbTransactionAnnotation(Method method, @Nullable Class<?> targetClass) {
-        Method specificMethod = targetClass != null ? AopUtils.getMostSpecificMethod(method, targetClass) : method;
-        YdbTransactional methodLevel = AnnotatedElementUtils.findMergedAnnotation(specificMethod, YdbTransactional.class);
+    private YdbTransactional resolveYdbTransactionAnnotation(
+            Method method, @Nullable Class<?> targetClass) {
+        Method specificMethod =
+                targetClass != null ? AopUtils.getMostSpecificMethod(method, targetClass) : method;
+        YdbTransactional methodLevel =
+                AnnotatedElementUtils.findMergedAnnotation(specificMethod, YdbTransactional.class);
         if (methodLevel != null) {
             return methodLevel;
         }

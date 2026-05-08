@@ -24,7 +24,6 @@ java -jar target/ydb-slo-workload-1.0.0-SNAPSHOT-exec.jar \
   --spring.datasource.url=jdbc:ydb:grpc://localhost:2136/Root/testdb \
   --ydb.transaction.retry.enabled=true \
   --ydb.transaction.retry.max-retries=10 \
-  --ydb.transaction.retry.idempotent=true \
   --slo.ref=with-retry
 
 # Without retry
@@ -72,25 +71,24 @@ All parameters are set via environment variables (or Spring Boot command-line ar
 
 ### Application
 
-| Variable | Default | Description |
-|---|---|---|
-| `SERVER_PORT` | `8080` | HTTP port (Actuator endpoints) |
-| `SPRING_DATASOURCE_URL` | `jdbc:ydb:grpc://localhost:2136/Root/testdb` | YDB JDBC URL |
-| `YDB_TRANSACTION_RETRY_ENABLED` | `true` | Enable/disable retry |
-| `YDB_TRANSACTION_RETRY_MAX_RETRIES` | `10` | Max retry attempts |
-| `YDB_TRANSACTION_RETRY_IDEMPOTENT` | `true` | Treat operations as idempotent |
-| `SLO_RUN_ID` | auto | Shared run identifier used for the result folder name |
-| `SLO_RESULTS_DIR` | `results` | Root directory where per-run result folders are stored |
+| Variable                            | Default                                      | Description                                            |
+|-------------------------------------|----------------------------------------------|--------------------------------------------------------|
+| `SERVER_PORT`                       | `8080`                                       | HTTP port (Actuator endpoints)                         |
+| `SPRING_DATASOURCE_URL`             | `jdbc:ydb:grpc://localhost:2136/Root/testdb` | YDB JDBC URL                                           |
+| `YDB_TRANSACTION_RETRY_ENABLED`     | `true`                                       | Enable/disable retry                                   |
+| `YDB_TRANSACTION_RETRY_MAX_RETRIES` | `10`                                         | Max retry attempts                                     |
+| `SLO_RUN_ID`                        | auto                                         | Shared run identifier used for the result folder name  |
+| `SLO_RESULTS_DIR`                   | `results`                                    | Root directory where per-run result folders are stored |
 
 ### Workload
 
-| Variable | Default | Description |
-|---|---|---|
-| `SLO_READ_RPS` | `100` | Target read requests per second |
-| `SLO_WRITE_RPS` | `100` | Target write requests per second |
-| `SLO_INITIAL_DATA` | `1000` | Number of rows to pre-populate |
-| `SLO_TIME` | `600` | Total run duration (seconds) |
-| `REF` | `unknown` | Instance label for metrics (`with-retry` / `no-retry`) |
+| Variable           | Default   | Description                                            |
+|--------------------|-----------|--------------------------------------------------------|
+| `SLO_READ_RPS`     | `100`     | Target read requests per second                        |
+| `SLO_WRITE_RPS`    | `100`     | Target write requests per second                       |
+| `SLO_INITIAL_DATA` | `1000`    | Number of rows to pre-populate                         |
+| `SLO_TIME`         | `600`     | Total run duration (seconds)                           |
+| `REF`              | `unknown` | Instance label for metrics (`with-retry` / `no-retry`) |
 
 ## Saved Results
 
@@ -105,19 +103,19 @@ The `retry` file is written by the `with-retry` instance, and `no-retry` is writ
 
 ## Collected Metrics (exposed via OpenTelemetry on :9464)
 
-| Metric | Type | Labels | Description |
-|---|---|---|---|
-| `slo_operations_total` | Counter | ref, operation_type, status, error_type | Total number of operations |
+| Metric                           | Type      | Labels                                  | Description                 |
+|----------------------------------|-----------|-----------------------------------------|-----------------------------|
+| `slo_operations_total`           | Counter   | ref, operation_type, status, error_type | Total number of operations  |
 | `slo_operation_duration_seconds` | Histogram | ref, operation_type, status, error_type | Operation latency (seconds) |
 
 ### Labels
 
-| Label | Values | Description |
-|---|---|---|
-| `ref` | `with-retry`, `no-retry` | Instance identifier |
-| `operation_type` | `read`, `write` | Operation type |
-| `status` | `success`, `failure` | Operation result |
-| `error_type` | `none`, `UNAVAILABLE`, `TRANSPORT_UNAVAILABLE`, `OVERLOADED`, `BAD_SESSION`, … | YDB status code or exception class name |
+| Label            | Values                                                                         | Description                             |
+|------------------|--------------------------------------------------------------------------------|-----------------------------------------|
+| `ref`            | `with-retry`, `no-retry`                                                       | Instance identifier                     |
+| `operation_type` | `read`, `write`                                                                | Operation type                          |
+| `status`         | `success`, `failure`                                                           | Operation result                        |
+| `error_type`     | `none`, `UNAVAILABLE`, `TRANSPORT_UNAVAILABLE`, `OVERLOADED`, `BAD_SESSION`, … | YDB status code or exception class name |
 
 ### Error Classification
 
@@ -127,17 +125,17 @@ exception class name (e.g. `SqlTransientException`).
 
 ## Classes
 
-| Class | Description |
-|---|---|
+| Class            | Description                                                                                 |
+|------------------|---------------------------------------------------------------------------------------------|
 | `SloApplication` | `@SpringBootApplication` entry point with `@EnableConfigurationProperties(SloConfig.class)` |
-| `SloConfig` | `@ConfigurationProperties(prefix = "slo")` — binds workload parameters |
-| `SloService` | `@YdbTransactional` service: `upsert()`, `upsert2()`, `select()`, `selectMaxId()` |
-| `SloRunner` | `CommandLineRunner` — table creation, data seeding, load generation, metrics |
-| `OtelConfig` | OpenTelemetry SDK bean — `PrometheusHttpServer` on port 9464 |
-
+| `SloConfig`      | `@ConfigurationProperties(prefix = "slo")` — binds workload parameters                      |
+| `SloService`     | `@YdbTransactional` service: `upsert()`, `upsert2()`, `select()`, `selectMaxId()`           |
+| `SloRunner`      | `CommandLineRunner` — table creation, data seeding, load generation, metrics                |
+| `OtelConfig`     | OpenTelemetry SDK bean — `PrometheusHttpServer` on port 9464                                |
 
 ## Grafana Dashboard
 
 Import the pre-built SLO dashboard from
-[`playground/configs/grafana/provisioning/dashboards/slo.json`](../playground/configs/grafana/provisioning/dashboards/slo.json)
+[
+`playground/configs/grafana/provisioning/dashboards/slo.json`](../playground/configs/grafana/provisioning/dashboards/slo.json)
 into your Grafana instance to visualize the collected metrics.

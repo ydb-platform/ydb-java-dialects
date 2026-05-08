@@ -31,28 +31,38 @@ class IdempotentRetryIntegrationTest extends YdbDockerTest {
     }
 
     @ParameterizedTest(name = "Idempotent executeQuery non-retryable")
-    @EnumSource(value = StatusCode.class, names = {"TIMEOUT", "SESSION_EXPIRED"})
+    @EnumSource(
+            value = StatusCode.class,
+            names = {"TIMEOUT", "SESSION_EXPIRED"})
     void shouldNotRetryTimeoutOrSessionExpiredWhenIdempotentExecuteQuery(StatusCode code) {
         DeterministicErrorChannel.configure().onError("executeQuery", 1, code);
 
-        assertThrows(Exception.class, () -> userService.saveIdempotent(createUser(1L, "user1", "first1", "last1")));
+        assertThrows(
+                Exception.class,
+                () -> userService.saveIdempotent(createUser(1L, "user1", "first1", "last1")));
 
         assertEquals(1, DeterministicErrorChannel.getCallCount("executeQuery"));
         assertNull(userService.findById(1L));
     }
 
     @ParameterizedTest(name = "Non-idempotent executeQuery")
-    @EnumSource(value = StatusCode.class, names = {"TIMEOUT", "SESSION_EXPIRED", "UNDETERMINED"})
-    void shouldNotRetryUndeterminedOrNonRetryableStatusWhenNotIdempotentExecuteQuery(StatusCode code) {
+    @EnumSource(
+            value = StatusCode.class,
+            names = {"TIMEOUT", "SESSION_EXPIRED", "UNDETERMINED"})
+    void shouldNotRetryUndeterminedOrNonRetryableStatusWhenNotIdempotentExecuteQuery(
+            StatusCode code) {
         DeterministicErrorChannel.configure().onError("executeQuery", 1, code);
 
-        assertThrows(Exception.class, () -> userService.save(createUser(2L, "user2", "first2", "last2")));
+        assertThrows(
+                Exception.class, () -> userService.save(createUser(2L, "user2", "first2", "last2")));
         assertEquals(1, DeterministicErrorChannel.getCallCount("executeQuery"));
         assertNull(userService.findById(2L));
     }
 
     @ParameterizedTest(name = "Idempotent executeQuery")
-    @EnumSource(value = StatusCode.class, names = {"UNDETERMINED"})
+    @EnumSource(
+            value = StatusCode.class,
+            names = {"UNDETERMINED"})
     void shouldRetryUndeterminedWhenIdempotentExecuteQuery(StatusCode code) {
         DeterministicErrorChannel.configure().onError("executeQuery", 1, code);
 
@@ -63,17 +73,23 @@ class IdempotentRetryIntegrationTest extends YdbDockerTest {
     }
 
     @ParameterizedTest(name = "Idempotent commit non-retryable")
-    @EnumSource(value = StatusCode.class, names = {"TIMEOUT", "SESSION_EXPIRED"})
+    @EnumSource(
+            value = StatusCode.class,
+            names = {"TIMEOUT", "SESSION_EXPIRED"})
     void shouldNotRetryTimeoutOrSessionExpiredWhenIdempotentCommit(StatusCode code) {
         DeterministicErrorChannel.configure().onError("commitTransaction", 1, code);
 
-        assertThrows(Exception.class, () -> userService.saveIdempotent(createUser(4L, "user4", "first4", "last4")));
+        assertThrows(
+                Exception.class,
+                () -> userService.saveIdempotent(createUser(4L, "user4", "first4", "last4")));
 
         assertEquals(1, DeterministicErrorChannel.getCallCount("commitTransaction"));
     }
 
     @ParameterizedTest(name = "Idempotent commit")
-    @EnumSource(value = StatusCode.class, names = {"UNDETERMINED"})
+    @EnumSource(
+            value = StatusCode.class,
+            names = {"UNDETERMINED"})
     void shouldRetryUndeterminedWhenIdempotentCommit(StatusCode code) {
         DeterministicErrorChannel.configure().onError("commitTransaction", 1, code);
 
@@ -84,11 +100,14 @@ class IdempotentRetryIntegrationTest extends YdbDockerTest {
     }
 
     @ParameterizedTest(name = "Non-idempotent commit")
-    @EnumSource(value = StatusCode.class, names = {"UNDETERMINED"})
+    @EnumSource(
+            value = StatusCode.class,
+            names = {"UNDETERMINED"})
     void shouldNotRetryUndeterminedWhenNotIdempotentCommit(StatusCode code) {
         DeterministicErrorChannel.configure().onError("commitTransaction", 1, code);
 
-        assertThrows(Exception.class, () -> userService.save(createUser(6L, "user6", "first6", "last6")));
+        assertThrows(
+                Exception.class, () -> userService.save(createUser(6L, "user6", "first6", "last6")));
 
         assertEquals(1, DeterministicErrorChannel.getCallCount("commitTransaction"));
     }

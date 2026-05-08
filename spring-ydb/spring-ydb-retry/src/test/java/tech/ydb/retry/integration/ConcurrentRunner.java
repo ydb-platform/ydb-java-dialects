@@ -33,15 +33,17 @@ class ConcurrentRunner {
     ConcurrentRunner execute(IntConsumer task) {
         for (int i = 0; i < threadCount; i++) {
             final int idx = i;
-            futures.add(executor.submit(() -> {
-                try {
-                    barrier.await();
-                    task.accept(idx);
-                    successCount.incrementAndGet();
-                } catch (Throwable t) {
-                    errors.add(t);
-                }
-            }));
+            futures.add(
+                    executor.submit(
+                            () -> {
+                                try {
+                                    barrier.await();
+                                    task.accept(idx);
+                                    successCount.incrementAndGet();
+                                } catch (Throwable t) {
+                                    errors.add(t);
+                                }
+                            }));
         }
         return this;
     }
@@ -57,7 +59,8 @@ class ConcurrentRunner {
     record ConcurrentResult(int successCount, List<Throwable> errors) {
         void assertAllSucceeded() {
             if (!errors.isEmpty()) {
-                RuntimeException ex = new RuntimeException("Concurrent test had " + errors.size() + " failures");
+                RuntimeException ex =
+                        new RuntimeException("Concurrent test had " + errors.size() + " failures");
                 errors.forEach(ex::addSuppressed);
                 throw ex;
             }

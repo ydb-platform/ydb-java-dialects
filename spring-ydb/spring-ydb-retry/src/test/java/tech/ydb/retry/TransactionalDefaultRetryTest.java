@@ -18,7 +18,7 @@ class TransactionalDefaultRetryTest extends InterceptorTestSupport {
 
     @Test
     void shouldRetryWithDefaultConfigUntilSuccess() throws Throwable {
-        TestableInterceptor interceptor = interceptorWithConfig(true, 3, 0, 0, 0, 0, false);
+        TestableInterceptor interceptor = interceptorWithConfig(true, 3, 0, 0, 0, 0);
         interceptor.enqueueOutcome(new ConfigurableStatusException(BAD_SESSION), "ok");
 
         Object result = interceptor.invoke(invocationFor("regularTx"));
@@ -30,13 +30,14 @@ class TransactionalDefaultRetryTest extends InterceptorTestSupport {
 
     @Test
     void shouldExhaustDefaultMaxRetriesAndPropagateLastException() {
-        TestableInterceptor interceptor = interceptorWithConfig(true, 2, 0, 0, 0, 0, false);
-        interceptor.enqueueOutcome(new ConfigurableStatusException(BAD_SESSION), new ConfigurableStatusException(ABORTED), new ConfigurableStatusException(ABORTED));
+        TestableInterceptor interceptor = interceptorWithConfig(true, 2, 0, 0, 0, 0);
+        interceptor.enqueueOutcome(
+                new ConfigurableStatusException(BAD_SESSION),
+                new ConfigurableStatusException(ABORTED),
+                new ConfigurableStatusException(ABORTED));
 
         assertThrows(
-                ConfigurableStatusException.class,
-                () -> interceptor.invoke(invocationFor("regularTx"))
-        );
+                ConfigurableStatusException.class, () -> interceptor.invoke(invocationFor("regularTx")));
 
         assertEquals(2, interceptor.retries());
         assertEquals(3, interceptor.allInvocations());
@@ -44,13 +45,13 @@ class TransactionalDefaultRetryTest extends InterceptorTestSupport {
 
     @Test
     void shouldPropagateNonRetryableExceptionImmediately() {
-        TestableInterceptor interceptor = interceptorWithConfig(true, 5, 0, 0, 0, 0, false);
+        TestableInterceptor interceptor = interceptorWithConfig(true, 5, 0, 0, 0, 0);
         interceptor.enqueueOutcome(new ConfigurableStatusException(UNAUTHORIZED));
 
-        ConfigurableStatusException exception = assertThrows(
-                ConfigurableStatusException.class,
-                () -> interceptor.invoke(invocationFor("regularTx"))
-        );
+        ConfigurableStatusException exception =
+                assertThrows(
+                        ConfigurableStatusException.class,
+                        () -> interceptor.invoke(invocationFor("regularTx")));
 
         assertEquals(UNAUTHORIZED, exception.getStatus().getCode());
         assertEquals(0, interceptor.retries());
@@ -59,13 +60,12 @@ class TransactionalDefaultRetryTest extends InterceptorTestSupport {
 
     @Test
     void shouldNotRetryNonYdbRuntimeException() {
-        TestableInterceptor interceptor = interceptorWithConfig(true, 5, 0, 0, 0, 0, false);
+        TestableInterceptor interceptor = interceptorWithConfig(true, 5, 0, 0, 0, 0);
         interceptor.enqueueOutcome(new IllegalStateException("not ydb"));
 
-        IllegalStateException exception = assertThrows(
-                IllegalStateException.class,
-                () -> interceptor.invoke(invocationFor("regularTx"))
-        );
+        IllegalStateException exception =
+                assertThrows(
+                        IllegalStateException.class, () -> interceptor.invoke(invocationFor("regularTx")));
 
         assertEquals("not ydb", exception.getMessage());
         assertEquals(0, interceptor.retries());
@@ -74,19 +74,16 @@ class TransactionalDefaultRetryTest extends InterceptorTestSupport {
 
     @Test
     void shouldImmediatelyPropagateJavaError() {
-        TestableInterceptor interceptor = interceptorWithConfig(true, 5, 0, 0, 0, 0, false);
+        TestableInterceptor interceptor = interceptorWithConfig(true, 5, 0, 0, 0, 0);
         interceptor.enqueueOutcome(new OutOfMemoryError("test oom"));
 
-        assertThrows(
-                OutOfMemoryError.class,
-                () -> interceptor.invoke(invocationFor("regularTx"))
-        );
+        assertThrows(OutOfMemoryError.class, () -> interceptor.invoke(invocationFor("regularTx")));
         assertEquals(1, interceptor.allInvocations());
     }
 
     @Test
     void shouldRetryWhenYdbStatusExtractedFromExceptionChain() throws Throwable {
-        TestableInterceptor interceptor = interceptorWithConfig(true, 3, 0, 0, 0, 0, false);
+        TestableInterceptor interceptor = interceptorWithConfig(true, 3, 0, 0, 0, 0);
         interceptor.enqueueOutcome(
                 new RuntimeException("wrapped", new ConfigurableStatusException(BAD_SESSION)), "ok");
 
@@ -99,12 +96,9 @@ class TransactionalDefaultRetryTest extends InterceptorTestSupport {
     @Test
     void shouldCallSleeperWithBackoffDelay() throws Throwable {
         List<Long> delays = new ArrayList<>();
-        TestableInterceptor interceptor = interceptorWithSleeper(true, 5, 0, 0, 0, 0, false, delays::add);
+        TestableInterceptor interceptor = interceptorWithSleeper(true, 5, 0, 0, 0, 0, delays::add);
         interceptor.enqueueOutcome(
-                new ConfigurableStatusException(ABORTED),
-                new ConfigurableStatusException(ABORTED),
-                "ok"
-        );
+                new ConfigurableStatusException(ABORTED), new ConfigurableStatusException(ABORTED), "ok");
 
         Object result = interceptor.invoke(invocationFor("regularTx"));
 
@@ -119,7 +113,8 @@ class TransactionalDefaultRetryTest extends InterceptorTestSupport {
     @Test
     void shouldUseZeroDelayForBadSession() throws Throwable {
         List<Long> delays = new ArrayList<>();
-        TestableInterceptor interceptor = interceptorWithSleeper(true, 5, 100, 50, 1000, 500, false, delays::add);
+        TestableInterceptor interceptor =
+                interceptorWithSleeper(true, 5, 100, 50, 1000, 500, delays::add);
         interceptor.enqueueOutcome(new ConfigurableStatusException(BAD_SESSION), "ok");
 
         Object result = interceptor.invoke(invocationFor("regularTx"));
@@ -132,18 +127,26 @@ class TransactionalDefaultRetryTest extends InterceptorTestSupport {
 
     @Test
     void shouldHandleInterruptedSleep() {
-        ConfigurableStatusException originalException = new ConfigurableStatusException(CLIENT_INTERNAL_ERROR);
-        TestableInterceptor interceptor = interceptorWithSleeper(
-                true, 3, 0, 0, 0, 0, true, delay -> {
-                    throw new InterruptedException("sleep interrupted");
-                });
+        ConfigurableStatusException originalException =
+                new ConfigurableStatusException(CLIENT_INTERNAL_ERROR);
+        TestableInterceptor interceptor =
+                interceptorWithSleeper(
+                        true,
+                        3,
+                        0,
+                        0,
+                        0,
+                        0,
+                        delay -> {
+                            throw new InterruptedException("sleep interrupted");
+                        });
         interceptor.enqueueOutcome(originalException, "ok");
 
         try {
-            InterruptedException thrown = assertThrows(
-                    InterruptedException.class,
-                    () -> interceptor.invoke(invocationFor("regularTx"))
-            );
+            InterruptedException thrown =
+                    assertThrows(
+                            InterruptedException.class,
+                            () -> interceptor.invoke(invocationFor("ydbIdempotentRetry")));
             assertEquals("sleep interrupted", thrown.getMessage());
             assertEquals(1, thrown.getSuppressed().length);
             assertSame(originalException, thrown.getSuppressed()[0]);
@@ -155,52 +158,27 @@ class TransactionalDefaultRetryTest extends InterceptorTestSupport {
 
     @Test
     void shouldNotRetryClientInternalErrorForTransactionalMethodWhenDefaultConfigNotIdempotent() {
-        TestableInterceptor interceptor = interceptorWithConfig(true, 3, 0, 0, 0, 0, false);
+        TestableInterceptor interceptor = interceptorWithConfig(true, 3, 0, 0, 0, 0);
         interceptor.enqueueOutcome(new ConfigurableStatusException(CLIENT_INTERNAL_ERROR), "ok");
 
-        ConfigurableStatusException exception = assertThrows(
-                ConfigurableStatusException.class,
-                () -> interceptor.invoke(invocationFor("regularTx"))
-        );
+        ConfigurableStatusException exception =
+                assertThrows(
+                        ConfigurableStatusException.class,
+                        () -> interceptor.invoke(invocationFor("regularTx")));
 
         assertEquals(CLIENT_INTERNAL_ERROR, exception.getStatus().getCode());
         assertEquals(1, interceptor.allInvocations());
     }
 
     @Test
-    void shouldRetryClientInternalErrorForTransactionalMethodWhenDefaultConfigIdempotent() throws Throwable {
-        TestableInterceptor interceptor = interceptorWithConfig(true, 3, 0, 0, 0, 0, true);
-        interceptor.enqueueOutcome(new ConfigurableStatusException(CLIENT_INTERNAL_ERROR), "ok");
-
-        Object result = interceptor.invoke(invocationFor("regularTx"));
-
-        assertEquals("ok", result);
-        assertEquals(2, interceptor.allInvocations());
-    }
-
-    @Test
-    void shouldNotRetryTimeoutForTransactionalMethodWhenDefaultConfigIdempotent() {
-        TestableInterceptor interceptor = interceptorWithConfig(true, 3, 0, 0, 0, 0, true);
-        interceptor.enqueueOutcome(new ConfigurableStatusException(TIMEOUT));
-
-        ConfigurableStatusException exception = assertThrows(
-                ConfigurableStatusException.class,
-                () -> interceptor.invoke(invocationFor("regularTx"))
-        );
-
-        assertEquals(TIMEOUT, exception.getStatus().getCode());
-        assertEquals(1, interceptor.allInvocations());
-    }
-
-    @Test
     void shouldNotRetryTimeoutForTransactionalMethodWhenDefaultConfigNotIdempotent() {
-        TestableInterceptor interceptor = interceptorWithConfig(true, 3, 0, 0, 0, 0, false);
+        TestableInterceptor interceptor = interceptorWithConfig(true, 3, 0, 0, 0, 0);
         interceptor.enqueueOutcome(new ConfigurableStatusException(TIMEOUT));
 
-        ConfigurableStatusException exception = assertThrows(
-                ConfigurableStatusException.class,
-                () -> interceptor.invoke(invocationFor("regularTx"))
-        );
+        ConfigurableStatusException exception =
+                assertThrows(
+                        ConfigurableStatusException.class,
+                        () -> interceptor.invoke(invocationFor("regularTx")));
 
         assertEquals(TIMEOUT, exception.getStatus().getCode());
         assertEquals(1, interceptor.allInvocations());
@@ -208,13 +186,13 @@ class TransactionalDefaultRetryTest extends InterceptorTestSupport {
 
     @Test
     void shouldNotRetryWhenDisabledInConfig() {
-        TestableInterceptor interceptor = interceptorWithConfig(false, 3, 0, 0, 0, 0, false);
+        TestableInterceptor interceptor = interceptorWithConfig(false, 3, 0, 0, 0, 0);
         interceptor.enqueueOutcome(new ConfigurableStatusException(BAD_SESSION), "ok");
 
-        ConfigurableStatusException exception = assertThrows(
-                ConfigurableStatusException.class,
-                () -> interceptor.invoke(invocationFor("regularTx"))
-        );
+        ConfigurableStatusException exception =
+                assertThrows(
+                        ConfigurableStatusException.class,
+                        () -> interceptor.invoke(invocationFor("regularTx")));
 
         assertEquals(BAD_SESSION, exception.getStatus().getCode());
         assertEquals(1, interceptor.allInvocations());

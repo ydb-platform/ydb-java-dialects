@@ -283,7 +283,6 @@ services:
       SPRING_DATASOURCE_DRIVER_CLASS_NAME: tech.ydb.jdbc.YdbDriver
       YDB_TRANSACTION_RETRY_ENABLED: "true"
       YDB_TRANSACTION_RETRY_MAX_RETRIES: "10"
-      YDB_TRANSACTION_RETRY_IDEMPOTENT: "true"
       REF: with-retry
       SLO_RUN_ID: ${SLO_RUN_ID:-}
       SLO_RESULTS_DIR: /app/results

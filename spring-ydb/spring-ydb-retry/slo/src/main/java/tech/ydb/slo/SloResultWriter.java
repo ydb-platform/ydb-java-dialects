@@ -43,12 +43,13 @@ public class SloResultWriter {
         try {
             Files.createDirectories(resultsRoot);
             Path currentRunIdFile = resultsRoot.resolve(CURRENT_RUN_ID_FILE);
-            try (FileChannel channel = FileChannel.open(
-                    currentRunIdFile,
-                    StandardOpenOption.CREATE,
-                    StandardOpenOption.READ,
-                    StandardOpenOption.WRITE
-            ); FileLock ignored = channel.lock()) {
+            try (FileChannel channel =
+                         FileChannel.open(
+                                 currentRunIdFile,
+                                 StandardOpenOption.CREATE,
+                                 StandardOpenOption.READ,
+                                 StandardOpenOption.WRITE);
+                 FileLock ignored = channel.lock()) {
                 String existingRunId = readCurrentRunId(channel);
                 if (!existingRunId.isBlank() && isReusableRun(resultsRoot.resolve(existingRunId))) {
                     return existingRunId;
@@ -63,7 +64,8 @@ public class SloResultWriter {
         }
     }
 
-    public void writeSummary(SloConfig config, YdbRetryProperties retryProperties, RunSummary summary) {
+    public void writeSummary(
+            SloConfig config, YdbRetryProperties retryProperties, RunSummary summary) {
         Path runDirectory = resultsRoot(config).resolve(summary.runId());
         Path resultFile = runDirectory.resolve(resultFileName(config.getRef()));
 
@@ -74,14 +76,12 @@ public class SloResultWriter {
                     buildRunSummaryText(config, retryProperties, summary),
                     StandardOpenOption.CREATE,
                     StandardOpenOption.TRUNCATE_EXISTING,
-                    StandardOpenOption.WRITE
-            );
+                    StandardOpenOption.WRITE);
             log.info(
                     "SLO run result file written: runId={}, ref={}, path={}",
                     summary.runId(),
                     config.getRef(),
-                    resultFile.toAbsolutePath()
-            );
+                    resultFile.toAbsolutePath());
         } catch (IOException exception) {
             throw new RuntimeException("Failed to write SLO run summary file", exception);
         }
@@ -92,15 +92,18 @@ public class SloResultWriter {
     }
 
     private String generateRunId(Instant startedAt) {
-        String timestamp = DateTimeFormatter.ofPattern(RUN_ID_TIMESTAMP_PATTERN)
-                .withZone(ZoneOffset.UTC)
-                .format(startedAt);
-        return RUN_ID_PREFIX + timestamp + "-" + UUID.randomUUID().toString().substring(0, RUN_ID_RANDOM_SUFFIX_LENGTH);
+        String timestamp =
+                DateTimeFormatter.ofPattern(RUN_ID_TIMESTAMP_PATTERN)
+                        .withZone(ZoneOffset.UTC)
+                        .format(startedAt);
+        return RUN_ID_PREFIX
+                + timestamp
+                + "-"
+                + UUID.randomUUID().toString().substring(0, RUN_ID_RANDOM_SUFFIX_LENGTH);
     }
 
-    private String buildRunSummaryText(SloConfig config,
-                                       YdbRetryProperties retryProperties,
-                                       RunSummary summary) {
+    private String buildRunSummaryText(
+            SloConfig config, YdbRetryProperties retryProperties, RunSummary summary) {
         StringBuilder builder = new StringBuilder();
         builder.append("runId: ").append(summary.runId()).append('\n');
         builder.append("ref: ").append(config.getRef()).append('\n');
@@ -118,11 +121,18 @@ public class SloResultWriter {
         builder.append('\n');
         builder.append("retryEnabled: ").append(retryProperties.isEnabled()).append('\n');
         builder.append("retryMaxRetries: ").append(retryProperties.getMaxRetries()).append('\n');
-        builder.append("retryIdempotent: ").append(retryProperties.isIdempotent()).append('\n');
-        builder.append("retrySlowBackoffBaseMs: ").append(retryProperties.getSlowBackoffBaseMs()).append('\n');
-        builder.append("retryFastBackoffBaseMs: ").append(retryProperties.getFastBackoffBaseMs()).append('\n');
-        builder.append("retrySlowCapBackoffMs: ").append(retryProperties.getSlowCapBackoffMs()).append('\n');
-        builder.append("retryFastCapBackoffMs: ").append(retryProperties.getFastCapBackoffMs()).append('\n');
+        builder.append("retrySlowBackoffBaseMs: ")
+                .append(retryProperties.getSlowBackoffBaseMs())
+                .append('\n');
+        builder.append("retryFastBackoffBaseMs: ")
+                .append(retryProperties.getFastBackoffBaseMs())
+                .append('\n');
+        builder.append("retrySlowCapBackoffMs: ")
+                .append(retryProperties.getSlowCapBackoffMs())
+                .append('\n');
+        builder.append("retryFastCapBackoffMs: ")
+                .append(retryProperties.getFastCapBackoffMs())
+                .append('\n');
         builder.append('\n');
         builder.append("totalOperations: ").append(summary.totalOperations()).append('\n');
         builder.append("totalSuccess: ").append(summary.totalSuccess()).append('\n');
@@ -147,8 +157,10 @@ public class SloResultWriter {
         if (summary.errorCounts().isEmpty()) {
             builder.append("  none").append('\n');
         } else {
-            summary.errorCounts().forEach((errorType, count) ->
-                    builder.append("  ").append(errorType).append(": ").append(count).append('\n'));
+            summary.errorCounts()
+                    .forEach(
+                            (errorType, count) ->
+                                    builder.append("  ").append(errorType).append(": ").append(count).append('\n'));
         }
         return builder.toString();
     }
@@ -204,7 +216,6 @@ public class SloResultWriter {
             String writeP50,
             String writeP95,
             String writeP99,
-            Map<String, Long> errorCounts
-    ) {
+            Map<String, Long> errorCounts) {
     }
 }

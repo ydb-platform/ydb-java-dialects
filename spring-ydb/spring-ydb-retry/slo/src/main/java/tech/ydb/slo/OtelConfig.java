@@ -13,16 +13,12 @@ public class OtelConfig {
 
     @Bean(destroyMethod = "close")
     public OpenTelemetrySdk openTelemetry() {
-        PrometheusHttpServer prometheusHttpServer = PrometheusHttpServer.builder()
-                .setPort(PROMETHEUS_PORT)
-                .build();
+        PrometheusHttpServer prometheusHttpServer =
+                PrometheusHttpServer.builder().setPort(PROMETHEUS_PORT).build();
 
-        SdkMeterProvider meterProvider = SdkMeterProvider.builder()
-                .registerMetricReader(prometheusHttpServer)
-                .build();
+        SdkMeterProvider meterProvider =
+                SdkMeterProvider.builder().registerMetricReader(prometheusHttpServer).build();
 
-        return OpenTelemetrySdk.builder()
-                .setMeterProvider(meterProvider)
-                .build();
+        return OpenTelemetrySdk.builder().setMeterProvider(meterProvider).build();
     }
 }

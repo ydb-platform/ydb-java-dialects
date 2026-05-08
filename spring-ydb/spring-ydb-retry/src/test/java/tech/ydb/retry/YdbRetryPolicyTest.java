@@ -31,69 +31,64 @@ import static tech.ydb.core.StatusCode.UNSUPPORTED;
 class YdbRetryPolicyTest {
     @Test
     void shouldRetryAlwaysRetryableStatusesRegardlessOfIdempotence() {
-        List<StatusCode> alwaysRetryable = List.of(
-                BAD_SESSION,
-                SESSION_BUSY,
-                ABORTED,
-                UNAVAILABLE,
-                OVERLOADED,
-                CLIENT_RESOURCE_EXHAUSTED
-        );
+        List<StatusCode> alwaysRetryable =
+                List.of(
+                        BAD_SESSION, SESSION_BUSY, ABORTED, UNAVAILABLE, OVERLOADED, CLIENT_RESOURCE_EXHAUSTED);
 
         for (StatusCode code : alwaysRetryable) {
-            assertTrue(YdbRetryPolicy.shouldRetry(code, false), "Should retry " + code + " when not idempotent");
-            assertTrue(YdbRetryPolicy.shouldRetry(code, true), "Should retry " + code + " when idempotent");
+            assertTrue(
+                    YdbRetryPolicy.shouldRetry(code, false), "Should retry " + code + " when not idempotent");
+            assertTrue(
+                    YdbRetryPolicy.shouldRetry(code, true), "Should retry " + code + " when idempotent");
         }
     }
 
     @Test
     void shouldNotRetryIdempotentOnlyStatusesWhenNotIdempotent() {
-        List<StatusCode> idempotentOnly = List.of(
-                CLIENT_CANCELLED,
-                CLIENT_INTERNAL_ERROR,
-                TRANSPORT_UNAVAILABLE,
-                UNDETERMINED
-        );
+        List<StatusCode> idempotentOnly =
+                List.of(CLIENT_CANCELLED, CLIENT_INTERNAL_ERROR, TRANSPORT_UNAVAILABLE, UNDETERMINED);
 
         for (StatusCode code : idempotentOnly) {
-            assertFalse(YdbRetryPolicy.shouldRetry(code, false), "Should not retry " + code + " when not idempotent");
+            assertFalse(
+                    YdbRetryPolicy.shouldRetry(code, false),
+                    "Should not retry " + code + " when not idempotent");
         }
     }
 
     @Test
     void shouldRetryIdempotentOnlyStatusesWhenIdempotent() {
-        List<StatusCode> idempotentOnly = List.of(
-                CLIENT_CANCELLED,
-                CLIENT_INTERNAL_ERROR,
-                TRANSPORT_UNAVAILABLE,
-                UNDETERMINED
-        );
+        List<StatusCode> idempotentOnly =
+                List.of(CLIENT_CANCELLED, CLIENT_INTERNAL_ERROR, TRANSPORT_UNAVAILABLE, UNDETERMINED);
 
         for (StatusCode code : idempotentOnly) {
-            assertTrue(YdbRetryPolicy.shouldRetry(code, true), "Should retry " + code + " when idempotent");
+            assertTrue(
+                    YdbRetryPolicy.shouldRetry(code, true), "Should retry " + code + " when idempotent");
         }
     }
 
     @Test
     void shouldNotRetryNonRetryableStatuses() {
-        List<StatusCode> nonRetryable = List.of(
-                StatusCode.SUCCESS,
-                BAD_REQUEST,
-                UNAUTHORIZED,
-                INTERNAL_ERROR,
-                SCHEME_ERROR,
-                GENERIC_ERROR,
-                NOT_FOUND,
-                UNSUPPORTED,
-                CANCELLED,
-                EXTERNAL_ERROR,
-                TIMEOUT,
-                SESSION_EXPIRED
-        );
+        List<StatusCode> nonRetryable =
+                List.of(
+                        StatusCode.SUCCESS,
+                        BAD_REQUEST,
+                        UNAUTHORIZED,
+                        INTERNAL_ERROR,
+                        SCHEME_ERROR,
+                        GENERIC_ERROR,
+                        NOT_FOUND,
+                        UNSUPPORTED,
+                        CANCELLED,
+                        EXTERNAL_ERROR,
+                        TIMEOUT,
+                        SESSION_EXPIRED);
 
         for (StatusCode code : nonRetryable) {
-            assertFalse(YdbRetryPolicy.shouldRetry(code, false), "Should not retry " + code + " when not idempotent");
-            assertFalse(YdbRetryPolicy.shouldRetry(code, true), "Should not retry " + code + " when idempotent");
+            assertFalse(
+                    YdbRetryPolicy.shouldRetry(code, false),
+                    "Should not retry " + code + " when not idempotent");
+            assertFalse(
+                    YdbRetryPolicy.shouldRetry(code, true), "Should not retry " + code + " when idempotent");
         }
     }
 
