@@ -4,12 +4,12 @@ import org.jetbrains.exposed.v1.core.Table
 import org.jetbrains.exposed.v1.javatime.date
 import org.jetbrains.exposed.v1.javatime.datetime
 import org.jetbrains.exposed.v1.javatime.timestamp
-import org.jetbrains.exposed.v1.jdbc.SchemaUtils
 import org.jetbrains.exposed.v1.jdbc.insert
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
-import tech.ydb.exposed.dialect.basic.YdbTable
+import tech.ydb.exposed.dialect.YdbTable
 import tech.ydb.exposed.dialect.integration.base.BaseYdbTest
 import java.time.Instant
 import java.time.LocalDate
@@ -46,5 +46,14 @@ class TemporalTypesIT : BaseYdbTest() {
         assertEquals(dateValue, row[TemporalTypes.dateCol])
         assertEquals(dateTimeValue, row[TemporalTypes.dateTimeCol])
         assertEquals(timestampValue, row[TemporalTypes.timestampCol])
+    }
+
+    @Test
+    fun `should generate ddl for extended temporal types`() = tx {
+        val ddl = TemporalTypes.ddl.joinToString(" ")
+
+        assertTrue(ddl.contains("date_col Date32"))
+        assertTrue(ddl.contains("datetime_col Datetime64"))
+        assertTrue(ddl.contains("timestamp_col Timestamp64"))
     }
 }

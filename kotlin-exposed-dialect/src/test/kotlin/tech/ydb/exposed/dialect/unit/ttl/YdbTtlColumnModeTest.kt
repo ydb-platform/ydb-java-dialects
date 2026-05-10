@@ -3,7 +3,7 @@ package tech.ydb.exposed.dialect.unit.ttl
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Test
-import tech.ydb.exposed.dialect.basic.YdbTtlColumnMode
+import tech.ydb.exposed.dialect.YdbTtlColumnMode
 
 class YdbTtlColumnModeTest {
 

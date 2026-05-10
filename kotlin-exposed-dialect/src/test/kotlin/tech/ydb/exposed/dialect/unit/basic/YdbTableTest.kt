@@ -7,9 +7,9 @@ import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
-import tech.ydb.exposed.dialect.basic.YdbDialectProvider
-import tech.ydb.exposed.dialect.basic.YdbTable
-import tech.ydb.exposed.dialect.basic.YdbTtlColumnMode
+import tech.ydb.exposed.dialect.YdbDialectProvider
+import tech.ydb.exposed.dialect.YdbTable
+import tech.ydb.exposed.dialect.YdbTtlColumnMode
 import tech.ydb.exposed.dialect.types.ydbUint64
 
 class YdbTableTest {
@@ -21,8 +21,7 @@ class YdbTableTest {
         @BeforeAll
         fun setupDb() {
             db = YdbDialectProvider.connect(
-                url = "jdbc:ydb:grpc://localhost:2136/local",
-                driver = "tech.ydb.jdbc.YdbDriver"
+                url = "jdbc:ydb:grpc://localhost:2136/local"
             )
         }
     }

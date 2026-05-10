@@ -6,8 +6,8 @@ import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Test
-import tech.ydb.exposed.dialect.basic.YdbUlidTable
-import tech.ydb.exposed.dialect.basic.YdbUuidStringIdTable
+import tech.ydb.exposed.dialect.YdbUlidTable
+import tech.ydb.exposed.dialect.YdbUuidStringIdTable
 import tech.ydb.exposed.dialect.integration.base.BaseYdbTest
 import java.util.UUID
 

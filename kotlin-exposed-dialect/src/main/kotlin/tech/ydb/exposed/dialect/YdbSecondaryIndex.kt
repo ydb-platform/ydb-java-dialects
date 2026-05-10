@@ -1,4 +1,4 @@
-package tech.ydb.exposed.dialect.basic
+package tech.ydb.exposed.dialect
 
 import org.jetbrains.exposed.v1.core.Column
 import org.jetbrains.exposed.v1.jdbc.transactions.TransactionManager
@@ -24,7 +24,7 @@ data class YdbSecondaryIndexSpec(
 )
 
 internal fun renderYdbSecondaryIndex(spec: YdbSecondaryIndexSpec): String {
-    val tr = TransactionManager.current()
+    val tr = TransactionManager.Companion.current()
 
     require(spec.columns.isNotEmpty()) {
         "YDB secondary index must contain at least one column"

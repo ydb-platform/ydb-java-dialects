@@ -8,9 +8,9 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
-import tech.ydb.exposed.dialect.basic.YdbIndexScope
-import tech.ydb.exposed.dialect.basic.YdbIndexSyncMode
-import tech.ydb.exposed.dialect.basic.YdbTable
+import tech.ydb.exposed.dialect.YdbIndexScope
+import tech.ydb.exposed.dialect.YdbIndexSyncMode
+import tech.ydb.exposed.dialect.YdbTable
 import tech.ydb.exposed.dialect.integration.base.BaseYdbTest
 
 class UniqueIndexIT : BaseYdbTest() {

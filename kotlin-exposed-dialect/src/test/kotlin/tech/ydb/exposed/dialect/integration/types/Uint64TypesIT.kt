@@ -6,7 +6,7 @@ import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
-import tech.ydb.exposed.dialect.basic.YdbTable
+import tech.ydb.exposed.dialect.YdbTable
 import tech.ydb.exposed.dialect.integration.base.BaseYdbTest
 import tech.ydb.exposed.dialect.types.ydbUint64
 

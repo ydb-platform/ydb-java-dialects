@@ -2,10 +2,10 @@ package tech.ydb.exposed.dialect.unit.functions
 
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
-import tech.ydb.exposed.dialect.functions.YdbFunctionProvider
+import tech.ydb.exposed.dialect.YdbFunctionProvider
 
 class FunctionTest {
-    private val provider = YdbFunctionProvider()
+    private val provider = YdbFunctionProvider
 
     @Test
     fun `should generate limit only`() {

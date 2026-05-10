@@ -6,7 +6,7 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
-import tech.ydb.exposed.dialect.functions.YdbFunctionProvider
+import tech.ydb.exposed.dialect.YdbFunctionProvider
 import tech.ydb.exposed.dialect.integration.base.BaseYdbTest
 
 class FunctionProviderIT : BaseYdbTest() {
@@ -25,7 +25,7 @@ class FunctionProviderIT : BaseYdbTest() {
         override val primaryKey = PrimaryKey(id)
     }
 
-    private val provider = YdbFunctionProvider()
+    private val provider = YdbFunctionProvider
 
     @Test
     fun `should generate UPSERT statement`() = tx {

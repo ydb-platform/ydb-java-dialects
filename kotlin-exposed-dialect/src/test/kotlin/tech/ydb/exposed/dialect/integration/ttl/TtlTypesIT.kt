@@ -4,7 +4,7 @@ import org.jetbrains.exposed.v1.core.Table
 import org.jetbrains.exposed.v1.javatime.timestamp
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
-import tech.ydb.exposed.dialect.basic.YdbTable
+import tech.ydb.exposed.dialect.YdbTable
 import tech.ydb.exposed.dialect.integration.base.BaseYdbTest
 
 class TtlTypesIT : BaseYdbTest() {

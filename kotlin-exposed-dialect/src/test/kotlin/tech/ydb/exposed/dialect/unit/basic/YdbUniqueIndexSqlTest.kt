@@ -6,11 +6,11 @@ import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
-import tech.ydb.exposed.dialect.basic.YdbDialect
-import tech.ydb.exposed.dialect.basic.YdbDialectProvider
-import tech.ydb.exposed.dialect.basic.YdbSecondaryIndexSpec
-import tech.ydb.exposed.dialect.basic.YdbTable
-import tech.ydb.exposed.dialect.basic.renderYdbSecondaryIndex
+import tech.ydb.exposed.dialect.YdbDialect
+import tech.ydb.exposed.dialect.YdbDialectProvider
+import tech.ydb.exposed.dialect.YdbSecondaryIndexSpec
+import tech.ydb.exposed.dialect.YdbTable
+import tech.ydb.exposed.dialect.renderYdbSecondaryIndex
 
 class YdbUniqueIndexSqlTest {
 
@@ -21,8 +21,7 @@ class YdbUniqueIndexSqlTest {
         @BeforeAll
         fun setupDb() {
             db = YdbDialectProvider.connect(
-                url = "jdbc:ydb:grpc://localhost:2136/local",
-                driver = "tech.ydb.jdbc.YdbDriver"
+                url = "jdbc:ydb:grpc://localhost:2136/local"
             )
         }
     }

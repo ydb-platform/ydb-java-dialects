@@ -4,11 +4,11 @@ import org.jetbrains.exposed.v1.core.Table
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
-import tech.ydb.exposed.dialect.basic.YdbDialect
-import tech.ydb.exposed.dialect.basic.YdbIndexScope
-import tech.ydb.exposed.dialect.basic.YdbIndexSyncMode
-import tech.ydb.exposed.dialect.basic.YdbSecondaryIndexSpec
-import tech.ydb.exposed.dialect.basic.YdbTable
+import tech.ydb.exposed.dialect.YdbDialect
+import tech.ydb.exposed.dialect.YdbIndexScope
+import tech.ydb.exposed.dialect.YdbIndexSyncMode
+import tech.ydb.exposed.dialect.YdbSecondaryIndexSpec
+import tech.ydb.exposed.dialect.YdbTable
 import tech.ydb.exposed.dialect.integration.base.BaseYdbTest
 
 class IndexIT : BaseYdbTest() {

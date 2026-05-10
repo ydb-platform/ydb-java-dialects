@@ -3,7 +3,7 @@ package tech.ydb.exposed.dialect.unit.basic
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
-import tech.ydb.exposed.dialect.basic.YdbGeneratedIds
+import tech.ydb.exposed.dialect.YdbGeneratedIds
 import java.util.UUID
 
 class YdbGeneratedIdsTest {

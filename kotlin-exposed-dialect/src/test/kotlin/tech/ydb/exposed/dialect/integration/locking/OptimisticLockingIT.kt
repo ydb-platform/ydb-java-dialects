@@ -7,7 +7,7 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
-import tech.ydb.exposed.dialect.basic.YdbTable
+import tech.ydb.exposed.dialect.YdbTable
 import tech.ydb.exposed.dialect.integration.base.BaseYdbTest
 import tech.ydb.exposed.dialect.locking.YdbOptimisticLocking
 
@@ -107,5 +107,20 @@ class OptimisticLockingIT : BaseYdbTest() {
         val row = Documents.selectAll().single()
         assertEquals("published", row[Documents.title])
         assertEquals(1, row[Documents.version])
+    }
+
+    @Test
+    fun `should return false when row does not exist`() = tx {
+        val updated = YdbOptimisticLocking.updateWithVersion(
+            table = Documents,
+            idColumn = Documents.id,
+            idValue = 42,
+            versionColumn = Documents.version,
+            expectedVersion = 0
+        ) {
+            it[Documents.title] = "missing"
+        }
+
+        assertFalse(updated)
     }
 }

@@ -2,7 +2,6 @@ package tech.ydb.exposed.dialect.transaction
 
 import org.jetbrains.exposed.v1.jdbc.Database
 import org.jetbrains.exposed.v1.jdbc.JdbcTransaction
-import org.jetbrains.exposed.v1.jdbc.transactions.TransactionManager
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import java.sql.Connection
 
@@ -40,10 +39,6 @@ object YdbRetryingTransactions {
                 val decision = YdbRetryClassifier.classify(t, idempotent)
                 if (!decision.retryable || attempt >= maxAttempts) {
                     throw t
-                }
-
-                if (decision.recreateSession) {
-                    runCatching { TransactionManager.closeAndUnregister(db) }
                 }
 
                 val sleepMs = YdbRetryClassifier.backoffMillis(decision.backoffKind, attempt)

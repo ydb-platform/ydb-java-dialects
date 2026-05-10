@@ -4,6 +4,7 @@ import org.jetbrains.exposed.v1.core.Column
 import org.jetbrains.exposed.v1.core.ColumnType
 import org.jetbrains.exposed.v1.core.Table
 import java.math.BigDecimal
+import java.math.BigInteger
 import java.time.Duration
 import java.util.UUID
 
@@ -65,6 +66,17 @@ class YdbJsonStringColumnType : ColumnType<String>() {
         "'${value.replace("'", "''")}'"
 }
 
+class YdbJsonDocumentStringColumnType : ColumnType<String>() {
+    override fun sqlType(): String = "JsonDocument"
+
+    override fun valueFromDB(value: Any): String = value.toString()
+
+    override fun notNullValueToDB(value: String): Any = value
+
+    override fun nonNullValueToString(value: String): String =
+        "'${value.replace("'", "''")}'"
+}
+
 class YdbUuidAsUtf8ColumnType : ColumnType<UUID>() {
     override fun sqlType(): String = "Utf8"
 
@@ -113,13 +125,25 @@ class YdbUuidColumnType : ColumnType<UUID>() {
 }
 
 class YdbUint64ColumnType : ColumnType<Long>() {
+    /**
+     * Maps YDB Uint64 to Kotlin Long.
+     *
+     * This implementation supports only the non-negative subset that fits into Long
+     * (0..Long.MAX_VALUE). Values above Long.MAX_VALUE are not supported by this mapping.
+     */
     override fun sqlType(): String = "Uint64"
 
     override fun valueFromDB(value: Any): Long = when (value) {
-        is Long -> value
-        is Int -> value.toLong()
-        is Number -> value.toLong()
-        is String -> value.toLong()
+        is Long -> {
+            require(value >= 0) { "Uint64 value cannot be negative: $value" }
+            value
+        }
+        is Int -> {
+            require(value >= 0) { "Uint64 value cannot be negative: $value" }
+            value.toLong()
+        }
+        is BigInteger -> value.toLongCompatibleUint64()
+        is String -> value.toBigInteger().toLongCompatibleUint64()
         else -> error("Unexpected value for Uint64: $value of ${value::class}")
     }
 
@@ -134,6 +158,14 @@ class YdbUint64ColumnType : ColumnType<Long>() {
     }
 }
 
+private fun BigInteger.toLongCompatibleUint64(): Long {
+    require(this >= BigInteger.ZERO) { "Uint64 value cannot be negative: $this" }
+    require(this <= BigInteger.valueOf(Long.MAX_VALUE)) {
+        "Uint64 value $this exceeds Long-backed Uint64 range (0..${Long.MAX_VALUE})"
+    }
+    return toLong()
+}
+
 fun Table.ydbDecimal(name: String, precision: Int, scale: Int): Column<BigDecimal> =
     registerColumn(name, YdbDecimalColumnType(precision, scale))
 
@@ -142,6 +174,9 @@ fun Table.ydbInterval(name: String): Column<Duration> =
 
 fun Table.ydbJson(name: String): Column<String> =
     registerColumn(name, YdbJsonStringColumnType())
+
+fun Table.ydbJsonDocument(name: String): Column<String> =
+    registerColumn(name, YdbJsonDocumentStringColumnType())
 
 fun Table.ydbUuidUtf8(name: String): Column<UUID> =
     registerColumn(name, YdbUuidAsUtf8ColumnType())

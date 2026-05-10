@@ -9,7 +9,7 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Test
-import tech.ydb.exposed.dialect.basic.YdbStringIdTable
+import tech.ydb.exposed.dialect.YdbStringIdTable
 import tech.ydb.exposed.dialect.integration.base.BaseYdbTest
 
 class DaoSmokeIT : BaseYdbTest() {

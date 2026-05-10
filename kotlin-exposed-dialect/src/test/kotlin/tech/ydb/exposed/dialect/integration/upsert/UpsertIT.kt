@@ -6,8 +6,8 @@ import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.upsert
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.Test
-import tech.ydb.exposed.dialect.basic.YdbTable
-import tech.ydb.exposed.dialect.functions.YdbFunctionProvider
+import tech.ydb.exposed.dialect.YdbTable
+import tech.ydb.exposed.dialect.YdbFunctionProvider
 import tech.ydb.exposed.dialect.integration.base.BaseYdbTest
 
 class UpsertIT : BaseYdbTest() {
@@ -24,7 +24,7 @@ class UpsertIT : BaseYdbTest() {
     fun `should perform UPSERT`() = tx {
         SchemaUtils.create(Products)
 
-        val provider = YdbFunctionProvider()
+        val provider = YdbFunctionProvider
         val data = listOf(
             Products.id to 1,
             Products.name to "Item1"

@@ -29,14 +29,14 @@ object YdbOptimisticLocking {
             return false
         }
 
-        table.update(
+        val updatedCount = table.update(
             where = { (idColumn eq idValue) and (versionColumn eq expectedVersion) }
         ) { stmt ->
             body(stmt)
             stmt[versionColumn] = expectedVersion + 1
         }
 
-        return true
+        return updatedCount > 0
     }
 }
 

@@ -9,7 +9,12 @@ import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
-import tech.ydb.exposed.dialect.basic.*
+import tech.ydb.exposed.dialect.YdbDialect
+import tech.ydb.exposed.dialect.YdbDialectProvider
+import tech.ydb.exposed.dialect.YdbIndexScope
+import tech.ydb.exposed.dialect.YdbIndexSyncMode
+import tech.ydb.exposed.dialect.YdbSecondaryIndexSpec
+import tech.ydb.exposed.dialect.YdbTable
 
 class YdbIndexSqlTest {
 
@@ -20,8 +25,7 @@ class YdbIndexSqlTest {
         @BeforeAll
         fun setupDb() {
             db = YdbDialectProvider.connect(
-                url = "jdbc:ydb:grpc://localhost:2136/local",
-                driver = "tech.ydb.jdbc.YdbDriver"
+                url = "jdbc:ydb:grpc://localhost:2136/local"
             )
         }
     }

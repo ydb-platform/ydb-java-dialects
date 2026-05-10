@@ -2,11 +2,11 @@ package tech.ydb.exposed.dialect.unit.types
 
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.Test
-import tech.ydb.exposed.dialect.types.YdbDataTypeProvider
+import tech.ydb.exposed.dialect.YdbDataTypeProvider
 
 class YdbDataTypeProviderTest {
 
-    private val provider = YdbDataTypeProvider()
+    private val provider = YdbDataTypeProvider
 
     @Test
     fun `should map integer types`() {
@@ -35,7 +35,7 @@ class YdbDataTypeProviderTest {
 
     @Test
     fun `should map JSON type`() {
-        Assertions.assertEquals("Json", provider.jsonType())
+        Assertions.assertEquals("JsonDocument", provider.jsonType())
     }
 
     @Test
@@ -46,9 +46,9 @@ class YdbDataTypeProviderTest {
 
     @Test
     fun `should map date and time types`() {
-        Assertions.assertEquals("Date", provider.dateType())
-        Assertions.assertEquals("Datetime", provider.dateTimeType())
-        Assertions.assertEquals("Timestamp", provider.timestampType())
+        Assertions.assertEquals("Date32", provider.dateType())
+        Assertions.assertEquals("Datetime64", provider.dateTimeType())
+        Assertions.assertEquals("Timestamp64", provider.timestampType())
     }
 
     @Test

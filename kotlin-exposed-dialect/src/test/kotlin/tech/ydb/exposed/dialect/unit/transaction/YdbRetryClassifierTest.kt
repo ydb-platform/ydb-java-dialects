@@ -4,13 +4,34 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
+import tech.ydb.core.Status
+import tech.ydb.core.StatusCode
+import tech.ydb.jdbc.exception.YdbStatusable
 import tech.ydb.exposed.dialect.transaction.YdbBackoffKind
 import tech.ydb.exposed.dialect.transaction.YdbRetryClassifier
 
 class YdbRetryClassifierTest {
+    private class FakeYdbStatusException(
+        private val ydbStatus: Status,
+        message: String = "fake"
+    ) : RuntimeException(message), YdbStatusable {
+        override fun getStatus(): Status = ydbStatus
+    }
 
     @Test
-    fun `should classify aborted as retryable fast`() {
+    fun `should classify structured aborted as retryable fast`() {
+        val decision = YdbRetryClassifier.classify(
+            FakeYdbStatusException(Status.of(StatusCode.ABORTED)),
+            idempotent = false
+        )
+
+        assertTrue(decision.retryable)
+        assertEquals(YdbBackoffKind.FAST, decision.backoffKind)
+        assertFalse(decision.recreateSession)
+    }
+
+    @Test
+    fun `should classify regex aborted as retryable fast`() {
         val decision = YdbRetryClassifier.classify(
             RuntimeException("Status{code = ABORTED(code=400040)}"),
             idempotent = false
@@ -67,6 +88,16 @@ class YdbRetryClassifierTest {
 
         assertTrue(retryable.retryable)
         assertFalse(nonRetryable.retryable)
+    }
+
+    @Test
+    fun `should not classify unrelated timeout text as ydb timeout`() {
+        val decision = YdbRetryClassifier.classify(
+            RuntimeException("Connection timed out while reading metadata"),
+            idempotent = true
+        )
+
+        assertFalse(decision.retryable)
     }
 
     @Test

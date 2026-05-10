@@ -8,7 +8,7 @@ import org.jetbrains.exposed.v1.jdbc.transactions.TransactionManager
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
-import tech.ydb.exposed.dialect.basic.YdbDialectProvider
+import tech.ydb.exposed.dialect.YdbDialectProvider
 import java.sql.Connection
 
 abstract class BaseYdbTest {
@@ -20,8 +20,7 @@ abstract class BaseYdbTest {
     @BeforeEach
     fun setupDatabase() {
         db = YdbDialectProvider.connect(
-            url = "jdbc:ydb:grpc://localhost:2136/local",
-            driver = "tech.ydb.jdbc.YdbDriver"
+            url = "jdbc:ydb:grpc://localhost:2136/local"
         )
     }
 

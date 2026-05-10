@@ -1,8 +1,7 @@
-package tech.ydb.exposed.dialect.basic
+package tech.ydb.exposed.dialect
 
 import org.jetbrains.exposed.v1.core.Column
 import org.jetbrains.exposed.v1.core.dao.id.EntityID
-
 
 open class YdbStringIdTable(
     name: String = "",
