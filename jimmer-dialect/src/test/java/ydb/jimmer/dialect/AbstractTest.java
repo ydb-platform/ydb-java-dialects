@@ -1,6 +1,7 @@
 package ydb.jimmer.dialect;
 
 import org.babyfish.jimmer.sql.JSqlClient;
+import org.babyfish.jimmer.sql.runtime.DefaultExecutor;
 import org.babyfish.jimmer.sql.runtime.JSqlClientImplementor;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.extension.RegisterExtension;
@@ -11,7 +12,7 @@ import org.springframework.jdbc.datasource.init.ScriptException;
 import org.springframework.jdbc.datasource.init.ScriptUtils;
 import tech.ydb.test.junit5.YdbHelperExtension;
 import ydb.jimmer.dialect.scalar.DurationProvider;
-import ydb.jimmer.dialect.sqlMonitor.ExecutorMonitor;
+import ydb.jimmer.dialect.sqlMonitor.YdbExecutorMonitor;
 import ydb.jimmer.dialect.transaction.YqlClient;
 import ydb.jimmer.dialect.transaction.YdbTxConnectionManager;
 
@@ -26,7 +27,9 @@ public abstract class AbstractTest {
     @RegisterExtension
     private static final YdbHelperExtension ydb = new YdbHelperExtension();
 
-    protected static final ExecutorMonitor executor = new ExecutorMonitor();
+    protected static final YdbExecutorMonitor executor = new YdbExecutorMonitor(
+            new YdbExecutor(DefaultExecutor.INSTANCE)
+    );
     private static final JSqlClient yqlClient;
     private static final JSqlClient yqlClientForBatch;
 
