@@ -46,9 +46,6 @@ internal object YdbDataTypeProvider : DataTypeProvider() {
     override fun floatType(): String = "Float"
     override fun doubleType(): String = "Double"
 
-//    override fun varcharType(colLength: Int): String = "Utf8"
-//
-//    override fun textType(): String = "Utf8"
     override fun varcharType(colLength: Int): String = "Text"
     override fun textType(): String = "Text"
     override fun mediumTextType(): String = textType()
