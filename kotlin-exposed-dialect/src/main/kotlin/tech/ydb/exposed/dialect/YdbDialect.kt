@@ -46,9 +46,11 @@ internal object YdbDataTypeProvider : DataTypeProvider() {
     override fun floatType(): String = "Float"
     override fun doubleType(): String = "Double"
 
-    override fun varcharType(colLength: Int): String = "Utf8"
-
-    override fun textType(): String = "Utf8"
+//    override fun varcharType(colLength: Int): String = "Utf8"
+//
+//    override fun textType(): String = "Utf8"
+    override fun varcharType(colLength: Int): String = "Text"
+    override fun textType(): String = "Text"
     override fun mediumTextType(): String = textType()
     override fun largeTextType(): String = textType()
 
@@ -193,7 +195,7 @@ class YdbDialect : VendorDialect("ydb", YdbDataTypeProvider, YdbFunctionProvider
     ): String = "ALTER TABLE $tableName DROP INDEX $indexName"
 
     fun setTtl(table: YdbTable): String {
-        val tr = TransactionManager.Companion.current()
+        val tr = TransactionManager.current()
         val ttl = table.ttlSettings
             ?: error("TTL is not configured for table ${table.tableName}")
 
@@ -215,14 +217,14 @@ class YdbDialect : VendorDialect("ydb", YdbDataTypeProvider, YdbFunctionProvider
     }
 
     fun resetTtl(table: YdbTable): String {
-        val tr = TransactionManager.Companion.current()
+        val tr = TransactionManager.current()
         return "ALTER TABLE ${tr.identity(table)} RESET (TTL)"
     }
 
     internal object Metadata : DatabaseDialectMetadata() {
 
         override fun existingIndices(vararg tables: Table): Map<Table, List<Index>> {
-            val connection = TransactionManager.Companion.current().connection.connection as Connection
+            val connection = TransactionManager.current().connection.connection as Connection
             val metadata = connection.metaData
 
             return tables.associateWith { table ->

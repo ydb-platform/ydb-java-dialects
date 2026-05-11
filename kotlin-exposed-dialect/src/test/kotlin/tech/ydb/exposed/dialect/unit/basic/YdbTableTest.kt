@@ -82,7 +82,7 @@ class YdbTableTest {
                 ddl
             )
             assertTrue(
-                ddl.contains("`name` Utf8") || ddl.contains("name Utf8"),
+                ddl.contains("`name` Text") || ddl.contains("name Text"),
                 ddl
             )
         }

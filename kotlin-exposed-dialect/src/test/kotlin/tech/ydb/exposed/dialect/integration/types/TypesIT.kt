@@ -63,8 +63,8 @@ class TypesIT : BaseYdbTest() {
         assertTrue(ddl.contains("bool_col Bool"))
         assertTrue(ddl.contains("float_col Float"))
         assertTrue(ddl.contains("double_col Double"))
-        assertTrue(ddl.contains("varchar_col Utf8"))
-        assertTrue(ddl.contains("text_col Utf8"))
+        assertTrue(ddl.contains("varchar_col Text"))
+        assertTrue(ddl.contains("text_col Text"))
         assertTrue(ddl.contains("PRIMARY KEY (id)"))
     }
 }

@@ -40,10 +40,10 @@ open class YdbTable(name: String = "") : Table(name) {
         )
     }
 
-    val ttlSettings: YdbTtlSettings?
+    internal val ttlSettings: YdbTtlSettings?
         get() = ydbFeatures.ttlSettings
 
-    val ydbSecondaryIndices: List<YdbSecondaryIndexSpec>
+    internal val ydbSecondaryIndices: List<YdbSecondaryIndexSpec>
         get() = ydbFeatures.ydbSecondaryIndices
 
     override fun createStatement(): List<String> =

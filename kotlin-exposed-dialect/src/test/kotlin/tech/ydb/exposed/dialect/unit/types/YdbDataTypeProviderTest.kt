@@ -17,8 +17,8 @@ class YdbDataTypeProviderTest {
 
     @Test
     fun `should map string and binary types`() {
-        Assertions.assertEquals("Utf8", provider.varcharType(255))
-        Assertions.assertEquals("Utf8", provider.textType())
+        Assertions.assertEquals("Text", provider.varcharType(255))
+        Assertions.assertEquals("Text", provider.textType())
         Assertions.assertEquals("String", provider.binaryType())
         Assertions.assertEquals("String", provider.binaryType(100))
     }
