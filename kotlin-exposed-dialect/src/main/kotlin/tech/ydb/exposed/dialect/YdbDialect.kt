@@ -15,10 +15,20 @@ import org.jetbrains.exposed.v1.jdbc.transactions.TransactionManager
 import org.jetbrains.exposed.v1.jdbc.vendors.DatabaseDialectMetadata
 import java.sql.Connection
 import java.sql.DatabaseMetaData
-import kotlin.use
 
-
-internal object YdbDataTypeProvider : DataTypeProvider() {
+/**
+ * Default YDB column type mappings used by Exposed when a column is declared via standard
+ * Exposed DSL (`integer`, `varchar`, `date`, ...) — see `YdbCustomColumnTypes.kt` for YDB-specific
+ * column types that have no direct Exposed equivalent (e.g. `JsonDocument`, `Interval`, `Uint64`).
+ *
+ * Temporal columns default to YDB **extended** types (`Date32`, `Datetime64`, `Timestamp64`).
+ * Use `YdbDialectProvider.connect(..., forceLegacyDatetimes = true)` to fall back to the
+ * legacy unsigned range (`Date`, `Datetime`, `Timestamp`) when integrating with schemas
+ * that already use them.
+ */
+internal class YdbDataTypeProvider(
+    private val forceLegacyDatetimes: Boolean
+) : DataTypeProvider() {
     override fun byteType(): String = "Int8"
     override fun ubyteType(): String = "Uint8"
 
@@ -37,7 +47,7 @@ internal object YdbDataTypeProvider : DataTypeProvider() {
 
     override fun integerAutoincType(): String =
         throw UnsupportedOperationException(
-            "YDB does not support AUTO_INCREMENT. Use YdbUuidIdTable, YdbUuidStringIdTable, or YdbUlidTable instead."
+            "YDB does not support AUTO_INCREMENT. Use YdbUuidIdTable, YdbUlidTable or YdbStringIdTable instead."
         )
 
     override fun longType(): String = "Int64"
@@ -53,9 +63,9 @@ internal object YdbDataTypeProvider : DataTypeProvider() {
 
     override fun uuidType(): String = "Uuid"
 
-    override fun dateType(): String = "Date32"
-    override fun dateTimeType(): String = "Datetime64"
-    override fun timestampType(): String = "Timestamp64"
+    override fun dateType(): String = if (forceLegacyDatetimes) "Date" else "Date32"
+    override fun dateTimeType(): String = if (forceLegacyDatetimes) "Datetime" else "Datetime64"
+    override fun timestampType(): String = if (forceLegacyDatetimes) "Timestamp" else "Timestamp64"
 
     override fun jsonType(): String = "JsonDocument"
 }
@@ -75,31 +85,27 @@ internal object YdbFunctionProvider : FunctionProvider() {
         keyColumns: List<Column<*>>,
         where: Op<Boolean>?,
         transaction: Transaction
+    ): String = renderUpsertOrReplace("UPSERT", table, data, expression, where, transaction)
+
+    /**
+     * YDB has native `REPLACE INTO` which has the same write semantics as INSERT-or-overwrite
+     * (key is the primary key, no need for an extra unique constraint).
+     */
+    override fun replace(
+        table: Table,
+        columns: List<Column<*>>,
+        expression: String,
+        transaction: Transaction,
+        prepared: Boolean
     ): String {
-        require(where == null) {
-            "YDB UPSERT does not support WHERE clause in this dialect implementation"
+        val columnList = columns.joinToString(", ") { transaction.identity(it) }
+        val valuesExpression = expression.trim()
+        val expressionWithColumns = if (valuesExpression.startsWith("VALUES", ignoreCase = true)) {
+            "($columnList) $valuesExpression"
+        } else {
+            valuesExpression
         }
-
-        val columnList = data.joinToString(", ") { (column, _) ->
-            transaction.identity(column)
-        }
-
-        if (expression.isNotBlank()) {
-            val valuesExpression = expression.trim()
-            val expressionWithColumns = if (valuesExpression.startsWith("VALUES", ignoreCase = true)) {
-                "($columnList) $valuesExpression"
-            } else {
-                valuesExpression
-            }
-
-            return "UPSERT INTO ${transaction.identity(table)} $expressionWithColumns"
-        }
-
-        val valueList = data.joinToString(", ") { (column, value) ->
-            valueToSqlLiteral(column, value)
-        }
-
-        return "UPSERT INTO ${transaction.identity(table)} ($columnList) VALUES ($valueList)"
+        return "REPLACE INTO ${transaction.identity(table)} $expressionWithColumns"
     }
 
     override fun merge(
@@ -134,6 +140,39 @@ internal object YdbFunctionProvider : FunctionProvider() {
         }
     }
 
+    private fun renderUpsertOrReplace(
+        operation: String,
+        table: Table,
+        data: List<Pair<Column<*>, Any?>>,
+        expression: String,
+        where: Op<Boolean>?,
+        transaction: Transaction
+    ): String {
+        require(where == null) {
+            "YDB $operation does not support WHERE clause"
+        }
+
+        val columnList = data.joinToString(", ") { (column, _) ->
+            transaction.identity(column)
+        }
+
+        if (expression.isNotBlank()) {
+            val valuesExpression = expression.trim()
+            val expressionWithColumns = if (valuesExpression.startsWith("VALUES", ignoreCase = true)) {
+                "($columnList) $valuesExpression"
+            } else {
+                valuesExpression
+            }
+            return "$operation INTO ${transaction.identity(table)} $expressionWithColumns"
+        }
+
+        val valueList = data.joinToString(", ") { (column, value) ->
+            valueToSqlLiteral(column, value)
+        }
+
+        return "$operation INTO ${transaction.identity(table)} ($columnList) VALUES ($valueList)"
+    }
+
     @Suppress("UNCHECKED_CAST")
     private fun valueToSqlLiteral(column: Column<*>, value: Any?): String {
         if (value == null) return "NULL"
@@ -143,10 +182,25 @@ internal object YdbFunctionProvider : FunctionProvider() {
     }
 }
 
-class YdbDialect : VendorDialect("ydb", YdbDataTypeProvider, YdbFunctionProvider) {
+/**
+ * Exposed [VendorDialect] for YDB.
+ *
+ * Usually obtained via [YdbDialectProvider.connect], which wires it into a [Database] together
+ * with a default [org.jetbrains.exposed.v1.core.DatabaseConfig] tuned for YDB
+ * (SERIALIZABLE isolation, nested transactions disabled).
+ */
+class YdbDialect internal constructor(
+    forceLegacyDatetimes: Boolean
+) : VendorDialect(
+    DIALECT_NAME,
+    YdbDataTypeProvider(forceLegacyDatetimes),
+    YdbFunctionProvider
+) {
+
+    constructor() : this(forceLegacyDatetimes = false)
 
     override fun createIndex(index: Index): String {
-        val tr = runCatching { TransactionManager.Companion.current() }.getOrNull()
+        val tr = runCatching { TransactionManager.current() }.getOrNull()
         if (!index.functions.isNullOrEmpty()) {
             throw UnsupportedOperationException("YDB dialect does not support functional indexes")
         }
@@ -175,7 +229,7 @@ class YdbDialect : VendorDialect("ydb", YdbDataTypeProvider, YdbFunctionProvider
     }
 
     fun createSecondaryIndex(table: Table, spec: YdbSecondaryIndexSpec): String {
-        val tr = TransactionManager.Companion.current()
+        val tr = TransactionManager.current()
         return buildString {
             append("ALTER TABLE ")
             append(tr.identity(table))
@@ -278,5 +332,8 @@ class YdbDialect : VendorDialect("ydb", YdbDataTypeProvider, YdbFunctionProvider
             val unique: Boolean
         )
     }
-}
 
+    internal companion object {
+        const val DIALECT_NAME = "ydb"
+    }
+}

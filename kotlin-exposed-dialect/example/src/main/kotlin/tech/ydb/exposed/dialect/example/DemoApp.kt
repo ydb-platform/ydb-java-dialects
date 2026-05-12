@@ -4,21 +4,19 @@ import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.jdbc.SchemaUtils
 import org.jetbrains.exposed.v1.jdbc.deleteWhere
 import org.jetbrains.exposed.v1.jdbc.selectAll
-import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import org.jetbrains.exposed.v1.jdbc.update
 import org.jetbrains.exposed.v1.jdbc.upsert
-import tech.ydb.exposed.dialect.basic.YdbDialectProvider
-import tech.ydb.exposed.dialect.pagination.keysetPageAsc
+import tech.ydb.exposed.dialect.YdbDialectProvider
 import tech.ydb.exposed.dialect.types.ydbDecimalLiteral
+import tech.ydb.exposed.dialect.ydbTransaction
 import java.math.BigDecimal
 
 fun main() {
     val db = YdbDialectProvider.connect(
-        url = "jdbc:ydb:grpc://localhost:2136/local",
-        driver = "tech.ydb.jdbc.YdbDriver"
+        url = "jdbc:ydb:grpc://localhost:2136/local"
     )
 
-    transaction(db) {
+    ydbTransaction(db) {
         println("== Schema setup ==")
         runCatching { SchemaUtils.drop(DemoProducts) }
         SchemaUtils.create(DemoProducts)
@@ -30,11 +28,9 @@ fun main() {
         println("== UPSERT seed data ==")
         seedDemoData()
 
-        DemoProducts.selectAll()
-            .orderBy(DemoProducts.id)
-            .forEach {
-                println("product[id=${it[DemoProducts.id]}, sku=${it[DemoProducts.sku]}, name=${it[DemoProducts.name]}, category=${it[DemoProducts.category]}, price=${it[DemoProducts.price]}]")
-            }
+        DemoProducts.selectAll().orderBy(DemoProducts.id).forEach {
+            println("product[id=${it[DemoProducts.id]}, sku=${it[DemoProducts.sku]}, name=${it[DemoProducts.name]}, category=${it[DemoProducts.category]}, price=${it[DemoProducts.price]}]")
+        }
 
         println()
         println("== READ by category ==")
@@ -60,30 +56,6 @@ fun main() {
             .forEach {
                 println("updated -> ${it[DemoProducts.name]} (${it[DemoProducts.price]})")
             }
-
-        println()
-        println("== KEYSET PAGINATION ==")
-        val page1 = DemoProducts
-            .selectAll()
-            .keysetPageAsc(DemoProducts.id, lastValue = null, limit = 2)
-            .toList()
-
-        println("page1:")
-        page1.forEach {
-            println("  ${it[DemoProducts.id]} -> ${it[DemoProducts.name]}")
-        }
-
-        val lastSeenId = page1.last()[DemoProducts.id]
-
-        val page2 = DemoProducts
-            .selectAll()
-            .keysetPageAsc(DemoProducts.id, lastValue = lastSeenId, limit = 2)
-            .toList()
-
-        println("page2:")
-        page2.forEach {
-            println("  ${it[DemoProducts.id]} -> ${it[DemoProducts.name]}")
-        }
 
         println()
         println("== DELETE ==")

@@ -1,66 +1,43 @@
-name: CI - Kotlin Exposed YDB Dialect
+name: Kotlin Exposed YDB Dialect CI with Maven
 
 on:
   push:
-    branches: [ main, master ]
+    branches:
+      - main
     paths:
-      - "kotlin-exposed-dialect/**"
-      - ".github/workflows/ci-exposed-ydb-dialect.yaml"
+      - 'kotlin-exposed-dialect/**'
+      - '.github/workflows/ci-exposed-ydb-dialect.yaml'
   pull_request:
     paths:
-      - "kotlin-exposed-dialect/**"
-      - ".github/workflows/ci-exposed-ydb-dialect.yaml"
+      - 'kotlin-exposed-dialect/**'
+      - '.github/workflows/ci-exposed-ydb-dialect.yaml'
+
+env:
+  MAVEN_ARGS: --batch-mode --update-snapshots -Dstyle.color=always
 
 jobs:
-  build-and-test:
+  build:
+    name: Kotlin Exposed YDB Dialect
     runs-on: ubuntu-latest
 
-    defaults:
-      run:
-        working-directory: kotlin-exposed-dialect
+    strategy:
+      matrix:
+        java: [ '17', '21' ]
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v5
+      - uses: actions/checkout@v4
 
-      - name: Set up JDK 17
+      - name: Set up JDK ${{ matrix.java }}
         uses: actions/setup-java@v4
         with:
-          distribution: temurin
-          java-version: "17"
+          java-version: ${{ matrix.java }}
+          distribution: 'temurin'
           cache: maven
-          cache-dependency-path: kotlin-exposed-dialect/pom.xml
 
-      - name: Show Docker and Compose versions
-        run: |
-          docker version
-          docker compose version
+      - name: Download dependencies
+        working-directory: ./kotlin-exposed-dialect
+        run: mvn $MAVEN_ARGS dependency:go-offline
 
-      - name: Start local YDB with docker compose
-        run: docker compose up -d
-
-      - name: Wait for YDB gRPC port
-        shell: bash
-        run: |
-          for i in {1..60}; do
-            if (echo > /dev/tcp/127.0.0.1/2136) >/dev/null 2>&1; then
-              echo "YDB is reachable on port 2136"
-              exit 0
-            fi
-            echo "Waiting for YDB..."
-            sleep 2
-          done
-          echo "YDB did not become ready in time"
-          docker compose logs || true
-          exit 1
-
-      - name: Run Maven build
-        run: mvn --batch-mode --update-snapshots clean install
-
-      - name: Dump YDB logs on failure
-        if: failure()
-        run: docker compose logs
-
-      - name: Stop YDB
-        if: always()
-        run: docker compose down -v
+      - name: Build & verify (unit + integration tests with testcontainers)
+        working-directory: ./kotlin-exposed-dialect
+        run: mvn $MAVEN_ARGS verify

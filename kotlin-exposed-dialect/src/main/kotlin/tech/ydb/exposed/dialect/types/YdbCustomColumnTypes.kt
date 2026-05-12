@@ -51,8 +51,7 @@ class YdbIntervalColumnType : ColumnType<Duration>() {
 
     override fun notNullValueToDB(value: Duration): Any = value
 
-    override fun nonNullValueToString(value: Duration): String =
-        "'${value}'"
+    override fun nonNullValueToString(value: Duration): String = "'$value'"
 }
 
 class YdbJsonStringColumnType : ColumnType<String>() {
@@ -77,37 +76,13 @@ class YdbJsonDocumentStringColumnType : ColumnType<String>() {
         "'${value.replace("'", "''")}'"
 }
 
-class YdbUuidAsUtf8ColumnType : ColumnType<UUID>() {
-    override fun sqlType(): String = "Utf8"
-
-    override fun valueFromDB(value: Any): UUID = when (value) {
-        is UUID -> value
-        is String -> UUID.fromString(value)
-        else -> error("Unexpected value for UUID(Utf8): $value of ${value::class}")
-    }
-
-    override fun notNullValueToDB(value: UUID): Any = value.toString()
-
-    override fun nonNullValueToString(value: UUID): String =
-        "'$value'"
-}
-
-class YdbUuidAsStringColumnType : ColumnType<UUID>() {
-    override fun sqlType(): String = "String"
-
-    override fun valueFromDB(value: Any): UUID = when (value) {
-        is UUID -> value
-        is ByteArray -> UUID.fromString(value.toString(Charsets.UTF_8))
-        is String -> UUID.fromString(value)
-        else -> error("Unexpected value for UUID(String): $value of ${value::class}")
-    }
-
-    override fun notNullValueToDB(value: UUID): Any = value.toString().toByteArray(Charsets.UTF_8)
-
-    override fun nonNullValueToString(value: UUID): String =
-        "'$value'"
-}
-
+/**
+ * Maps a Kotlin [UUID] to the native YDB `Uuid` type.
+ *
+ * Binds [java.util.UUID] directly via JDBC — no string conversion. Use this for new schemas;
+ * Exposed's built-in `uuid()` extension also produces a `Uuid` column under this dialect
+ * because [YdbDataTypeProvider.uuidType] maps to `Uuid`.
+ */
 class YdbUuidColumnType : ColumnType<UUID>() {
     override fun sqlType(): String = "Uuid"
 
@@ -117,20 +92,18 @@ class YdbUuidColumnType : ColumnType<UUID>() {
         else -> error("Unexpected value for native UUID: $value of ${value::class}")
     }
 
-    override fun notNullValueToDB(value: UUID): Any =
-        value.toString()
+    override fun notNullValueToDB(value: UUID): Any = value
 
-    override fun nonNullValueToString(value: UUID): String =
-        "'$value'"
+    override fun nonNullValueToString(value: UUID): String = "Uuid(\"$value\")"
 }
 
+/**
+ * Maps YDB `Uint64` to Kotlin [Long].
+ *
+ * Only the non-negative subset that fits into [Long] (0..[Long.MAX_VALUE]) is supported.
+ * Use [BigInteger] mapping if you need values above [Long.MAX_VALUE].
+ */
 class YdbUint64ColumnType : ColumnType<Long>() {
-    /**
-     * Maps YDB Uint64 to Kotlin Long.
-     *
-     * This implementation supports only the non-negative subset that fits into Long
-     * (0..Long.MAX_VALUE). Values above Long.MAX_VALUE are not supported by this mapping.
-     */
     override fun sqlType(): String = "Uint64"
 
     override fun valueFromDB(value: Any): Long = when (value) {
@@ -175,15 +148,11 @@ fun Table.ydbInterval(name: String): Column<Duration> =
 fun Table.ydbJson(name: String): Column<String> =
     registerColumn(name, YdbJsonStringColumnType())
 
+/** Indexed JSON storage — analogous to PostgreSQL `jsonb`. */
 fun Table.ydbJsonDocument(name: String): Column<String> =
     registerColumn(name, YdbJsonDocumentStringColumnType())
 
-fun Table.ydbUuidUtf8(name: String): Column<UUID> =
-    registerColumn(name, YdbUuidAsUtf8ColumnType())
-
-fun Table.ydbUuidBytes(name: String): Column<UUID> =
-    registerColumn(name, YdbUuidAsStringColumnType())
-
+/** Native YDB `Uuid` column. Equivalent to Exposed's `uuid()` under this dialect. */
 fun Table.ydbUuid(name: String): Column<UUID> =
     registerColumn(name, YdbUuidColumnType())
 

@@ -4,46 +4,25 @@ Initial release of the Kotlin Exposed dialect for YDB.
 
 ### Added
 
-- YDB dialect registration for Exposed JDBC.
-- Connection helper based on `YdbDialectProvider`.
-- YDB-specific data type provider.
-- YDB SQL function provider.
-- `LIMIT` / `OFFSET` SQL generation.
-- Native YDB `UPSERT` generation for Exposed DSL.
-- Explicit handling of unsupported ANSI `MERGE` scenarios.
+- YDB `VendorDialect` for Exposed JDBC, registered via `YdbDialectProvider.connect`.
+- `ydbTransaction { ... }` / `ydbReadOnlyTransaction { ... }` — retryable transactions
+  that classify failures via `YdbStatusable` (no fragile error-message parsing) and apply
+  appropriate backoff for `ABORTED` / `OVERLOADED` / `BAD_SESSION` / `TRANSPORT_UNAVAILABLE`
+  / `TIMEOUT` (idempotent only) / `UNDETERMINED` (idempotent only).
+- Native `UPSERT` / `REPLACE` rendering — wired into Exposed's standard `Table.upsert` and
+  `Table.replace` DSL.
 - YDB-compatible `CREATE TABLE` generation with mandatory primary key.
-- Secondary index generation, including global indexes, unique indexes and cover columns.
-- TTL support for supported YDB column modes.
-- JDBC metadata support for reading existing indexes.
-- Custom column types for decimal, interval, JSON, UUID variants and unsigned integer values.
-- Decimal literal helper for update-expression scenarios.
-- UUID and ULID generation helpers.
-- YDB table helpers for UUID/ULID/string identifiers.
-- Explicit rejection of SQL `AUTO_INCREMENT`.
-- Retry classifier for common YDB retriable failures.
-- Read-only and read-write retrying transaction helpers.
-- Keyset pagination helpers.
-- Optimistic locking helper based on a version column.
-- Console demo application with CRUD, UPSERT, indexes and pagination.
-- Docker Compose configuration for local YDB.
-- Unit and integration test suites.
-- GitHub Actions workflow for build and integration tests.
-
-### Tested Scenarios
-
-- Connection to local YDB through JDBC.
-- Table creation and DDL generation.
-- CRUD operations.
-- UPSERT through Exposed DSL.
-- Batch operations.
-- DAO basic workflow.
-- Generated UUID and ULID identifiers.
-- Secondary indexes.
-- TTL.
-- Numeric, binary, temporal, interval, decimal, UUID, unsigned integer and JSON types.
-- JOIN queries.
-- Subqueries.
-- Many-to-many relation through a join table.
-- Optimistic locking.
-- Keyset pagination.
-- Multi-table integration scenario.
+- Secondary index DSL on `YdbTable` / `YdbIdTable` — global, async, cover columns, unique.
+- TTL clause on `CREATE TABLE` / `ALTER TABLE`, plus numeric epoch modes.
+- JDBC metadata for reading existing indexes.
+- Default temporal mapping to extended types: `Date32` / `Datetime64` / `Timestamp64`.
+  Legacy types are available via `YdbDialectProvider.connect(forceLegacyDatetimes = true)`.
+- Custom column types for `Decimal`, `Interval`, `Json`, `JsonDocument`, three `Uuid`
+  flavours and `Uint64`, plus a `ydbDecimalLiteral` helper for update expressions.
+- Table base classes for generated identifiers: `YdbUuidIdTable`, `YdbUuidStringIdTable`,
+  `YdbUlidTable`, `YdbStringIdTable`.
+- Explicit rejection of `AUTO_INCREMENT` and ANSI `MERGE` (`UPSERT` covers the use case).
+- Console demo application showing CRUD, UPSERT and DDL.
+- Integration tests powered by testcontainers via `tech.ydb.test:ydb-junit5-support`.
+- GitHub Actions workflows for CI (`ci-exposed-ydb-dialect.yaml`) and Maven Central
+  publishing (`publish-kotlin-exposed-dialect.yaml`).

@@ -1,13 +1,12 @@
 package tech.ydb.exposed.dialect.integration.upsert
 
 import org.jetbrains.exposed.v1.core.Table
-import org.jetbrains.exposed.v1.jdbc.SchemaUtils
+import org.jetbrains.exposed.v1.jdbc.replace
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.upsert
-import org.junit.jupiter.api.Assertions
+import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import tech.ydb.exposed.dialect.YdbTable
-import tech.ydb.exposed.dialect.YdbFunctionProvider
 import tech.ydb.exposed.dialect.integration.base.BaseYdbTest
 
 class UpsertIT : BaseYdbTest() {
@@ -21,33 +20,7 @@ class UpsertIT : BaseYdbTest() {
     override val tables: List<Table> = listOf(Products)
 
     @Test
-    fun `should perform UPSERT`() = tx {
-        SchemaUtils.create(Products)
-
-        val provider = YdbFunctionProvider
-        val data = listOf(
-            Products.id to 1,
-            Products.name to "Item1"
-        )
-
-        val sql = provider.upsert(
-            table = Products,
-            data = data,
-            expression = "",
-            onUpdate = emptyList(),
-            keyColumns = listOf(Products.id),
-            where = null,
-            transaction = this
-        )
-
-        exec(sql)
-
-        val row = Products.selectAll().single()
-        Assertions.assertEquals("Item1", row[Products.name])
-    }
-
-    @Test
-    fun `should perform UPSERT through Exposed DSL`() = tx {
+    fun `Table upsert inserts and then updates the same row`() = tx {
         Products.upsert {
             it[id] = 1
             it[name] = "Item1"
@@ -59,6 +32,23 @@ class UpsertIT : BaseYdbTest() {
         }
 
         val row = Products.selectAll().single()
-        Assertions.assertEquals("Item2", row[Products.name])
+        assertEquals("Item2", row[Products.name])
+    }
+
+    @Test
+    fun `Table replace overwrites an existing row by primary key`() = tx {
+        Products.upsert {
+            it[id] = 5
+            it[name] = "original"
+        }
+
+        Products.replace {
+            it[id] = 5
+            it[name] = "replaced"
+        }
+
+        val row = Products.selectAll().single()
+        assertEquals(5, row[Products.id])
+        assertEquals("replaced", row[Products.name])
     }
 }

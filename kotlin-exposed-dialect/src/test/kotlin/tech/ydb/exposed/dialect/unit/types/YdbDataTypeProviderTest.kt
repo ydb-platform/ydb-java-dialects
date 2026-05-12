@@ -1,66 +1,66 @@
 package tech.ydb.exposed.dialect.unit.types
 
-import org.junit.jupiter.api.Assertions
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Test
 import tech.ydb.exposed.dialect.YdbDataTypeProvider
 
 class YdbDataTypeProviderTest {
 
-    private val provider = YdbDataTypeProvider
+    private val provider = YdbDataTypeProvider(forceLegacyDatetimes = false)
+    private val legacyProvider = YdbDataTypeProvider(forceLegacyDatetimes = true)
 
     @Test
-    fun `should map integer types`() {
-        Assertions.assertEquals("Int32", provider.integerType())
-        Assertions.assertEquals("Int64", provider.longType())
-        Assertions.assertEquals("Int16", provider.shortType())
+    fun `maps integer types`() {
+        assertEquals("Int32", provider.integerType())
+        assertEquals("Int64", provider.longType())
+        assertEquals("Int16", provider.shortType())
     }
 
     @Test
-    fun `should map string and binary types`() {
-        Assertions.assertEquals("Text", provider.varcharType(255))
-        Assertions.assertEquals("Text", provider.textType())
-        Assertions.assertEquals("String", provider.binaryType())
-        Assertions.assertEquals("String", provider.binaryType(100))
+    fun `maps string and binary types`() {
+        assertEquals("Text", provider.varcharType(255))
+        assertEquals("Text", provider.textType())
+        assertEquals("String", provider.binaryType())
+        assertEquals("String", provider.binaryType(100))
     }
 
     @Test
-    fun `should map boolean type`() {
-        Assertions.assertEquals("Bool", provider.booleanType())
+    fun `maps boolean and UUID and JSON types`() {
+        assertEquals("Bool", provider.booleanType())
+        assertEquals("Uuid", provider.uuidType())
+        assertEquals("JsonDocument", provider.jsonType())
     }
 
     @Test
-    fun `should map UUID type`() {
-        Assertions.assertEquals("Uuid", provider.uuidType())
+    fun `maps floating-point types`() {
+        assertEquals("Float", provider.floatType())
+        assertEquals("Double", provider.doubleType())
     }
 
     @Test
-    fun `should map JSON type`() {
-        Assertions.assertEquals("JsonDocument", provider.jsonType())
+    fun `defaults temporal types to extended (Date32 Datetime64 Timestamp64)`() {
+        assertEquals("Date32", provider.dateType())
+        assertEquals("Datetime64", provider.dateTimeType())
+        assertEquals("Timestamp64", provider.timestampType())
     }
 
     @Test
-    fun `should map numeric types`() {
-        Assertions.assertEquals("Float", provider.floatType())
-        Assertions.assertEquals("Double", provider.doubleType())
+    fun `forceLegacyDatetimes switches to Date Datetime Timestamp`() {
+        assertEquals("Date", legacyProvider.dateType())
+        assertEquals("Datetime", legacyProvider.dateTimeType())
+        assertEquals("Timestamp", legacyProvider.timestampType())
     }
 
     @Test
-    fun `should map date and time types`() {
-        Assertions.assertEquals("Date32", provider.dateType())
-        Assertions.assertEquals("Datetime64", provider.dateTimeType())
-        Assertions.assertEquals("Timestamp64", provider.timestampType())
-    }
-
-    @Test
-    fun `should reject autoincrement type`() {
-        Assertions.assertThrows(UnsupportedOperationException::class.java) {
+    fun `rejects autoincrement type`() {
+        assertThrows(UnsupportedOperationException::class.java) {
             provider.integerAutoincType()
         }
     }
 
     @Test
-    fun `should convert hex to SQL`() {
-        val hex = "0xABCD"
-        Assertions.assertEquals("'0xABCD'", provider.hexToDb(hex))
+    fun `hexToDb wraps in single quotes`() {
+        assertEquals("'0xABCD'", provider.hexToDb("0xABCD"))
     }
 }

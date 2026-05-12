@@ -6,121 +6,79 @@ import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import tech.ydb.core.Status
 import tech.ydb.core.StatusCode
+import tech.ydb.exposed.dialect.YdbBackoffKind
+import tech.ydb.exposed.dialect.backoffMillis
+import tech.ydb.exposed.dialect.classifyYdbError
 import tech.ydb.jdbc.exception.YdbStatusable
-import tech.ydb.exposed.dialect.transaction.YdbBackoffKind
-import tech.ydb.exposed.dialect.transaction.YdbRetryClassifier
 
 class YdbRetryClassifierTest {
-    private class FakeYdbStatusException(
-        private val ydbStatus: Status,
-        message: String = "fake"
-    ) : RuntimeException(message), YdbStatusable {
-        override fun getStatus(): Status = ydbStatus
+
+    private class FakeStatusException(code: StatusCode) :
+        RuntimeException("fake"), YdbStatusable {
+        private val s = Status.of(code)
+        override fun getStatus(): Status = s
     }
 
     @Test
-    fun `should classify structured aborted as retryable fast`() {
-        val decision = YdbRetryClassifier.classify(
-            FakeYdbStatusException(Status.of(StatusCode.ABORTED)),
-            idempotent = false
-        )
-
-        assertTrue(decision.retryable)
-        assertEquals(YdbBackoffKind.FAST, decision.backoffKind)
-        assertFalse(decision.recreateSession)
+    fun `ABORTED is retryable with FAST backoff`() {
+        val d = classifyYdbError(FakeStatusException(StatusCode.ABORTED), idempotent = false)
+        assertTrue(d.retryable)
+        assertEquals(YdbBackoffKind.FAST, d.backoffKind)
     }
 
     @Test
-    fun `should classify regex aborted as retryable fast`() {
-        val decision = YdbRetryClassifier.classify(
-            RuntimeException("Status{code = ABORTED(code=400040)}"),
-            idempotent = false
-        )
-
-        assertTrue(decision.retryable)
-        assertEquals(YdbBackoffKind.FAST, decision.backoffKind)
-        assertFalse(decision.recreateSession)
+    fun `OVERLOADED is retryable with SLOW backoff`() {
+        val d = classifyYdbError(FakeStatusException(StatusCode.OVERLOADED), idempotent = false)
+        assertTrue(d.retryable)
+        assertEquals(YdbBackoffKind.SLOW, d.backoffKind)
     }
 
     @Test
-    fun `should classify overloaded as retryable slow`() {
-        val decision = YdbRetryClassifier.classify(
-            RuntimeException("Status{code = OVERLOADED(code=400060)}"),
-            idempotent = false
-        )
-
-        assertTrue(decision.retryable)
-        assertEquals(YdbBackoffKind.SLOW, decision.backoffKind)
+    fun `BAD_SESSION is retryable with INSTANT backoff`() {
+        val d = classifyYdbError(FakeStatusException(StatusCode.BAD_SESSION), idempotent = false)
+        assertTrue(d.retryable)
+        assertEquals(YdbBackoffKind.INSTANT, d.backoffKind)
     }
 
     @Test
-    fun `should classify bad session as retryable with recreate`() {
-        val decision = YdbRetryClassifier.classify(
-            RuntimeException("Status{code = BAD_SESSION(code=400100)}"),
-            idempotent = false
-        )
-
-        assertTrue(decision.retryable)
-        assertTrue(decision.recreateSession)
-        assertEquals(YdbBackoffKind.INSTANT, decision.backoffKind)
+    fun `PRECONDITION_FAILED is not retryable`() {
+        val d = classifyYdbError(FakeStatusException(StatusCode.PRECONDITION_FAILED), idempotent = true)
+        assertFalse(d.retryable)
     }
 
     @Test
-    fun `should classify precondition failed as non retryable`() {
-        val decision = YdbRetryClassifier.classify(
-            RuntimeException("Status{code = PRECONDITION_FAILED(code=400120)}"),
-            idempotent = false
-        )
-
-        assertFalse(decision.retryable)
+    fun `TIMEOUT retries only when idempotent`() {
+        assertTrue(classifyYdbError(FakeStatusException(StatusCode.TIMEOUT), idempotent = true).retryable)
+        assertFalse(classifyYdbError(FakeStatusException(StatusCode.TIMEOUT), idempotent = false).retryable)
     }
 
     @Test
-    fun `should classify timeout as retryable only for idempotent operations`() {
-        val retryable = YdbRetryClassifier.classify(
-            RuntimeException("Status{code = TIMEOUT(code=400090)}"),
-            idempotent = true
-        )
-        val nonRetryable = YdbRetryClassifier.classify(
-            RuntimeException("Status{code = TIMEOUT(code=400090)}"),
-            idempotent = false
-        )
-
-        assertTrue(retryable.retryable)
-        assertFalse(nonRetryable.retryable)
+    fun `UNDETERMINED retries only when idempotent`() {
+        assertTrue(classifyYdbError(FakeStatusException(StatusCode.UNDETERMINED), idempotent = true).retryable)
+        assertFalse(classifyYdbError(FakeStatusException(StatusCode.UNDETERMINED), idempotent = false).retryable)
     }
 
     @Test
-    fun `should not classify unrelated timeout text as ydb timeout`() {
-        val decision = YdbRetryClassifier.classify(
-            RuntimeException("Connection timed out while reading metadata"),
-            idempotent = true
-        )
-
-        assertFalse(decision.retryable)
+    fun `text-only error without YdbStatusable is treated as non-retryable`() {
+        val d = classifyYdbError(RuntimeException("Status{code = ABORTED}"), idempotent = true)
+        assertFalse(d.retryable)
     }
 
     @Test
-    fun `should classify undetermined as retryable only for idempotent operations`() {
-        val retryable = YdbRetryClassifier.classify(
-            RuntimeException("Status{code = UNDETERMINED(code=400170)}"),
-            idempotent = true
-        )
-        val nonRetryable = YdbRetryClassifier.classify(
-            RuntimeException("Status{code = UNDETERMINED(code=400170)}"),
-            idempotent = false
-        )
+    fun `walks cause chain to find a YdbStatusable`() {
+        val cause = FakeStatusException(StatusCode.ABORTED)
+        val wrapped = RuntimeException("outer", RuntimeException("middle", cause))
 
-        assertTrue(retryable.retryable)
-        assertFalse(nonRetryable.retryable)
+        val d = classifyYdbError(wrapped, idempotent = false)
+        assertTrue(d.retryable)
+        assertEquals(YdbBackoffKind.FAST, d.backoffKind)
     }
 
     @Test
-    fun `should produce backoff for fast and slow kinds`() {
-        val fast = YdbRetryClassifier.backoffMillis(YdbBackoffKind.FAST, 1)
-        val slow = YdbRetryClassifier.backoffMillis(YdbBackoffKind.SLOW, 1)
-
-        assertTrue(fast >= 0)
-        assertTrue(slow >= 0)
+    fun `backoffMillis returns non-negative values`() {
+        assertTrue(backoffMillis(YdbBackoffKind.FAST, 1) >= 0)
+        assertTrue(backoffMillis(YdbBackoffKind.SLOW, 1) >= 0)
+        assertEquals(0L, backoffMillis(YdbBackoffKind.NONE, 1))
+        assertEquals(0L, backoffMillis(YdbBackoffKind.INSTANT, 1))
     }
 }

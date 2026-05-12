@@ -10,23 +10,26 @@ class YdbUuidColumnTypeTest {
     private val type = YdbUuidColumnType()
 
     @Test
-    fun `should return native uuid sql type`() {
+    fun `maps to native Uuid sql type`() {
         assertEquals("Uuid", type.sqlType())
     }
 
     @Test
-    fun `should parse native uuid from db`() {
+    fun `valueFromDB accepts both UUID and String`() {
         val uuid = UUID.randomUUID()
-
         assertEquals(uuid, type.valueFromDB(uuid))
         assertEquals(uuid, type.valueFromDB(uuid.toString()))
     }
 
     @Test
-    fun `should convert native uuid to db`() {
+    fun `notNullValueToDB returns the UUID itself (no string conversion)`() {
         val uuid = UUID.randomUUID()
+        assertEquals(uuid, type.notNullValueToDB(uuid))
+    }
 
-        assertEquals(uuid.toString(), type.notNullValueToDB(uuid))
-        assertEquals("'$uuid'", type.nonNullValueToString(uuid))
+    @Test
+    fun `nonNullValueToString renders the YQL Uuid literal`() {
+        val uuid = UUID.fromString("00000000-0000-0000-0000-000000000001")
+        assertEquals("Uuid(\"$uuid\")", type.nonNullValueToString(uuid))
     }
 }

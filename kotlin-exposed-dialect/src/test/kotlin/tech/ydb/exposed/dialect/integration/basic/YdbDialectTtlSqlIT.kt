@@ -1,30 +1,15 @@
-package tech.ydb.exposed.dialect.unit.basic
+package tech.ydb.exposed.dialect.integration.basic
 
 import org.jetbrains.exposed.v1.javatime.timestamp
-import org.jetbrains.exposed.v1.jdbc.Database
-import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import org.junit.jupiter.api.Assertions.assertTrue
-import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import tech.ydb.exposed.dialect.YdbDialect
-import tech.ydb.exposed.dialect.YdbDialectProvider
 import tech.ydb.exposed.dialect.YdbTable
 import tech.ydb.exposed.dialect.YdbTtlColumnMode
+import tech.ydb.exposed.dialect.integration.base.BaseYdbTest
 import tech.ydb.exposed.dialect.types.ydbUint64
 
-class YdbDialectTtlSqlTest {
-
-    companion object {
-        private lateinit var db: Database
-
-        @JvmStatic
-        @BeforeAll
-        fun setupDb() {
-            db = YdbDialectProvider.connect(
-                url = "jdbc:ydb:grpc://localhost:2136/local"
-            )
-        }
-    }
+class YdbDialectTtlSqlIT : BaseYdbTest() {
 
     object AlterTtlTimestampTable : YdbTable("unit_alter_ttl_timestamp_table") {
         val id = integer("id")
@@ -49,29 +34,29 @@ class YdbDialectTtlSqlTest {
     }
 
     @Test
-    fun `should generate alter table set ttl for timestamp`() = transaction(db) {
+    fun `generates ALTER TABLE SET TTL for a timestamp column`() = tx {
         val dialect = db.dialect as YdbDialect
         val sql = dialect.setTtl(AlterTtlTimestampTable)
 
-        assertTrue(sql.contains("ALTER TABLE"))
-        assertTrue(sql.contains("""SET (TTL = Interval("PT24H") ON expire_at)"""))
+        assertTrue(sql.contains("ALTER TABLE"), sql)
+        assertTrue(sql.contains("""SET (TTL = Interval("PT24H") ON expire_at)"""), sql)
     }
 
     @Test
-    fun `should generate alter table set ttl for numeric column`() = transaction(db) {
+    fun `generates ALTER TABLE SET TTL for a numeric epoch column`() = tx {
         val dialect = db.dialect as YdbDialect
         val sql = dialect.setTtl(AlterTtlNumericTable)
 
-        assertTrue(sql.contains("ALTER TABLE"))
-        assertTrue(sql.contains("""SET (TTL = Interval("PT2H") ON modified_at_epoch AS SECONDS)"""))
+        assertTrue(sql.contains("ALTER TABLE"), sql)
+        assertTrue(sql.contains("""SET (TTL = Interval("PT2H") ON modified_at_epoch AS SECONDS)"""), sql)
     }
 
     @Test
-    fun `should generate alter table reset ttl`() = transaction(db) {
+    fun `generates ALTER TABLE RESET TTL`() = tx {
         val dialect = db.dialect as YdbDialect
         val sql = dialect.resetTtl(AlterTtlTimestampTable)
 
-        assertTrue(sql.contains("ALTER TABLE"))
-        assertTrue(sql.contains("RESET (TTL)"))
+        assertTrue(sql.contains("ALTER TABLE"), sql)
+        assertTrue(sql.contains("RESET (TTL)"), sql)
     }
 }

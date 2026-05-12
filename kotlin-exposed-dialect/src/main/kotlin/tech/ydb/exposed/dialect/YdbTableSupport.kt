@@ -3,20 +3,19 @@ package tech.ydb.exposed.dialect
 import org.jetbrains.exposed.v1.core.Column
 import org.jetbrains.exposed.v1.core.Table
 import org.jetbrains.exposed.v1.jdbc.transactions.TransactionManager
-import tech.ydb.exposed.dialect.YdbTtlColumnMode
-import tech.ydb.exposed.dialect.YdbTtlSettings
 
-internal class YdbTableFeatures {
-    private var ttlSettingsState: YdbTtlSettings? = null
-    private val secondaryIndices = mutableListOf<YdbSecondaryIndexSpec>()
-
+/**
+ * YDB-specific DDL surface shared by [YdbTable] and [YdbIdTable].
+ *
+ * Both implement this interface through Kotlin delegation to a single [YdbTableFeatures]
+ * instance, so TTL/secondary-index state is collected and rendered in exactly one place.
+ */
+sealed interface YdbTableDsl {
     fun ttl(
         column: Column<*>,
         intervalIso8601: String,
         mode: YdbTtlColumnMode = YdbTtlColumnMode.DATE_TYPE
-    ) {
-        ttlSettingsState = YdbTtlSettings(column, intervalIso8601, mode)
-    }
+    )
 
     fun secondaryIndex(
         name: String,
@@ -27,6 +26,33 @@ internal class YdbTableFeatures {
         indexType: String? = null,
         coverColumns: List<Column<*>> = emptyList(),
         withParams: Map<String, Any> = emptyMap()
+    )
+
+    val ttlSettings: YdbTtlSettings?
+    val ydbSecondaryIndices: List<YdbSecondaryIndexSpec>
+}
+
+/**
+ * Default in-memory implementation of [YdbTableDsl] used as a delegate by [YdbTable] and
+ * [YdbIdTable]. Users typically don't need to reference this class directly.
+ */
+class YdbTableFeatures : YdbTableDsl {
+    private var ttlSettingsState: YdbTtlSettings? = null
+    private val secondaryIndices = mutableListOf<YdbSecondaryIndexSpec>()
+
+    override fun ttl(column: Column<*>, intervalIso8601: String, mode: YdbTtlColumnMode) {
+        ttlSettingsState = YdbTtlSettings(column, intervalIso8601, mode)
+    }
+
+    override fun secondaryIndex(
+        name: String,
+        vararg columns: Column<*>,
+        unique: Boolean,
+        scope: YdbIndexScope,
+        syncMode: YdbIndexSyncMode,
+        indexType: String?,
+        coverColumns: List<Column<*>>,
+        withParams: Map<String, Any>
     ) {
         require(columns.isNotEmpty()) { "YDB secondary index must contain at least one column" }
 
@@ -42,10 +68,10 @@ internal class YdbTableFeatures {
         )
     }
 
-    val ttlSettings: YdbTtlSettings?
+    override val ttlSettings: YdbTtlSettings?
         get() = ttlSettingsState
 
-    val ydbSecondaryIndices: List<YdbSecondaryIndexSpec>
+    override val ydbSecondaryIndices: List<YdbSecondaryIndexSpec>
         get() = secondaryIndices
 }
 
@@ -54,7 +80,7 @@ internal fun buildYdbCreateStatement(
     ttlSettings: YdbTtlSettings?,
     secondaryIndices: List<YdbSecondaryIndexSpec>
 ): List<String> {
-    val tr = TransactionManager.Companion.current()
+    val tr = TransactionManager.current()
 
     val pk = table.primaryKey
         ?: error("YDB requires PRIMARY KEY for every table: ${table.tableName}")

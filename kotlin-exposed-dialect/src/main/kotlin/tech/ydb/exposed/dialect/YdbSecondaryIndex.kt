@@ -24,7 +24,7 @@ data class YdbSecondaryIndexSpec(
 )
 
 internal fun renderYdbSecondaryIndex(spec: YdbSecondaryIndexSpec): String {
-    val tr = TransactionManager.Companion.current()
+    val tr = TransactionManager.current()
 
     require(spec.columns.isNotEmpty()) {
         "YDB secondary index must contain at least one column"
