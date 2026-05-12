@@ -61,6 +61,7 @@ public abstract class AbstractTest {
         return new YqlClient(
                 (JSqlClientImplementor) JSqlClient.newBuilder()
                         .setConnectionManager(new YdbTxConnectionManager(dataSource))
+                        .setDialect(new YdbDialect())
                         .setExecutor(executor)
                         .build());
     }

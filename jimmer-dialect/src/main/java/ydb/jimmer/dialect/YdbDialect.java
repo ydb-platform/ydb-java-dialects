@@ -83,11 +83,6 @@ public class YdbDialect extends DefaultDialect {
     }
 
     @Override
-    public boolean isTransactionAbortedByError() {
-        return true;
-    }
-
-    @Override
     public void update(UpdateContext ctx) {
         ctx.sql("UPDATE ")
                 .appendTableName()
