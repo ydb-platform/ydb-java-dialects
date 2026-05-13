@@ -13,6 +13,7 @@ public abstract class AbstractSelectTest extends AbstractTest {
     protected static <R> void executeAndExpect(Executable<? extends List<R>> query, Consumer<QueryTestContext> block) {
         List<R> rows = null;
         try (Connection connection = DriverManager.getConnection(getJdbcURL())) {
+            connection.setAutoCommit(false);
             try {
                 rows = query.execute(connection);
             } finally {
