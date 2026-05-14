@@ -89,7 +89,7 @@ class YdbIndexSqlIT : BaseYdbTest() {
     }
 
     @Test
-    fun `renders YDB-specific ALTER TABLE secondary index SQL`() = tx {
+    fun `renders YDB-specific ALTER TABLE secondary index SQL`() {
         val dialect = db.dialect as YdbDialect
 
         val sql = dialect.createSecondaryIndex(
@@ -100,7 +100,8 @@ class YdbIndexSqlIT : BaseYdbTest() {
                 unique = false,
                 scope = YdbIndexScope.GLOBAL,
                 syncMode = YdbIndexSyncMode.SYNC
-            )
+            ),
+            database = db
         )
 
         assertTrue(sql.contains("ALTER TABLE"), sql)
@@ -109,7 +110,7 @@ class YdbIndexSqlIT : BaseYdbTest() {
     }
 
     @Test
-    fun `renders UNIQUE YDB-specific ALTER TABLE secondary index SQL`() = tx {
+    fun `renders UNIQUE YDB-specific ALTER TABLE secondary index SQL`() {
         val dialect = db.dialect as YdbDialect
 
         val sql = dialect.createSecondaryIndex(
@@ -120,7 +121,8 @@ class YdbIndexSqlIT : BaseYdbTest() {
                 unique = true,
                 scope = YdbIndexScope.GLOBAL,
                 syncMode = YdbIndexSyncMode.SYNC
-            )
+            ),
+            database = db
         )
 
         assertTrue(sql.contains("ALTER TABLE"), sql)
@@ -129,7 +131,7 @@ class YdbIndexSqlIT : BaseYdbTest() {
     }
 
     @Test
-    fun `quotes secondary index name when needed`() = tx {
+    fun `quotes secondary index name when needed`() {
         val dialect = db.dialect as YdbDialect
         val expectedName = db.identifierManager.cutIfNecessaryAndQuote("email-cover-idx")
 
@@ -141,7 +143,8 @@ class YdbIndexSqlIT : BaseYdbTest() {
                 unique = false,
                 scope = YdbIndexScope.GLOBAL,
                 syncMode = YdbIndexSyncMode.SYNC
-            )
+            ),
+            database = db
         )
 
         assertTrue(sql.contains("ADD INDEX $expectedName GLOBAL"), sql)

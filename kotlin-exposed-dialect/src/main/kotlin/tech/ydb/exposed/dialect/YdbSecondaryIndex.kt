@@ -1,6 +1,7 @@
 package tech.ydb.exposed.dialect
 
 import org.jetbrains.exposed.v1.core.Column
+import org.jetbrains.exposed.v1.jdbc.Database
 import org.jetbrains.exposed.v1.jdbc.transactions.TransactionManager
 
 enum class YdbIndexScope {
@@ -25,7 +26,25 @@ data class YdbSecondaryIndexSpec(
 
 internal fun renderYdbSecondaryIndex(spec: YdbSecondaryIndexSpec): String {
     val tr = TransactionManager.current()
+    return renderYdbSecondaryIndex(
+        spec = spec,
+        quoteIdentifier = tr.db.identifierManager::cutIfNecessaryAndQuote,
+        renderColumn = tr::identity
+    )
+}
 
+internal fun renderYdbSecondaryIndex(spec: YdbSecondaryIndexSpec, database: Database): String =
+    renderYdbSecondaryIndex(
+        spec = spec,
+        quoteIdentifier = database.identifierManager::cutIfNecessaryAndQuote,
+        renderColumn = { column -> database.identifierManager.cutIfNecessaryAndQuote(column.name) }
+    )
+
+private fun renderYdbSecondaryIndex(
+    spec: YdbSecondaryIndexSpec,
+    quoteIdentifier: (String) -> String,
+    renderColumn: (Column<*>) -> String
+): String {
     require(spec.columns.isNotEmpty()) {
         "YDB secondary index must contain at least one column"
     }
@@ -38,12 +57,12 @@ internal fun renderYdbSecondaryIndex(spec: YdbSecondaryIndexSpec): String {
         "Only GLOBAL secondary indexes are supported by YDB row-oriented tables in this dialect"
     }
 
-    val indexName = tr.db.identifierManager.cutIfNecessaryAndQuote(spec.name)
+    val indexName = quoteIdentifier(spec.name)
 
-    val columnsSql = spec.columns.joinToString(", ") { tr.identity(it) }
+    val columnsSql = spec.columns.joinToString(", ") { renderColumn(it) }
     val coverSql = spec.coverColumns
         .takeIf { it.isNotEmpty() }
-        ?.joinToString(", ") { tr.identity(it) }
+        ?.joinToString(", ") { renderColumn(it) }
 
     val withSql = spec.withParams
         .takeIf { it.isNotEmpty() }

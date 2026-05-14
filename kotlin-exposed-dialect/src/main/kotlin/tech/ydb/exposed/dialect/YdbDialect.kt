@@ -11,6 +11,7 @@ import org.jetbrains.exposed.v1.core.statements.MergeStatement
 import org.jetbrains.exposed.v1.core.vendors.DataTypeProvider
 import org.jetbrains.exposed.v1.core.vendors.FunctionProvider
 import org.jetbrains.exposed.v1.core.vendors.VendorDialect
+import org.jetbrains.exposed.v1.jdbc.Database
 import org.jetbrains.exposed.v1.jdbc.transactions.TransactionManager
 import org.jetbrains.exposed.v1.jdbc.vendors.DatabaseDialectMetadata
 import java.sql.Connection
@@ -230,11 +231,24 @@ class YdbDialect internal constructor(
 
     fun createSecondaryIndex(table: Table, spec: YdbSecondaryIndexSpec): String {
         val tr = TransactionManager.current()
+        return createSecondaryIndexSql(
+            tableSql = tr.identity(table),
+            indexSql = renderYdbSecondaryIndex(spec)
+        )
+    }
+
+    fun createSecondaryIndex(table: Table, spec: YdbSecondaryIndexSpec, database: Database): String =
+        createSecondaryIndexSql(
+            tableSql = database.identifierManager.cutIfNecessaryAndQuote(table.tableName),
+            indexSql = renderYdbSecondaryIndex(spec, database)
+        )
+
+    private fun createSecondaryIndexSql(tableSql: String, indexSql: String): String {
         return buildString {
             append("ALTER TABLE ")
-            append(tr.identity(table))
+            append(tableSql)
             append(" ADD ")
-            append(renderYdbSecondaryIndex(spec))
+            append(indexSql)
         }
     }
 

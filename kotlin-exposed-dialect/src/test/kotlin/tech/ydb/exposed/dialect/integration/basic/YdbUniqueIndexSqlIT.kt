@@ -56,13 +56,14 @@ class YdbUniqueIndexSqlIT : BaseYdbTest() {
     }
 
     @Test
-    fun `renders a unique YDB secondary index`() = tx {
+    fun `renders a unique YDB secondary index`() {
         val sql = renderYdbSecondaryIndex(
             YdbSecondaryIndexSpec(
                 name = "email_unique_idx",
                 columns = listOf(T.email),
                 unique = true
-            )
+            ),
+            database = db
         )
 
         assertTrue(sql.contains("INDEX email_unique_idx GLOBAL UNIQUE"), sql)
