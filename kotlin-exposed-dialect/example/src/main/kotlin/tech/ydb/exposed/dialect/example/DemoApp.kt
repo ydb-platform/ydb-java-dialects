@@ -1,0 +1,104 @@
+package tech.ydb.exposed.dialect.example
+
+import org.jetbrains.exposed.v1.core.eq
+import org.jetbrains.exposed.v1.jdbc.SchemaUtils
+import org.jetbrains.exposed.v1.jdbc.deleteWhere
+import org.jetbrains.exposed.v1.jdbc.selectAll
+import org.jetbrains.exposed.v1.jdbc.update
+import org.jetbrains.exposed.v1.jdbc.upsert
+import tech.ydb.exposed.dialect.YdbDialectProvider
+import tech.ydb.exposed.dialect.types.ydbDecimalLiteral
+import tech.ydb.exposed.dialect.ydbTransaction
+import java.math.BigDecimal
+
+fun main() {
+    val db = YdbDialectProvider.connect(
+        url = "jdbc:ydb:grpc://localhost:2136/local"
+    )
+
+    ydbTransaction(db) {
+        println("== Schema setup ==")
+        runCatching { SchemaUtils.drop(DemoProducts) }
+        SchemaUtils.create(DemoProducts)
+
+        println("DDL:")
+        DemoProducts.ddl.forEach { println(it) }
+
+        println()
+        println("== UPSERT seed data ==")
+        seedDemoData()
+
+        DemoProducts.selectAll().orderBy(DemoProducts.id).forEach {
+            println("product[id=${it[DemoProducts.id]}, sku=${it[DemoProducts.sku]}, name=${it[DemoProducts.name]}, category=${it[DemoProducts.category]}, price=${it[DemoProducts.price]}]")
+        }
+
+        println()
+        println("== READ by category ==")
+        DemoProducts.selectAll()
+            .where { DemoProducts.category eq "books" }
+            .orderBy(DemoProducts.id)
+            .forEach {
+                println("books -> ${it[DemoProducts.name]} (${it[DemoProducts.price]})")
+            }
+
+        println()
+        println("== UPDATE ==")
+        DemoProducts.update({ DemoProducts.sku eq "BOOK-002" }) {
+            it[DemoProducts.name] = "Distributed Systems, 2nd edition"
+            it.update(
+                DemoProducts.price,
+                ydbDecimalLiteral(BigDecimal("45.00"), 10, 2)
+            )
+        }
+
+        DemoProducts.selectAll()
+            .where { DemoProducts.sku eq "BOOK-002" }
+            .forEach {
+                println("updated -> ${it[DemoProducts.name]} (${it[DemoProducts.price]})")
+            }
+
+        println()
+        println("== DELETE ==")
+        DemoProducts.deleteWhere { DemoProducts.sku eq "HW-001" }
+
+        DemoProducts.selectAll()
+            .orderBy(DemoProducts.id)
+            .forEach {
+                println("remaining -> ${it[DemoProducts.id]} / ${it[DemoProducts.sku]} / ${it[DemoProducts.name]}")
+            }
+    }
+}
+
+private fun seedDemoData() {
+    DemoProducts.upsert {
+        it[id] = 1
+        it[sku] = "BOOK-001"
+        it[name] = "Kotlin in Action"
+        it[category] = "books"
+        it[price] = BigDecimal("39.90")
+    }
+
+    DemoProducts.upsert {
+        it[id] = 2
+        it[sku] = "BOOK-002"
+        it[name] = "Distributed Systems"
+        it[category] = "books"
+        it[price] = BigDecimal("42.50")
+    }
+
+    DemoProducts.upsert {
+        it[id] = 3
+        it[sku] = "HW-001"
+        it[name] = "Mechanical Keyboard"
+        it[category] = "hardware"
+        it[price] = BigDecimal("129.99")
+    }
+
+    DemoProducts.upsert {
+        it[id] = 4
+        it[sku] = "HW-002"
+        it[name] = "USB-C Dock"
+        it[category] = "hardware"
+        it[price] = BigDecimal("89.00")
+    }
+}
