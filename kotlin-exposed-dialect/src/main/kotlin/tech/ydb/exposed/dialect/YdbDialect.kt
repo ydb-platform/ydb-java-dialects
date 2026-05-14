@@ -251,12 +251,13 @@ class YdbDialect internal constructor(
             ?: error("TTL is not configured for table ${table.tableName}")
 
         validateYdbTtlColumn(ttl)
+        val normalizedInterval = normalizeTtlInterval(ttl.intervalIso8601)
 
         return buildString {
             append("ALTER TABLE ")
             append(tr.identity(table))
             append(" SET (TTL = Interval(\"")
-            append(ttl.intervalIso8601)
+            append(normalizedInterval)
             append("\") ON ")
             append(tr.identity(ttl.column))
             ttl.mode.toSql()?.let {

@@ -30,9 +30,15 @@ internal fun renderYdbSecondaryIndex(spec: YdbSecondaryIndexSpec): String {
         "YDB secondary index must contain at least one column"
     }
 
+    require(spec.name.isNotBlank()) {
+        "YDB secondary index name must not be blank"
+    }
+
     require(spec.scope == YdbIndexScope.GLOBAL) {
         "Only GLOBAL secondary indexes are supported by YDB row-oriented tables in this dialect"
     }
+
+    val indexName = tr.db.identifierManager.cutIfNecessaryAndQuote(spec.name)
 
     val columnsSql = spec.columns.joinToString(", ") { tr.identity(it) }
     val coverSql = spec.coverColumns
@@ -46,7 +52,7 @@ internal fun renderYdbSecondaryIndex(spec: YdbSecondaryIndexSpec): String {
 
     return buildString {
         append("INDEX ")
-        append(spec.name)
+        append(indexName)
         append(" ")
         append(spec.scope.name)
 

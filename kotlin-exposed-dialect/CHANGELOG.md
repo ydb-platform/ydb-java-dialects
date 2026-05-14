@@ -19,8 +19,8 @@ Initial release of the Kotlin Exposed dialect for YDB.
   Legacy types are available via `YdbDialectProvider.connect(forceLegacyDatetimes = true)`.
 - Custom column types for `Decimal`, `Interval`, `Json`, `JsonDocument`, three `Uuid`
   flavours and `Uint64`, plus a `ydbDecimalLiteral` helper for update expressions.
-- Table base classes for generated identifiers: `YdbUuidIdTable`, `YdbUuidStringIdTable`,
-  `YdbUlidTable`, `YdbStringIdTable`.
+- Table base classes for generated identifiers: `YdbUuidIdTable`, `YdbUlidTable`,
+  `YdbStringIdTable`.
 - Explicit rejection of `AUTO_INCREMENT` and ANSI `MERGE` (`UPSERT` covers the use case).
 - Console demo application showing CRUD, UPSERT and DDL.
 - Integration tests powered by testcontainers via `tech.ydb.test:ydb-junit5-support`.

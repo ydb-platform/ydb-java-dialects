@@ -70,7 +70,7 @@ object Products : YdbTable("products") {
 ```
 
 For tables that need to participate in Exposed DAO, use `YdbIdTable` (or its specializations
-`YdbUuidIdTable`, `YdbUuidStringIdTable`, `YdbUlidTable`, `YdbStringIdTable`).
+`YdbUuidIdTable`, `YdbUlidTable`, `YdbStringIdTable`).
 
 ## Insert / upsert / replace / update / delete
 

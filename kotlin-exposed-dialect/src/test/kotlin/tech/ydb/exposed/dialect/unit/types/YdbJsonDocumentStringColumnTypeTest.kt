@@ -1,8 +1,10 @@
 package tech.ydb.exposed.dialect.unit.types
 
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Test
 import tech.ydb.exposed.dialect.types.YdbJsonDocumentStringColumnType
+import tech.ydb.table.values.PrimitiveType
 
 class YdbJsonDocumentStringColumnTypeTest {
 
@@ -30,5 +32,17 @@ class YdbJsonDocumentStringColumnTypeTest {
     fun `should escape single quotes in json document`() {
         val json = """{"name":"O'Brien"}"""
         assertEquals("""'{"name":"O''Brien"}'""", type.nonNullValueToString(json))
+    }
+
+    @Test
+    fun `should bind json document with explicit YDB type`() {
+        val json = """{"name":"alice","active":true}"""
+        val (stmt, capture) = ydbPreparedStatementCapture()
+
+        type.setParameter(stmt, 1, json)
+
+        val actual = capture()
+        assertNotNull(actual)
+        assertEquals(BoundTypedObject(1, json, PrimitiveType.JsonDocument), actual)
     }
 }

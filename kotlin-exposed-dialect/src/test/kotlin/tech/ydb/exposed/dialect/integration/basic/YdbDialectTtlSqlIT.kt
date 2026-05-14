@@ -1,6 +1,7 @@
 package tech.ydb.exposed.dialect.integration.basic
 
 import org.jetbrains.exposed.v1.javatime.timestamp
+import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import tech.ydb.exposed.dialect.YdbDialect
@@ -58,5 +59,23 @@ class YdbDialectTtlSqlIT : BaseYdbTest() {
 
         assertTrue(sql.contains("ALTER TABLE"), sql)
         assertTrue(sql.contains("RESET (TTL)"), sql)
+    }
+
+    @Test
+    fun `rejects invalid TTL interval early`() {
+        val error = assertThrows(IllegalArgumentException::class.java) {
+            object : YdbTable("invalid_ttl_interval_table") {
+                val id = integer("id")
+                val expireAt = timestamp("expire_at")
+
+                override val primaryKey = PrimaryKey(id)
+
+                init {
+                    ttl(expireAt, """PT1H" ON hacked""")
+                }
+            }
+        }
+
+        assertTrue(error.message?.contains("Invalid YDB TTL interval") == true, error.message)
     }
 }

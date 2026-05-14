@@ -127,4 +127,23 @@ class YdbIndexSqlIT : BaseYdbTest() {
         assertTrue(sql.contains("ADD INDEX email_unique_lookup_idx GLOBAL UNIQUE"), sql)
         assertTrue(sql.contains("ON (`email`)") || sql.contains("ON (email)"), sql)
     }
+
+    @Test
+    fun `quotes secondary index name when needed`() = tx {
+        val dialect = db.dialect as YdbDialect
+        val expectedName = db.identifierManager.cutIfNecessaryAndQuote("email-cover-idx")
+
+        val sql = dialect.createSecondaryIndex(
+            table = IndexedTable,
+            spec = YdbSecondaryIndexSpec(
+                name = "email-cover-idx",
+                columns = listOf(IndexedTable.email),
+                unique = false,
+                scope = YdbIndexScope.GLOBAL,
+                syncMode = YdbIndexSyncMode.SYNC
+            )
+        )
+
+        assertTrue(sql.contains("ADD INDEX $expectedName GLOBAL"), sql)
+    }
 }

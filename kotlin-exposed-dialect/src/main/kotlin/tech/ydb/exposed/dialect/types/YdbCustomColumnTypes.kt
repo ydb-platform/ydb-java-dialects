@@ -3,6 +3,10 @@ package tech.ydb.exposed.dialect.types
 import org.jetbrains.exposed.v1.core.Column
 import org.jetbrains.exposed.v1.core.ColumnType
 import org.jetbrains.exposed.v1.core.Table
+import org.jetbrains.exposed.v1.core.statements.api.PreparedStatementApi
+import org.jetbrains.exposed.v1.jdbc.statements.jdbc.JdbcPreparedStatementImpl
+import tech.ydb.jdbc.YdbPreparedStatement
+import tech.ydb.table.values.PrimitiveType
 import java.math.BigDecimal
 import java.math.BigInteger
 import java.time.Duration
@@ -54,8 +58,11 @@ class YdbIntervalColumnType : ColumnType<Duration>() {
     override fun nonNullValueToString(value: Duration): String = "'$value'"
 }
 
-class YdbJsonStringColumnType : ColumnType<String>() {
-    override fun sqlType(): String = "Json"
+abstract class YdbTypedStringColumnType(
+    private val ydbSqlType: String,
+    private val primitiveType: PrimitiveType
+) : ColumnType<String>() {
+    override fun sqlType(): String = ydbSqlType
 
     override fun valueFromDB(value: Any): String = value.toString()
 
@@ -63,18 +70,25 @@ class YdbJsonStringColumnType : ColumnType<String>() {
 
     override fun nonNullValueToString(value: String): String =
         "'${value.replace("'", "''")}'"
+
+    override fun setParameter(stmt: PreparedStatementApi, index: Int, value: Any?) {
+        if (value == null) {
+            super.setParameter(stmt, index, null)
+            return
+        }
+
+        val ydbStatement = (stmt as? JdbcPreparedStatementImpl)?.statement as? YdbPreparedStatement
+        if (ydbStatement != null) {
+            ydbStatement.setObject(index, value, primitiveType)
+        } else {
+            super.setParameter(stmt, index, value)
+        }
+    }
 }
 
-class YdbJsonDocumentStringColumnType : ColumnType<String>() {
-    override fun sqlType(): String = "JsonDocument"
+class YdbJsonStringColumnType : YdbTypedStringColumnType("Json", PrimitiveType.Json)
 
-    override fun valueFromDB(value: Any): String = value.toString()
-
-    override fun notNullValueToDB(value: String): Any = value
-
-    override fun nonNullValueToString(value: String): String =
-        "'${value.replace("'", "''")}'"
-}
+class YdbJsonDocumentStringColumnType : YdbTypedStringColumnType("JsonDocument", PrimitiveType.JsonDocument)
 
 /**
  * Maps a Kotlin [UUID] to the native YDB `Uuid` type.

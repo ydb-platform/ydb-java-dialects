@@ -3,6 +3,7 @@ package tech.ydb.exposed.dialect
 import org.jetbrains.exposed.v1.core.Column
 import org.jetbrains.exposed.v1.core.Table
 import org.jetbrains.exposed.v1.jdbc.transactions.TransactionManager
+import java.time.Duration
 
 /**
  * YDB-specific DDL surface shared by [YdbTable] and [YdbIdTable].
@@ -41,7 +42,7 @@ class YdbTableFeatures : YdbTableDsl {
     private val secondaryIndices = mutableListOf<YdbSecondaryIndexSpec>()
 
     override fun ttl(column: Column<*>, intervalIso8601: String, mode: YdbTtlColumnMode) {
-        ttlSettingsState = YdbTtlSettings(column, intervalIso8601, mode)
+        ttlSettingsState = YdbTtlSettings(column, normalizeTtlInterval(intervalIso8601), mode)
     }
 
     override fun secondaryIndex(
@@ -102,10 +103,11 @@ internal fun buildYdbCreateStatement(
 
     val ttlSql = ttlSettings?.let { ttl ->
         validateYdbTtlColumn(ttl)
+        val normalizedInterval = normalizeTtlInterval(ttl.intervalIso8601)
 
         buildString {
             append(" WITH (TTL = Interval(\"")
-            append(ttl.intervalIso8601)
+            append(normalizedInterval)
             append("\") ON ")
             append(tr.identity(ttl.column))
             ttl.mode.toSql()?.let {
@@ -135,6 +137,12 @@ internal fun buildYdbCreateStatement(
 
     return listOf(sql)
 }
+
+internal fun normalizeTtlInterval(intervalIso8601: String): String =
+    runCatching { Duration.parse(intervalIso8601).toString() }
+        .getOrElse { cause ->
+            throw IllegalArgumentException("Invalid YDB TTL interval: '$intervalIso8601'", cause)
+        }
 
 internal fun validateYdbTtlColumn(ttl: YdbTtlSettings) {
     val sqlType = ttl.column.columnType.sqlType()

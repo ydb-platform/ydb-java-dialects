@@ -15,6 +15,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 object YdbDialectProvider {
     private const val URL_PREFIX = "jdbc:ydb:"
     private const val DRIVER_CLASS = "tech.ydb.jdbc.YdbDriver"
+    internal const val FORCE_SIGNED_DATETIMES_PROPERTY = "forceSignedDatetimes"
 
     private val initialized = AtomicBoolean(false)
 
@@ -42,8 +43,9 @@ object YdbDialectProvider {
      * @param url JDBC URL, e.g. `jdbc:ydb:grpc://localhost:2136/local`.
      * @param forceLegacyDatetimes When `true`, the dialect emits legacy YDB temporal types
      * (`Date`, `Datetime`, `Timestamp`) instead of the default extended ones
-     * (`Date32`, `Datetime64`, `Timestamp64`). Use this only when integrating with schemas that
-     * already rely on the unsigned/legacy range.
+     * (`Date32`, `Datetime64`, `Timestamp64`). The same mode is also propagated to the YDB JDBC
+     * driver via the `forceSignedDatetimes` URL flag, so column DDL and value binding stay in sync.
+     * Use legacy mode only when integrating with schemas that already rely on the unsigned range.
      */
     fun connect(
         url: String,
@@ -52,9 +54,10 @@ object YdbDialectProvider {
         forceLegacyDatetimes: Boolean = false
     ): Database {
         init()
+        val driverUrl = withTemporalDriverMode(url, forceLegacyDatetimes)
 
         return Database.connect(
-            url = url,
+            url = driverUrl,
             driver = DRIVER_CLASS,
             user = user,
             password = password,
@@ -65,5 +68,33 @@ object YdbDialectProvider {
                 useNestedTransactions = false
             }
         )
+    }
+
+    internal fun withTemporalDriverMode(url: String, forceLegacyDatetimes: Boolean): String =
+        withBooleanQueryParameter(
+            url = url,
+            name = FORCE_SIGNED_DATETIMES_PROPERTY,
+            value = !forceLegacyDatetimes
+        )
+
+    private fun withBooleanQueryParameter(url: String, name: String, value: Boolean): String {
+        val queryStart = url.indexOf('?')
+        if (queryStart < 0) {
+            return "$url?$name=$value"
+        }
+
+        val base = url.substring(0, queryStart)
+        val query = url.substring(queryStart + 1)
+        val filteredParams = query
+            .split('&')
+            .filter { it.isNotBlank() }
+            .filterNot { param ->
+                val key = param.substringBefore('=')
+                key == name
+            }
+            .toMutableList()
+
+        filteredParams += "$name=$value"
+        return "$base?${filteredParams.joinToString("&")}"
     }
 }
