@@ -1,6 +1,6 @@
 docker run \
   --restart=always \
-  -d --rm \
+  -d \
   --name jimmer_test_ydb \
   -h localhost \
   --platform linux/amd64 \

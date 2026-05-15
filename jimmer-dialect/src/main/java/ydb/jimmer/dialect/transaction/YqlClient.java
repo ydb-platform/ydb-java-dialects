@@ -24,6 +24,17 @@ public class YqlClient extends AbstractJSqlClientDelegate {
         return delegate;
     }
 
+    public <R> R transaction(int maxAttempts, long retryDelayMs, Supplier<R> block) {
+        if (getConnectionManager() instanceof YdbTxConnectionManager ydbCM) {
+            return ydbCM.executeTransaction(maxAttempts, retryDelayMs, con -> block.get());
+        }
+
+        throw new IllegalStateException(
+                "The connection manager does not support retries for transactions. " +
+                        "Use YdbTxConnectionManager."
+        );
+    }
+
     public <R> R withIsolation(int isolationLevel, boolean readOnly, Supplier<R> block) {
         try {
             TransactionContext.setSettings(isolationLevel, readOnly);

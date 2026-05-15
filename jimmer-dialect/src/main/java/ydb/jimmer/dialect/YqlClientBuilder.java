@@ -1,6 +1,7 @@
 package ydb.jimmer.dialect;
 
 import org.babyfish.jimmer.sql.JSqlClient;
+import org.babyfish.jimmer.sql.runtime.DefaultExecutor;
 import org.babyfish.jimmer.sql.runtime.JSqlClientImplementor;
 import ydb.jimmer.dialect.scalar.DurationProvider;
 import ydb.jimmer.dialect.transaction.YqlClient;
@@ -28,6 +29,7 @@ public final class YqlClientBuilder {
                         .setDialect(new YdbDialect())
                         .setConnectionManager(new YdbTxConnectionManager(dataSource))
                         .setCacheOperator(new UuidTransactionCacheOperator())
+                        .setExecutor(new YdbExecutor(DefaultExecutor.INSTANCE))
         ));
     }
 

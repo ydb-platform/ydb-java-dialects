@@ -21,8 +21,11 @@ import java.util.UUID;
 public final class YdbClassMapping {
     private YdbClassMapping() {}
 
-    public static final Map<Class<?>, String> classToYdbType = new HashMap<>();
-    public static final Map<Class<?>, Integer> classToJdbcType = new HashMap<>();
+    public static final Map<Class<?>, String> classToYdbType;
+    public static final Map<Class<?>, Integer> classToJdbcType;
+
+    private static final Map<Class<?>, String> classToYdbTypeBuilder = new HashMap<>();
+    private static final Map<Class<?>, Integer> classToJdbcTypeBuilder = new HashMap<>();
 
     static {
         add("Bool", YdbJdbcTypes.BOOL, boolean.class, Boolean.class);
@@ -45,12 +48,15 @@ public final class YdbClassMapping {
         add("Datetime64", YdbJdbcTypes.DATETIME64, LocalDateTime.class);
         add("Timestamp64", YdbJdbcTypes.TIMESTAMP64, java.util.Date.class, Timestamp.class, Instant.class);
         add("Interval64", YdbJdbcTypes.INTERVAL64, Duration.class);
+
+        classToYdbType = Map.copyOf(classToYdbTypeBuilder);
+        classToJdbcType = Map.copyOf(classToJdbcTypeBuilder);
     }
 
     private static void add(String ydbType, int jdbcType, Class<?>... classes) {
         for (Class<?> clazz : classes) {
-            classToYdbType.put(clazz, ydbType);
-            classToJdbcType.put(clazz, jdbcType);
+            classToYdbTypeBuilder.put(clazz, ydbType);
+            classToJdbcTypeBuilder.put(clazz, jdbcType);
         }
     }
 }

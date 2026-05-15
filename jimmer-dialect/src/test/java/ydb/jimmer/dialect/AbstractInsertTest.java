@@ -14,6 +14,7 @@ public abstract class AbstractInsertTest extends AbstractTest {
         MutationResult result = null;
         Throwable throwable = null;
         try (Connection connection = DriverManager.getConnection(getJdbcURL())) {
+            connection.setAutoCommit(false);
             try {
                 result = query.execute(connection);
             } catch (Throwable ex) {

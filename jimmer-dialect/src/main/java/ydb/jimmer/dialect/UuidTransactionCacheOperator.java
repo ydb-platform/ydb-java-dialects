@@ -48,6 +48,8 @@ public class UuidTransactionCacheOperator extends TransactionCacheOperator {
 
     private final ObjectMapper mapper;
 
+    private final int batchSize;
+
     public UuidTransactionCacheOperator() {
         this(null, 32);
     }
@@ -71,6 +73,7 @@ public class UuidTransactionCacheOperator extends TransactionCacheOperator {
                 new ObjectMapper()
                         .registerModule(new JavaTimeModule())
                         .registerModule(new ImmutableModule());
+        this.batchSize = batchSize;
     }
 
     @Override
@@ -105,6 +108,7 @@ public class UuidTransactionCacheOperator extends TransactionCacheOperator {
         sqlClient().getConnectionManager().execute(con -> {
             try {
                 try (PreparedStatement stmt = con.prepareStatement(INSERT_WITH_UUID)) {
+                    int count = 0;
                     for (Object key : keys) {
                         stmt.setString(1, UUID.randomUUID().toString());
                         stmt.setString(2, type != null ? type.toString() : null);
@@ -112,8 +116,15 @@ public class UuidTransactionCacheOperator extends TransactionCacheOperator {
                         stmt.setString(4, mapper.writeValueAsString(key));
                         stmt.setString(5, reason);
                         stmt.addBatch();
+
+                        if (++count % batchSize == 0) {
+                            stmt.executeBatch();
+                        }
                     }
-                    stmt.executeBatch();
+
+                    if (count % batchSize != 0) {
+                        stmt.executeBatch();
+                    }
                 }
             } catch (SQLException | JsonProcessingException ex) {
                 throw new ExecutionException("Failed to save delayed cache deletion", ex);
