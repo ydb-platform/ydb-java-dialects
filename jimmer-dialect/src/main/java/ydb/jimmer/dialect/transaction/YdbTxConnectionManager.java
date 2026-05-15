@@ -21,19 +21,8 @@ public class YdbTxConnectionManager implements TxConnectionManager {
     private final DataSource dataSource;
     private final ThreadLocal<Scope> scopeLocal = new ThreadLocal<>();
 
-    private final int maxAttempts;
-    private final long retryDelayMs;
-
     public YdbTxConnectionManager(DataSource dataSource) {
         this.dataSource = dataSource;
-        this.maxAttempts = 1;
-        this.retryDelayMs = 0;
-    }
-
-    public YdbTxConnectionManager(DataSource dataSource, int maxAttempts, long retryDelayMs) {
-        this.dataSource = dataSource;
-        this.maxAttempts = maxAttempts;
-        this.retryDelayMs = retryDelayMs;
     }
 
     @Override
@@ -51,20 +40,24 @@ public class YdbTxConnectionManager implements TxConnectionManager {
 
     @Override
     public final <R> R executeTransaction(Function<Connection, R> block) {
-        Propagation propagation = Propagation.REQUIRED;
-        if (maxAttempts > 1) {
-            propagation = Propagation.REQUIRES_NEW;
-        }
-        return executeTransaction(propagation, block);
+        return executeTransaction(Propagation.REQUIRED, block);
+    }
+
+    public final <R> R executeTransaction(int maxAttempts, long retryDelayMs, Function<Connection, R> block) {
+        return executeTransaction(maxAttempts, retryDelayMs, Propagation.REQUIRES_NEW, block);
     }
 
     @Override
     public final <R> R executeTransaction(Propagation propagation, Function<Connection, R> block) {
-        int maxAttempts = this.maxAttempts;
-        if (maxAttempts > 1 && propagation != Propagation.REQUIRES_NEW) {
-            maxAttempts = 1;
-        }
+        return executeTransaction(1, 0, propagation, block);
+    }
 
+    public final <R> R executeTransaction(
+            int maxAttempts,
+            long retryDelayMs,
+            Propagation propagation,
+            Function<Connection, R> block
+    ) {
         for (int i = 0; i < maxAttempts; i++) {
             try {
                 Scope parent = scopeLocal.get();
