@@ -21,6 +21,8 @@ public class YdbTxConnectionManager implements TxConnectionManager {
     private final DataSource dataSource;
     private final ThreadLocal<Scope> scopeLocal = new ThreadLocal<>();
 
+    private final int BACKOFF_MULTIPLIER = 2;
+
     public YdbTxConnectionManager(DataSource dataSource) {
         this.dataSource = dataSource;
     }
@@ -88,6 +90,7 @@ public class YdbTxConnectionManager implements TxConnectionManager {
 
             try {
                 Thread.sleep(retryDelayMs);
+                retryDelayMs *= BACKOFF_MULTIPLIER;
             } catch (InterruptedException ex) {
                 Thread.currentThread().interrupt();
                 throw new RuntimeException(ex);
