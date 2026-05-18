@@ -4,7 +4,7 @@ import org.jetbrains.exposed.v1.core.QueryBuilder
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Test
-import tech.ydb.exposed.dialect.types.YdbDecimalLiteral
+import tech.ydb.exposed.dialect.YdbDecimalLiteral
 import java.math.BigDecimal
 
 class YdbDecimalLiteralTest {

@@ -1,37 +1,35 @@
 package tech.ydb.exposed.dialect.unit.types
 
 import org.jetbrains.exposed.v1.jdbc.statements.jdbc.JdbcPreparedStatementImpl
-import tech.ydb.jdbc.YdbPreparedStatement
-import tech.ydb.table.values.Type
 import java.lang.reflect.Proxy
 import java.sql.PreparedStatement
 
-data class BoundTypedObject(
+data class BoundSqlObject(
     val index: Int,
     val value: Any?,
-    val type: Type
+    val targetSqlType: Int
 )
 
-fun ydbPreparedStatementCapture(): Pair<JdbcPreparedStatementImpl, () -> BoundTypedObject?> {
-    var boundValue: BoundTypedObject? = null
+fun ydbPreparedStatementCapture(): Pair<JdbcPreparedStatementImpl, () -> BoundSqlObject?> {
+    var boundValue: BoundSqlObject? = null
 
     val proxy = Proxy.newProxyInstance(
-        YdbPreparedStatement::class.java.classLoader,
-        arrayOf(PreparedStatement::class.java, YdbPreparedStatement::class.java)
+        PreparedStatement::class.java.classLoader,
+        arrayOf(PreparedStatement::class.java)
     ) { _, method, args ->
         when (method.name) {
             "setObject" -> {
-                if (args?.size == 3 && args[0] is Int && args[2] is Type) {
-                    boundValue = BoundTypedObject(
+                if (args?.size == 3 && args[0] is Int && args[2] is Int) {
+                    boundValue = BoundSqlObject(
                         index = args[0] as Int,
                         value = args[1],
-                        type = args[2] as Type
+                        targetSqlType = args[2] as Int
                     )
                 }
                 null
             }
 
-            "toString" -> "YdbPreparedStatementProxy"
+            "toString" -> "PreparedStatementProxy"
             "hashCode" -> 0
             "equals" -> false
             "isClosed" -> false

@@ -1,13 +1,13 @@
 package tech.ydb.exposed.dialect.integration.basic
 
-import org.jetbrains.exposed.v1.javatime.timestamp
 import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import tech.ydb.exposed.dialect.YdbTable
 import tech.ydb.exposed.dialect.YdbTtlColumnMode
 import tech.ydb.exposed.dialect.integration.base.BaseYdbTest
-import tech.ydb.exposed.dialect.types.ydbUint64
+import tech.ydb.exposed.dialect.ydbUint64
+import tech.ydb.exposed.dialect.javatime.ydbTimestamp
 
 class YdbTableIT : BaseYdbTest() {
 
@@ -20,7 +20,7 @@ class YdbTableIT : BaseYdbTest() {
 
     object TtlTimestampTable : YdbTable("unit_ttl_timestamp_table") {
         val id = integer("id")
-        val expireAt = timestamp("expire_at")
+        val expireAt = ydbTimestamp("expire_at")
 
         override val primaryKey = PrimaryKey(id)
 

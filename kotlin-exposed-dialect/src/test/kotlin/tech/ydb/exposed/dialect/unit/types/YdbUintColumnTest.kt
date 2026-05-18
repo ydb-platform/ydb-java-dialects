@@ -3,7 +3,7 @@ package tech.ydb.exposed.dialect.unit.types
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Test
-import tech.ydb.exposed.dialect.types.YdbUint64ColumnType
+import tech.ydb.exposed.dialect.YdbUint64ColumnType
 
 class YdbUintColumnTest {
 

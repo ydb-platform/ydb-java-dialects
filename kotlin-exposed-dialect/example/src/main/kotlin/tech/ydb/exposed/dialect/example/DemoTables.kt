@@ -3,7 +3,7 @@ package tech.ydb.exposed.dialect.example
 import tech.ydb.exposed.dialect.YdbIndexScope
 import tech.ydb.exposed.dialect.YdbIndexSyncMode
 import tech.ydb.exposed.dialect.YdbTable
-import tech.ydb.exposed.dialect.types.ydbDecimal
+import tech.ydb.exposed.dialect.ydbDecimal
 
 object DemoProducts : YdbTable("demo_products") {
     val id = integer("id")

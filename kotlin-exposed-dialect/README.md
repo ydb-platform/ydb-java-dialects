@@ -5,8 +5,7 @@ The module provides:
 
 - a Kotlin Exposed `VendorDialect` for YDB (DDL, SQL, type mapping, secondary indexes, TTL);
 - `Table.upsert` / `Table.replace` DSL backed by native YDB `UPSERT` / `REPLACE`;
-- a retryable transaction wrapper that handles YDB's OCC retries transparently;
-- table base classes for tables with generated identifiers (UUID, ULID, ...).
+- a retryable transaction wrapper that handles YDB's OCC retries transparently.
 
 ## Requirements
 
@@ -18,21 +17,20 @@ The module provides:
 ## Quick start
 
 ```kotlin
-import tech.ydb.exposed.dialect.YdbDialectProvider
+import tech.ydb.exposed.dialect.connectYdb
 import tech.ydb.exposed.dialect.ydbTransaction
 
-val db = YdbDialectProvider.connect(
-    url = "jdbc:ydb:grpc://localhost:2136/local"
-)
+val db = connectYdb(url = "jdbc:ydb:grpc://localhost:2136/local")
 
 ydbTransaction(db) {
     // Exposed DSL / DAO code
 }
 ```
 
-`YdbDialectProvider.connect` registers the YDB JDBC driver and dialect metadata exactly once,
-then opens an Exposed `Database` with a sane default configuration
-(`SERIALIZABLE` isolation, no nested transactions).
+[connectYdb](src/main/kotlin/tech/ydb/exposed/dialect/YdbDialectRegistration.kt) registers the YDB
+JDBC driver and dialect metadata (idempotent), then opens an Exposed `Database` with defaults tuned
+for YDB (`SERIALIZABLE` isolation, no nested transactions). Alternatively, call
+`registerYdbDialect()` once and use `Database.connect("jdbc:ydb:...")`.
 
 ## Defining tables
 
@@ -43,7 +41,7 @@ DDL helpers on top of the standard Exposed `Table`:
 import tech.ydb.exposed.dialect.YdbIndexScope
 import tech.ydb.exposed.dialect.YdbIndexSyncMode
 import tech.ydb.exposed.dialect.YdbTable
-import tech.ydb.exposed.dialect.types.ydbDecimal
+import tech.ydb.exposed.dialect.ydbDecimal
 
 object Products : YdbTable("products") {
     val id = integer("id")
@@ -68,9 +66,6 @@ object Products : YdbTable("products") {
     }
 }
 ```
-
-For tables that need to participate in Exposed DAO, use `YdbIdTable` (or its specializations
-`YdbUuidIdTable`, `YdbUlidTable`, `YdbStringIdTable`).
 
 ## Insert / upsert / replace / update / delete
 
@@ -104,25 +99,30 @@ invalidated` under contention. Use `ydbTransaction` instead of plain `transactio
 the body on retryable YDB statuses (`ABORTED`, `OVERLOADED`, `BAD_SESSION`, ...):
 
 ```kotlin
+import tech.ydb.exposed.dialect.YdbRetryConfig
 import tech.ydb.exposed.dialect.ydbTransaction
-import tech.ydb.exposed.dialect.ydbReadOnlyTransaction
 
 ydbTransaction(db) {
-    // read-write, non-idempotent
+    // read-write; retries transient YDB statuses (ABORTED, OVERLOADED, BAD_SESSION, ...)
 }
 
-ydbTransaction(db, idempotent = true) {
-    // single UPSERT / pure read body — TIMEOUT / UNDETERMINED also retried
+ydbTransaction(db, retry = YdbRetryConfig.IDEMPOTENT) {
+    // idempotent body — UNDETERMINED and other non-transient retryable codes are retried too
 }
 
-ydbReadOnlyTransaction(db) {
-    // shortcut for idempotent read-only work
+ydbTransaction(db, readOnly = true, retry = YdbRetryConfig.IDEMPOTENT) {
+    // read-only snapshot work
 }
 ```
 
-Set `idempotent = true` only when the body can be safely re-executed (pure reads, single
-`UPSERT` / `REPLACE`, idempotent business operation). The classifier inspects YDB status codes
-via `YdbStatusable` rather than parsing error message text.
+Backoff and jitter follow the [.NET YDB SDK retry policy](https://github.com/ydb-platform/ydb-dotnet-sdk/tree/main/src/Ydb.Sdk/src/Ado/RetryPolicy):
+full jitter for `ABORTED` / `UNDETERMINED`, equal jitter for `UNAVAILABLE` / transport /
+`OVERLOADED`, zero delay for session errors. Status codes are read from `SQLException.errorCode`
+(YDB vendor codes), not from error message text.
+
+Use `retry = YdbRetryConfig.IDEMPOTENT` only when the body can be safely re-executed (pure reads,
+single `UPSERT` / `REPLACE`, idempotent business logic). Customize attempts and backoff via
+`YdbRetryConfig` or `YdbRetryConfig.DEFAULT.copy(maxAttempts = 3)`.
 
 ## Types
 
@@ -139,21 +139,27 @@ Default mapping for standard Exposed types:
 | `varchar` / `text`  | `Text`             |
 | `binary` / `blob`   | `String`           |
 | `uuid`              | `Uuid`             |
-| `date`              | `Date32`           |
-| `datetime`          | `Datetime64`       |
-| `timestamp`         | `Timestamp64`      |
+| `date`              | `Date`             |
+| `datetime`          | `Datetime`         |
+| `timestamp`         | `Timestamp`        |
 | `json`              | `JsonDocument`     |
 
-Temporal columns default to YDB **extended** types (`Date32`, `Datetime64`, `Timestamp64`).
-To target the legacy unsigned types when integrating with an existing schema, pass
-`forceLegacyDatetimes = true`:
+Pick unsigned legacy or signed extended temporal types per column on any `Table`
+(including `YdbTable`); JDBC vendor code drives both bind and DDL `sqlType()`:
 
 ```kotlin
-val db = YdbDialectProvider.connect(
-    url = "jdbc:ydb:grpc://localhost:2136/local",
-    forceLegacyDatetimes = true  // emits Date / Datetime / Timestamp
-)
+import tech.ydb.exposed.dialect.javatime.ydbDate
+import tech.ydb.exposed.dialect.javatime.ydbDate32
+import tech.ydb.exposed.dialect.javatime.ydbDatetime64
+
+object Events : YdbTable("events") {
+    val created = ydbDate("created")           // Date
+    val expires = ydbDate32("expires")         // Date32
+    val updated = ydbDatetime64("updated")     // Datetime64
+}
 ```
+`connectYdb` sets `forceSignedDatetimes=false` on the JDBC URL for driver compatibility;
+per-column types are not controlled by a connection flag.
 
 Additional YDB-specific column types are available via extension functions on `Table`:
 
@@ -172,29 +178,25 @@ ydbUint64("counter")
 For Decimal literals inside update expressions there's `ydbDecimalLiteral`:
 
 ```kotlin
-import tech.ydb.exposed.dialect.types.ydbDecimalLiteral
+import tech.ydb.exposed.dialect.ydbDecimalLiteral
 
 it.update(Products.price, ydbDecimalLiteral(BigDecimal("45.00"), 10, 2))
 ```
 
 ## Identifiers
 
-YDB does not expose `AUTO_INCREMENT`. The dialect explicitly rejects `autoIncrement()`.
-Use one of the IdTable base classes instead:
-
-- `YdbUuidIdTable` — native YDB `Uuid` column, auto-generated via `UUID.randomUUID()`;
-- `YdbUlidTable` — 26-char [ULID](https://github.com/ulid/spec), lexicographically sortable;
-- `YdbStringIdTable` — caller-provided business key.
-
-A top-level `ydbUlid()` is also exposed for generating ULIDs manually.
+On `YdbTable`, Exposed `autoIncrement()` maps to YDB `Serial` / `BigSerial`:
 
 ```kotlin
-import tech.ydb.exposed.dialect.YdbUlidTable
-
-object Events : YdbUlidTable("events") {
-    val payload = text("payload")
+object Orders : YdbTable("orders") {
+    val id = integer("id").autoIncrement()
+    val total = ydbDecimal("total", precision = 12, scale = 2)
+    override val primaryKey = PrimaryKey(id)
 }
 ```
+
+For UUID keys use `ydbUuid("id")` or Exposed `uuid()` under this dialect. Unsigned `Serial`
+columns are not supported.
 
 ## TTL
 

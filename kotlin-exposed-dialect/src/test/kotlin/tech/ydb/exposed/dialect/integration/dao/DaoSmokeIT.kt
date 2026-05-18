@@ -2,6 +2,8 @@ package tech.ydb.exposed.dialect.integration.dao
 
 import org.jetbrains.exposed.v1.core.Table
 import org.jetbrains.exposed.v1.core.dao.id.EntityID
+import org.jetbrains.exposed.v1.core.dao.id.IdTable
+import org.jetbrains.exposed.v1.core.decimalLiteral
 import org.jetbrains.exposed.v1.dao.Entity
 import org.jetbrains.exposed.v1.dao.EntityClass
 import org.jetbrains.exposed.v1.jdbc.selectAll
@@ -9,14 +11,24 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Test
-import tech.ydb.exposed.dialect.YdbStringIdTable
+import tech.ydb.exposed.dialect.buildYdbCreateStatement
 import tech.ydb.exposed.dialect.integration.base.BaseYdbTest
 
+/**
+ * Exposed [Entity] / [IdTable] work with YDB when table DDL uses YDB-style `PRIMARY KEY (cols)`
+ * (via [buildYdbCreateStatement]) instead of the default inline `PRIMARY KEY` on the column.
+ */
 class DaoSmokeIT : BaseYdbTest() {
 
-    object Articles : YdbStringIdTable("dao_articles", idLength = 64) {
+    object Articles : IdTable<String>("dao_articles") {
+        override val id = varchar("id", 64).entityId()
         val title = varchar("title", 255)
         val body = text("body")
+
+        override val primaryKey = PrimaryKey(id)
+
+        override fun createStatement(): List<String> =
+            buildYdbCreateStatement(this, ttlSettings = null, secondaryIndices = emptyList())
     }
 
     class Article(id: EntityID<String>) : Entity<String>(id) {
@@ -29,7 +41,7 @@ class DaoSmokeIT : BaseYdbTest() {
     override val tables: List<Table> = listOf(Articles)
 
     @Test
-    fun `should support dao create read update delete`() {
+    fun `should support dao create read update delete with manual string id`() {
         tx {
             Article.new(id = "article-1") {
                 title = "draft"

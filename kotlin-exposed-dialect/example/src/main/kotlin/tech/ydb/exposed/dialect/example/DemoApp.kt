@@ -6,13 +6,13 @@ import org.jetbrains.exposed.v1.jdbc.deleteWhere
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.update
 import org.jetbrains.exposed.v1.jdbc.upsert
-import tech.ydb.exposed.dialect.YdbDialectProvider
-import tech.ydb.exposed.dialect.types.ydbDecimalLiteral
+import tech.ydb.exposed.dialect.connectYdb
+import tech.ydb.exposed.dialect.ydbDecimalLiteral
 import tech.ydb.exposed.dialect.ydbTransaction
 import java.math.BigDecimal
 
 fun main() {
-    val db = YdbDialectProvider.connect(
+    val db = connectYdb(
         url = "jdbc:ydb:grpc://localhost:2136/local"
     )
 

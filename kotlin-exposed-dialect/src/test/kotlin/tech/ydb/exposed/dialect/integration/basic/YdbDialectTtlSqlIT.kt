@@ -1,6 +1,5 @@
 package tech.ydb.exposed.dialect.integration.basic
 
-import org.jetbrains.exposed.v1.javatime.timestamp
 import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
@@ -8,13 +7,14 @@ import tech.ydb.exposed.dialect.YdbDialect
 import tech.ydb.exposed.dialect.YdbTable
 import tech.ydb.exposed.dialect.YdbTtlColumnMode
 import tech.ydb.exposed.dialect.integration.base.BaseYdbTest
-import tech.ydb.exposed.dialect.types.ydbUint64
+import tech.ydb.exposed.dialect.ydbUint64
+import tech.ydb.exposed.dialect.javatime.ydbTimestamp
 
 class YdbDialectTtlSqlIT : BaseYdbTest() {
 
     object AlterTtlTimestampTable : YdbTable("unit_alter_ttl_timestamp_table") {
         val id = integer("id")
-        val expireAt = timestamp("expire_at")
+        val expireAt = ydbTimestamp("expire_at")
 
         override val primaryKey = PrimaryKey(id)
 
@@ -66,7 +66,7 @@ class YdbDialectTtlSqlIT : BaseYdbTest() {
         val error = assertThrows(IllegalArgumentException::class.java) {
             object : YdbTable("invalid_ttl_interval_table") {
                 val id = integer("id")
-                val expireAt = timestamp("expire_at")
+                val expireAt = ydbTimestamp("expire_at")
 
                 override val primaryKey = PrimaryKey(id)
 

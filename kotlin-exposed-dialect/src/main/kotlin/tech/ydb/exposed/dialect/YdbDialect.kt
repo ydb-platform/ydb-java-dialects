@@ -18,56 +18,56 @@ import java.sql.DatabaseMetaData
 
 /**
  * Default YDB column type mappings used by Exposed when a column is declared via standard
- * Exposed DSL (`integer`, `varchar`, `date`, ...) — see `YdbCustomColumnTypes.kt` for YDB-specific
+ * Exposed DSL (`integer`, `varchar`, `date`, ...) — see `YdbColumnTypes.kt` for YDB-specific
  * column types that have no direct Exposed equivalent (e.g. `JsonDocument`, `Interval`, `Uint64`).
  *
- * Temporal columns default to YDB **extended** types (`Date32`, `Datetime64`, `Timestamp64`).
- * Use `YdbDialectProvider.connect(..., forceLegacyDatetimes = true)` to fall back to the
- * legacy unsigned range (`Date`, `Datetime`, `Timestamp`) when integrating with schemas
- * that already use them.
+ * For `java.time` temporal columns with correct JDBC vendor binding, use
+ * [tech.ydb.exposed.dialect.javatime.ydbDate] / [tech.ydb.exposed.dialect.javatime.ydbDate32]
+ * (and the other extensions in that package). [ydbInterval] / [ydbInterval64] live in this module root.
  */
-internal class YdbDataTypeProvider(
-    private val forceLegacyDatetimes: Boolean
-) : DataTypeProvider() {
-    override fun byteType(): String = "Int8"
-    override fun ubyteType(): String = "Uint8"
-
-    override fun binaryType(): String = "String"
-    override fun binaryType(length: Int): String = "String"
-
-    override fun blobType(): String = binaryType()
-
-    override fun hexToDb(hexString: String): String = "'$hexString'"
-
-    override fun shortType(): String = "Int16"
-    override fun ushortType(): String = "Uint16"
-
-    override fun integerType(): String = "Int32"
-    override fun uintegerType(): String = "Uint32"
-
-    override fun integerAutoincType(): String =
-        throw UnsupportedOperationException(
-            "YDB does not support AUTO_INCREMENT. Use YdbUuidIdTable, YdbUlidTable or YdbStringIdTable instead."
-        )
-
-    override fun longType(): String = "Int64"
+internal class YdbDataTypeProvider : DataTypeProvider() {
     override fun booleanType(): String = "Bool"
+
+    override fun byteType(): String = "Int8"
+    override fun shortType(): String = "Int16"
+    override fun integerType(): String = "Int32"
+    override fun longType(): String = "Int64"
+
+    override fun ubyteType(): String = "Uint8"
+    override fun ushortType(): String = "Uint16"
+    override fun uintegerType(): String = "Uint32"
+    override fun ulongType(): String = "Uint64"
 
     override fun floatType(): String = "Float"
     override fun doubleType(): String = "Double"
 
-    override fun varcharType(colLength: Int): String = "Text"
+    override fun binaryType(): String = "Bytes"
+    override fun binaryType(length: Int): String = binaryType()
+    override fun blobType(): String = binaryType()
+
     override fun textType(): String = "Text"
+    override fun varcharType(colLength: Int): String = textType()
     override fun mediumTextType(): String = textType()
     override fun largeTextType(): String = textType()
 
+    override fun jsonType(): String = "Json"
+    override fun jsonBType(): String = "JsonDocument"
+
+    override fun integerAutoincType(): String = "Serial"
+    override fun longAutoincType(): String = "BigSerial"
+
     override fun uuidType(): String = "Uuid"
 
-    override fun dateType(): String = if (forceLegacyDatetimes) "Date" else "Date32"
-    override fun dateTimeType(): String = if (forceLegacyDatetimes) "Datetime" else "Datetime64"
-    override fun timestampType(): String = if (forceLegacyDatetimes) "Timestamp" else "Timestamp64"
+    override fun uintegerAutoincType(): String =
+        throw UnsupportedOperationException("YDB does not support unsigned Serial columns")
+    override fun ulongAutoincType(): String =
+        throw UnsupportedOperationException("YDB does not support unsigned Serial columns")
 
-    override fun jsonType(): String = "JsonDocument"
+    override fun dateType(): String = "Date"
+    override fun dateTimeType(): String = "Datetime"
+    override fun timestampType(): String = "Timestamp"
+
+    override fun hexToDb(hexString: String): String = "String::HexDecode('$hexString')"
 }
 
 internal object YdbFunctionProvider : FunctionProvider() {
@@ -185,20 +185,15 @@ internal object YdbFunctionProvider : FunctionProvider() {
 /**
  * Exposed [VendorDialect] for YDB.
  *
- * Usually obtained via [YdbDialectProvider.connect], which wires it into a [Database] together
+ * Usually obtained via [connectYdb], which wires it into a [Database] together
  * with a default [org.jetbrains.exposed.v1.core.DatabaseConfig] tuned for YDB
  * (SERIALIZABLE isolation, nested transactions disabled).
  */
-class YdbDialect internal constructor(
-    forceLegacyDatetimes: Boolean
-) : VendorDialect(
+class YdbDialect internal constructor() : VendorDialect(
     DIALECT_NAME,
-    YdbDataTypeProvider(forceLegacyDatetimes),
+    YdbDataTypeProvider(),
     YdbFunctionProvider
 ) {
-
-    constructor() : this(forceLegacyDatetimes = false)
-
     override fun createIndex(index: Index): String {
         val tr = runCatching { TransactionManager.current() }.getOrNull()
         if (!index.functions.isNullOrEmpty()) {

@@ -36,6 +36,6 @@ class BinaryTypesIT : BaseYdbTest() {
     @Test
     fun `should generate ddl for binary type`() = tx {
         val ddl = BinaryTypes.ddl.joinToString(" ")
-        assertTrue(ddl.contains("payload String"))
+        assertTrue(ddl.contains("payload Bytes"))
     }
 }

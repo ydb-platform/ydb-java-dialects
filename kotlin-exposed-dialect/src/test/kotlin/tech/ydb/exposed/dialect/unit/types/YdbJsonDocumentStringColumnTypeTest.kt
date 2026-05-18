@@ -3,8 +3,8 @@ package tech.ydb.exposed.dialect.unit.types
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Test
-import tech.ydb.exposed.dialect.types.YdbJsonDocumentStringColumnType
-import tech.ydb.table.values.PrimitiveType
+import tech.ydb.exposed.dialect.code.YdbJdbcCode
+import tech.ydb.exposed.dialect.YdbJsonDocumentStringColumnType
 
 class YdbJsonDocumentStringColumnTypeTest {
 
@@ -35,7 +35,7 @@ class YdbJsonDocumentStringColumnTypeTest {
     }
 
     @Test
-    fun `should bind json document with explicit YDB type`() {
+    fun `should bind json document with explicit JDBC vendor type`() {
         val json = """{"name":"alice","active":true}"""
         val (stmt, capture) = ydbPreparedStatementCapture()
 
@@ -43,6 +43,6 @@ class YdbJsonDocumentStringColumnTypeTest {
 
         val actual = capture()
         assertNotNull(actual)
-        assertEquals(BoundTypedObject(1, json, PrimitiveType.JsonDocument), actual)
+        assertEquals(BoundSqlObject(1, json, YdbJdbcCode.JSON_DOCUMENT), actual)
     }
 }

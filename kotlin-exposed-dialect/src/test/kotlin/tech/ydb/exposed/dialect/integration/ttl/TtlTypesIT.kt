@@ -1,17 +1,17 @@
 package tech.ydb.exposed.dialect.integration.ttl
 
 import org.jetbrains.exposed.v1.core.Table
-import org.jetbrains.exposed.v1.javatime.timestamp
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import tech.ydb.exposed.dialect.YdbTable
 import tech.ydb.exposed.dialect.integration.base.BaseYdbTest
+import tech.ydb.exposed.dialect.javatime.ydbTimestamp
 
 class TtlTypesIT : BaseYdbTest() {
 
     object ExpiringItems : YdbTable("expiring_items") {
         val id = integer("id")
-        val expireAt = timestamp("expire_at")
+        val expireAt = ydbTimestamp("expire_at")
 
         override val primaryKey = PrimaryKey(id)
 

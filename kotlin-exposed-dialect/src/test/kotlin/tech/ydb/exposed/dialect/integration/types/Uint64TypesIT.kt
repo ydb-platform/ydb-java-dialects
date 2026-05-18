@@ -8,7 +8,7 @@ import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import tech.ydb.exposed.dialect.YdbTable
 import tech.ydb.exposed.dialect.integration.base.BaseYdbTest
-import tech.ydb.exposed.dialect.types.ydbUint64
+import tech.ydb.exposed.dialect.ydbUint64
 
 class Uint64TypesIT : BaseYdbTest() {
 

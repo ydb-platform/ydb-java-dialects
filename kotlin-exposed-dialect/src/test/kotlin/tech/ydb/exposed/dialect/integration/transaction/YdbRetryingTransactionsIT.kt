@@ -6,10 +6,12 @@ import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Test
+import tech.ydb.exposed.dialect.YdbRetryConfig
 import tech.ydb.exposed.dialect.YdbTable
 import tech.ydb.exposed.dialect.integration.base.BaseYdbTest
-import tech.ydb.exposed.dialect.ydbReadOnlyTransaction
+import tech.ydb.exposed.dialect.code.YdbVendorCode
 import tech.ydb.exposed.dialect.ydbTransaction
+import java.sql.SQLException
 import java.util.concurrent.atomic.AtomicInteger
 
 class YdbRetryingTransactionsIT : BaseYdbTest() {
@@ -32,7 +34,7 @@ class YdbRetryingTransactionsIT : BaseYdbTest() {
             }
         }
 
-        val name = ydbReadOnlyTransaction(db) {
+        val name = ydbTransaction(db, readOnly = true, retry = YdbRetryConfig.IDEMPOTENT) {
             RetryItems.selectAll().single()[RetryItems.name]
         }
         assertEquals("alpha", name)
@@ -42,7 +44,7 @@ class YdbRetryingTransactionsIT : BaseYdbTest() {
     fun `ydbTransaction retries the body on a retryable failure`() {
         val attempts = AtomicInteger()
 
-        ydbTransaction(db, idempotent = true, maxAttempts = 3) {
+        ydbTransaction(db, retry = YdbRetryConfig.IDEMPOTENT.copy(maxAttempts = 3)) {
             val attempt = attempts.incrementAndGet()
             if (attempt < 2) {
                 throw FakeAbortedException()
@@ -55,7 +57,7 @@ class YdbRetryingTransactionsIT : BaseYdbTest() {
 
         assertEquals(2, attempts.get())
 
-        val stored = ydbReadOnlyTransaction(db) {
+        val stored = ydbTransaction(db, readOnly = true, retry = YdbRetryConfig.IDEMPOTENT) {
             RetryItems.selectAll().single()[RetryItems.name]
         }
         assertEquals("retried", stored)
@@ -66,7 +68,7 @@ class YdbRetryingTransactionsIT : BaseYdbTest() {
         val attempts = AtomicInteger()
 
         assertThrows(IllegalStateException::class.java) {
-            ydbTransaction(db, maxAttempts = 3) {
+            ydbTransaction(db, retry = YdbRetryConfig.DEFAULT.copy(maxAttempts = 3)) {
                 attempts.incrementAndGet()
                 error("non-retryable")
             }
@@ -74,8 +76,6 @@ class YdbRetryingTransactionsIT : BaseYdbTest() {
         assertEquals(1, attempts.get())
     }
 
-    private class FakeAbortedException : RuntimeException("simulated"), tech.ydb.jdbc.exception.YdbStatusable {
-        override fun getStatus(): tech.ydb.core.Status =
-            tech.ydb.core.Status.of(tech.ydb.core.StatusCode.ABORTED)
-    }
+    private class FakeAbortedException :
+        SQLException("simulated ABORTED", "YDB", YdbVendorCode.ABORTED)
 }

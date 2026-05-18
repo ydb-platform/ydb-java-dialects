@@ -8,7 +8,7 @@ import org.jetbrains.exposed.v1.jdbc.transactions.TransactionManager
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.extension.RegisterExtension
-import tech.ydb.exposed.dialect.YdbDialectProvider
+import tech.ydb.exposed.dialect.connectYdb
 import tech.ydb.exposed.dialect.ydbTransaction
 import tech.ydb.test.junit5.YdbHelperExtension
 
@@ -32,14 +32,14 @@ abstract class BaseYdbTest {
             append(if (ydb.useTls()) "grpcs://" else "grpc://")
             append(ydb.endpoint())
             append(ydb.database())
-            ydb.authToken()?.let { append("?token=").append(it) }
+            append("?disablePrepareDataQuery=true")
         }
 
-        db = YdbDialectProvider.connect(url = jdbcUrl)
+        db = connectYdb(url = jdbcUrl)
 
         if (tables.isNotEmpty()) {
             ydbTransaction(db) {
-                runCatching { SchemaUtils.drop(*tables.toTypedArray()) }
+                SchemaUtils.drop(*tables.toTypedArray())
                 SchemaUtils.create(*tables.toTypedArray())
             }
         }

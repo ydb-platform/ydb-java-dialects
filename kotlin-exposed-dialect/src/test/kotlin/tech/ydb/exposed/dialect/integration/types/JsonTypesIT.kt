@@ -8,8 +8,8 @@ import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import tech.ydb.exposed.dialect.YdbTable
 import tech.ydb.exposed.dialect.integration.base.BaseYdbTest
-import tech.ydb.exposed.dialect.types.ydbJson
-import tech.ydb.exposed.dialect.types.ydbJsonDocument
+import tech.ydb.exposed.dialect.ydbJson
+import tech.ydb.exposed.dialect.ydbJsonDocument
 
 class JsonTypesIT : BaseYdbTest() {
 

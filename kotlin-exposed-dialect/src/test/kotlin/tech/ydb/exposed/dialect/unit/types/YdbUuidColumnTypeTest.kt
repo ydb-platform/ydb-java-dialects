@@ -2,7 +2,7 @@ package tech.ydb.exposed.dialect.unit.types
 
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
-import tech.ydb.exposed.dialect.types.YdbUuidColumnType
+import tech.ydb.exposed.dialect.YdbUuidColumnType
 import java.util.UUID
 
 class YdbUuidColumnTypeTest {

@@ -8,7 +8,7 @@ import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import tech.ydb.exposed.dialect.YdbTable
 import tech.ydb.exposed.dialect.integration.base.BaseYdbTest
-import tech.ydb.exposed.dialect.types.ydbDecimal
+import tech.ydb.exposed.dialect.ydbDecimal
 import java.math.BigDecimal
 
 class DecimalTypesIT : BaseYdbTest() {
