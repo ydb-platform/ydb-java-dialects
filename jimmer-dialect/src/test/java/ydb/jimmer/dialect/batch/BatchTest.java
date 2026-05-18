@@ -13,6 +13,7 @@ import java.util.List;
 
 public class BatchTest  extends AbstractInsertTest {
     private static final String TABLE_NAME = "simple_table";
+    private static final String TYPE_NAME = "Int32";
 
     private void batchTest(
             SaveMode saveMode,
@@ -45,7 +46,7 @@ public class BatchTest  extends AbstractInsertTest {
 
     @BeforeEach
     void setup() {
-        createTable(TABLE_NAME, "Int32");
+        createTable(TABLE_NAME, TYPE_NAME);
     }
 
     @AfterEach
