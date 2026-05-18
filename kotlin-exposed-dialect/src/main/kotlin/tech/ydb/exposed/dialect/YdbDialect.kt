@@ -70,7 +70,8 @@ internal class YdbDataTypeProvider : DataTypeProvider() {
     override fun dateTimeType(): String = "Datetime"
     override fun timestampType(): String = "Timestamp"
 
-    override fun hexToDb(hexString: String): String = "String::HexDecode('$hexString')"
+    override fun hexToDb(hexString: String): String =
+        "Unwrap(String::HexDecode('$hexString'), 'invalid hex bytes literal')"
 }
 
 internal object YdbFunctionProvider : FunctionProvider() {

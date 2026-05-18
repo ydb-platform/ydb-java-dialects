@@ -7,7 +7,7 @@ import tech.ydb.exposed.dialect.YdbTable
 import tech.ydb.exposed.dialect.YdbTtlColumnMode
 import tech.ydb.exposed.dialect.integration.base.BaseYdbTest
 import tech.ydb.exposed.dialect.ydbUint64
-import tech.ydb.exposed.dialect.javatime.ydbTimestamp
+import tech.ydb.exposed.dialect.javatime.ydbTimestamp64
 
 class YdbTableIT : BaseYdbTest() {
 
@@ -20,7 +20,7 @@ class YdbTableIT : BaseYdbTest() {
 
     object TtlTimestampTable : YdbTable("unit_ttl_timestamp_table") {
         val id = integer("id")
-        val expireAt = ydbTimestamp("expire_at")
+        val expireAt = ydbTimestamp64("expire_at")
 
         override val primaryKey = PrimaryKey(id)
 
@@ -103,7 +103,7 @@ class YdbTableIT : BaseYdbTest() {
         val error = assertThrows(IllegalArgumentException::class.java) {
             object : YdbTable("invalid_ttl_interval_table") {
                 val id = integer("id")
-                val expireAt = ydbTimestamp("expire_at")
+                val expireAt = ydbTimestamp64("expire_at")
 
                 override val primaryKey = PrimaryKey(id)
 

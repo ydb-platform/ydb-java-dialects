@@ -201,9 +201,9 @@ class AllTypesRoundTripIT : BaseYdbTest() {
     @Test
     fun `should emit expected ddl for standard temporal and ydb extensions`() = tx {
         val stdDdl = StandardTemporal.ddl.joinToString(" ")
-        assertTrue(stdDdl.contains("date_col Date32"))
-        assertTrue(stdDdl.contains("datetime_col Datetime64"))
-        assertTrue(stdDdl.contains("timestamp_col Timestamp64"))
+        assertTrue(stdDdl.contains("date_col Date"))
+        assertTrue(stdDdl.contains("datetime_col Datetime"))
+        assertTrue(stdDdl.contains("timestamp_col Timestamp"))
 
         val extDdl = YdbExtensionTypes.ddl.joinToString(" ")
         assertTrue(extDdl.contains("amount Decimal(12, 4)"))

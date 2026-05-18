@@ -11,7 +11,8 @@ import tech.ydb.exposed.dialect.YdbDataTypeProvider
  * Exposed calls it from [org.jetbrains.exposed.v1.core.BlobColumnType.nonNullValueToString]
  * ([LiteralOp], inline UPSERT values, etc.).
  * YDB `Bytes` is a [String](https://ydb.tech/docs/en/yql/reference/types/primitive) alias; literals use
- * [String::HexDecode](https://ydb.tech/docs/en/yql/reference/udf/list/string).
+ * [String::HexDecode](https://ydb.tech/docs/en/yql/reference/udf/list/string) returns `String?`;
+ * [Unwrap](https://ydb.tech/docs/en/yql/reference/builtins/basic#unwrap) satisfies NOT NULL `Bytes` columns.
  */
 class YdbHexToDbTest {
 
@@ -19,8 +20,14 @@ class YdbHexToDbTest {
 
     @Test
     fun `uses String HexDecode without cast`() {
-        assertEquals("String::HexDecode('deadbeef')", provider.hexToDb("deadbeef"))
-        assertEquals("String::HexDecode('')", provider.hexToDb(""))
+        assertEquals(
+            "Unwrap(String::HexDecode('deadbeef'), 'invalid hex bytes literal')",
+            provider.hexToDb("deadbeef")
+        )
+        assertEquals(
+            "Unwrap(String::HexDecode(''), 'invalid hex bytes literal')",
+            provider.hexToDb("")
+        )
     }
 
     @Test
@@ -29,6 +36,9 @@ class YdbHexToDbTest {
         val hex = ExposedBlob(bytes).hexString()
 
         assertEquals("0102abcd", hex)
-        assertEquals("String::HexDecode('0102abcd')", provider.hexToDb(hex))
+        assertEquals(
+            "Unwrap(String::HexDecode('0102abcd'), 'invalid hex bytes literal')",
+            provider.hexToDb(hex)
+        )
     }
 }
