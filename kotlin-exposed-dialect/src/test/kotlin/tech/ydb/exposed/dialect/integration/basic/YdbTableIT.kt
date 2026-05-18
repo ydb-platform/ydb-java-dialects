@@ -97,4 +97,22 @@ class YdbTableIT : BaseYdbTest() {
             InvalidNumericTtlTable.ddl
         }
     }
+
+    @Test
+    fun `rejects invalid TTL interval early`() {
+        val error = assertThrows(IllegalArgumentException::class.java) {
+            object : YdbTable("invalid_ttl_interval_table") {
+                val id = integer("id")
+                val expireAt = ydbTimestamp("expire_at")
+
+                override val primaryKey = PrimaryKey(id)
+
+                init {
+                    ttl(expireAt, """PT1H" ON hacked""")
+                }
+            }
+        }
+
+        assertTrue(error.message?.contains("Invalid YDB TTL interval") == true, error.message)
+    }
 }

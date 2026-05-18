@@ -1,10 +1,13 @@
 package tech.ydb.exposed.dialect
 
 import org.jetbrains.exposed.v1.core.Column
+import org.jetbrains.exposed.v1.core.Expression
 import org.jetbrains.exposed.v1.core.IColumnType
+import org.jetbrains.exposed.v1.core.append
 import org.jetbrains.exposed.v1.core.Index
 import org.jetbrains.exposed.v1.core.Op
 import org.jetbrains.exposed.v1.core.QueryAlias
+import org.jetbrains.exposed.v1.core.QueryBuilder
 import org.jetbrains.exposed.v1.core.Table
 import org.jetbrains.exposed.v1.core.Transaction
 import org.jetbrains.exposed.v1.core.statements.MergeStatement
@@ -75,7 +78,119 @@ internal object YdbFunctionProvider : FunctionProvider() {
     private const val MERGE_UNSUPPORTED =
         "YDB dialect does not support ANSI MERGE through Exposed. Use UPSERT or batchUpsert instead."
 
-    override fun random(seed: Int?): String = "Random()"
+    private const val JSON_CONTAINS_UNSUPPORTED =
+        "YDB does not support JSON_CONTAINS. Use JSON_EXISTS or compare JSON_VALUE / JSON_QUERY instead."
+
+    /**
+     * Maps Exposed [org.jetbrains.exposed.v1.core.Random] to YQL [Random](https://ydb.tech/docs/en/yql/reference/builtins/basic).
+     *
+     * YDB optional arguments are **not** a reproducible PRNG seed (unlike MySQL `RAND(n)`).
+     * They only group call sites inside one query (same arguments → same value in the same execution phase).
+     * See YDB docs: `Random(1)` — one draw per query; `Random(column)` — per row.
+     *
+     * @param seed When `null`, each call site gets an independent `Random()`.
+     *   When set, emitted as `Random(seed)` for YDB call grouping only.
+     */
+    override fun random(seed: Int?): String =
+        if (seed == null) "Random()" else "Random($seed)"
+
+    override fun <T : String?> charLength(expr: Expression<T>, queryBuilder: QueryBuilder): Unit = queryBuilder {
+        append("Unicode::GetLength(", expr, ")")
+    }
+
+    override fun <T : String?> substring(
+        expr: Expression<T>,
+        start: Expression<Int>,
+        length: Expression<Int>,
+        builder: QueryBuilder,
+        prefix: String
+    ): Unit = builder {
+        append("Unicode::Substring(", expr, ", ", start, ", ", length, ")")
+    }
+
+    override fun concat(separator: String, queryBuilder: QueryBuilder, vararg expr: Expression<*>) {
+        if (expr.isEmpty()) {
+            queryBuilder { append("''") }
+            return
+        }
+        queryBuilder {
+            if (separator.isEmpty()) {
+                expr.appendTo(separator = " || ") { +it }
+            } else {
+                append("Unicode::JoinFromList(AsList(")
+                expr.appendTo { append("CAST(", it, " AS Utf8)") }
+                append("), '", escapeYqlStringLiteral(separator), "')")
+            }
+        }
+    }
+
+    /**
+     * [Unicode::Find](https://ydb.tech/docs/en/yql/reference/udf/list/unicode) is 0-based;
+     * Exposed [locate] is 1-based (0 when not found).
+     */
+    override fun <T : String?> locate(
+        queryBuilder: QueryBuilder,
+        expr: Expression<T>,
+        substring: String
+    ) = queryBuilder {
+        val needle = escapeYqlStringLiteral(substring)
+        append("IF(Unicode::Find(", expr, ", '", needle, "') IS NULL, 0, ")
+        append("CAST(Unicode::Find(", expr, ", '", needle, "') + 1u AS Int32))")
+    }
+
+    override fun <T : String?> regexp(
+        expr1: Expression<T>,
+        pattern: Expression<String>,
+        caseSensitive: Boolean,
+        queryBuilder: QueryBuilder
+    ): Unit = queryBuilder {
+        if (caseSensitive) {
+            append(expr1, " REGEXP ", pattern)
+        } else {
+            append("Re2::Grep(", pattern, ", Re2::Options(false AS CaseSensitive))(", expr1, ")")
+        }
+    }
+
+    override fun <T> jsonCast(expression: Expression<T>, jsonType: IColumnType<*>, queryBuilder: QueryBuilder) {
+        queryBuilder {
+            append("CAST(", expression, " AS ", jsonType.sqlType(), ")")
+        }
+    }
+
+    override fun <T> jsonExtract(
+        expression: Expression<T>,
+        vararg path: String,
+        toScalar: Boolean,
+        jsonType: IColumnType<*>,
+        queryBuilder: QueryBuilder
+    ) = queryBuilder {
+        val jsonPath = buildYdbJsonPath(*path)
+        append(if (toScalar) "JSON_VALUE" else "JSON_QUERY")
+        append("(", expression, ", '", escapeYqlStringLiteral(jsonPath), "')")
+    }
+
+    override fun jsonContains(
+        target: Expression<*>,
+        candidate: Expression<*>,
+        path: String?,
+        jsonType: IColumnType<*>,
+        queryBuilder: QueryBuilder
+    ) {
+        throw UnsupportedOperationException(JSON_CONTAINS_UNSUPPORTED)
+    }
+
+    override fun jsonExists(
+        expression: Expression<*>,
+        vararg path: String,
+        optional: String?,
+        jsonType: IColumnType<*>,
+        queryBuilder: QueryBuilder
+    ) = queryBuilder {
+        val jsonPath = buildYdbJsonPath(*path)
+        append("JSON_EXISTS(", expression, ", '", escapeYqlStringLiteral(jsonPath), "'")
+        optional?.let { append(" ", it) }
+        append(")")
+    }
 
     override fun upsert(
         table: Table,
@@ -223,50 +338,12 @@ class YdbDialect internal constructor() : VendorDialect(
         }
     }
 
-    fun createSecondaryIndex(table: Table, spec: YdbSecondaryIndexSpec): String {
-        val tr = TransactionManager.current()
-        return buildString {
-            append("ALTER TABLE ")
-            append(tr.identity(table))
-            append(" ADD ")
-            append(renderYdbSecondaryIndex(spec))
-        }
-    }
-
     override fun dropIndex(
         tableName: String,
         indexName: String,
         isUnique: Boolean,
         isPartialOrFunctional: Boolean
     ): String = "ALTER TABLE $tableName DROP INDEX $indexName"
-
-    fun setTtl(table: YdbTable): String {
-        val tr = TransactionManager.current()
-        val ttl = table.ttlSettings
-            ?: error("TTL is not configured for table ${table.tableName}")
-
-        validateYdbTtlColumn(ttl)
-        val normalizedInterval = normalizeTtlInterval(ttl.intervalIso8601)
-
-        return buildString {
-            append("ALTER TABLE ")
-            append(tr.identity(table))
-            append(" SET (TTL = Interval(\"")
-            append(normalizedInterval)
-            append("\") ON ")
-            append(tr.identity(ttl.column))
-            ttl.mode.toSql()?.let {
-                append(" AS ")
-                append(it)
-            }
-            append(")")
-        }
-    }
-
-    fun resetTtl(table: YdbTable): String {
-        val tr = TransactionManager.current()
-        return "ALTER TABLE ${tr.identity(table)} RESET (TTL)"
-    }
 
     internal object Metadata : DatabaseDialectMetadata() {
 

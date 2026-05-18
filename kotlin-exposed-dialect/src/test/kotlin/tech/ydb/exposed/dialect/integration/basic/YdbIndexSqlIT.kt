@@ -9,7 +9,6 @@ import org.junit.jupiter.api.Test
 import tech.ydb.exposed.dialect.YdbDialect
 import tech.ydb.exposed.dialect.YdbIndexScope
 import tech.ydb.exposed.dialect.YdbIndexSyncMode
-import tech.ydb.exposed.dialect.YdbSecondaryIndexSpec
 import tech.ydb.exposed.dialect.YdbTable
 import tech.ydb.exposed.dialect.integration.base.BaseYdbTest
 
@@ -33,6 +32,14 @@ class YdbIndexSqlIT : BaseYdbTest() {
                 syncMode = YdbIndexSyncMode.ASYNC,
                 coverColumns = listOf(name),
                 withParams = mapOf("foo" to "bar")
+            )
+
+            secondaryIndex(
+                name = "email-cover-idx",
+                email,
+                unique = true,
+                scope = YdbIndexScope.GLOBAL,
+                syncMode = YdbIndexSyncMode.SYNC
             )
         }
 
@@ -80,70 +87,13 @@ class YdbIndexSqlIT : BaseYdbTest() {
     @Test
     fun `renders YDB-specific inline secondary index`() = tx {
         val ddl = IndexedTable.ddl.joinToString(" ")
+        val expectedHyphenatedName = db.identifierManager.cutIfNecessaryAndQuote("email-cover-idx")
 
         assertTrue(ddl.contains("INDEX email_cover_idx"), ddl)
         assertTrue(ddl.contains("GLOBAL ASYNC"), ddl)
         assertTrue(ddl.contains("ON (`email`)") || ddl.contains("ON (email)"), ddl)
         assertTrue(ddl.contains("COVER (`name`)") || ddl.contains("COVER (name)"), ddl)
         assertTrue(ddl.contains("WITH (foo = \"bar\")"), ddl)
-    }
-
-    @Test
-    fun `renders YDB-specific ALTER TABLE secondary index SQL`() = tx {
-        val dialect = db.dialect as YdbDialect
-
-        val sql = dialect.createSecondaryIndex(
-            table = IndexedTable,
-            spec = YdbSecondaryIndexSpec(
-                name = "email_lookup_idx",
-                columns = listOf(IndexedTable.email),
-                unique = false,
-                scope = YdbIndexScope.GLOBAL,
-                syncMode = YdbIndexSyncMode.SYNC
-            )
-        )
-
-        assertTrue(sql.contains("ALTER TABLE"), sql)
-        assertTrue(sql.contains("ADD INDEX email_lookup_idx GLOBAL"), sql)
-        assertTrue(sql.contains("ON (`email`)") || sql.contains("ON (email)"), sql)
-    }
-
-    @Test
-    fun `renders UNIQUE YDB-specific ALTER TABLE secondary index SQL`() = tx {
-        val dialect = db.dialect as YdbDialect
-
-        val sql = dialect.createSecondaryIndex(
-            table = IndexedTable,
-            spec = YdbSecondaryIndexSpec(
-                name = "email_unique_lookup_idx",
-                columns = listOf(IndexedTable.email),
-                unique = true,
-                scope = YdbIndexScope.GLOBAL,
-                syncMode = YdbIndexSyncMode.SYNC
-            )
-        )
-
-        assertTrue(sql.contains("ALTER TABLE"), sql)
-        assertTrue(sql.contains("ADD INDEX email_unique_lookup_idx GLOBAL UNIQUE"), sql)
-        assertTrue(sql.contains("ON (`email`)") || sql.contains("ON (email)"), sql)
-    }
-
-    @Test
-    fun `quotes secondary index name when needed`() = tx {
-        val dialect = db.dialect as YdbDialect
-        val expectedName = db.identifierManager.cutIfNecessaryAndQuote("email-cover-idx")
-
-        val sql = dialect.createSecondaryIndex(
-            table = IndexedTable,
-            spec = YdbSecondaryIndexSpec(
-                name = "email-cover-idx",
-                columns = listOf(IndexedTable.email),
-                unique = false,
-                scope = YdbIndexScope.GLOBAL,
-                syncMode = YdbIndexSyncMode.SYNC
-            )
-        )
-
-        assertTrue(sql.contains("ADD INDEX $expectedName GLOBAL"), sql)
+        assertTrue(ddl.contains("INDEX $expectedHyphenatedName GLOBAL UNIQUE"), ddl)
     }
 }

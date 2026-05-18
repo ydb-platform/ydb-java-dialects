@@ -7,7 +7,6 @@ import org.junit.jupiter.api.Test
 import tech.ydb.exposed.dialect.YdbDialect
 import tech.ydb.exposed.dialect.YdbIndexScope
 import tech.ydb.exposed.dialect.YdbIndexSyncMode
-import tech.ydb.exposed.dialect.YdbSecondaryIndexSpec
 import tech.ydb.exposed.dialect.YdbTable
 import tech.ydb.exposed.dialect.integration.base.BaseYdbTest
 
@@ -59,25 +58,6 @@ class IndexIT : BaseYdbTest() {
         assertTrue(ddl.contains("ON (`email`)") || ddl.contains("ON (email)"), ddl)
         assertTrue(ddl.contains("COVER (`name`)") || ddl.contains("COVER (name)"), ddl)
         assertTrue(ddl.contains("PRIMARY KEY"), ddl)
-    }
-
-    @Test
-    fun `should generate alter table sql for ydb specific secondary index`() = tx {
-        val dialect = db.dialect as YdbDialect
-
-        val spec = YdbSecondaryIndexSpec(
-            name = "email_lookup_idx",
-            columns = listOf(Customers.email),
-            unique = false,
-            scope = YdbIndexScope.GLOBAL,
-            syncMode = YdbIndexSyncMode.SYNC
-        )
-
-        val sql = dialect.createSecondaryIndex(Customers, spec)
-
-        assertTrue(sql.contains("ALTER TABLE"), sql)
-        assertTrue(sql.contains("ADD INDEX email_lookup_idx GLOBAL"), sql)
-        assertTrue(sql.contains("ON (`email`)") || sql.contains("ON (email)"), sql)
     }
 
     @Test

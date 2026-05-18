@@ -7,7 +7,7 @@ import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 /**
  * Runs [statement] inside an Exposed [transaction] and retries it on retryable YDB errors.
  *
- * Retry behaviour is controlled by [retry] ([YdbRetryConfig]), aligned with
+ * Retry behavior is controlled by [retry] ([YdbRetryConfig]), aligned with
  * [YdbRetryPolicy](https://github.com/ydb-platform/ydb-dotnet-sdk/blob/main/src/Ydb.Sdk/src/Ado/RetryPolicy/YdbRetryPolicy.cs).
  */
 fun <T> ydbTransaction(
