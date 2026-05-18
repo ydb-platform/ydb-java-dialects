@@ -40,28 +40,27 @@ fun registerYdbDialect() {
 /**
  * Opens a YDB-backed Exposed [Database] with dialect defaults tuned for YDB.
  *
- * JDBC URL is augmented with `forceSignedDatetimes=false` for driver backward compatibility.
- * Temporal column types (unsigned vs signed) are chosen per column via [tech.ydb.exposed.dialect.javatime.ydbDate]
- * / [tech.ydb.exposed.dialect.javatime.ydbDate32], not via a connection flag.
+ * Add `forceSignedDatetimes=true` or `forceSignedDatetimes=false` to [url] when the JDBC driver requires it.
  */
 fun connectYdb(
     url: String,
     user: String = "",
-    password: String = ""
+    password: String = "",
+    enableSignedDatetimes: Boolean = false
 ): Database {
     ensureYdbDialectRegistered()
 
     return Database.connect(
-        url = ydbJdbcUrl(url),
+        url = url,
         driver = YDB_DRIVER_CLASS,
         user = user,
         password = password,
-        databaseConfig = ydbDatabaseConfig()
+        databaseConfig = ydbDatabaseConfig(enableSignedDatetimes = enableSignedDatetimes)
     )
 }
 
-internal fun ydbDatabaseConfig(): DatabaseConfig = DatabaseConfig {
-    explicitDialect = YdbDialect()
+internal fun ydbDatabaseConfig(enableSignedDatetimes: Boolean = false): DatabaseConfig = DatabaseConfig {
+    explicitDialect = YdbDialect(enableSignedDatetimes = enableSignedDatetimes)
     defaultIsolationLevel = Connection.TRANSACTION_SERIALIZABLE
     defaultReadOnly = false
     useNestedTransactions = false

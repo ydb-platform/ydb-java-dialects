@@ -7,7 +7,7 @@ import tech.ydb.exposed.dialect.YdbDataTypeProvider
 
 class YdbDataTypeProviderTest {
 
-    private val provider = YdbDataTypeProvider()
+    private val provider = YdbDataTypeProvider(enableSignedDatetimes = false)
 
     @Test
     fun `maps integer types`() {
@@ -46,6 +46,14 @@ class YdbDataTypeProviderTest {
         assertEquals("Date", provider.dateType())
         assertEquals("Datetime", provider.dateTimeType())
         assertEquals("Timestamp", provider.timestampType())
+    }
+
+    @Test
+    fun `maps temporal types to Date32 Datetime64 Timestamp64 when enableSignedDatetimes`() {
+        val signed = YdbDataTypeProvider(enableSignedDatetimes = true)
+        assertEquals("Date32", signed.dateType())
+        assertEquals("Datetime64", signed.dateTimeType())
+        assertEquals("Timestamp64", signed.timestampType())
     }
 
     @Test

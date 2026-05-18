@@ -28,7 +28,9 @@ import java.sql.DatabaseMetaData
  * [tech.ydb.exposed.dialect.javatime.ydbDate] / [tech.ydb.exposed.dialect.javatime.ydbDate32]
  * (and the other extensions in that package). [ydbInterval] / [ydbInterval64] live in this module root.
  */
-internal class YdbDataTypeProvider : DataTypeProvider() {
+internal class YdbDataTypeProvider(
+    private val enableSignedDatetimes: Boolean = false
+) : DataTypeProvider() {
     override fun booleanType(): String = "Bool"
 
     override fun byteType(): String = "Int8"
@@ -66,9 +68,11 @@ internal class YdbDataTypeProvider : DataTypeProvider() {
     override fun ulongAutoincType(): String =
         throw UnsupportedOperationException("YDB does not support unsigned Serial columns")
 
-    override fun dateType(): String = "Date"
-    override fun dateTimeType(): String = "Datetime"
-    override fun timestampType(): String = "Timestamp"
+    override fun dateType(): String = if (enableSignedDatetimes) "Date32" else "Date"
+
+    override fun dateTimeType(): String = if (enableSignedDatetimes) "Datetime64" else "Datetime"
+
+    override fun timestampType(): String = if (enableSignedDatetimes) "Timestamp64" else "Timestamp"
 
     override fun hexToDb(hexString: String): String =
         "Unwrap(String::HexDecode('$hexString'), 'invalid hex bytes literal')"
@@ -305,9 +309,11 @@ internal object YdbFunctionProvider : FunctionProvider() {
  * with a default [org.jetbrains.exposed.v1.core.DatabaseConfig] tuned for YDB
  * (SERIALIZABLE isolation, nested transactions disabled).
  */
-class YdbDialect internal constructor() : VendorDialect(
+class YdbDialect internal constructor(
+    val enableSignedDatetimes: Boolean = false
+) : VendorDialect(
     DIALECT_NAME,
-    YdbDataTypeProvider(),
+    YdbDataTypeProvider(enableSignedDatetimes),
     YdbFunctionProvider
 ) {
     override fun createIndex(index: Index): String {
