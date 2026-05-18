@@ -42,6 +42,7 @@ class YdbConnectionProviderFactoryImpl : JpaConnectionProviderFactory, ServerInf
   private lateinit var config: Config.Scope
 
   private var jtaEnabled by Delegates.notNull<Boolean>()
+  private lateinit var jdbcUrl: String
 
   @Volatile
   private lateinit var entityManagerFactory: EntityManagerFactory
@@ -69,6 +70,9 @@ class YdbConnectionProviderFactoryImpl : JpaConnectionProviderFactory, ServerInf
 
   override fun init(scope: Config.Scope) {
     config = scope
+    jdbcUrl = requireNotNull(config["jdbcUrl"]) {
+      "YDB JDBC URL is required"
+    }
   }
 
   override fun postInit(factory: KeycloakSessionFactory) {
@@ -83,10 +87,6 @@ class YdbConnectionProviderFactoryImpl : JpaConnectionProviderFactory, ServerInf
     factory.create().use { session -> getOrCreateEntityManagerFactory(session) }
 
     KeycloakModelUtils.runJobInTransaction(factory) { session -> migrateModel(session) }
-  }
-
-  private fun resolveJdbcUrl(): String = requireNotNull(config["jdbcUrl"]) {
-    "YDB JDBC URL is required"
   }
 
   private fun createOrUpdateSchema(
@@ -159,10 +159,9 @@ class YdbConnectionProviderFactoryImpl : JpaConnectionProviderFactory, ServerInf
 
   override fun getConnection(): Connection {
     try {
-      val url = resolveJdbcUrl()
       val driver = YdbDriver::class.java.name
       Class.forName(driver)
-      return DriverManager.getConnection(url)
+      return DriverManager.getConnection(jdbcUrl)
     } catch (e: Exception) {
       throw RuntimeException("Failed to connect to database", e)
     }
@@ -206,15 +205,24 @@ class YdbConnectionProviderFactoryImpl : JpaConnectionProviderFactory, ServerInf
       val properties = buildPropertiesFromScope()
 
       entityManagerFactory = JpaUtils.createEntityManagerFactory(session, PERSISTENCE_UNIT_NAME, properties, jtaEnabled)
+      addSpecificNamedQueries()
       logger.info("YDB EntityManagerFactory created via JpaUtils")
       return entityManagerFactory
     }
   }
 
+  /**
+   * Load YDB-specific named query overrides from META-INF/queries-ydb.properties.
+   * Follows the same pattern as DefaultJpaConnectionProviderFactory.addSpecificNamedQueries().
+   */
+  private fun addSpecificNamedQueries() = entityManagerFactory.createEntityManager().use { em ->
+    JpaUtils.loadSpecificNamedQueries(DB_KIND).forEach { (queryName, querySql) ->
+      JpaUtils.configureNamedQuery(queryName.toString(), querySql.toString(), em)
+    }
+  }
+
   private fun buildPropertiesFromScope(): MutableMap<String, Any> {
     val properties = mutableMapOf<String, Any>()
-
-    val jdbcUrl = resolveJdbcUrl()
 
     val hikariConfig = HikariConfig().apply {
       this.jdbcUrl = jdbcUrl
@@ -331,5 +339,6 @@ class YdbConnectionProviderFactoryImpl : JpaConnectionProviderFactory, ServerInf
     }
 
     const val PERSISTENCE_UNIT_NAME = "keycloak-default"
+    const val DB_KIND = "ydb"
   }
 }

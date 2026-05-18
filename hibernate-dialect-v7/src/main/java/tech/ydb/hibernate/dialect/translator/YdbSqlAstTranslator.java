@@ -6,6 +6,8 @@ import org.hibernate.sql.ast.Clause;
 import org.hibernate.sql.ast.spi.AbstractSqlAstTranslator;
 import org.hibernate.sql.ast.tree.Statement;
 import org.hibernate.sql.ast.tree.expression.Expression;
+import org.hibernate.sql.ast.tree.expression.QueryLiteral;
+import org.hibernate.sql.ast.tree.predicate.LikePredicate;
 import org.hibernate.sql.exec.spi.JdbcOperation;
 
 /**
@@ -41,6 +43,22 @@ public class YdbSqlAstTranslator<T extends JdbcOperation> extends AbstractSqlAst
                 offsetExpression.accept(this);
             } finally {
                 getClauseStack().pop();
+            }
+        }
+    }
+
+    @Override
+    protected void renderLikePredicate(LikePredicate likePredicate) {
+        likePredicate.getPattern().accept(this);
+        if (likePredicate.getEscapeCharacter() != null) {
+            appendSql(" escape ");
+            if (likePredicate.getEscapeCharacter() instanceof QueryLiteral<?> queryLiteral
+                    && queryLiteral.getLiteralValue() instanceof Character value) {
+                appendSql('\'');
+                appendSql(value);
+                appendSql('\'');
+            } else {
+                likePredicate.getEscapeCharacter().accept(this);
             }
         }
     }
