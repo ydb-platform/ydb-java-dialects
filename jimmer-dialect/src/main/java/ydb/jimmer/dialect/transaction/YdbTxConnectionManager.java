@@ -1,7 +1,6 @@
 package ydb.jimmer.dialect.transaction;
 
 import org.babyfish.jimmer.sql.exception.ExecutionException;
-import org.babyfish.jimmer.sql.transaction.AbstractTxConnectionManager;
 import org.babyfish.jimmer.sql.transaction.Propagation;
 import org.babyfish.jimmer.sql.transaction.TxConnectionManager;
 import org.jetbrains.annotations.Nullable;
@@ -15,7 +14,6 @@ import java.util.function.Function;
 /**
  * Provides propagation, isolation level, read only mode
  * and retry from abort/timeout for transactions.
- * This class is a modified version of {@link AbstractTxConnectionManager}.
  */
 public class YdbTxConnectionManager implements TxConnectionManager {
     private final DataSource dataSource;
@@ -83,8 +81,13 @@ public class YdbTxConnectionManager implements TxConnectionManager {
                     }
                 }
             } catch (SQLException | RuntimeException ex) {
-                if (i == maxAttempts - 1 || !isRetryable(ex)) {
-                    throw (ex instanceof RuntimeException re) ? re : new RuntimeException(ex);
+                RuntimeException e = new ExecutionException("JDBC error raised: " + ex.getMessage(), ex);
+                if (ex instanceof RuntimeException rex) {
+                    e = rex;
+                }
+
+                if (i == maxAttempts - 1 || !isRetryable(e.getCause())) {
+                    throw e;
                 }
             }
 
@@ -100,7 +103,7 @@ public class YdbTxConnectionManager implements TxConnectionManager {
         throw new RuntimeException("Max attempts exceeded");
     }
 
-    private boolean isRetryable(Exception ex) {
+    private boolean isRetryable(Throwable ex) {
         return ex instanceof SQLTimeoutException ||
                 (ex instanceof SQLException && isRetryableSqlState((SQLException) ex));
     }
@@ -109,7 +112,7 @@ public class YdbTxConnectionManager implements TxConnectionManager {
         String sqlState = ex.getSQLState();
         return sqlState != null && (
                 sqlState.startsWith("40") || // Transaction rollback
-                        "08S01".equals(sqlState)   // Communication link failure
+                        sqlState.startsWith("08")   // Connection exception
         );
     }
 
