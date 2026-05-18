@@ -40,3 +40,6 @@ private fun quoteJsonPathKey(key: String): String =
 
 internal fun escapeYqlStringLiteral(value: String): String =
     value.replace("'", "''")
+
+internal fun escapeYqlDoubleQuotedLiteral(value: String): String =
+    value.replace("\\", "\\\\").replace("\"", "\\\"")

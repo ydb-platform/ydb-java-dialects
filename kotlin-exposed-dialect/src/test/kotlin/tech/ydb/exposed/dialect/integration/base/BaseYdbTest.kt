@@ -5,6 +5,7 @@ import org.jetbrains.exposed.v1.jdbc.Database
 import org.jetbrains.exposed.v1.jdbc.JdbcTransaction
 import org.jetbrains.exposed.v1.jdbc.SchemaUtils
 import org.jetbrains.exposed.v1.jdbc.transactions.TransactionManager
+import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.extension.RegisterExtension
@@ -38,8 +39,8 @@ abstract class BaseYdbTest {
         db = connectYdb(url = jdbcUrl)
 
         if (tables.isNotEmpty()) {
-            ydbTransaction(db) {
-                SchemaUtils.drop(*tables.toTypedArray())
+            transaction(db) {
+                runCatching { SchemaUtils.drop(*tables.toTypedArray()) }
                 SchemaUtils.create(*tables.toTypedArray())
             }
         }
@@ -51,7 +52,7 @@ abstract class BaseYdbTest {
 
         if (tables.isNotEmpty()) {
             runCatching {
-                ydbTransaction(db) {
+                transaction(db) {
                     SchemaUtils.drop(*tables.toTypedArray())
                 }
             }

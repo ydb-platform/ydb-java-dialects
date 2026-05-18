@@ -6,7 +6,7 @@
 
     <groupId>tech.ydb.dialects</groupId>
     <artifactId>kotlin-exposed-ydb-dialect-example</artifactId>
-    <version>0.1.0</version>
+    <version>0.9.0</version>
     <packaging>jar</packaging>
 
     <name>Kotlin Exposed YDB Dialect Example</name>
@@ -27,7 +27,7 @@
         <dependency>
             <groupId>tech.ydb.dialects</groupId>
             <artifactId>kotlin-exposed-ydb-dialect</artifactId>
-            <version>0.1.0</version>
+            <version>0.9.0</version>
         </dependency>
 
         <dependency>

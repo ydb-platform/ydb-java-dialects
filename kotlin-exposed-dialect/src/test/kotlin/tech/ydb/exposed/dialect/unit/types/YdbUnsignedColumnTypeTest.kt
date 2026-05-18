@@ -1,6 +1,8 @@
 package tech.ydb.exposed.dialect.unit.types
 
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertThrows
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import tech.ydb.exposed.dialect.code.YdbJdbcCode
 import tech.ydb.exposed.dialect.YdbUByteColumnType
@@ -54,5 +56,18 @@ class YdbUnsignedColumnTypeTest {
         type.setParameter(stmt, 1, 42uL)
 
         assertEquals(BoundSqlObject(1, 42L, YdbJdbcCode.UINT64), capture())
+    }
+
+    @Test
+    fun `ulong rejects values above Long MAX_VALUE with clear error`() {
+        val type = YdbULongColumnType()
+        val overflow = Long.MAX_VALUE.toULong() + 1uL
+
+        val error = assertThrows(IllegalArgumentException::class.java) {
+            type.notNullValueToDB(overflow)
+        }
+
+        assertTrue(error.message!!.contains("exceeds Long-backed Uint64 range"))
+        assertTrue(error.message!!.contains(overflow.toString()))
     }
 }

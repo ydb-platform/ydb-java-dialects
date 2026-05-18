@@ -287,15 +287,12 @@ internal class YdbULongColumnType : ColumnType<ULong>() {
         else -> error("Unexpected value for Uint64: $value of ${value::class}")
     }
 
-    override fun notNullValueToDB(value: ULong): Any {
-        val longValue = value.toLong()
-        require(longValue >= 0) { "Uint64 column cannot store negative value: $value" }
-        return longValue
-    }
+    override fun notNullValueToDB(value: ULong): Any = value.toLongCompatibleUint64()
 
     override fun setParameter(stmt: PreparedStatementApi, index: Int, value: Any?) {
         val dbValue = when (value) {
-            is ULong -> value.toLong()
+            null -> null
+            is ULong -> value.toLongCompatibleUint64()
             else -> value
         }
         bindYdbParameter(stmt, index, dbValue, YdbJdbcCode.UINT64, this)
@@ -342,6 +339,16 @@ private fun BigInteger.toLongCompatibleUint64(): Long {
     require(this >= BigInteger.ZERO) { "Uint64 value cannot be negative: $this" }
     require(this <= BigInteger.valueOf(Long.MAX_VALUE)) {
         "Uint64 value $this exceeds Long-backed Uint64 range (0..${Long.MAX_VALUE})"
+    }
+    return toLong()
+}
+
+private fun ULong.toLongCompatibleUint64(): Long {
+    val max = Long.MAX_VALUE.toULong()
+    if (this > max) {
+        throw IllegalArgumentException(
+            "Uint64 value $this exceeds Long-backed Uint64 range (0..$max)"
+        )
     }
     return toLong()
 }

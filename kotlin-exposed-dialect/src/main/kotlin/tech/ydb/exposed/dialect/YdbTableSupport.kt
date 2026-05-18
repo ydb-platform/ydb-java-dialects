@@ -35,7 +35,7 @@ internal fun buildYdbCreateStatement(
 
         buildString {
             append(" WITH (TTL = Interval(\"")
-            append(normalizedInterval)
+            append(escapeYqlDoubleQuotedLiteral(normalizedInterval))
             append("\") ON ")
             append(tr.identity(ttl.column))
             ttl.mode.toSql()?.let {
