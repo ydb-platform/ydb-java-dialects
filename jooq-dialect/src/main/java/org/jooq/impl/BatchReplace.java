@@ -36,7 +36,7 @@ public class BatchReplace extends AbstractBatch {
 
     @Override
     public void subscribe(Subscriber<? super Integer> subscriber) {
-        throw new UnsupportedOperationException("BatchUpsert operation is not supported in a reactive way");
+        throw new UnsupportedOperationException("BatchReplace operation is not supported in a reactive way");
     }
 
     private BatchBindStep prepareBatch() {
