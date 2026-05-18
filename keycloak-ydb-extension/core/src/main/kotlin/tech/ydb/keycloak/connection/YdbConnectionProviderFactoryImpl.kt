@@ -222,7 +222,6 @@ class YdbConnectionProviderFactoryImpl : JpaConnectionProviderFactory, ServerInf
   private fun buildPropertiesFromScope(): MutableMap<String, Any> {
     val properties = mutableMapOf<String, Any>()
 
-
     val hikariConfig = HikariConfig().apply {
       this.jdbcUrl = jdbcUrl
       driverClassName = YdbDriver::class.java.name
