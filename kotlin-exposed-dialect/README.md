@@ -8,6 +8,9 @@ The module provides:
 - `Table.upsert` / `Table.replace` DSL backed by native YDB `UPSERT` / `REPLACE`;
 - a retryable transaction wrapper that handles YDB's OCC retries transparently.
 
+For Spring Boot applications there is a separate optional module:
+`kotlin-exposed-ydb-dialect-spring-boot-starter`.
+
 ## Requirements
 
 - JDK 17+
@@ -279,3 +282,24 @@ mvn exec:java -Dexec.mainClass=tech.ydb.exposed.dialect.example.DemoAppKt
 ```
 
 It expects a YDB instance at `jdbc:ydb:grpc://localhost:2136/local`.
+
+## Spring Boot starter
+
+Spring support is published as a separate artifact so the core dialect stays Spring-neutral:
+
+```xml
+<dependency>
+    <groupId>tech.ydb.dialects</groupId>
+    <artifactId>kotlin-exposed-ydb-dialect-spring-boot-starter</artifactId>
+    <version>0.9.0</version>
+</dependency>
+```
+
+The starter builds on top of Exposed's own `exposed-spring-boot-starter` and adds:
+
+- YDB dialect registration during Spring Boot startup;
+- `spring.datasource.url` normalization for `forceSignedDatetimes=...`;
+- the recommended YDB `DatabaseConfig`;
+- `YdbTransactionOperations` for retry-aware Exposed transactions inside Spring services.
+
+See [`spring-boot-starter/`](spring-boot-starter) for the dedicated module.

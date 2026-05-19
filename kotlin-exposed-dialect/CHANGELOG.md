@@ -22,5 +22,8 @@ Initial release of the Kotlin Exposed dialect for YDB.
 - Explicit rejection of ANSI `MERGE` (`UPSERT` covers the use case).
 - Console demo application showing CRUD, UPSERT and DDL.
 - Integration tests powered by testcontainers via `tech.ydb.test:ydb-junit5-support`.
+- Optional `kotlin-exposed-ydb-dialect-spring-boot-starter` module that layers YDB dialect
+  registration, datasource URL normalization, and retry-aware transactions on top of
+  Exposed's official Spring Boot starter.
 - GitHub Actions workflows for CI (`ci-exposed-ydb-dialect.yaml`) and Maven Central
   publishing (`publish-kotlin-exposed-dialect.yaml`).

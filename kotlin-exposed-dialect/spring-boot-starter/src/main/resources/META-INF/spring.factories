@@ -1,0 +1,2 @@
+org.springframework.boot.env.EnvironmentPostProcessor=\
+tech.ydb.exposed.dialect.spring.boot.autoconfigure.YdbExposedEnvironmentPostProcessor
