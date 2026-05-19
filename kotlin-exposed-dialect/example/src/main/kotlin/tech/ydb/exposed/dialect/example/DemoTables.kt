@@ -1,9 +1,11 @@
 package tech.ydb.exposed.dialect.example
 
-import org.jetbrains.exposed.v1.core.Table
+import tech.ydb.exposed.dialect.YdbIndexScope
+import tech.ydb.exposed.dialect.YdbIndexSyncMode
+import tech.ydb.exposed.dialect.YdbTable
 import tech.ydb.exposed.dialect.ydbDecimal
 
-object DemoProducts : Table("demo_products") {
+object DemoProducts : YdbTable("demo_products") {
     val id = integer("id")
     val sku = varchar("sku", 64)
     val name = varchar("name", 255)
@@ -14,6 +16,14 @@ object DemoProducts : Table("demo_products") {
 
     init {
         index(false, sku)
-        index("demo_products_category_idx", isUnique = false, category)
+
+        secondaryIndex(
+            name = "demo_products_category_idx",
+            category,
+            unique = false,
+            scope = YdbIndexScope.GLOBAL,
+            syncMode = YdbIndexSyncMode.ASYNC,
+            coverColumns = listOf(name, price)
+        )
     }
 }

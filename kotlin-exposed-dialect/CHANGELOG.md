@@ -10,8 +10,10 @@ Initial release of the Kotlin Exposed dialect for YDB.
   retries classified by JDBC `SQLException` vendor codes).
 - Native `UPSERT` / `REPLACE` rendering — wired into Exposed's standard `Table.upsert` and
   `Table.replace` DSL.
-- YDB-compatible `CREATE TABLE` generation with mandatory primary key.
-- Secondary indexes via Exposed `Table.index()` → `ALTER TABLE … ADD INDEX … GLOBAL`.
+- `YdbTable` — YQL `CREATE TABLE` with table-level `PRIMARY KEY (…)`, inline secondary indexes
+  (`secondaryIndex`), and optional row TTL (`ttl` / `YdbTtlColumnMode`); prefer over plain Exposed
+  `Table` when DDL must be valid on YDB.
+- Post-create indexes via Exposed `Table.index()` on any table → `ALTER TABLE … ADD INDEX … GLOBAL`.
 - JDBC metadata for reading existing indexes.
 - Temporal columns: unsigned (`ydbDate`, …) and signed (`ydbDate32`, …) extensions with
   JDBC vendor codes; DDL `sqlType()` derived from the code. No connection-level temporal flag.

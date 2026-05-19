@@ -394,7 +394,7 @@ internal object YdbFunctionProvider : FunctionProvider() {
  * Use [registerYdbDialect] then `Database.connect("jdbc:ydb:...")`.
  *
  * Notable behavior:
- * - [upsert] / [replace] → native YQL (partial columns vs defaults).
+ * - [tech.ydb.exposed.dialect.YdbFunctionProvider.upsert] / [replace] → native YQL (partial columns vs defaults).
  * - [createIndex] → `ALTER TABLE ... ADD INDEX ... GLOBAL`.
  * - Functional indexes and ANSI `MERGE` are rejected.
  *
