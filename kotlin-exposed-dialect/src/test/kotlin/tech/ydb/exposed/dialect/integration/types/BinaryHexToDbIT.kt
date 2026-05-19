@@ -12,6 +12,7 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import tech.ydb.exposed.dialect.YdbFunctionProvider
+import tech.ydb.exposed.dialect.YdbTable
 import tech.ydb.exposed.dialect.integration.base.BaseYdbTest
 
 /**
@@ -21,7 +22,7 @@ import tech.ydb.exposed.dialect.integration.base.BaseYdbTest
  */
 class BinaryHexToDbIT : BaseYdbTest() {
 
-    object BinaryHex : Table("binary_hex_to_db") {
+    object BinaryHex : YdbTable("binary_hex_to_db") {
         val id = integer("id")
         val payload = blob("payload")
 

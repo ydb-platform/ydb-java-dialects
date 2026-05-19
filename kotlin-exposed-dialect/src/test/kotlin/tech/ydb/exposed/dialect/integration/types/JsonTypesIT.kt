@@ -6,20 +6,21 @@ import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
+import tech.ydb.exposed.dialect.YdbTable
 import tech.ydb.exposed.dialect.integration.base.BaseYdbTest
 import tech.ydb.exposed.dialect.ydbJson
 import tech.ydb.exposed.dialect.ydbJsonDocument
 
 class JsonTypesIT : BaseYdbTest() {
 
-    object JsonTypes : Table("json_types") {
+    object JsonTypes : YdbTable("json_types") {
         val id = integer("id")
         val payload = ydbJson("payload")
 
         override val primaryKey = PrimaryKey(id)
     }
 
-    object JsonDocumentTypes : Table("json_document_types") {
+    object JsonDocumentTypes : YdbTable("json_document_types") {
         val id = integer("id")
         val payload = ydbJsonDocument("payload")
 

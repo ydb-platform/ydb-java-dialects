@@ -7,6 +7,7 @@ import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
+import tech.ydb.exposed.dialect.YdbTable
 import tech.ydb.exposed.dialect.integration.base.BaseYdbTest
 import tech.ydb.exposed.dialect.javatime.ydbDate
 import tech.ydb.exposed.dialect.javatime.ydbDatetime
@@ -18,7 +19,7 @@ import java.time.LocalDateTime
 /** [ydbDate] / [ydbDatetime] / [ydbTimestamp] — unsigned legacy types with JDBC vendor codes. */
 class ForceLegacyStandardTemporalIT : BaseYdbTest() {
 
-    object LegacyStdTemporal : Table("force_legacy_std_temporal") {
+    object LegacyStdTemporal : YdbTable("force_legacy_std_temporal") {
         val id = integer("id")
         val dateCol = ydbDate("date_col")
         val dateTimeCol = ydbDatetime("datetime_col")

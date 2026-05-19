@@ -9,7 +9,7 @@ import tech.ydb.exposed.dialect.YdbDataTypeProvider
  * [YdbDataTypeProvider.hexToDb] formats binary data for **inline SQL literals**, not for JDBC bind.
  *
  * Exposed calls it from [org.jetbrains.exposed.v1.core.BlobColumnType.nonNullValueToString]
- * ([LiteralOp], inline UPSERT values, etc.).
+ * ([org.jetbrains.exposed.v1.core.LiteralOp], inline UPSERT values, etc.).
  * YDB `Bytes` is a [String](https://ydb.tech/docs/en/yql/reference/types/primitive) alias; literals use
  * [String::HexDecode](https://ydb.tech/docs/en/yql/reference/udf/list/string) returns `String?`;
  * [Unwrap](https://ydb.tech/docs/en/yql/reference/builtins/basic#unwrap) satisfies NOT NULL `Bytes` columns.

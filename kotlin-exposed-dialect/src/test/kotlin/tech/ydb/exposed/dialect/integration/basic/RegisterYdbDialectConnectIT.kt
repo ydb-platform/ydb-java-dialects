@@ -16,6 +16,7 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.RegisterExtension
 import tech.ydb.exposed.dialect.YDB_DRIVER_CLASS
 import tech.ydb.exposed.dialect.YdbDialect
+import tech.ydb.exposed.dialect.YdbTable
 import tech.ydb.exposed.dialect.registerYdbDialect
 import tech.ydb.exposed.dialect.ydbTransaction
 import tech.ydb.test.junit5.YdbHelperExtension
@@ -27,7 +28,13 @@ import java.sql.Connection
  */
 class RegisterYdbDialectConnectIT {
 
-    object PlainConnectTable : Table("register_ydb_dialect_plain_connect") {
+    companion object {
+        @JvmField
+        @RegisterExtension
+        val ydb: YdbHelperExtension = YdbHelperExtension()
+    }
+
+    object PlainConnectTable : YdbTable("register_ydb_dialect_plain_connect") {
         val id = integer("id")
         val label = varchar("label", 64)
 
@@ -93,9 +100,4 @@ class RegisterYdbDialectConnectIT {
         assertTrue(ddl.contains("label Text"))
     }
 
-    companion object {
-        @JvmField
-        @RegisterExtension
-        val ydb: YdbHelperExtension = YdbHelperExtension()
-    }
 }

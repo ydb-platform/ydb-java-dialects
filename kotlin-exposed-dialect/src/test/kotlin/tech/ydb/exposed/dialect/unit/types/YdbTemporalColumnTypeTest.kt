@@ -4,6 +4,7 @@ import org.jetbrains.exposed.v1.core.Table
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Test
+import tech.ydb.exposed.dialect.YdbTable
 import tech.ydb.exposed.dialect.code.YdbJdbcCode
 import tech.ydb.exposed.dialect.javatime.ydbDate
 import tech.ydb.exposed.dialect.javatime.ydbDate32
@@ -15,12 +16,12 @@ import java.time.LocalDateTime
 
 class YdbTemporalColumnTypeTest {
 
-    private object PlainTable : Table("temporal_columns") {
+    private object PlainTable : YdbTable("temporal_columns") {
         val legacyDate = ydbDate("legacy_date")
         val signedDate = ydbDate32("date32")
     }
 
-    private object TemporalColumnsTable : Table("ydb_temporal_columns") {
+    private object TemporalColumnsTable : YdbTable("ydb_temporal_columns") {
         val legacyDate = ydbDate("legacy_date")
         val signedDate = ydbDate32("date32")
         val signedDatetime = ydbDatetime64("datetime64")

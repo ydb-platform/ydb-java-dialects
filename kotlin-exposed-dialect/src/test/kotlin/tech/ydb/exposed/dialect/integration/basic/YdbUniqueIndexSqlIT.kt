@@ -5,11 +5,12 @@ import org.jetbrains.exposed.v1.core.Table
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import tech.ydb.exposed.dialect.YdbDialect
+import tech.ydb.exposed.dialect.YdbTable
 import tech.ydb.exposed.dialect.integration.base.BaseYdbTest
 
 class YdbUniqueIndexSqlIT : BaseYdbTest() {
 
-    object T : Table("t_unique_idx_test") {
+    object T : YdbTable("t_unique_idx_test") {
         val id = integer("id")
         val email = varchar("email", 255)
 

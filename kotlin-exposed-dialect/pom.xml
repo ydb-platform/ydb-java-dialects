@@ -245,6 +245,7 @@
                             </includes>
                             <environmentVariables>
                                 <TESTCONTAINERS_REUSE_ENABLE>true</TESTCONTAINERS_REUSE_ENABLE>
+                                <YDB_DOCKER_IMAGE>ydbplatform/local-ydb:trunk</YDB_DOCKER_IMAGE>
                             </environmentVariables>
                         </configuration>
                     </execution>

@@ -4,6 +4,7 @@ import org.jetbrains.exposed.v1.core.Table
 import org.jetbrains.exposed.v1.jdbc.SchemaUtils
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
+import tech.ydb.exposed.dialect.YdbTable
 import tech.ydb.exposed.dialect.integration.base.BaseYdbTest
 import tech.ydb.exposed.dialect.javatime.ydbDate
 import tech.ydb.exposed.dialect.javatime.ydbDatetime
@@ -11,7 +12,7 @@ import tech.ydb.exposed.dialect.javatime.ydbTimestamp
 
 class LegacyTemporalTypesIT : BaseYdbTest() {
 
-    object LegacyTemporal : Table("legacy_temporal_types") {
+    object LegacyTemporal : YdbTable("legacy_temporal_types") {
         val id = integer("id")
         val dateCol = ydbDate("date_col")
         val dateTimeCol = ydbDatetime("datetime_col")

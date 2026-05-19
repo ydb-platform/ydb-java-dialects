@@ -7,6 +7,7 @@ import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.update
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
+import tech.ydb.exposed.dialect.YdbTable
 import tech.ydb.exposed.dialect.integration.base.BaseYdbTest
 import tech.ydb.exposed.dialect.ydbDecimal
 import tech.ydb.exposed.dialect.ydbDecimalLiteral
@@ -14,7 +15,7 @@ import java.math.BigDecimal
 
 class DecimalUpdateIT : BaseYdbTest() {
 
-    object DecimalItems : Table("decimal_update_items") {
+    object DecimalItems : YdbTable("decimal_update_items") {
         val id = integer("id")
         val name = varchar("name", 255)
         val price = ydbDecimal("price", 10, 2)

@@ -8,11 +8,12 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
+import tech.ydb.exposed.dialect.YdbTable
 import tech.ydb.exposed.dialect.integration.base.BaseYdbTest
 
 class UniqueIndexIT : BaseYdbTest() {
 
-    object UniqueCustomers : Table("unique_customers") {
+    object UniqueCustomers : YdbTable("unique_customers") {
         val id = integer("id")
         val email = varchar("email", 255)
         val name = varchar("name", 255)
