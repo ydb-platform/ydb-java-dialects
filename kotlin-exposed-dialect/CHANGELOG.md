@@ -6,7 +6,7 @@ Initial release of the Kotlin Exposed dialect for YDB.
 
 - YDB `VendorDialect` for Exposed JDBC; `registerYdbDialect()` / `connectYdb()` for setup.
 - `ydbTransaction { ... }` — retryable transactions with `readOnly` and `YdbRetryConfig`
-  (backoff/jitter aligned with [.NET YdbRetryPolicy](https://github.com/ydb-platform/ydb-dotnet-sdk/tree/main/src/Ydb.Sdk/src/Ado/RetryPolicy);
+  (exponential backoff with full/equal jitter on YDB vendor codes);
   retries classified by JDBC `SQLException` vendor codes).
 - Native `UPSERT` / `REPLACE` rendering — wired into Exposed's standard `Table.upsert` and
   `Table.replace` DSL.
@@ -16,8 +16,8 @@ Initial release of the Kotlin Exposed dialect for YDB.
 - JDBC metadata for reading existing indexes.
 - Temporal columns: unsigned (`YdbTable.date`, …) and signed (`date32`, …) extensions with
   JDBC vendor codes; DDL `sqlType()` derived from the code. No connection-level temporal flag.
-- Custom column types for `Decimal`, `Interval`, `Json`, `JsonDocument`, three `Uuid`
-  flavours and `Uint64`, plus a `ydbDecimalLiteral` helper for update expressions.
+- Custom column types for `Decimal`, `Interval`, `Json`, `JsonDocument`, native `Uuid`,
+  unsigned integers, `Uint64`, plus a `ydbDecimalLiteral` helper for update expressions.
 - `Serial` / `BigSerial` via Exposed `autoIncrement()` on `YdbTable`.
 - Explicit rejection of ANSI `MERGE` (`UPSERT` covers the use case).
 - Console demo application showing CRUD, UPSERT and DDL.

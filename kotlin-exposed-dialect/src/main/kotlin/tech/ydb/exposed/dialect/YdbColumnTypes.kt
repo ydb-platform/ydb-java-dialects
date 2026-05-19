@@ -1,3 +1,12 @@
+/**
+ * YDB-specific Exposed column types and table extensions.
+ *
+ * Types here use [bindYdbParameter] with JDBC vendor codes ([tech.ydb.exposed.dialect.code.YdbJdbcCode])
+ * so binds match YQL DDL. For temporal columns prefer [tech.ydb.exposed.dialect.javatime].
+ *
+ * Standard Exposed `integer`, `varchar`, `uuid`, etc. use [YdbDataTypeProvider] via [YdbDialect] for
+ * DDL only; production unsigned/temporal data should use `ydb*` / `javatime.*` extensions.
+ */
 package tech.ydb.exposed.dialect
 
 import org.jetbrains.exposed.v1.core.Column
@@ -11,7 +20,6 @@ import org.jetbrains.exposed.v1.jdbc.statements.jdbc.JdbcPreparedStatementImpl
 import tech.ydb.exposed.dialect.code.YdbJdbcCode
 import java.math.BigDecimal
 import java.math.BigInteger
-import java.sql.PreparedStatement
 import java.time.Duration
 import java.util.UUID
 import kotlin.UByte
@@ -21,30 +29,42 @@ import kotlin.UShort
 
 // region Table column extensions
 
+/** YDB `Decimal(precision, scale)` with scale validation on write. */
 fun Table.ydbDecimal(name: String, precision: Int, scale: Int): Column<BigDecimal> =
     registerColumn(name, YdbDecimalColumnType(precision, scale))
 
+/** YDB `Json` (scalar JSON string). */
 fun Table.ydbJson(name: String): Column<String> =
     registerColumn(name, YdbJsonStringColumnType())
 
+/** YDB `JsonDocument` (indexed JSON, analogue of PostgreSQL `jsonb`). */
 fun Table.ydbJsonDocument(name: String): Column<String> =
     registerColumn(name, YdbJsonDocumentStringColumnType())
 
+/** Native YDB `Uuid` with JDBC UUID vendor binding. */
 fun Table.ydbUuid(name: String): Column<UUID> =
     registerColumn(name, YdbUuidColumnType())
 
+/**
+ * YDB `Uint64` exposed as non-negative [Long] (`0..Long.MAX_VALUE`).
+ * For [ULong] use [ydbUlong].
+ */
 fun Table.ydbUint64(name: String): Column<Long> =
     registerColumn(name, YdbUint64ColumnType())
 
+/** YDB `Uint8` as Kotlin [UByte]. */
 fun Table.ydbUbyte(name: String): Column<UByte> =
     registerColumn(name, YdbUByteColumnType())
 
+/** YDB `Uint16` as Kotlin [UShort]. */
 fun Table.ydbUshort(name: String): Column<UShort> =
     registerColumn(name, YdbUShortColumnType())
 
+/** YDB `Uint32` as Kotlin [UInt]. */
 fun Table.ydbUint32(name: String): Column<UInt> =
     registerColumn(name, YdbUIntegerColumnType())
 
+/** Full `Uint64` range via [ULong]; values above [Long.MAX_VALUE] are not supported (see README). */
 fun Table.ydbUlong(name: String): Column<ULong> =
     registerColumn(name, YdbULongColumnType())
 
@@ -56,6 +76,10 @@ fun Table.ydbInterval(name: String): Column<Duration> =
 fun Table.ydbInterval64(name: String): Column<Duration> =
     registerColumn(name, YdbIntervalColumnType(YdbJdbcCode.INTERVAL64))
 
+/**
+ * YQL literal for updates: `Decimal("value", precision, scale)`.
+ * Use in `update { it[col] = ydbDecimalLiteral(...) }` when a plain value would not carry precision.
+ */
 fun ydbDecimalLiteral(
     value: BigDecimal,
     precision: Int,
@@ -66,6 +90,12 @@ fun ydbDecimalLiteral(
 
 // region JDBC bind helper
 
+/**
+ * Binds a value with [PreparedStatement.setObject] and a YDB JDBC vendor [targetSqlType].
+ *
+ * Requires Exposed's [JdbcPreparedStatementImpl] (YDB JDBC driver). Fails fast otherwise so
+ * values are never silently dropped.
+ */
 internal fun bindYdbParameter(
     stmt: PreparedStatementApi,
     index: Int,
@@ -79,9 +109,11 @@ internal fun bindYdbParameter(
     }
 
     val jdbcStatement = (stmt as? JdbcPreparedStatementImpl)?.statement
-    if (jdbcStatement is PreparedStatement) {
-        jdbcStatement.setObject(index, value, targetSqlType)
-    }
+        ?: error(
+            "YDB column bind requires JdbcPreparedStatementImpl (got ${stmt::class.qualifiedName}); " +
+                    "use ydb* / javatime.* column types with the YDB JDBC driver"
+        )
+    jdbcStatement.setObject(index, value, targetSqlType)
 }
 
 // endregion

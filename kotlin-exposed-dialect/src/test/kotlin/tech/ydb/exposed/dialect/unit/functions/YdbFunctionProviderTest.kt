@@ -71,7 +71,7 @@ class YdbFunctionProviderTest {
         val expr = stringLiteral("abcdef")
         val result = sql { provider.locate(this, expr, "cd") }
         assertEquals(
-            "IF(Unicode::Find('abcdef', 'cd') IS NULL, 0, CAST(Unicode::Find('abcdef', 'cd') + 1u AS Int32))",
+            "COALESCE(CAST(Unicode::Find('abcdef', 'cd') + 1u AS Int32), 0)",
             result
         )
     }
@@ -81,7 +81,7 @@ class YdbFunctionProviderTest {
         val expr = stringLiteral("a'b")
         val result = sql { provider.locate(this, expr, "x'y") }
         assertEquals(
-            "IF(Unicode::Find('a''b', 'x''y') IS NULL, 0, CAST(Unicode::Find('a''b', 'x''y') + 1u AS Int32))",
+            "COALESCE(CAST(Unicode::Find('a''b', 'x''y') + 1u AS Int32), 0)",
             result
         )
     }

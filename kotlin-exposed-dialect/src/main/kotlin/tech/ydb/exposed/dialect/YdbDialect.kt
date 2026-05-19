@@ -28,6 +28,12 @@ import java.sql.DatabaseMetaData
  * [tech.ydb.exposed.dialect.javatime.ydbDate] / [tech.ydb.exposed.dialect.javatime.ydbDate32]
  * (and the other extensions in that package). [ydbInterval] / [ydbInterval64] live in this module root.
  */
+/**
+ * Maps generic Exposed column DSL types to YQL type names for DDL.
+ *
+ * @param enableSignedDatetimes When `true`, [dateType]/[dateTimeType]/[timestampType] use signed
+ *   `Date32`/`Datetime64`/`Timestamp64`. Does not affect explicit `ydb*` / `javatime.*` columns.
+ */
 internal class YdbDataTypeProvider(
     private val enableSignedDatetimes: Boolean = false
 ) : DataTypeProvider() {
@@ -74,6 +80,7 @@ internal class YdbDataTypeProvider(
 
     override fun timestampType(): String = if (enableSignedDatetimes) "Timestamp64" else "Timestamp"
 
+    /** YQL literal for binary columns: `Unwrap(String::HexDecode('...'), ...)`. */
     override fun hexToDb(hexString: String): String =
         "Unwrap(String::HexDecode('$hexString'), 'invalid hex bytes literal')"
 }
@@ -139,8 +146,7 @@ internal object YdbFunctionProvider : FunctionProvider() {
         substring: String
     ) = queryBuilder {
         val needle = escapeYqlStringLiteral(substring)
-        append("IF(Unicode::Find(", expr, ", '", needle, "') IS NULL, 0, ")
-        append("CAST(Unicode::Find(", expr, ", '", needle, "') + 1u AS Int32))")
+        append("COALESCE(CAST(Unicode::Find(", expr, ", '", needle, "') + 1u AS Int32), 0)")
     }
 
     override fun <T : String?> regexp(
@@ -197,6 +203,12 @@ internal object YdbFunctionProvider : FunctionProvider() {
         append(")")
     }
 
+    /**
+     * Native YDB `UPSERT` — full row replace by primary key.
+     *
+     * Exposed's `onUpdate` / `keyColumns` / MySQL-style partial upsert are **not** used:
+     * every column in [data] is written; there is no `ON DUPLICATE KEY UPDATE` clause in YQL.
+     */
     override fun upsert(
         table: Table,
         data: List<Pair<Column<*>, Any?>>,
@@ -305,9 +317,14 @@ internal object YdbFunctionProvider : FunctionProvider() {
 /**
  * Exposed [VendorDialect] for YDB.
  *
- * Usually obtained via [connectYdb], which wires it into a [Database] together
- * with a default [org.jetbrains.exposed.v1.core.DatabaseConfig] tuned for YDB
- * (SERIALIZABLE isolation, nested transactions disabled).
+ * Obtained via [connectYdb] (recommended) or [registerYdbDialect] + `Database.connect`.
+ *
+ * Notable behavior:
+ * - [upsert] → YQL `UPSERT` (full row replace by PK; Exposed `onUpdate` / partial columns ignored).
+ * - [createIndex] → `ALTER TABLE ... ADD INDEX ... GLOBAL`.
+ * - Functional indexes and ANSI `MERGE` are rejected.
+ *
+ * @property enableSignedDatetimes Passed to [YdbDataTypeProvider] for standard temporal DDL only.
  */
 class YdbDialect internal constructor(
     val enableSignedDatetimes: Boolean = false
@@ -316,6 +333,10 @@ class YdbDialect internal constructor(
     YdbDataTypeProvider(enableSignedDatetimes),
     YdbFunctionProvider
 ) {
+    /**
+     * Post-create index: `ALTER TABLE t ADD INDEX i GLOBAL [UNIQUE] ON (cols)`.
+     * Prefer [YdbTable.secondaryIndex] for indexes declared with the table.
+     */
     override fun createIndex(index: Index): String {
         val tr = runCatching { TransactionManager.current() }.getOrNull()
         if (!index.functions.isNullOrEmpty()) {
@@ -352,6 +373,7 @@ class YdbDialect internal constructor(
         isPartialOrFunctional: Boolean
     ): String = "ALTER TABLE $tableName DROP INDEX $indexName"
 
+    /** JDBC metadata bridge so Exposed can diff existing GLOBAL indexes on YDB. */
     internal object Metadata : DatabaseDialectMetadata() {
 
         override fun existingIndices(vararg tables: Table): Map<Table, List<Index>> {

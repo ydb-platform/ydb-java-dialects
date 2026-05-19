@@ -11,8 +11,21 @@ The module provides:
 
 - JDK 17+
 - Maven
-- YDB JDBC Driver
+- [YDB JDBC driver](https://github.com/ydb-platform/ydb-jdbc-driver) on the application classpath (not bundled with this artifact)
 - JetBrains Exposed 1.x
+
+```xml
+<dependency>
+    <groupId>tech.ydb.jdbc</groupId>
+    <artifactId>ydb-jdbc-driver</artifactId>
+    <version><!-- align with your YDB deployment --></version>
+</dependency>
+<dependency>
+    <groupId>tech.ydb.dialects</groupId>
+    <artifactId>kotlin-exposed-ydb-dialect</artifactId>
+    <version>0.9.0</version>
+</dependency>
+```
 
 ## Quick start
 
@@ -92,6 +105,10 @@ Products.replace {
 
 ANSI `MERGE` is intentionally rejected — `UPSERT` / `REPLACE` cover the same use cases.
 
+YDB `UPSERT` always writes **all columns** from the DSL block (full row by primary key). Exposed's
+`onUpdate` / `keyColumns` arguments are **ignored** — there is no MySQL-style partial
+`ON DUPLICATE KEY UPDATE`.
+
 ## Retryable transactions
 
 YDB uses Optimistic Concurrency Control, so a transaction can fail with `Transaction locks
@@ -115,9 +132,8 @@ ydbTransaction(db, readOnly = true, retry = YdbRetryConfig.IDEMPOTENT) {
 }
 ```
 
-Backoff and jitter follow the [.NET YDB SDK retry policy](https://github.com/ydb-platform/ydb-dotnet-sdk/tree/main/src/Ydb.Sdk/src/Ado/RetryPolicy):
-full jitter for `ABORTED` / `UNDETERMINED`, equal jitter for `UNAVAILABLE` / transport /
-`OVERLOADED`, zero delay for session errors. Status codes are read from `SQLException.errorCode`
+Backoff uses full jitter for `ABORTED` / `UNDETERMINED`, equal jitter for `UNAVAILABLE` / transport /
+`OVERLOADED`, and zero delay for session errors. Status codes are read from `SQLException.errorCode`
 (YDB vendor codes), not from error message text.
 
 Use `retry = YdbRetryConfig.IDEMPOTENT` only when the body can be safely re-executed (pure reads,
@@ -137,12 +153,22 @@ Default mapping for standard Exposed types:
 | `float` / `double`  | `Float` / `Double` |
 | `bool`              | `Bool`             |
 | `varchar` / `text`  | `Text`             |
-| `binary` / `blob`   | `String`           |
+| `binary` / `blob`   | `Bytes`            |
 | `uuid`              | `Uuid`             |
 | `date`              | `Date`             |
 | `datetime`          | `Datetime`         |
 | `timestamp`         | `Timestamp`        |
-| `json`              | `JsonDocument`     |
+| `json`              | `Json`             |
+| `jsonb`             | `JsonDocument`     |
+
+`varchar(n)` maps to `Text` (length is not preserved in YDB DDL).
+
+### Production types (`ydb*` / `javatime.*`)
+
+For temporal and unsigned columns, use **`ydbDate` / `ydbDate32`**, **`ydbUbyte`**, **`ydbUint32`**, etc.
+They bind via YDB JDBC vendor type codes. Standard Exposed `date()`, `ubyte()`, `binary()` use
+generic JDBC binding — DDL still maps correctly for many cases, but edge cases (unsigned ranges,
+signed vs legacy temporal) may differ. **Prefer `ydb*` / `javatime.*` in production.**
 
 Pick unsigned legacy or signed extended temporal types per column on any `Table`
 (including `YdbTable`); JDBC vendor code drives both bind and DDL `sqlType()`:
@@ -158,8 +184,11 @@ object Events : YdbTable("events") {
     val updated = ydbDatetime64("updated")     // Datetime64
 }
 ```
-`connectYdb` sets `forceSignedDatetimes=false` on the JDBC URL for driver compatibility;
-per-column types are not controlled by a connection flag.
+
+Optional: `connectYdb(..., enableSignedDatetimes = true)` switches **dialect** DDL names for
+standard Exposed `date` / `datetime` / `timestamp` to `Date32` / `Datetime64` / `Timestamp64`.
+Add `forceSignedDatetimes=true` to the JDBC URL yourself when the driver requires it.
+Per-column types remain explicit (`ydbDate` vs `ydbDate32`).
 
 Additional YDB-specific column types are available via extension functions on `Table`:
 
@@ -172,8 +201,8 @@ ydbUuid("id")                        // native Uuid; same as Exposed uuid() unde
 ydbUint64("counter")
 ```
 
-`ydbUint64` is backed by `Long` and supports values `0..Long.MAX_VALUE`. Use a wider type
-(`BigInteger`) if you need the full `Uint64` range.
+`ydbUint64` / `ydbUlong` are backed by `Long` / `ULong` with range `0..Long.MAX_VALUE` for the
+JDBC long path. Use a wider type if you need the full `Uint64` range.
 
 For Decimal literals inside update expressions there's `ydbDecimalLiteral`:
 
@@ -197,6 +226,27 @@ object Orders : YdbTable("orders") {
 
 For UUID keys use `ydbUuid("id")` or Exposed `uuid()` under this dialect. Unsigned `Serial`
 columns are not supported.
+
+## Indexes
+
+Two ways to declare secondary indexes:
+
+| Mechanism | SQL shape | Features |
+|-----------|-----------|----------|
+| `Table.index()` / `index(isUnique = …)` | `ALTER TABLE … ADD INDEX … GLOBAL` | Unique flag; no inline `ASYNC` / `COVER` / `WITH` |
+| `YdbTable.secondaryIndex()` | Inline in `CREATE TABLE` | `ASYNC`, `COVER`, `WITH`, unique |
+
+## Known limitations
+
+Inherited from Exposed `VendorDialect` unless overridden here: foreign keys, sequences,
+`SELECT … FOR UPDATE`, dialect-specific features aimed at PostgreSQL/MySQL may produce SQL
+that YDB does not support. This module overrides indexes, UPSERT/REPLACE, LIMIT/OFFSET, JSON
+functions, and YDB type names — not the entire DDL surface.
+
+- No ANSI `MERGE`; use `UPSERT` / `REPLACE`.
+- TTL is emitted on `CREATE TABLE` only (no `ALTER TABLE … SET (TTL)` DSL).
+- No Yson / timezone-aware temporal types in this module.
+- Functional secondary indexes are rejected.
 
 ## TTL
 

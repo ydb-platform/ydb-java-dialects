@@ -5,10 +5,17 @@ import org.jetbrains.exposed.v1.jdbc.JdbcTransaction
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 
 /**
- * Runs [statement] inside an Exposed [transaction] and retries it on retryable YDB errors.
+ * Runs [statement] inside an Exposed [transaction] with YDB-friendly defaults and retries.
  *
- * Retry behavior is controlled by [retry] ([YdbRetryConfig]), aligned with
- * [YdbRetryPolicy](https://github.com/ydb-platform/ydb-dotnet-sdk/blob/main/src/Ydb.Sdk/src/Ado/RetryPolicy/YdbRetryPolicy.cs).
+ * Each attempt uses `TRANSACTION_SERIALIZABLE` (YDB snapshot isolation / OCC). On retryable
+ * [java.sql.SQLException] vendor codes ([getNextRetryDelayMs]) the whole transaction is re-run after
+ * jittered backoff; the last failure is rethrown when [YdbRetryConfig.maxAttempts] is exhausted.
+ *
+ * Use [YdbRetryConfig.IDEMPOTENT] only when the body is safe to repeat (reads, idempotent UPSERT).
+ *
+ * @param db Target database; `null` uses Exposed's current default.
+ * @param retry Backoff caps and whether non-transient codes may be retried.
+ * @param readOnly Passed through to Exposed `transaction(readOnly = ...)`.
  */
 fun <T> ydbTransaction(
     db: Database? = null,

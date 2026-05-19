@@ -1,9 +1,13 @@
+/**
+ * DDL helpers for [YdbTable]: single-statement `CREATE TABLE` with PK, secondary indexes, and TTL.
+ */
 package tech.ydb.exposed.dialect
 
 import org.jetbrains.exposed.v1.core.Table
 import org.jetbrains.exposed.v1.jdbc.transactions.TransactionManager
 import java.time.Duration
 
+/** One `CREATE TABLE IF NOT EXISTS ...` including inline indexes and optional TTL clause. */
 internal fun buildYdbCreateStatement(
     table: Table,
     ttlSettings: YdbTtlSettings?,
@@ -66,12 +70,14 @@ internal fun buildYdbCreateStatement(
     return listOf(sql)
 }
 
+/** Parses [intervalIso8601] as [Duration] and returns the canonical string for YQL `Interval("...")`. */
 internal fun normalizeTtlInterval(intervalIso8601: String): String =
     runCatching { Duration.parse(intervalIso8601).toString() }
         .getOrElse { cause ->
             throw IllegalArgumentException("Invalid YDB TTL interval: '$intervalIso8601'", cause)
         }
 
+/** Ensures [YdbTtlSettings.column] SQL type is compatible with [YdbTtlSettings.mode]. */
 internal fun validateYdbTtlColumn(ttl: YdbTtlSettings) {
     val sqlType = ttl.column.columnType.sqlType()
 

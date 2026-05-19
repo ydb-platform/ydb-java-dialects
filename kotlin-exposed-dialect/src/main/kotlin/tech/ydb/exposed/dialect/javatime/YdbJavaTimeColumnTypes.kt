@@ -1,3 +1,16 @@
+/**
+ * YDB `java.time` column types with correct JDBC vendor binding.
+ *
+ * Import this package explicitly — it does **not** replace `org.jetbrains.exposed.v1.javatime.date`.
+ *
+ * Pair column DDL with the JDBC driver:
+ * - Legacy unsigned: [ydbDate], [ydbDatetime], [ydbTimestamp] + `forceSignedDatetimes=false` (default).
+ * - Extended signed: [ydbDate32], [ydbDatetime64], [ydbTimestamp64] + `forceSignedDatetimes=true`.
+ *
+ * [connectYdb] with `enableSignedDatetimes = true` only changes standard Exposed `date`/`datetime`/
+ * `timestamp` DDL via [tech.ydb.exposed.dialect.YdbDataTypeProvider]; these extensions always emit
+ * the type named in the function (`Date` vs `Date32`, etc.).
+ */
 @file:OptIn(kotlin.time.ExperimentalTime::class)
 
 package tech.ydb.exposed.dialect.javatime

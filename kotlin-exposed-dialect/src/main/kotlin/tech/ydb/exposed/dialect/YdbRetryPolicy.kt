@@ -6,12 +6,16 @@ import kotlin.math.min
 import kotlin.random.Random
 
 /**
- * Retry delay calculation aligned with
- * [YdbRetryPolicy](https://github.com/ydb-platform/ydb-dotnet-sdk/blob/main/src/Ydb.Sdk/src/Ado/RetryPolicy/YdbRetryPolicy.cs).
+ * Retry delay calculation for [ydbTransaction] from JDBC [SQLException.errorCode] (YDB vendor codes).
  *
  * - [fullJitterMillis] — `Aborted`, `Undetermined`
  * - [equalJitterMillis] — `Unavailable`, transport errors, `Overloaded`, resource exhausted
  * - zero delay — `BadSession`, `SessionBusy`, `SessionExpired`
+ *
+ * Not retried here (add handling if your workload needs it): `TIMEOUT`, `CLIENT_DEADLINE_EXPIRED`,
+ * `PRECONDITION_FAILED`, and other vendor codes. [YdbRetryConfig.enableRetryIdempotence] retries
+ * any code returned by this policy when `true`, not only [isTransientVendorCode].
+ * `SESSION_EXPIRED` is retried with zero backoff but is not in the transient set.
  */
 internal fun getNextRetryDelayMs(
     error: Throwable,
@@ -69,7 +73,7 @@ internal fun getNextRetryDelayMs(
     }
 }
 
-/** Mirrors .NET `YdbException.IsTransient` / [tech.ydb.core.StatusCode] always-retryable set. */
+/** Vendor codes retried without [YdbRetryConfig.enableRetryIdempotence]. */
 internal fun isTransientVendorCode(vendorCode: Int): Boolean = vendorCode in TRANSIENT_VENDOR_CODES
 
 internal fun extractVendorCode(error: Throwable): Int? {

@@ -1,21 +1,25 @@
 package tech.ydb.exposed.dialect
 
 /**
- * Retry and backoff settings for [ydbTransaction], aligned with
- * [YdbRetryPolicyConfig](https://github.com/ydb-platform/ydb-dotnet-sdk/blob/main/src/Ydb.Sdk/src/Ado/RetryPolicy/YdbRetryPolicyConfig.cs).
+ * Retry and backoff settings for [ydbTransaction].
+ *
+ * Fast tier: `Aborted`, `Undetermined`, `Unavailable`, gRPC errors.
+ * Slow tier: `Overloaded`, `CLIENT_RESOURCE_EXHAUSTED`.
  */
 data class YdbRetryConfig(
-    /**
-     * Total number of execution attempts (initial try + retries), same as .NET [maxAttempts].
-     */
+    /** Total number of execution attempts (initial try + retries). */
     val maxAttempts: Int = DEFAULT_MAX_ATTEMPTS,
+    /** Base delay for full/equal jitter on the fast tier (ms). */
     val fastBackoffBaseMs: Int = DEFAULT_FAST_BACKOFF_BASE_MS,
+    /** Base delay for equal jitter on the slow tier (ms). */
     val slowBackoffBaseMs: Int = DEFAULT_SLOW_BACKOFF_BASE_MS,
+    /** Upper bound for fast-tier backoff before jitter (ms). */
     val fastCapBackoffMs: Int = DEFAULT_FAST_CAP_BACKOFF_MS,
+    /** Upper bound for slow-tier backoff before jitter (ms). */
     val slowCapBackoffMs: Int = DEFAULT_SLOW_CAP_BACKOFF_MS,
     /**
-     * When `true`, retryable statuses from [tech.ydb.exposed.dialect.YdbRetryPolicy] are retried
-     * even if they are not classified as transient. Enable only for idempotent work.
+     * When `true`, statuses handled by [getNextRetryDelayMs] are retried even if they are not
+     * [isTransientVendorCode]. Enable only for idempotent work.
      */
     val enableRetryIdempotence: Boolean = false,
 ) {

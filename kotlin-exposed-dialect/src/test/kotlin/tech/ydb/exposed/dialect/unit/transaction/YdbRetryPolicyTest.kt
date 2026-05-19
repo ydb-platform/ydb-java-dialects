@@ -23,7 +23,7 @@ class YdbRetryPolicyTest {
     private val fixedRandom = Random(42)
 
     @Test
-    fun `ceiling is derived from cap like dotnet SDK`() {
+    fun `ceiling is derived from cap backoff`() {
         assertEquals(9, ceilingFromCapBackoffMs(500))
         assertEquals(13, ceilingFromCapBackoffMs(5_000))
     }
@@ -133,7 +133,7 @@ class YdbRetryPolicyTest {
     }
 
     @Test
-    fun `transient codes match dotnet transient gate`() {
+    fun `transient codes gate non idempotent retries`() {
         assertTrue(isTransientVendorCode(YdbVendorCode.ABORTED))
         assertFalse(isTransientVendorCode(YdbVendorCode.UNDETERMINED))
     }

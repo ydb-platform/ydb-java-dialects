@@ -1,17 +1,25 @@
+/**
+ * YDB secondary index declarations for [YdbTable.secondaryIndex].
+ *
+ * Rendered into `CREATE TABLE` as `INDEX name GLOBAL [UNIQUE] [ASYNC] ON (...) [COVER (...)] [WITH (...)]`.
+ */
 package tech.ydb.exposed.dialect
 
 import org.jetbrains.exposed.v1.core.Column
 import org.jetbrains.exposed.v1.jdbc.transactions.TransactionManager
 
+/** Index visibility scope in YQL (`GLOBAL` for row-oriented tables). */
 enum class YdbIndexScope {
     GLOBAL
 }
 
+/** Whether the index is built synchronously with writes or in the background. */
 enum class YdbIndexSyncMode {
     SYNC,
     ASYNC
 }
 
+/** Internal model produced by [YdbTable.secondaryIndex] and rendered by [renderYdbSecondaryIndex]. */
 data class YdbSecondaryIndexSpec(
     val name: String,
     val columns: List<Column<*>>,
@@ -23,6 +31,7 @@ data class YdbSecondaryIndexSpec(
     val withParams: Map<String, Any> = emptyMap()
 )
 
+/** Builds the `INDEX ...` fragment for a single secondary index inside `CREATE TABLE`. */
 internal fun renderYdbSecondaryIndex(spec: YdbSecondaryIndexSpec): String {
     val tr = TransactionManager.current()
 
