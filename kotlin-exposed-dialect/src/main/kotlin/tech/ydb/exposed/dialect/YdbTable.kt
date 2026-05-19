@@ -115,39 +115,37 @@ open class YdbTable(name: String = "") : Table(name) {
 
         return listOf(sql)
     }
+}
 
-    companion object {
-        private fun normalizeTtlInterval(intervalIso8601: String): String =
-            runCatching { Duration.parse(intervalIso8601).toString() }
-                .getOrElse { cause ->
-                    throw IllegalArgumentException("Invalid YDB TTL interval: '$intervalIso8601'", cause)
-                }
-
-        private fun validateTtlColumn(ttl: YdbTtlSettings) {
-            val sqlType = ttl.column.columnType.sqlType()
-
-            val supported = when (ttl.mode) {
-                YdbTtlColumnMode.DATE_TYPE ->
-                    sqlType == "Date" ||
-                            sqlType == "Date32" ||
-                            sqlType == "Datetime" ||
-                            sqlType == "Datetime64" ||
-                            sqlType == "Timestamp" ||
-                            sqlType == "Timestamp64"
-
-                YdbTtlColumnMode.SECONDS,
-                YdbTtlColumnMode.MILLISECONDS,
-                YdbTtlColumnMode.MICROSECONDS,
-                YdbTtlColumnMode.NANOSECONDS ->
-                    sqlType == "Uint32" || sqlType == "Uint64" || sqlType == "DyNumber"
-            }
-
-            require(supported) {
-                "YDB TTL does not support column '${ttl.column.name}' of type '$sqlType' for mode '${ttl.mode}'"
-            }
+private fun normalizeTtlInterval(intervalIso8601: String): String =
+    runCatching { Duration.parse(intervalIso8601).toString() }
+        .getOrElse { cause ->
+            throw IllegalArgumentException("Invalid YDB TTL interval: '$intervalIso8601'", cause)
         }
 
-        private fun escapeYqlDoubleQuotedLiteral(value: String): String =
-            value.replace("\\", "\\\\").replace("\"", "\\\"")
+private fun validateTtlColumn(ttl: YdbTtlSettings) {
+    val sqlType = ttl.column.columnType.sqlType()
+
+    val supported = when (ttl.mode) {
+        YdbTtlColumnMode.DATE_TYPE ->
+            sqlType == "Date" ||
+                    sqlType == "Date32" ||
+                    sqlType == "Datetime" ||
+                    sqlType == "Datetime64" ||
+                    sqlType == "Timestamp" ||
+                    sqlType == "Timestamp64"
+
+        YdbTtlColumnMode.SECONDS,
+        YdbTtlColumnMode.MILLISECONDS,
+        YdbTtlColumnMode.MICROSECONDS,
+        YdbTtlColumnMode.NANOSECONDS ->
+            sqlType == "Uint32" || sqlType == "Uint64" || sqlType == "DyNumber"
+    }
+
+    require(supported) {
+        "YDB TTL does not support column '${ttl.column.name}' of type '$sqlType' for mode '${ttl.mode}'"
     }
 }
+
+private fun escapeYqlDoubleQuotedLiteral(value: String): String =
+    value.replace("\\", "\\\\").replace("\"", "\\\"")

@@ -6,8 +6,7 @@ Initial release of the Kotlin Exposed dialect for YDB.
 
 - YDB `VendorDialect` for Exposed JDBC; `registerYdbDialect(enableSignedDatetimes = …)` for setup.
 - `ydbTransaction { ... }` — retryable transactions with `readOnly` and `YdbRetryConfig`
-  (exponential backoff with full/equal jitter on YDB vendor codes);
-  retries classified by JDBC `SQLException` vendor codes).
+  (exponential backoff with full/equal jitter; retries classified by JDBC `SQLException` vendor codes).
 - Native `UPSERT` / `REPLACE` rendering — wired into Exposed's standard `Table.upsert` and
   `Table.replace` DSL.
 - `YdbTable` — YQL `CREATE TABLE` with table-level `PRIMARY KEY (…)`, inline secondary indexes

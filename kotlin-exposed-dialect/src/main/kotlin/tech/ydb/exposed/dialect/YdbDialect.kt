@@ -66,6 +66,7 @@ internal class YdbDataTypeProvider(
 
     override fun uintegerAutoincType(): String =
         throw UnsupportedOperationException("YDB does not support unsigned Serial columns")
+
     override fun ulongAutoincType(): String =
         throw UnsupportedOperationException("YDB does not support unsigned Serial columns")
 
@@ -83,13 +84,10 @@ internal class YdbDataTypeProvider(
 internal object YdbFunctionProvider : FunctionProvider() {
 
     private const val MERGE_UNSUPPORTED =
-        "YDB does not support ANSI MERGE. Use upsert { } / replace { }, UPSERT INTO … , or UPDATE … ON — " +
-            "see https://ydb.tech/docs/en/yql/reference/syntax/upsert_into and …/update"
+        "YDB dialect does not support ANSI MERGE through Exposed. Use UPSERT or batchUpsert instead."
 
     private const val JSON_CONTAINS_UNSUPPORTED =
         "YDB does not support JSON_CONTAINS. Use JSON_EXISTS or compare JSON_VALUE / JSON_QUERY instead."
-
-    private const val INSERT_VALUE_CLASS = "org.jetbrains.exposed.v1.core.statements.InsertValue"
 
     /**
      * Maps Exposed [org.jetbrains.exposed.v1.core.Random] to YQL [Random](https://ydb.tech/docs/en/yql/reference/builtins/basic).
@@ -202,11 +200,10 @@ internal object YdbFunctionProvider : FunctionProvider() {
     }
 
     /**
-     * Native YDB [UPSERT](https://ydb.tech/docs/en/yql/reference/syntax/upsert_into): only columns listed in
-     * the statement are written; on primary-key conflict, other columns stay unchanged.
+     * Native YDB [UPSERT](https://ydb.tech/docs/en/yql/reference/syntax/upsert_into): writes only
+     * columns from [data]; on PK conflict, other columns are unchanged.
      *
-     * Exposed `onUpdate` with `insertValue()` (default) maps to the same VALUES. Different insert vs update
-     * literals and `onUpdateExclude` are rejected.
+     * Exposed `onUpdate` and `keyColumns` are ignored. [where] must be `null`.
      */
     override fun upsert(
         table: Table,
@@ -217,48 +214,21 @@ internal object YdbFunctionProvider : FunctionProvider() {
         where: Op<Boolean>?,
         transaction: Transaction
     ): String {
-        require(data.isNotEmpty()) { "UPSERT requires at least one column" }
-        if (keyColumns.isEmpty()) {
-            throw UnsupportedOperationException(
-                "YDB UPSERT requires a primary key (or explicit upsert keys); table ${table.tableName} has none"
-            )
-        }
-
-        validateUpsertOnUpdate(data, onUpdate, keyColumns, transaction)
-
         if (where != null) {
             throw UnsupportedOperationException(
                 "YDB UPSERT does not support Exposed's upsert(where) (PostgreSQL ON CONFLICT … WHERE). " +
-                    "Use Table.update { } for conditional updates."
+                        "Use Table.update { } for conditional updates."
             )
         }
 
-        val columns = data.map { it.first }.distinct()
-        val columnList = columns.joinToString(", ") { transaction.identity(it) }
-        val dataByColumn = data.toMap()
-        val tableName = transaction.identity(table)
-
-        if (expression.isNotBlank()) {
-            val valuesExpression = expression.trim()
-            val expressionWithColumns = if (valuesExpression.startsWith("VALUES", ignoreCase = true)) {
-                "($columnList) $valuesExpression"
-            } else {
-                valuesExpression
+        val columns = data.map { it.first }
+        val expr = expression.trim().ifBlank {
+            val literals = data.joinToString(", ") { (column, value) ->
+                valueToSqlLiteral(column, value)
             }
-            return "UPSERT INTO $tableName $expressionWithColumns"
+            "VALUES ($literals)"
         }
-
-        val valueList = columns.joinToString(", ") { column ->
-            val value = dataByColumn[column]
-            if (value == null) {
-                "NULL"
-            } else {
-                @Suppress("UNCHECKED_CAST")
-                (column.columnType as IColumnType<Any?>).valueToString(value)
-            }
-        }
-
-        return "UPSERT INTO $tableName ($columnList) VALUES ($valueList)"
+        return buildYdbIntoStatement("UPSERT", table, columns, expr, transaction)
     }
 
     /**
@@ -271,16 +241,41 @@ internal object YdbFunctionProvider : FunctionProvider() {
         expression: String,
         transaction: Transaction,
         prepared: Boolean
+    ): String = buildYdbIntoStatement("REPLACE", table, columns, expression.trim(), transaction)
+
+    /**
+     * Shared YQL `{verb} INTO table [(cols)] values` builder — INSERT…SELECT, explicit columns/VALUES,
+     * or [DEFAULT_VALUE_EXPRESSION] when the column list is empty.
+     */
+    private fun buildYdbIntoStatement(
+        verb: String,
+        table: Table,
+        columns: List<Column<*>>,
+        expr: String,
+        transaction: Transaction
     ): String {
-        require(columns.isNotEmpty()) { "REPLACE requires at least one column" }
-        val columnList = columns.joinToString(", ") { transaction.identity(it) }
-        val valuesExpression = expression.trim()
-        val expressionWithColumns = if (valuesExpression.startsWith("VALUES", ignoreCase = true)) {
-            "($columnList) $valuesExpression"
-        } else {
-            valuesExpression
+        val isInsertFromSelect = columns.isNotEmpty() && expr.isNotEmpty() && !expr.startsWith("VALUES")
+
+        val (columnsToWrite, valuesExpr) = when {
+            isInsertFromSelect -> columns to expr
+            columns.isNotEmpty() -> columns to expr
+            else -> emptyList<Column<*>>() to DEFAULT_VALUE_EXPRESSION
         }
-        return "REPLACE INTO ${transaction.identity(table)} $expressionWithColumns"
+        val columnsExpr = columnsToWrite.takeIf { it.isNotEmpty() }
+            ?.joinToString(prefix = "(", postfix = ")") { transaction.identity(it) }
+            ?: ""
+
+        return buildString {
+            append(verb)
+            append(" INTO ")
+            append(transaction.identity(table))
+            if (columnsExpr.isNotEmpty()) {
+                append(' ')
+                append(columnsExpr)
+            }
+            append(' ')
+            append(valuesExpr)
+        }
     }
 
     override fun merge(
@@ -315,43 +310,12 @@ internal object YdbFunctionProvider : FunctionProvider() {
         }
     }
 
-    private fun validateUpsertOnUpdate(
-        data: List<Pair<Column<*>, Any?>>,
-        onUpdate: List<Pair<Column<*>, Any?>>,
-        keyColumns: List<Column<*>>,
-        transaction: Transaction
-    ) {
-        if (onUpdate.isEmpty()) return
-
-        val dataByColumn = data.toMap()
-        val keySet = keyColumns.toSet()
-
-        val conflicting = onUpdate.filter { (column, value) ->
-            !isInsertValueExpression(value) && dataByColumn[column] != value
-        }
-        if (conflicting.isNotEmpty()) {
-            val names = conflicting.joinToString { transaction.identity(it.first) }
-            throw UnsupportedOperationException(
-                "YDB UPSERT applies the same VALUES on insert and on conflict; onUpdate cannot set different " +
-                    "values ($names). Use Table.update { } after upsert, or REPLACE for a full-row overwrite " +
-                    "(https://ydb.tech/docs/en/yql/reference/syntax/replace_into)."
-            )
-        }
-
-        val dataCols = data.map { it.first }.toSet()
-        val updateCols = onUpdate.map { it.first }.toSet()
-        val insertOnly = dataCols - updateCols - keySet
-        if (insertOnly.isNotEmpty() && onUpdate.any { !isInsertValueExpression(it.second) }) {
-            val names = insertOnly.joinToString { transaction.identity(it) }
-            throw UnsupportedOperationException(
-                "YDB UPSERT cannot insert column(s) $names while excluding them from the conflict update " +
-                    "(Exposed onUpdateExclude). Omit those columns from the upsert body or include them in REPLACE."
-            )
-        }
+    @Suppress("UNCHECKED_CAST")
+    private fun valueToSqlLiteral(column: Column<*>, value: Any?): String {
+        if (value == null) return "NULL"
+        val columnType = column.columnType as IColumnType<Any?>
+        return columnType.valueToString(value)
     }
-
-    private fun isInsertValueExpression(value: Any?): Boolean =
-        value != null && value.javaClass.name == INSERT_VALUE_CLASS
 
     /** [JsonPath](https://ydb.tech/docs/en/yql/reference/builtins/json) for `JSON_VALUE` / `JSON_QUERY` / `JSON_EXISTS`. */
     private fun buildJsonPath(vararg segments: String): String {
@@ -394,8 +358,10 @@ internal object YdbFunctionProvider : FunctionProvider() {
  * Use [registerYdbDialect] then `Database.connect("jdbc:ydb:...")`.
  *
  * Notable behavior:
- * - [tech.ydb.exposed.dialect.YdbFunctionProvider.upsert] / [replace] → native YQL (partial columns vs defaults).
- * - [createIndex] → `ALTER TABLE ... ADD INDEX ... GLOBAL`.
+ * - [YdbTable] — YQL `CREATE TABLE` with table-level PK, inline indexes, TTL.
+ * - [tech.ydb.exposed.dialect.YdbFunctionProvider.upsert] / [replace] → native YQL `UPSERT` / `REPLACE`
+ *   (`onUpdate` / `keyColumns` ignored).
+ * - [createIndex] → `ALTER TABLE ... ADD INDEX ... GLOBAL` (post-create indexes).
  * - Functional indexes and ANSI `MERGE` are rejected.
  *
  * @property enableSignedDatetimes Passed to [YdbDataTypeProvider] for standard temporal DDL only.

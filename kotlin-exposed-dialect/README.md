@@ -3,7 +3,8 @@
 YDB integration for [JetBrains Exposed](https://github.com/JetBrains/Exposed) via JDBC.
 The module provides:
 
-- a Kotlin Exposed `VendorDialect` for YDB (DDL, SQL, type mapping, secondary indexes, TTL);
+- a Kotlin Exposed `VendorDialect` for YDB (SQL, type mapping, post-create indexes);
+- [`YdbTable`](src/main/kotlin/tech/ydb/exposed/dialect/YdbTable.kt) for YQL `CREATE TABLE` (table-level PK, inline indexes, TTL);
 - `Table.upsert` / `Table.replace` DSL backed by native YDB `UPSERT` / `REPLACE`;
 - a retryable transaction wrapper that handles YDB's OCC retries transparently.
 
@@ -45,26 +46,41 @@ ydbTransaction(db) {
 
 ## Defining tables
 
-YDB requires every table to declare a `PRIMARY KEY`. Use the standard Exposed `Table`; apply
-custom DDL (TTL, inline indexes with `COVER` / `ASYNC`, etc.) via `transaction { exec("...") }`
-when needed:
+YDB requires a table-level `PRIMARY KEY (…)` in `CREATE TABLE`, not `col Type PRIMARY KEY` on a column.
+Use [`YdbTable`](src/main/kotlin/tech/ydb/exposed/dialect/YdbTable.kt) for schema DDL; plain Exposed
+`Table` + `SchemaUtils.create` still works for DML/tests but emits inline PK SQL that YDB rejects.
 
 ```kotlin
-import org.jetbrains.exposed.v1.core.Table
+import tech.ydb.exposed.dialect.YdbIndexScope
+import tech.ydb.exposed.dialect.YdbIndexSyncMode
+import tech.ydb.exposed.dialect.YdbTable
+import tech.ydb.exposed.dialect.javatime.ydbTimestamp64
 import tech.ydb.exposed.dialect.ydbDecimal
 
-object Products : Table("products") {
+object Products : YdbTable("products") {
     val id = integer("id")
     val sku = varchar("sku", 64)
     val name = varchar("name", 255)
     val category = varchar("category", 128)
     val price = ydbDecimal("price", precision = 10, scale = 2)
+    val expiresAt = ydbTimestamp64("expires_at")
 
     override val primaryKey = PrimaryKey(id)
 
     init {
-        index(isUnique = false, sku)
-        index("products_category_idx", isUnique = false, category)
+        // Post-create index (ALTER TABLE … ADD INDEX … GLOBAL) — same as on Exposed Table
+        index(false, sku)
+
+        // Inline index in CREATE TABLE (COVER / ASYNC / WITH)
+        secondaryIndex(
+            name = "products_category_idx",
+            category,
+            scope = YdbIndexScope.GLOBAL,
+            syncMode = YdbIndexSyncMode.ASYNC,
+            coverColumns = listOf(name, price)
+        )
+
+        ttl(expiresAt, "P30D")
     }
 }
 ```
@@ -94,9 +110,9 @@ Products.replace {
 
 ANSI `MERGE` is intentionally rejected — `UPSERT` / `REPLACE` cover the same use cases.
 
-YDB `UPSERT` always writes **all columns** from the DSL block (full row by primary key). Exposed's
-`onUpdate` / `keyColumns` arguments are **ignored** — there is no MySQL-style partial
-`ON DUPLICATE KEY UPDATE`.
+YDB `UPSERT` writes only the columns listed in the DSL block; on primary-key conflict, other
+columns are left unchanged. Exposed's `onUpdate` and `keyColumns` are **ignored** (no
+`ON DUPLICATE KEY UPDATE`). `upsert(where)` **throws** — use `update { }` for conditional writes.
 
 ## Retryable transactions
 
@@ -206,7 +222,7 @@ it.update(Products.price, ydbDecimalLiteral(BigDecimal("45.00"), 10, 2))
 Exposed `autoIncrement()` maps to YDB `Serial` / `BigSerial`:
 
 ```kotlin
-object Orders : Table("orders") {
+object Orders : YdbTable("orders") {
     val id = integer("id").autoIncrement()
     val total = ydbDecimal("total", precision = 12, scale = 2)
     override val primaryKey = PrimaryKey(id)
@@ -218,8 +234,10 @@ columns are not supported.
 
 ## Indexes
 
-Exposed `Table.index()` / `index(customName, isUnique, …)` is rendered as
-`ALTER TABLE … ADD INDEX … GLOBAL [UNIQUE] ON (…)`.
+- **Post-create** (any `Table` or `YdbTable`): Exposed `index()` / `index(customName, isUnique, …)`
+  → `ALTER TABLE … ADD INDEX … GLOBAL [UNIQUE] ON (…)`.
+- **Inline in `CREATE TABLE`** (`YdbTable` only): [`secondaryIndex`](src/main/kotlin/tech/ydb/exposed/dialect/YdbTable.kt)
+  with optional `COVER`, `ASYNC`, `WITH`.
 
 ## Known limitations
 
@@ -229,9 +247,9 @@ that YDB does not support. This module overrides indexes, UPSERT/REPLACE, LIMIT/
 functions, and YDB type names — not the entire DDL surface.
 
 - No ANSI `MERGE`; use `UPSERT` / `REPLACE`.
-- No DSL for TTL or inline `CREATE TABLE` indexes (`COVER`, `ASYNC`, `WITH`) — use raw YQL in `exec`.
+- Plain `Table` DDL uses Exposed's inline `PRIMARY KEY` on columns — use `YdbTable` (or hand-written YQL).
 - No Yson / timezone-aware temporal types in this module.
-- Functional secondary indexes are rejected.
+- Functional indexes (Exposed `index` with expressions) are rejected.
 
 ## Tests
 
@@ -241,6 +259,9 @@ Integration tests use [testcontainers](https://www.testcontainers.org/) via
 ```bash
 mvn verify
 ```
+
+DDL-focused tests use `YdbTable`; many other integration tests still use plain `Table` and may
+fail `SchemaUtils.create` on YDB until migrated to `YdbTable` (inline `PRIMARY KEY` in Exposed DDL).
 
 ## Demo application
 
