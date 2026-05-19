@@ -8,8 +8,8 @@ services:
   remote-ydb-keycloak:
     image: quay.io/keycloak/keycloak:26.4.7
     container_name: remote-ydb-keycloak
-    ports:
-      - '9090:8080'
+    expose:
+      - '8080'
     volumes:
       - ./providers/keycloak-ydb-extension-1.0-SNAPSHOT.jar:/opt/keycloak/providers/keycloak-ydb-extension-1.0-SNAPSHOT.jar
       - ./conf/keycloak-remote-ydb.conf:/opt/keycloak/conf/keycloak.conf
@@ -21,3 +21,20 @@ services:
       - YDB_JDBC_URL=${YDB_JDBC_URL:?Set YDB_JDBC_URL, e.g. jdbc:ydb:grpc://host.docker.internal:2136/local}
     networks:
       - keycloak
+
+  remote-ydb-retry-proxy:
+    build:
+      context: ../retry-proxy
+    container_name: remote-ydb-retry-proxy
+    environment:
+      - TARGET_URL=http://remote-ydb-keycloak:8080
+      - MAX_RETRIES=10
+      - BASE_DELAY_MS=50
+      - MAX_DELAY_MS=2000
+      - LISTEN_PORT=8080
+    ports:
+      - '9090:8080'
+    networks:
+      - keycloak
+    depends_on:
+      - remote-ydb-keycloak

@@ -4,8 +4,8 @@ Load tests for Keycloak using [keycloak-benchmark](https://github.com/keycloak/k
 
 Supports two infrastructure configurations:
 
-- **Keycloak + Local YDB** — YDB in Docker, Keycloak exposed directly
-- **Keycloak + Remote YDB** — external YDB instance, Keycloak exposed directly
+- **Keycloak + Local YDB** — YDB in Docker, retry-proxy in front of Keycloak
+- **Keycloak + Remote YDB** — external YDB instance, retry-proxy in front of Keycloak
 
 ## Prerequisites
 
@@ -38,7 +38,7 @@ All commands below are run from the `keycloak-ydb-extension/` root.
 ../run-keycloak-with-ydb.sh
 ```
 
-This builds core, copies the JAR, and starts Docker Compose (YDB + Keycloak).
+This builds core + retry-proxy, copies the JAR, and starts Docker Compose (YDB + Keycloak + retry-proxy).
 
 Wait for Keycloak to start (~30-60s). Check logs:
 
@@ -48,7 +48,7 @@ docker compose -f docker/docker-compose.yml logs -f ydb-keycloak
 
 | Service                    | URL                   |
 |----------------------------|-----------------------|
-| Keycloak                   | http://localhost:9090 |
+| Keycloak (via retry-proxy) | http://localhost:9090 |
 | YDB Monitoring             | http://localhost:8765 |
 
 ### Option B: Keycloak + Remote YDB
@@ -64,7 +64,7 @@ docker run -d --rm --name ydb-local -h localhost \
   ydbplatform/local-ydb:latest
 ```
 
-Then start Keycloak:
+Then start Keycloak + retry-proxy:
 
 ```bash
 YDB_JDBC_URL="jdbc:ydb:grpc://host.docker.internal:2136/local" \
@@ -80,7 +80,7 @@ YDB_JDBC_URL="jdbc:ydb:grpcs://ydb.serverless.yandexcloud.net:2135/ru-central1/.
 
 | Service                    | URL                   |
 |----------------------------|-----------------------|
-| Keycloak                   | http://localhost:9090 |
+| Keycloak (via retry-proxy) | http://localhost:9090 |
 
 Admin credentials for all options: `admin` / `admin`
 
@@ -187,7 +187,7 @@ java -server -Xmx1G \
 These scenarios simulate real user logins. They require `http://0.0.0.0:9090` instead of `localhost` —
 Gatling refuses to send secure cookies to localhost with Keycloak 26
 (see [keycloak-benchmark#945](https://github.com/keycloak/keycloak-benchmark/issues/945)).
-Also make sure `hostname` in `docker/conf/keycloak.conf` matches this address.
+Also make sure `hostname` in `docker/conf/keycloak.conf` matches this address (see retry-proxy README).
 
 By default, users `user-0`, `user-1`, ... with passwords `user-0-password`, `user-1-password`, ... are used (created by `setup-test-realm.py`).
 

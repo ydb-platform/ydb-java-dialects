@@ -12,7 +12,6 @@ import org.keycloak.ServerStartupError
 import org.keycloak.connections.jpa.DefaultJpaConnectionProvider
 import org.keycloak.connections.jpa.JpaConnectionProvider
 import org.keycloak.connections.jpa.JpaConnectionProviderFactory
-import org.keycloak.connections.jpa.JpaKeycloakTransaction
 import org.keycloak.connections.jpa.support.EntityManagerProxy
 import org.keycloak.connections.jpa.updater.JpaUpdaterProvider
 import org.keycloak.connections.jpa.updater.JpaUpdaterProvider.Status.EMPTY
@@ -60,10 +59,13 @@ class YdbConnectionProviderFactoryImpl : JpaConnectionProviderFactory, ServerInf
       emf.createEntityManager(SYNCHRONIZED)
     }
 
+    val keycloakEm = EntityManagerProxy.create(session, em, true)
+    val ydbEm = YdbEntityManagerProxy.create(keycloakEm)
+
     if (!jtaEnabled) {
-      session.transactionManager.enlist(JpaKeycloakTransaction(em))
+      session.transactionManager.enlist(YdbJpaKeycloakTransaction(ydbEm))
     }
-    return DefaultJpaConnectionProvider(EntityManagerProxy.create(session, em, true))
+    return DefaultJpaConnectionProvider(ydbEm)
   }
 
   override fun init(scope: Config.Scope) {
@@ -223,7 +225,7 @@ class YdbConnectionProviderFactoryImpl : JpaConnectionProviderFactory, ServerInf
     val properties = mutableMapOf<String, Any>()
 
     val hikariConfig = HikariConfig().apply {
-      this.jdbcUrl = jdbcUrl
+      jdbcUrl = this@YdbConnectionProviderFactoryImpl.jdbcUrl
       driverClassName = YdbDriver::class.java.name
       maximumPoolSize = config.getInt("poolSize", 50)
       minimumIdle = config.getInt("minIdle", 10)

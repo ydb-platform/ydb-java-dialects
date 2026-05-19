@@ -38,6 +38,8 @@ services:
   ydb-keycloak:
     image: quay.io/keycloak/keycloak:26.4.7
     container_name: ydb-keycloak
+    expose:
+      - '8080'
     volumes:
       - ./providers/keycloak-ydb-extension-1.0-SNAPSHOT.jar:/opt/keycloak/providers/keycloak-ydb-extension-1.0-SNAPSHOT.jar
       - ./conf/keycloak.conf:/opt/keycloak/conf/keycloak.conf
@@ -45,10 +47,24 @@ services:
     command: >
       -v start-dev
       --cache=local
-    ports:
-      - 9090:8080
     networks:
       - keycloak
     depends_on:
       ydb:
         condition: service_started
+
+  retry-proxy:
+    build:
+      context: ../retry-proxy
+    environment:
+      - TARGET_URL=http://ydb-keycloak:8080
+      - MAX_RETRIES=10
+      - BASE_DELAY_MS=50
+      - MAX_DELAY_MS=2000
+      - LISTEN_PORT=8080
+    ports:
+      - 9090:8080
+    networks:
+      - keycloak
+    depends_on:
+      - ydb-keycloak
