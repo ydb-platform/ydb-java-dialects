@@ -1,11 +1,9 @@
 package tech.ydb.keycloak.connection
 
 import jakarta.persistence.EntityManager
-import jakarta.ws.rs.WebApplicationException
-import jakarta.ws.rs.core.MediaType
-import jakarta.ws.rs.core.Response
 import org.jboss.logging.Logger
 import org.keycloak.connections.jpa.JpaKeycloakTransaction
+import tech.ydb.keycloak.utils.YdbRetryableResponses
 import tech.ydb.keycloak.utils.isYdbRetryable
 
 class YdbJpaKeycloakTransaction(em: EntityManager) : JpaKeycloakTransaction(em) {
@@ -16,14 +14,10 @@ class YdbJpaKeycloakTransaction(em: EntityManager) : JpaKeycloakTransaction(em) 
     } catch (e: Exception) {
       if (isYdbRetryable(e)) {
         LOG.warn("YDB retryable error during commit, returning 503")
-        throw WebApplicationException(
-          "YDB transaction aborted due to contention",
+        throw YdbRetryableResponses.toWebApplicationException(
           e,
-          Response.status(Response.Status.SERVICE_UNAVAILABLE)
-            .entity("""{"error":"ydb_retryable","error_description":"Transaction aborted, please retry"}""")
-            .header("Retry-After", "1")
-            .type(MediaType.APPLICATION_JSON_TYPE)
-            .build()
+          "YDB transaction aborted",
+          YdbRetryableResponses.TRANSACTION_DESCRIPTION,
         )
       }
       throw e

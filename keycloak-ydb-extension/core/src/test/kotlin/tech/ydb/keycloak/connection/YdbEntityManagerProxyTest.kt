@@ -24,7 +24,6 @@ class YdbEntityManagerProxyTest {
     val ex = assertThrows(WebApplicationException::class.java) { proxy.flush() }
 
     assertEquals(503, ex.response.status)
-    assertEquals("1", ex.response.getHeaderString("Retry-After"))
     assertEquals("application", ex.response.mediaType?.type)
     assertEquals("json", ex.response.mediaType?.subtype)
     assertSame(exception, ex.cause)

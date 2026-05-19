@@ -1,10 +1,8 @@
 package tech.ydb.keycloak.connection
 
 import jakarta.persistence.EntityManager
-import jakarta.ws.rs.WebApplicationException
-import jakarta.ws.rs.core.MediaType
-import jakarta.ws.rs.core.Response
 import org.jboss.logging.Logger
+import tech.ydb.keycloak.utils.YdbRetryableResponses
 import tech.ydb.keycloak.utils.isYdbRetryable
 import java.lang.reflect.InvocationTargetException
 import java.lang.reflect.Method
@@ -18,27 +16,17 @@ class YdbEntityManagerProxy(private val em: EntityManager) {
       val cause = e.cause ?: throw e
       if (isYdbRetryable(cause)) {
         LOG.warn("YDB retryable error during ${method.name}, returning 503")
-        throw ydbRetryableResponse(cause)
+        throw YdbRetryableResponses.toWebApplicationException(cause)
       }
       throw cause
     } catch (e: Exception) {
       if (isYdbRetryable(e)) {
         LOG.warn("YDB retryable error during ${method.name}, returning 503")
-        throw ydbRetryableResponse(e)
+        throw YdbRetryableResponses.toWebApplicationException(e)
       }
       throw e
     }
   }
-
-  private fun ydbRetryableResponse(cause: Throwable) = WebApplicationException(
-    cause.message,
-    cause,
-    Response.status(Response.Status.SERVICE_UNAVAILABLE)
-      .entity("""{"error":"ydb_retryable","error_description":"Transaction aborted due to contention, please retry"}""")
-      .header("Retry-After", "1")
-      .type(MediaType.APPLICATION_JSON_TYPE)
-      .build()
-  )
 
   companion object {
     private val LOG: Logger = Logger.getLogger(YdbEntityManagerProxy::class.java)

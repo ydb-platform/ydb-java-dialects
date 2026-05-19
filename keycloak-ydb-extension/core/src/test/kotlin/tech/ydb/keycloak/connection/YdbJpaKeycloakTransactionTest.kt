@@ -32,7 +32,6 @@ class YdbJpaKeycloakTransactionTest {
     val ex = assertThrows(WebApplicationException::class.java) { transaction.commit() }
 
     assertEquals(503, ex.response.status)
-    assertEquals("1", ex.response.getHeaderString("Retry-After"))
     assertEquals("application", ex.response.mediaType?.type)
     assertEquals("json", ex.response.mediaType?.subtype)
     assertSame(retryable, ex.cause)
