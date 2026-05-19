@@ -16,6 +16,7 @@ import org.jetbrains.exposed.v1.json.exists
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
+import tech.ydb.exposed.dialect.YdbTable
 import tech.ydb.exposed.dialect.integration.base.BaseYdbTest
 import tech.ydb.exposed.dialect.ydbJson
 
@@ -29,14 +30,14 @@ import tech.ydb.exposed.dialect.ydbJson
  */
 class YdbSqlFunctionsIT : BaseYdbTest() {
 
-    object Strings : Table("fn_strings") {
+    object Strings : YdbTable("fn_strings") {
         val id = integer("id")
         val value = text("value")
 
         override val primaryKey = PrimaryKey(id)
     }
 
-    object JsonRows : Table("fn_json") {
+    object JsonRows : YdbTable("fn_json") {
         val id = integer("id")
         val payload = ydbJson("payload")
 

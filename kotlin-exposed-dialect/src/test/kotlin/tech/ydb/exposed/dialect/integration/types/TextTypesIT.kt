@@ -6,11 +6,12 @@ import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
+import tech.ydb.exposed.dialect.YdbTable
 import tech.ydb.exposed.dialect.integration.base.BaseYdbTest
 
 class TextTypesIT : BaseYdbTest() {
 
-    object TextTypes : Table("text_types") {
+    object TextTypes : YdbTable("text_types") {
         val id = integer("id")
         val varcharCol = varchar("varchar_col", 255)
         val textCol = text("text_col")

@@ -4,6 +4,7 @@ import org.jetbrains.exposed.v1.core.Table
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Test
+import tech.ydb.exposed.dialect.YdbTable
 import tech.ydb.exposed.dialect.ydbInterval
 import tech.ydb.exposed.dialect.ydbInterval64
 import tech.ydb.exposed.dialect.code.YdbJdbcCode
@@ -11,7 +12,7 @@ import java.time.Duration
 
 class YdbIntervalColumnTypeTest {
 
-    private object IntervalColumns : Table("interval_columns") {
+    private object IntervalColumns : YdbTable("interval_columns") {
         val legacy = ydbInterval("legacy")
         val extended = ydbInterval64("extended")
     }

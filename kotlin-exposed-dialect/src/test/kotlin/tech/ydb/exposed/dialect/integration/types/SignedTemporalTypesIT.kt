@@ -8,6 +8,7 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import tech.ydb.exposed.dialect.YdbDialect
+import tech.ydb.exposed.dialect.YdbTable
 import tech.ydb.exposed.dialect.integration.base.BaseYdbTest
 import tech.ydb.exposed.dialect.javatime.ydbDate32
 import tech.ydb.exposed.dialect.javatime.ydbDatetime64
@@ -22,7 +23,7 @@ import java.time.LocalDateTime
  */
 class SignedTemporalTypesIT : BaseYdbTest() {
 
-    object SignedTemporal : Table("signed_temporal_types") {
+    object SignedTemporal : YdbTable("signed_temporal_types") {
         val id = integer("id")
         val dateCol = ydbDate32("date_col")
         val dateTimeCol = ydbDatetime64("datetime_col")

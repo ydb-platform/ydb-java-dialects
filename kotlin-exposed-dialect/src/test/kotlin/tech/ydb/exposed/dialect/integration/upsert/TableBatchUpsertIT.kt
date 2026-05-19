@@ -6,12 +6,13 @@ import org.jetbrains.exposed.v1.jdbc.batchUpsert
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
+import tech.ydb.exposed.dialect.YdbTable
 import tech.ydb.exposed.dialect.integration.base.BaseYdbTest
 
 /** [Table.batchUpsert] over native YDB UPSERT. */
 class TableBatchUpsertIT : BaseYdbTest() {
 
-    object BatchItems : Table("table_batch_upsert_items") {
+    object BatchItems : YdbTable("table_batch_upsert_items") {
         val id = integer("id")
         val name = varchar("name", 255)
         val quantity = integer("quantity")

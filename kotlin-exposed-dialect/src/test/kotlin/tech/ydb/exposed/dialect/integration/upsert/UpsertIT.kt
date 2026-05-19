@@ -9,6 +9,7 @@ import org.jetbrains.exposed.v1.jdbc.upsert
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Test
+import tech.ydb.exposed.dialect.YdbTable
 import tech.ydb.exposed.dialect.integration.base.BaseYdbTest
 
 /**
@@ -21,20 +22,20 @@ import tech.ydb.exposed.dialect.integration.base.BaseYdbTest
  */
 class UpsertIT : BaseYdbTest() {
 
-    object Products : Table("upsert_products") {
+    object Products : YdbTable("upsert_products") {
         val id = integer("id")
         val name = varchar("name", 255)
         override val primaryKey = PrimaryKey(id)
     }
 
-    object Inventory : Table("upsert_inventory") {
+    object Inventory : YdbTable("upsert_inventory") {
         val id = integer("id")
         val name = varchar("name", 255)
         val quantity = integer("quantity").default(0)
         override val primaryKey = PrimaryKey(id)
     }
 
-    object NullableItems : Table("upsert_nullable_items") {
+    object NullableItems : YdbTable("upsert_nullable_items") {
         val id = integer("id")
         val note = varchar("note", 64).nullable()
         override val primaryKey = PrimaryKey(id)

@@ -8,11 +8,12 @@ import org.jetbrains.exposed.v1.jdbc.insert
 import org.jetbrains.exposed.v1.jdbc.select
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
+import tech.ydb.exposed.dialect.YdbTable
 import tech.ydb.exposed.dialect.integration.base.BaseYdbTest
 
 class SubqueryIT : BaseYdbTest() {
 
-    object Sales : Table("sales") {
+    object Sales : YdbTable("sales") {
         val id = integer("id")
         val customer = varchar("customer", 255)
         val amount = integer("amount")

@@ -5,11 +5,12 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import tech.ydb.exposed.dialect.YdbDialect
+import tech.ydb.exposed.dialect.YdbTable
 import tech.ydb.exposed.dialect.integration.base.BaseYdbTest
 
 class IndexIT : BaseYdbTest() {
 
-    object Customers : Table("customers") {
+    object Customers : YdbTable("customers") {
         val id = integer("id")
         val name = varchar("name", 255)
         val email = varchar("email", 255)

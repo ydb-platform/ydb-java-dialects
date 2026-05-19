@@ -7,6 +7,7 @@ import org.junit.jupiter.api.Assertions.assertArrayEquals
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
+import tech.ydb.exposed.dialect.YdbTable
 import tech.ydb.exposed.dialect.integration.base.BaseYdbTest
 import tech.ydb.exposed.dialect.ydbDecimal
 import tech.ydb.exposed.dialect.ydbInterval64
@@ -38,7 +39,7 @@ import tech.ydb.exposed.dialect.javatime.ydbTimestamp64
  */
 class AllTypesRoundTripIT : BaseYdbTest() {
 
-    object ScalarTypes : Table("all_types_scalars") {
+    object ScalarTypes : YdbTable("all_types_scalars") {
         val id = integer("id")
         val byteCol = byte("byte_col")
         val ubyteCol = ydbUbyte("ubyte_col")
@@ -58,7 +59,7 @@ class AllTypesRoundTripIT : BaseYdbTest() {
         override val primaryKey = PrimaryKey(id)
     }
 
-    object StandardTemporal : Table("all_types_std_temporal") {
+    object StandardTemporal : YdbTable("all_types_std_temporal") {
         val id = integer("id")
         val dateCol = ydbDate("date_col")
         val dateTimeCol = ydbDatetime("datetime_col")
@@ -67,7 +68,7 @@ class AllTypesRoundTripIT : BaseYdbTest() {
         override val primaryKey = PrimaryKey(id)
     }
 
-    object YdbExtensionTypes : Table("all_types_ydb_ext") {
+    object YdbExtensionTypes : YdbTable("all_types_ydb_ext") {
         val id = integer("id")
         val amount = ydbDecimal("amount", 12, 4)
         val jsonCol = ydbJson("json_col")

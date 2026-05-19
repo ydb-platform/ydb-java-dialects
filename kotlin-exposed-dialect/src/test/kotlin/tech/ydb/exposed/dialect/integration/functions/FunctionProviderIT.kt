@@ -7,18 +7,19 @@ import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import tech.ydb.exposed.dialect.YdbFunctionProvider
+import tech.ydb.exposed.dialect.YdbTable
 import tech.ydb.exposed.dialect.integration.base.BaseYdbTest
 
 class FunctionProviderIT : BaseYdbTest() {
 
-    object Users : Table("users") {
+    object Users : YdbTable("users") {
         val id = integer("id")
         val name = varchar("name", 255)
 
         override val primaryKey = PrimaryKey(id)
     }
 
-    object SourceUsers : Table("source_users") {
+    object SourceUsers : YdbTable("source_users") {
         val id = integer("id")
         val name = varchar("name", 255)
 
