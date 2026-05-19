@@ -2,7 +2,6 @@ package tech.ydb.keycloak.utils
 
 import tech.ydb.jdbc.exception.YdbRetryableException
 
-// TODO: add unit test
 fun isYdbRetryable(t: Throwable): Boolean {
   var cause: Throwable? = t
   while (cause != null) {

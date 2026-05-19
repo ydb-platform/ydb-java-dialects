@@ -10,7 +10,6 @@ import java.lang.reflect.InvocationTargetException
 import java.lang.reflect.Method
 import java.lang.reflect.Proxy
 
-// TODO: add unit test
 class YdbEntityManagerProxy(private val em: EntityManager) {
   private fun invoke(proxy: Any, method: Method, args: Array<Any?>?): Any? {
     try {

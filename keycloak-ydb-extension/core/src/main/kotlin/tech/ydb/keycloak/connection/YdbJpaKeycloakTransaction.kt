@@ -20,7 +20,7 @@ class YdbJpaKeycloakTransaction(em: EntityManager) : JpaKeycloakTransaction(em) 
           "YDB transaction aborted due to contention",
           e,
           Response.status(Response.Status.SERVICE_UNAVAILABLE)
-            .entity("""{"error":"ydb_retryable","error_description":"Transaction aborted due to contention, please retry"}""")
+            .entity("""{"error":"ydb_retryable","error_description":"Transaction aborted, please retry"}""")
             .header("Retry-After", "1")
             .type(MediaType.APPLICATION_JSON_TYPE)
             .build()
