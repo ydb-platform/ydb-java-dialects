@@ -225,7 +225,7 @@ class YdbConnectionProviderFactoryImpl : JpaConnectionProviderFactory, ServerInf
     val properties = mutableMapOf<String, Any>()
 
     val hikariConfig = HikariConfig().apply {
-      this.jdbcUrl = jdbcUrl
+      jdbcUrl = this@YdbConnectionProviderFactoryImpl.jdbcUrl
       driverClassName = YdbDriver::class.java.name
       maximumPoolSize = config.getInt("poolSize", 50)
       minimumIdle = config.getInt("minIdle", 10)
