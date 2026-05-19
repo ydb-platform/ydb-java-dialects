@@ -27,6 +27,12 @@ import java.sql.Connection
  */
 class RegisterYdbDialectConnectIT {
 
+    companion object {
+        @JvmField
+        @RegisterExtension
+        val ydb: YdbHelperExtension = YdbHelperExtension()
+    }
+
     object PlainConnectTable : Table("register_ydb_dialect_plain_connect") {
         val id = integer("id")
         val label = varchar("label", 64)
@@ -93,9 +99,4 @@ class RegisterYdbDialectConnectIT {
         assertTrue(ddl.contains("label Text"))
     }
 
-    companion object {
-        @JvmField
-        @RegisterExtension
-        val ydb: YdbHelperExtension = YdbHelperExtension()
-    }
 }

@@ -20,7 +20,3 @@ Initial release of the Kotlin Exposed dialect for YDB.
   unsigned integers, `Uint64`, plus a `ydbDecimalLiteral` helper for update expressions.
 - `Serial` / `BigSerial` via Exposed `autoIncrement()` on `Table`.
 - Explicit rejection of ANSI `MERGE` (`UPSERT` covers the use case).
-- Console demo application showing CRUD, UPSERT and DDL.
-- Integration tests powered by testcontainers via `tech.ydb.test:ydb-junit5-support`.
-- GitHub Actions workflows for CI (`ci-exposed-ydb-dialect.yaml`) and Maven Central
-  publishing (`publish-kotlin-exposed-dialect.yaml`).
