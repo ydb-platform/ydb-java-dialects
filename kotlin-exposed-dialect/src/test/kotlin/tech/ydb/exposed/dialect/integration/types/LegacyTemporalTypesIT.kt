@@ -1,25 +1,17 @@
 package tech.ydb.exposed.dialect.integration.types
 
 import org.jetbrains.exposed.v1.core.Table
-import org.jetbrains.exposed.v1.jdbc.Database
 import org.jetbrains.exposed.v1.jdbc.SchemaUtils
-import org.jetbrains.exposed.v1.jdbc.transactions.TransactionManager
-import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertTrue
-import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.extension.RegisterExtension
-import tech.ydb.exposed.dialect.connectYdb
-import tech.ydb.exposed.dialect.YdbTable
-import tech.ydb.exposed.dialect.ydbTransaction
-import tech.ydb.test.junit5.YdbHelperExtension
+import tech.ydb.exposed.dialect.integration.base.BaseYdbTest
 import tech.ydb.exposed.dialect.javatime.ydbDate
 import tech.ydb.exposed.dialect.javatime.ydbDatetime
 import tech.ydb.exposed.dialect.javatime.ydbTimestamp
 
-class LegacyTemporalTypesIT {
+class LegacyTemporalTypesIT : BaseYdbTest() {
 
-    object LegacyTemporal : YdbTable("legacy_temporal_types") {
+    object LegacyTemporal : Table("legacy_temporal_types") {
         val id = integer("id")
         val dateCol = ydbDate("date_col")
         val dateTimeCol = ydbDatetime("datetime_col")
@@ -28,46 +20,15 @@ class LegacyTemporalTypesIT {
         override val primaryKey = PrimaryKey(id)
     }
 
-    private lateinit var db: Database
-
-    @BeforeEach
-    fun setUp() {
-        val jdbcUrl = buildString {
-            append("jdbc:ydb:")
-            append(if (ydb.useTls()) "grpcs://" else "grpc://")
-            append(ydb.endpoint())
-            append(ydb.database())
-            append("?disablePrepareDataQuery=true")
-            ydb.authToken()?.let { append("&token=").append(it) }
-        }
-        db = connectYdb(url = jdbcUrl)
-    }
-
-    @AfterEach
-    fun tearDown() {
-        if (!::db.isInitialized) return
-
-        runCatching {
-            ydbTransaction(db) {
-                SchemaUtils.drop(LegacyTemporal)
-            }
-        }
-        runCatching { TransactionManager.closeAndUnregister(db) }
-    }
+    override val tables: List<Table> = emptyList()
 
     @Test
-    fun `unsigned ydb temporal extensions emit Date Datetime Timestamp`() = ydbTransaction(db) {
+    fun `unsigned ydb temporal extensions emit Date Datetime Timestamp`() = tx {
         SchemaUtils.create(LegacyTemporal)
 
         val ddl = LegacyTemporal.ddl.joinToString(" ")
         assertTrue(ddl.contains("date_col Date") && !ddl.contains("Date32"), ddl)
         assertTrue(ddl.contains("datetime_col Datetime") && !ddl.contains("Datetime64"), ddl)
         assertTrue(ddl.contains("timestamp_col Timestamp") && !ddl.contains("Timestamp64"), ddl)
-    }
-
-    companion object {
-        @JvmField
-        @RegisterExtension
-        val ydb: YdbHelperExtension = YdbHelperExtension()
     }
 }

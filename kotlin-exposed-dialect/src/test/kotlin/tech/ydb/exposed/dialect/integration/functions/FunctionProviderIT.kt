@@ -72,14 +72,14 @@ class FunctionProviderIT : BaseYdbTest() {
 
     @Test
     fun `should reject WHERE in UPSERT`() {
-        assertThrows(IllegalArgumentException::class.java) {
+        assertThrows(UnsupportedOperationException::class.java) {
             tx {
                 provider.upsert(
                     table = Users,
                     data = listOf(Users.id to 1, Users.name to "Alice"),
                     expression = "",
                     onUpdate = emptyList(),
-                    keyColumns = emptyList(),
+                    keyColumns = listOf(Users.id),
                     where = Users.id eq 1,
                     transaction = this
                 )

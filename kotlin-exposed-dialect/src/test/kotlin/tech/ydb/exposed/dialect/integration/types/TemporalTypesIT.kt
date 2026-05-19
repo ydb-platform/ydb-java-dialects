@@ -6,7 +6,6 @@ import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
-import tech.ydb.exposed.dialect.YdbTable
 import tech.ydb.exposed.dialect.integration.base.BaseYdbTest
 import java.time.Instant
 import java.time.LocalDate
@@ -17,7 +16,7 @@ import tech.ydb.exposed.dialect.javatime.ydbTimestamp64
 
 class TemporalTypesIT : BaseYdbTest() {
 
-    object TemporalTypes : YdbTable("temporal_types") {
+    object TemporalTypes : Table("temporal_types") {
         val id = integer("id")
         val dateCol = ydbDate32("date_col")
         val dateTimeCol = ydbDatetime64("datetime_col")

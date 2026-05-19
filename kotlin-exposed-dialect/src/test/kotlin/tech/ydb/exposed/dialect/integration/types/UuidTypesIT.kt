@@ -6,14 +6,13 @@ import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
-import tech.ydb.exposed.dialect.YdbTable
 import tech.ydb.exposed.dialect.integration.base.BaseYdbTest
 import tech.ydb.exposed.dialect.ydbUuid
 import java.util.UUID
 
 class UuidTypesIT : BaseYdbTest() {
 
-    object NativeUuidTypes : YdbTable("native_uuid_types") {
+    object NativeUuidTypes : Table("native_uuid_types") {
         val id = integer("id")
         val uuidCol = ydbUuid("uuid_col")
         override val primaryKey = PrimaryKey(id)

@@ -3,19 +3,17 @@ package tech.ydb.exposed.dialect.integration.basic
 import org.jetbrains.exposed.v1.core.Function
 import org.jetbrains.exposed.v1.core.Index
 import org.jetbrains.exposed.v1.core.QueryBuilder
+import org.jetbrains.exposed.v1.core.Table
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import tech.ydb.exposed.dialect.YdbDialect
-import tech.ydb.exposed.dialect.YdbIndexScope
-import tech.ydb.exposed.dialect.YdbIndexSyncMode
-import tech.ydb.exposed.dialect.YdbTable
 import tech.ydb.exposed.dialect.integration.base.BaseYdbTest
 
 class YdbIndexSqlIT : BaseYdbTest() {
 
-    object IndexedTable : YdbTable("indexed_table") {
+    object IndexedTable : Table("indexed_table") {
         val id = integer("id")
         val email = varchar("email", 255)
         val name = varchar("name", 255)
@@ -24,28 +22,11 @@ class YdbIndexSqlIT : BaseYdbTest() {
 
         init {
             index(false, email)
-
-            secondaryIndex(
-                name = "email_cover_idx",
-                email,
-                unique = false,
-                scope = YdbIndexScope.GLOBAL,
-                syncMode = YdbIndexSyncMode.ASYNC,
-                coverColumns = listOf(name),
-                withParams = mapOf("foo" to "bar")
-            )
-
-            secondaryIndex(
-                name = "email-cover-idx",
-                email,
-                unique = true,
-                scope = YdbIndexScope.GLOBAL,
-                syncMode = YdbIndexSyncMode.SYNC
-            )
+            index("email-cover-idx", isUnique = true, email)
         }
 
         val emailIndexDefinition
-            get() = indices.single { it.columns == listOf(email) }
+            get() = indices.single { !it.unique && it.columns == listOf(email) }
     }
 
     @Test
@@ -90,17 +71,15 @@ class YdbIndexSqlIT : BaseYdbTest() {
     }
 
     @Test
-    fun `renders YDB-specific inline secondary index`() {
+    fun `renders unique index with custom name`() {
         transaction(db) {
-            val ddl = IndexedTable.ddl.joinToString(" ")
-            val expectedHyphenatedName = db.identifierManager.cutIfNecessaryAndQuote("email-cover-idx")
+            val dialect = db.dialect as YdbDialect
+            val uniqueIndex = IndexedTable.indices.single { it.unique }
+            val sql = dialect.createIndex(uniqueIndex)
+            val expectedName = db.identifierManager.cutIfNecessaryAndQuote("email-cover-idx")
 
-            assertTrue(ddl.contains("INDEX email_cover_idx"), ddl)
-            assertTrue(ddl.contains("GLOBAL ASYNC"), ddl)
-            assertTrue(ddl.contains("ON (`email`)") || ddl.contains("ON (email)"), ddl)
-            assertTrue(ddl.contains("COVER (`name`)") || ddl.contains("COVER (name)"), ddl)
-            assertTrue(ddl.contains("WITH (foo = \"bar\")"), ddl)
-            assertTrue(ddl.contains("INDEX $expectedHyphenatedName GLOBAL UNIQUE"), ddl)
+            assertTrue(sql.contains("GLOBAL UNIQUE"), sql)
+            assertTrue(sql.contains(expectedName), sql)
         }
     }
 }

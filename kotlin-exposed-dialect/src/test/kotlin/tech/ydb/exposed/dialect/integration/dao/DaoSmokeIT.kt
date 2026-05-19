@@ -11,13 +11,9 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Test
-import tech.ydb.exposed.dialect.buildYdbCreateStatement
 import tech.ydb.exposed.dialect.integration.base.BaseYdbTest
 
-/**
- * Exposed [Entity] / [IdTable] work with YDB when table DDL uses YDB-style `PRIMARY KEY (cols)`
- * (via [buildYdbCreateStatement]) instead of the default inline `PRIMARY KEY` on the column.
- */
+/** Exposed [Entity] / [IdTable] smoke test against YDB. */
 class DaoSmokeIT : BaseYdbTest() {
 
     object Articles : IdTable<String>("dao_articles") {
@@ -26,9 +22,6 @@ class DaoSmokeIT : BaseYdbTest() {
         val body = text("body")
 
         override val primaryKey = PrimaryKey(id)
-
-        override fun createStatement(): List<String> =
-            buildYdbCreateStatement(this, ttlSettings = null, secondaryIndices = emptyList())
     }
 
     class Article(id: EntityID<String>) : Entity<String>(id) {

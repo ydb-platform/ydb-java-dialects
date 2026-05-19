@@ -109,10 +109,7 @@ internal fun bindYdbParameter(
     }
 
     val jdbcStatement = (stmt as? JdbcPreparedStatementImpl)?.statement
-        ?: error(
-            "YDB column bind requires JdbcPreparedStatementImpl (got ${stmt::class.qualifiedName}); " +
-                    "use ydb* / javatime.* column types with the YDB JDBC driver"
-        )
+        ?: error("YDB column bind requires JdbcPreparedStatementImpl (got ${stmt::class.qualifiedName});")
     jdbcStatement.setObject(index, value, targetSqlType)
 }
 

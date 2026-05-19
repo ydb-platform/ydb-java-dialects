@@ -7,9 +7,9 @@
  * - Legacy unsigned: [ydbDate], [ydbDatetime], [ydbTimestamp] + `forceSignedDatetimes=false` (default).
  * - Extended signed: [ydbDate32], [ydbDatetime64], [ydbTimestamp64] + `forceSignedDatetimes=true`.
  *
- * [connectYdb] with `enableSignedDatetimes = true` only changes standard Exposed `date`/`datetime`/
- * `timestamp` DDL via [tech.ydb.exposed.dialect.YdbDataTypeProvider]; these extensions always emit
- * the type named in the function (`Date` vs `Date32`, etc.).
+ * [tech.ydb.exposed.dialect.registerYdbDialect] with `enableSignedDatetimes = true` only changes standard Exposed
+ * `date`/`datetime`/`timestamp` DDL via [tech.ydb.exposed.dialect.YdbDataTypeProvider]; these
+ * extensions always emit the type named in the function (`Date` vs `Date32`, etc.).
  */
 @file:OptIn(kotlin.time.ExperimentalTime::class)
 

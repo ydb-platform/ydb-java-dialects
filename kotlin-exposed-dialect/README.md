@@ -30,33 +30,30 @@ The module provides:
 ## Quick start
 
 ```kotlin
-import tech.ydb.exposed.dialect.connectYdb
+import org.jetbrains.exposed.v1.jdbc.Database
+import tech.ydb.exposed.dialect.registerYdbDialect
 import tech.ydb.exposed.dialect.ydbTransaction
 
-val db = connectYdb(url = "jdbc:ydb:grpc://localhost:2136/local")
+registerYdbDialect() // or registerYdbDialect(enableSignedDatetimes = true)
+
+val db = Database.connect("jdbc:ydb:grpc://localhost:2136/local")
 
 ydbTransaction(db) {
     // Exposed DSL / DAO code
 }
 ```
 
-[connectYdb](src/main/kotlin/tech/ydb/exposed/dialect/YdbDialectRegistration.kt) registers the YDB
-JDBC driver and dialect metadata (idempotent), then opens an Exposed `Database` with defaults tuned
-for YDB (`SERIALIZABLE` isolation, no nested transactions). Alternatively, call
-`registerYdbDialect()` once and use `Database.connect("jdbc:ydb:...")`.
-
 ## Defining tables
 
-YDB requires every table to declare a `PRIMARY KEY`. Inherit from `YdbTable` to get YDB-specific
-DDL helpers on top of the standard Exposed `Table`:
+YDB requires every table to declare a `PRIMARY KEY`. Use the standard Exposed `Table`; apply
+custom DDL (TTL, inline indexes with `COVER` / `ASYNC`, etc.) via `transaction { exec("...") }`
+when needed:
 
 ```kotlin
-import tech.ydb.exposed.dialect.YdbIndexScope
-import tech.ydb.exposed.dialect.YdbIndexSyncMode
-import tech.ydb.exposed.dialect.YdbTable
+import org.jetbrains.exposed.v1.core.Table
 import tech.ydb.exposed.dialect.ydbDecimal
 
-object Products : YdbTable("products") {
+object Products : Table("products") {
     val id = integer("id")
     val sku = varchar("sku", 64)
     val name = varchar("name", 255)
@@ -67,15 +64,7 @@ object Products : YdbTable("products") {
 
     init {
         index(isUnique = false, sku)
-
-        secondaryIndex(
-            name = "products_category_idx",
-            category,
-            unique = false,
-            scope = YdbIndexScope.GLOBAL,
-            syncMode = YdbIndexSyncMode.ASYNC,
-            coverColumns = listOf(name, price)
-        )
+        index("products_category_idx", isUnique = false, category)
     }
 }
 ```
@@ -170,22 +159,22 @@ They bind via YDB JDBC vendor type codes. Standard Exposed `date()`, `ubyte()`, 
 generic JDBC binding — DDL still maps correctly for many cases, but edge cases (unsigned ranges,
 signed vs legacy temporal) may differ. **Prefer `ydb*` / `javatime.*` in production.**
 
-Pick unsigned legacy or signed extended temporal types per column on any `Table`
-(including `YdbTable`); JDBC vendor code drives both bind and DDL `sqlType()`:
+Pick unsigned legacy or signed extended temporal types per column on any `Table`;
+JDBC vendor code drives both bind and DDL `sqlType()`:
 
 ```kotlin
 import tech.ydb.exposed.dialect.javatime.ydbDate
 import tech.ydb.exposed.dialect.javatime.ydbDate32
 import tech.ydb.exposed.dialect.javatime.ydbDatetime64
 
-object Events : YdbTable("events") {
+object Events : Table("events") {
     val created = ydbDate("created")           // Date
     val expires = ydbDate32("expires")         // Date32
     val updated = ydbDatetime64("updated")     // Datetime64
 }
 ```
 
-Optional: `connectYdb(..., enableSignedDatetimes = true)` switches **dialect** DDL names for
+Optional: `registerYdbDialect(enableSignedDatetimes = true)` switches **dialect** DDL names for
 standard Exposed `date` / `datetime` / `timestamp` to `Date32` / `Datetime64` / `Timestamp64`.
 Add `forceSignedDatetimes=true` to the JDBC URL yourself when the driver requires it.
 Per-column types remain explicit (`ydbDate` vs `ydbDate32`).
@@ -214,10 +203,10 @@ it.update(Products.price, ydbDecimalLiteral(BigDecimal("45.00"), 10, 2))
 
 ## Identifiers
 
-On `YdbTable`, Exposed `autoIncrement()` maps to YDB `Serial` / `BigSerial`:
+Exposed `autoIncrement()` maps to YDB `Serial` / `BigSerial`:
 
 ```kotlin
-object Orders : YdbTable("orders") {
+object Orders : Table("orders") {
     val id = integer("id").autoIncrement()
     val total = ydbDecimal("total", precision = 12, scale = 2)
     override val primaryKey = PrimaryKey(id)
@@ -229,12 +218,8 @@ columns are not supported.
 
 ## Indexes
 
-Two ways to declare secondary indexes:
-
-| Mechanism | SQL shape | Features |
-|-----------|-----------|----------|
-| `Table.index()` / `index(isUnique = …)` | `ALTER TABLE … ADD INDEX … GLOBAL` | Unique flag; no inline `ASYNC` / `COVER` / `WITH` |
-| `YdbTable.secondaryIndex()` | Inline in `CREATE TABLE` | `ASYNC`, `COVER`, `WITH`, unique |
+Exposed `Table.index()` / `index(customName, isUnique, …)` is rendered as
+`ALTER TABLE … ADD INDEX … GLOBAL [UNIQUE] ON (…)`.
 
 ## Known limitations
 
@@ -244,26 +229,9 @@ that YDB does not support. This module overrides indexes, UPSERT/REPLACE, LIMIT/
 functions, and YDB type names — not the entire DDL surface.
 
 - No ANSI `MERGE`; use `UPSERT` / `REPLACE`.
-- TTL is emitted on `CREATE TABLE` only (no `ALTER TABLE … SET (TTL)` DSL).
+- No DSL for TTL or inline `CREATE TABLE` indexes (`COVER`, `ASYNC`, `WITH`) — use raw YQL in `exec`.
 - No Yson / timezone-aware temporal types in this module.
 - Functional secondary indexes are rejected.
-
-## TTL
-
-```kotlin
-object Sessions : YdbTable("sessions") {
-    val id = integer("id")
-    val expireAt = timestamp("expire_at")
-    override val primaryKey = PrimaryKey(id)
-
-    init {
-        ttl(expireAt, "PT1H")
-    }
-}
-```
-
-Numeric epoch columns are also supported via `YdbTtlColumnMode.SECONDS` /
-`MILLISECONDS` / `MICROSECONDS` / `NANOSECONDS`.
 
 ## Tests
 

@@ -1,33 +1,24 @@
 package tech.ydb.exposed.dialect.integration.types
 
-import org.jetbrains.exposed.v1.jdbc.Database
+import org.jetbrains.exposed.v1.core.Table
 import org.jetbrains.exposed.v1.jdbc.SchemaUtils
 import org.jetbrains.exposed.v1.jdbc.insert
 import org.jetbrains.exposed.v1.jdbc.selectAll
-import org.jetbrains.exposed.v1.jdbc.transactions.TransactionManager
-import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
-import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.extension.RegisterExtension
-import tech.ydb.exposed.dialect.connectYdb
-import tech.ydb.exposed.dialect.YdbTable
-import tech.ydb.exposed.dialect.ydbTransaction
-import tech.ydb.test.junit5.YdbHelperExtension
-import java.time.Instant
-import java.time.LocalDate
-import java.time.LocalDateTime
+import tech.ydb.exposed.dialect.integration.base.BaseYdbTest
 import tech.ydb.exposed.dialect.javatime.ydbDate
 import tech.ydb.exposed.dialect.javatime.ydbDatetime
 import tech.ydb.exposed.dialect.javatime.ydbTimestamp
+import java.time.Instant
+import java.time.LocalDate
+import java.time.LocalDateTime
 
-/**
- * [ydbDate] / [ydbDatetime] / [ydbTimestamp] — unsigned legacy types with JDBC vendor codes.
- */
-class ForceLegacyStandardTemporalIT {
+/** [ydbDate] / [ydbDatetime] / [ydbTimestamp] — unsigned legacy types with JDBC vendor codes. */
+class ForceLegacyStandardTemporalIT : BaseYdbTest() {
 
-    object LegacyStdTemporal : YdbTable("force_legacy_std_temporal") {
+    object LegacyStdTemporal : Table("force_legacy_std_temporal") {
         val id = integer("id")
         val dateCol = ydbDate("date_col")
         val dateTimeCol = ydbDatetime("datetime_col")
@@ -36,35 +27,10 @@ class ForceLegacyStandardTemporalIT {
         override val primaryKey = PrimaryKey(id)
     }
 
-    private lateinit var db: Database
-
-    @BeforeEach
-    fun setUp() {
-        val jdbcUrl = buildString {
-            append("jdbc:ydb:")
-            append(if (ydb.useTls()) "grpcs://" else "grpc://")
-            append(ydb.endpoint())
-            append(ydb.database())
-            append("?disablePrepareDataQuery=true")
-            ydb.authToken()?.let { append("&token=").append(it) }
-        }
-        db = connectYdb(url = jdbcUrl)
-    }
-
-    @AfterEach
-    fun tearDown() {
-        if (!::db.isInitialized) return
-
-        runCatching {
-            ydbTransaction(db) {
-                SchemaUtils.drop(LegacyStdTemporal)
-            }
-        }
-        runCatching { TransactionManager.closeAndUnregister(db) }
-    }
+    override val tables: List<Table> = emptyList()
 
     @Test
-    fun `should round-trip standard temporal columns as legacy types`() = ydbTransaction(db) {
+    fun `should round-trip standard temporal columns as legacy types`() = tx {
         SchemaUtils.create(LegacyStdTemporal)
 
         val dateValue = LocalDate.of(2019, 12, 31)
@@ -85,18 +51,12 @@ class ForceLegacyStandardTemporalIT {
     }
 
     @Test
-    fun `should emit Date Datetime Timestamp ddl`() = ydbTransaction(db) {
+    fun `should emit Date Datetime Timestamp ddl`() = tx {
         SchemaUtils.create(LegacyStdTemporal)
 
         val ddl = LegacyStdTemporal.ddl.joinToString(" ")
         assertTrue(ddl.contains("date_col Date") && !ddl.contains("Date32"), ddl)
         assertTrue(ddl.contains("datetime_col Datetime") && !ddl.contains("Datetime64"), ddl)
         assertTrue(ddl.contains("timestamp_col Timestamp") && !ddl.contains("Timestamp64"), ddl)
-    }
-
-    companion object {
-        @JvmField
-        @RegisterExtension
-        val ydb: YdbHelperExtension = YdbHelperExtension()
     }
 }

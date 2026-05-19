@@ -9,27 +9,12 @@ import org.junit.jupiter.api.Test
 import tech.ydb.exposed.dialect.YdbFunctionProvider
 import tech.ydb.exposed.dialect.YdbJsonDocumentStringColumnType
 import tech.ydb.exposed.dialect.YdbJsonStringColumnType
-import tech.ydb.exposed.dialect.buildYdbJsonPath
-
 class YdbFunctionProviderTest {
 
     private val provider = YdbFunctionProvider
 
     private fun sql(build: QueryBuilder.() -> Unit): String =
         QueryBuilder(false).apply(build).toString()
-
-    @Test
-    fun `buildYdbJsonPath maps object keys and array indexes`() {
-        assertEquals("$", buildYdbJsonPath())
-        assertEquals("$.friends[0].name", buildYdbJsonPath("friends", "0", "name"))
-        assertEquals("$.title", buildYdbJsonPath("title"))
-        assertEquals("$.friends[*]", buildYdbJsonPath("friends", "[*]"))
-    }
-
-    @Test
-    fun `buildYdbJsonPath quotes keys with special characters`() {
-        assertEquals("$.\"key-name\"", buildYdbJsonPath("key-name"))
-    }
 
     @Test
     fun `charLength uses Unicode GetLength`() {
@@ -133,6 +118,21 @@ class YdbFunctionProviderTest {
             "JSON_VALUE('{\"friends\":[{\"name\":\"Jim\"}]}', '$.friends[0].name')",
             result
         )
+    }
+
+    @Test
+    fun `jsonExtract quotes path keys with special characters`() {
+        val expr = stringLiteral("{}")
+        val result = sql {
+            provider.jsonExtract(
+                expr,
+                "key-name",
+                toScalar = true,
+                jsonType = YdbJsonStringColumnType(),
+                queryBuilder = this
+            )
+        }
+        assertEquals("JSON_VALUE('{}', '$.\"key-name\"')", result)
     }
 
     @Test

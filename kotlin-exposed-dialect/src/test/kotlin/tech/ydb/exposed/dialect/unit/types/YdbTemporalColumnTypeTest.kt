@@ -4,7 +4,6 @@ import org.jetbrains.exposed.v1.core.Table
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Test
-import tech.ydb.exposed.dialect.YdbTable
 import tech.ydb.exposed.dialect.code.YdbJdbcCode
 import tech.ydb.exposed.dialect.javatime.ydbDate
 import tech.ydb.exposed.dialect.javatime.ydbDate32
@@ -21,7 +20,7 @@ class YdbTemporalColumnTypeTest {
         val signedDate = ydbDate32("date32")
     }
 
-    private object YdbTableColumns : YdbTable("ydb_temporal_columns") {
+    private object TemporalColumnsTable : Table("ydb_temporal_columns") {
         val legacyDate = ydbDate("legacy_date")
         val signedDate = ydbDate32("date32")
         val signedDatetime = ydbDatetime64("datetime64")
@@ -40,17 +39,17 @@ class YdbTemporalColumnTypeTest {
     }
 
     @Test
-    fun `YdbTable ydbDate and ydbDate32 use unsigned and signed types`() {
-        assertEquals("Date", YdbTableColumns.legacyDate.columnType.sqlType())
-        assertEquals("Date32", YdbTableColumns.signedDate.columnType.sqlType())
-        assertEquals("Datetime64", YdbTableColumns.signedDatetime.columnType.sqlType())
-        assertEquals("Timestamp64", YdbTableColumns.signedTimestamp.columnType.sqlType())
+    fun `ydbDate and ydbDate32 use unsigned and signed types`() {
+        assertEquals("Date", TemporalColumnsTable.legacyDate.columnType.sqlType())
+        assertEquals("Date32", TemporalColumnsTable.signedDate.columnType.sqlType())
+        assertEquals("Datetime64", TemporalColumnsTable.signedDatetime.columnType.sqlType())
+        assertEquals("Timestamp64", TemporalColumnsTable.signedTimestamp.columnType.sqlType())
     }
 
     @Test
     fun `ydbDate32 binds Date32 vendor code`() {
         assertBinding(
-            column = YdbTableColumns.signedDate,
+            column = TemporalColumnsTable.signedDate,
             sqlType = "Date32",
             vendorCode = YdbJdbcCode.DATE32,
             value = LocalDate.of(2026, 4, 13)
@@ -60,7 +59,7 @@ class YdbTemporalColumnTypeTest {
     @Test
     fun `ydbDatetime64 binds Datetime64 vendor code`() {
         assertBinding(
-            column = YdbTableColumns.signedDatetime,
+            column = TemporalColumnsTable.signedDatetime,
             sqlType = "Datetime64",
             vendorCode = YdbJdbcCode.DATETIME64,
             value = LocalDateTime.of(2026, 4, 13, 14, 30, 15)
@@ -70,7 +69,7 @@ class YdbTemporalColumnTypeTest {
     @Test
     fun `ydbTimestamp64 binds Timestamp64 vendor code`() {
         assertBinding(
-            column = YdbTableColumns.signedTimestamp,
+            column = TemporalColumnsTable.signedTimestamp,
             sqlType = "Timestamp64",
             vendorCode = YdbJdbcCode.TIMESTAMP64,
             value = Instant.parse("2026-04-13T11:30:15Z")

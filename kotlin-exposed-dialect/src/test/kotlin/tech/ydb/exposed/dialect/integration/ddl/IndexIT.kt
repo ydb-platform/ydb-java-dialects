@@ -5,14 +5,11 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import tech.ydb.exposed.dialect.YdbDialect
-import tech.ydb.exposed.dialect.YdbIndexScope
-import tech.ydb.exposed.dialect.YdbIndexSyncMode
-import tech.ydb.exposed.dialect.YdbTable
 import tech.ydb.exposed.dialect.integration.base.BaseYdbTest
 
 class IndexIT : BaseYdbTest() {
 
-    object Customers : YdbTable("customers") {
+    object Customers : Table("customers") {
         val id = integer("id")
         val name = varchar("name", 255)
         val email = varchar("email", 255)
@@ -21,15 +18,6 @@ class IndexIT : BaseYdbTest() {
 
         init {
             index(false, email)
-
-            secondaryIndex(
-                name = "email_name_cover_idx",
-                email,
-                unique = false,
-                scope = YdbIndexScope.GLOBAL,
-                syncMode = YdbIndexSyncMode.ASYNC,
-                coverColumns = listOf(name)
-            )
         }
 
         val emailIndexDefinition
@@ -50,25 +38,11 @@ class IndexIT : BaseYdbTest() {
     }
 
     @Test
-    fun `should generate inline ydb secondary index in create table ddl`() = tx {
-        val ddl = Customers.ddl.joinToString(" ")
-
-        assertTrue(ddl.contains("INDEX email_name_cover_idx"), ddl)
-        assertTrue(ddl.contains("GLOBAL ASYNC"), ddl)
-        assertTrue(ddl.contains("ON (`email`)") || ddl.contains("ON (email)"), ddl)
-        assertTrue(ddl.contains("COVER (`name`)") || ddl.contains("COVER (name)"), ddl)
-        assertTrue(ddl.contains("PRIMARY KEY"), ddl)
-    }
-
-    @Test
     fun `should read existing indexes from jdbc metadata`() = tx {
         val indexes = db.dialectMetadata.existingIndices(Customers).getValue(Customers)
         val byName = indexes.associateBy { it.indexName }
 
         assertTrue("customers_email" in byName.keys, indexes.joinToString { it.indexName })
-        assertTrue("email_name_cover_idx" in byName.keys, indexes.joinToString { it.indexName })
-
         assertEquals(listOf(Customers.email), byName.getValue("customers_email").columns)
-        assertEquals(listOf(Customers.email), byName.getValue("email_name_cover_idx").columns)
     }
 }

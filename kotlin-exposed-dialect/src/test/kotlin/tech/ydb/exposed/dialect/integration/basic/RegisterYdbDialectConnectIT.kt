@@ -1,6 +1,7 @@
 package tech.ydb.exposed.dialect.integration.basic
 
 import org.jetbrains.exposed.v1.core.DatabaseConfig
+import org.jetbrains.exposed.v1.core.Table
 import org.jetbrains.exposed.v1.jdbc.Database
 import org.jetbrains.exposed.v1.jdbc.SchemaUtils
 import org.jetbrains.exposed.v1.jdbc.insert
@@ -15,20 +16,18 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.RegisterExtension
 import tech.ydb.exposed.dialect.YDB_DRIVER_CLASS
 import tech.ydb.exposed.dialect.YdbDialect
-import tech.ydb.exposed.dialect.YdbTable
 import tech.ydb.exposed.dialect.registerYdbDialect
-import tech.ydb.exposed.dialect.ydbJdbcUrl
 import tech.ydb.exposed.dialect.ydbTransaction
 import tech.ydb.test.junit5.YdbHelperExtension
 import java.sql.Connection
 
 /**
- * Verifies that after [registerYdbDialect] plain Exposed [Database.connect] and [YdbTable]
- * work without [tech.ydb.exposed.dialect.connectYdb].
+ * Verifies that after [registerYdbDialect] plain Exposed [Database.connect] works
+ * with the same [DatabaseConfig] defaults as integration tests.
  */
 class RegisterYdbDialectConnectIT {
 
-    object PlainConnectTable : YdbTable("register_ydb_dialect_plain_connect") {
+    object PlainConnectTable : Table("register_ydb_dialect_plain_connect") {
         val id = integer("id")
         val label = varchar("label", 64)
 
@@ -52,7 +51,7 @@ class RegisterYdbDialectConnectIT {
         }
 
         db = Database.connect(
-            url = ydbJdbcUrl(jdbcUrl),
+            url = jdbcUrl,
             driver = YDB_DRIVER_CLASS,
             databaseConfig = DatabaseConfig {
                 defaultIsolationLevel = Connection.TRANSACTION_SERIALIZABLE
@@ -79,7 +78,7 @@ class RegisterYdbDialectConnectIT {
     }
 
     @Test
-    fun `YdbTable ddl insert and select work with plain Database connect`() = ydbTransaction(db) {
+    fun `Table ddl insert and select work with plain Database connect`() = ydbTransaction(db) {
         SchemaUtils.create(PlainConnectTable)
 
         PlainConnectTable.insert {

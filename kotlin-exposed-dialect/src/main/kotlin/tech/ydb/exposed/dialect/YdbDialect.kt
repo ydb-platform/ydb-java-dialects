@@ -18,6 +18,7 @@ import org.jetbrains.exposed.v1.jdbc.transactions.TransactionManager
 import org.jetbrains.exposed.v1.jdbc.vendors.DatabaseDialectMetadata
 import java.sql.Connection
 import java.sql.DatabaseMetaData
+import kotlin.use
 
 /**
  * Default YDB column type mappings used by Exposed when a column is declared via standard
@@ -27,12 +28,6 @@ import java.sql.DatabaseMetaData
  * For `java.time` temporal columns with correct JDBC vendor binding, use
  * [tech.ydb.exposed.dialect.javatime.ydbDate] / [tech.ydb.exposed.dialect.javatime.ydbDate32]
  * (and the other extensions in that package). [ydbInterval] / [ydbInterval64] live in this module root.
- */
-/**
- * Maps generic Exposed column DSL types to YQL type names for DDL.
- *
- * @param enableSignedDatetimes When `true`, [dateType]/[dateTimeType]/[timestampType] use signed
- *   `Date32`/`Datetime64`/`Timestamp64`. Does not affect explicit `ydb*` / `javatime.*` columns.
  */
 internal class YdbDataTypeProvider(
     private val enableSignedDatetimes: Boolean = false
@@ -88,10 +83,13 @@ internal class YdbDataTypeProvider(
 internal object YdbFunctionProvider : FunctionProvider() {
 
     private const val MERGE_UNSUPPORTED =
-        "YDB dialect does not support ANSI MERGE through Exposed. Use UPSERT or batchUpsert instead."
+        "YDB does not support ANSI MERGE. Use upsert { } / replace { }, UPSERT INTO … , or UPDATE … ON — " +
+            "see https://ydb.tech/docs/en/yql/reference/syntax/upsert_into and …/update"
 
     private const val JSON_CONTAINS_UNSUPPORTED =
         "YDB does not support JSON_CONTAINS. Use JSON_EXISTS or compare JSON_VALUE / JSON_QUERY instead."
+
+    private const val INSERT_VALUE_CLASS = "org.jetbrains.exposed.v1.core.statements.InsertValue"
 
     /**
      * Maps Exposed [org.jetbrains.exposed.v1.core.Random] to YQL [Random](https://ydb.tech/docs/en/yql/reference/builtins/basic).
@@ -131,7 +129,7 @@ internal object YdbFunctionProvider : FunctionProvider() {
             } else {
                 append("Unicode::JoinFromList(AsList(")
                 expr.appendTo { append("CAST(", it, " AS Utf8)") }
-                append("), '", escapeYqlStringLiteral(separator), "')")
+                append("), '", escapeStringLiteral(separator), "')")
             }
         }
     }
@@ -145,7 +143,7 @@ internal object YdbFunctionProvider : FunctionProvider() {
         expr: Expression<T>,
         substring: String
     ) = queryBuilder {
-        val needle = escapeYqlStringLiteral(substring)
+        val needle = escapeStringLiteral(substring)
         append("COALESCE(CAST(Unicode::Find(", expr, ", '", needle, "') + 1u AS Int32), 0)")
     }
 
@@ -175,9 +173,9 @@ internal object YdbFunctionProvider : FunctionProvider() {
         jsonType: IColumnType<*>,
         queryBuilder: QueryBuilder
     ) = queryBuilder {
-        val jsonPath = buildYdbJsonPath(*path)
+        val jsonPath = buildJsonPath(*path)
         append(if (toScalar) "JSON_VALUE" else "JSON_QUERY")
-        append("(", expression, ", '", escapeYqlStringLiteral(jsonPath), "')")
+        append("(", expression, ", '", escapeStringLiteral(jsonPath), "')")
     }
 
     override fun jsonContains(
@@ -197,17 +195,18 @@ internal object YdbFunctionProvider : FunctionProvider() {
         jsonType: IColumnType<*>,
         queryBuilder: QueryBuilder
     ) = queryBuilder {
-        val jsonPath = buildYdbJsonPath(*path)
-        append("JSON_EXISTS(", expression, ", '", escapeYqlStringLiteral(jsonPath), "'")
+        val jsonPath = buildJsonPath(*path)
+        append("JSON_EXISTS(", expression, ", '", escapeStringLiteral(jsonPath), "'")
         optional?.let { append(" ", it) }
         append(")")
     }
 
     /**
-     * Native YDB `UPSERT` — full row replace by primary key.
+     * Native YDB [UPSERT](https://ydb.tech/docs/en/yql/reference/syntax/upsert_into): only columns listed in
+     * the statement are written; on primary-key conflict, other columns stay unchanged.
      *
-     * Exposed's `onUpdate` / `keyColumns` / MySQL-style partial upsert are **not** used:
-     * every column in [data] is written; there is no `ON DUPLICATE KEY UPDATE` clause in YQL.
+     * Exposed `onUpdate` with `insertValue()` (default) maps to the same VALUES. Different insert vs update
+     * literals and `onUpdateExclude` are rejected.
      */
     override fun upsert(
         table: Table,
@@ -217,11 +216,54 @@ internal object YdbFunctionProvider : FunctionProvider() {
         keyColumns: List<Column<*>>,
         where: Op<Boolean>?,
         transaction: Transaction
-    ): String = renderUpsertOrReplace("UPSERT", table, data, expression, where, transaction)
+    ): String {
+        require(data.isNotEmpty()) { "UPSERT requires at least one column" }
+        if (keyColumns.isEmpty()) {
+            throw UnsupportedOperationException(
+                "YDB UPSERT requires a primary key (or explicit upsert keys); table ${table.tableName} has none"
+            )
+        }
+
+        validateUpsertOnUpdate(data, onUpdate, keyColumns, transaction)
+
+        if (where != null) {
+            throw UnsupportedOperationException(
+                "YDB UPSERT does not support Exposed's upsert(where) (PostgreSQL ON CONFLICT … WHERE). " +
+                    "Use Table.update { } for conditional updates."
+            )
+        }
+
+        val columns = data.map { it.first }.distinct()
+        val columnList = columns.joinToString(", ") { transaction.identity(it) }
+        val dataByColumn = data.toMap()
+        val tableName = transaction.identity(table)
+
+        if (expression.isNotBlank()) {
+            val valuesExpression = expression.trim()
+            val expressionWithColumns = if (valuesExpression.startsWith("VALUES", ignoreCase = true)) {
+                "($columnList) $valuesExpression"
+            } else {
+                valuesExpression
+            }
+            return "UPSERT INTO $tableName $expressionWithColumns"
+        }
+
+        val valueList = columns.joinToString(", ") { column ->
+            val value = dataByColumn[column]
+            if (value == null) {
+                "NULL"
+            } else {
+                @Suppress("UNCHECKED_CAST")
+                (column.columnType as IColumnType<Any?>).valueToString(value)
+            }
+        }
+
+        return "UPSERT INTO $tableName ($columnList) VALUES ($valueList)"
+    }
 
     /**
-     * YDB has native `REPLACE INTO` which has the same write semantics as INSERT-or-overwrite
-     * (key is the primary key, no need for an extra unique constraint).
+     * Native YDB [REPLACE](https://ydb.tech/docs/en/yql/reference/syntax/replace_into): overwrites the row by PK;
+     * columns omitted from the statement are reset to table defaults.
      */
     override fun replace(
         table: Table,
@@ -230,6 +272,7 @@ internal object YdbFunctionProvider : FunctionProvider() {
         transaction: Transaction,
         prepared: Boolean
     ): String {
+        require(columns.isNotEmpty()) { "REPLACE requires at least one column" }
         val columnList = columns.joinToString(", ") { transaction.identity(it) }
         val valuesExpression = expression.trim()
         val expressionWithColumns = if (valuesExpression.startsWith("VALUES", ignoreCase = true)) {
@@ -272,55 +315,86 @@ internal object YdbFunctionProvider : FunctionProvider() {
         }
     }
 
-    private fun renderUpsertOrReplace(
-        operation: String,
-        table: Table,
+    private fun validateUpsertOnUpdate(
         data: List<Pair<Column<*>, Any?>>,
-        expression: String,
-        where: Op<Boolean>?,
+        onUpdate: List<Pair<Column<*>, Any?>>,
+        keyColumns: List<Column<*>>,
         transaction: Transaction
-    ): String {
-        require(where == null) {
-            "YDB $operation does not support WHERE clause"
+    ) {
+        if (onUpdate.isEmpty()) return
+
+        val dataByColumn = data.toMap()
+        val keySet = keyColumns.toSet()
+
+        val conflicting = onUpdate.filter { (column, value) ->
+            !isInsertValueExpression(value) && dataByColumn[column] != value
+        }
+        if (conflicting.isNotEmpty()) {
+            val names = conflicting.joinToString { transaction.identity(it.first) }
+            throw UnsupportedOperationException(
+                "YDB UPSERT applies the same VALUES on insert and on conflict; onUpdate cannot set different " +
+                    "values ($names). Use Table.update { } after upsert, or REPLACE for a full-row overwrite " +
+                    "(https://ydb.tech/docs/en/yql/reference/syntax/replace_into)."
+            )
         }
 
-        val columnList = data.joinToString(", ") { (column, _) ->
-            transaction.identity(column)
+        val dataCols = data.map { it.first }.toSet()
+        val updateCols = onUpdate.map { it.first }.toSet()
+        val insertOnly = dataCols - updateCols - keySet
+        if (insertOnly.isNotEmpty() && onUpdate.any { !isInsertValueExpression(it.second) }) {
+            val names = insertOnly.joinToString { transaction.identity(it) }
+            throw UnsupportedOperationException(
+                "YDB UPSERT cannot insert column(s) $names while excluding them from the conflict update " +
+                    "(Exposed onUpdateExclude). Omit those columns from the upsert body or include them in REPLACE."
+            )
+        }
+    }
+
+    private fun isInsertValueExpression(value: Any?): Boolean =
+        value != null && value.javaClass.name == INSERT_VALUE_CLASS
+
+    /** [JsonPath](https://ydb.tech/docs/en/yql/reference/builtins/json) for `JSON_VALUE` / `JSON_QUERY` / `JSON_EXISTS`. */
+    private fun buildJsonPath(vararg segments: String): String {
+        if (segments.isEmpty()) return "$"
+        if (segments.size == 1) {
+            val only = segments[0]
+            if (only.startsWith("$")) return only
         }
 
-        if (expression.isNotBlank()) {
-            val valuesExpression = expression.trim()
-            val expressionWithColumns = if (valuesExpression.startsWith("VALUES", ignoreCase = true)) {
-                "($columnList) $valuesExpression"
-            } else {
-                valuesExpression
+        val path = StringBuilder("$")
+        for (segment in segments) {
+            if (segment.isEmpty()) continue
+            when {
+                segment.all(Char::isDigit) -> path.append('[').append(segment).append(']')
+                segment.startsWith("[") && segment.endsWith("]") -> path.append(segment)
+                else -> {
+                    if (path.last() == '$' || path.last() == ']') {
+                        path.append('.')
+                    }
+                    path.append(quoteJsonPathKey(segment))
+                }
             }
-            return "$operation INTO ${transaction.identity(table)} $expressionWithColumns"
         }
-
-        val valueList = data.joinToString(", ") { (column, value) ->
-            valueToSqlLiteral(column, value)
-        }
-
-        return "$operation INTO ${transaction.identity(table)} ($columnList) VALUES ($valueList)"
+        return path.toString()
     }
 
-    @Suppress("UNCHECKED_CAST")
-    private fun valueToSqlLiteral(column: Column<*>, value: Any?): String {
-        if (value == null) return "NULL"
+    private fun quoteJsonPathKey(key: String): String =
+        if (key.all { it.isLetterOrDigit() || it == '_' }) {
+            key
+        } else {
+            "\"${key.replace("\\", "\\\\").replace("\"", "\\\"")}\""
+        }
 
-        val columnType = column.columnType as IColumnType<Any?>
-        return columnType.valueToString(value)
-    }
+    private fun escapeStringLiteral(value: String): String = value.replace("'", "''")
 }
 
 /**
  * Exposed [VendorDialect] for YDB.
  *
- * Obtained via [connectYdb] (recommended) or [registerYdbDialect] + `Database.connect`.
+ * Use [registerYdbDialect] then `Database.connect("jdbc:ydb:...")`.
  *
  * Notable behavior:
- * - [upsert] → YQL `UPSERT` (full row replace by PK; Exposed `onUpdate` / partial columns ignored).
+ * - [upsert] / [replace] → native YQL (partial columns vs defaults).
  * - [createIndex] → `ALTER TABLE ... ADD INDEX ... GLOBAL`.
  * - Functional indexes and ANSI `MERGE` are rejected.
  *
@@ -335,7 +409,7 @@ class YdbDialect internal constructor(
 ) {
     /**
      * Post-create index: `ALTER TABLE t ADD INDEX i GLOBAL [UNIQUE] ON (cols)`.
-     * Prefer [YdbTable.secondaryIndex] for indexes declared with the table.
+     * Use Exposed [Table.index] / [SchemaUtils.create]; indexes are added via `ALTER TABLE … ADD INDEX … GLOBAL`.
      */
     override fun createIndex(index: Index): String {
         val tr = runCatching { TransactionManager.current() }.getOrNull()
@@ -373,69 +447,69 @@ class YdbDialect internal constructor(
         isPartialOrFunctional: Boolean
     ): String = "ALTER TABLE $tableName DROP INDEX $indexName"
 
-    /** JDBC metadata bridge so Exposed can diff existing GLOBAL indexes on YDB. */
-    internal object Metadata : DatabaseDialectMetadata() {
-
-        override fun existingIndices(vararg tables: Table): Map<Table, List<Index>> {
-            val connection = TransactionManager.current().connection.connection as Connection
-            val metadata = connection.metaData
-
-            return tables.associateWith { table ->
-                readIndices(metadata, table)
-            }
-        }
-
-        private fun readIndices(metadata: DatabaseMetaData, table: Table): List<Index> {
-            val indexColumns = linkedMapOf<String, MutableList<IndexedColumn>>()
-
-            metadata.getIndexInfo(null, null, table.tableName, false, false).use { rs ->
-                while (rs.next()) {
-                    val indexName = rs.getString("INDEX_NAME") ?: continue
-                    val columnName = rs.getString("COLUMN_NAME") ?: continue
-
-                    val column = table.columns.firstOrNull { it.name.equals(columnName, ignoreCase = true) }
-                        ?: continue
-
-                    val ordinal = rs.getShort("ORDINAL_POSITION").toInt()
-                    val unique = !rs.getBoolean("NON_UNIQUE")
-
-                    indexColumns
-                        .getOrPut(indexName) { mutableListOf() }
-                        .add(IndexedColumn(column, ordinal, unique))
-                }
-            }
-
-            return indexColumns.mapNotNull { (indexName, columns) ->
-                val orderedColumns = columns
-                    .sortedWith(compareBy<IndexedColumn> {
-                        it.ordinal.takeIf { ordinal -> ordinal > 0 } ?: Int.MAX_VALUE
-                    })
-                    .map { it.column }
-
-                if (orderedColumns.isEmpty()) {
-                    null
-                } else {
-                    Index(
-                        columns = orderedColumns,
-                        unique = columns.all { it.unique },
-                        customName = indexName,
-                        indexType = null,
-                        filterCondition = null,
-                        functions = emptyList(),
-                        functionsTable = table
-                    )
-                }
-            }
-        }
-
-        private data class IndexedColumn(
-            val column: Column<*>,
-            val ordinal: Int,
-            val unique: Boolean
-        )
-    }
-
     internal companion object {
         const val DIALECT_NAME = "ydb"
     }
+}
+
+/** JDBC metadata bridge so Exposed can read existing GLOBAL indexes on YDB. */
+internal object YdbDialectMetadata : DatabaseDialectMetadata() {
+
+    override fun existingIndices(vararg tables: Table): Map<Table, List<Index>> {
+        val connection = TransactionManager.current().connection.connection as Connection
+        val metadata = connection.metaData
+
+        return tables.associateWith { table ->
+            readIndices(metadata, table)
+        }
+    }
+
+    private fun readIndices(metadata: DatabaseMetaData, table: Table): List<Index> {
+        val indexColumns = linkedMapOf<String, MutableList<IndexedColumn>>()
+
+        metadata.getIndexInfo(null, null, table.tableName, false, false).use { rs ->
+            while (rs.next()) {
+                val indexName = rs.getString("INDEX_NAME") ?: continue
+                val columnName = rs.getString("COLUMN_NAME") ?: continue
+
+                val column = table.columns.firstOrNull { it.name.equals(columnName, ignoreCase = true) }
+                    ?: continue
+
+                val ordinal = rs.getShort("ORDINAL_POSITION").toInt()
+                val unique = !rs.getBoolean("NON_UNIQUE")
+
+                indexColumns
+                    .getOrPut(indexName) { mutableListOf() }
+                    .add(IndexedColumn(column, ordinal, unique))
+            }
+        }
+
+        return indexColumns.mapNotNull { (indexName, columns) ->
+            val orderedColumns = columns
+                .sortedWith(compareBy {
+                    it.ordinal.takeIf { ordinal -> ordinal > 0 } ?: Int.MAX_VALUE
+                })
+                .map { it.column }
+
+            if (orderedColumns.isEmpty()) {
+                null
+            } else {
+                Index(
+                    columns = orderedColumns,
+                    unique = columns.all { it.unique },
+                    customName = indexName,
+                    indexType = null,
+                    filterCondition = null,
+                    functions = emptyList(),
+                    functionsTable = table
+                )
+            }
+        }
+    }
+
+    private data class IndexedColumn(
+        val column: Column<*>,
+        val ordinal: Int,
+        val unique: Boolean
+    )
 }

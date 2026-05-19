@@ -6,14 +6,13 @@ import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
-import tech.ydb.exposed.dialect.YdbTable
 import tech.ydb.exposed.dialect.integration.base.BaseYdbTest
 import tech.ydb.exposed.dialect.ydbDecimal
 import java.math.BigDecimal
 
 class DecimalTypesIT : BaseYdbTest() {
 
-    object DecimalTypes : YdbTable("decimal_types") {
+    object DecimalTypes : Table("decimal_types") {
         val id = integer("id")
         val amount = ydbDecimal("amount", 10, 2)
 

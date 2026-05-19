@@ -6,12 +6,11 @@ import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.upsert
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
-import tech.ydb.exposed.dialect.YdbTable
 import tech.ydb.exposed.dialect.integration.base.BaseYdbTest
 
 class UpsertIT : BaseYdbTest() {
 
-    object Products : YdbTable("products") {
+    object Products : Table("products") {
         val id = integer("id")
         val name = varchar("name", 255)
         override val primaryKey = PrimaryKey(id)

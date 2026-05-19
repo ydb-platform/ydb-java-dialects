@@ -7,7 +7,6 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Test
 import tech.ydb.exposed.dialect.YdbRetryConfig
-import tech.ydb.exposed.dialect.YdbTable
 import tech.ydb.exposed.dialect.integration.base.BaseYdbTest
 import tech.ydb.exposed.dialect.code.YdbVendorCode
 import tech.ydb.exposed.dialect.ydbTransaction
@@ -16,7 +15,7 @@ import java.util.concurrent.atomic.AtomicInteger
 
 class YdbRetryingTransactionsIT : BaseYdbTest() {
 
-    object RetryItems : YdbTable("retry_items") {
+    object RetryItems : Table("retry_items") {
         val id = integer("id")
         val name = varchar("name", 255)
 

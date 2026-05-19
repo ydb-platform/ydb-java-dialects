@@ -8,18 +8,17 @@ import org.jetbrains.exposed.v1.jdbc.insert
 import org.jetbrains.exposed.v1.jdbc.select
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
-import tech.ydb.exposed.dialect.YdbTable
 import tech.ydb.exposed.dialect.integration.base.BaseYdbTest
 
 class JoinIT : BaseYdbTest() {
 
-    object Authors : YdbTable("authors") {
+    object Authors : Table("authors") {
         val id = integer("id")
         val name = varchar("name", 255)
         override val primaryKey = PrimaryKey(id)
     }
 
-    object Books : YdbTable("books") {
+    object Books : Table("books") {
         val id = integer("id")
         val title = varchar("title", 255)
         val authorId = integer("author_id")

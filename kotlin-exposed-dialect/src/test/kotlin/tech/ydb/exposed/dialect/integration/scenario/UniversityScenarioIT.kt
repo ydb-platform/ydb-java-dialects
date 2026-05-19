@@ -8,27 +8,18 @@ import org.jetbrains.exposed.v1.jdbc.insert
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
-import tech.ydb.exposed.dialect.YdbTable
 import tech.ydb.exposed.dialect.integration.base.BaseYdbTest
 
 class UniversityScenarioIT : BaseYdbTest() {
 
-    object Departments : YdbTable("departments") {
+    object Departments : Table("departments") {
         val id = integer("id")
         val name = varchar("name", 255)
 
         override val primaryKey = PrimaryKey(id)
     }
 
-    object Students : YdbTable("students") {
-        val id = integer("id")
-        val name = varchar("name", 255)
-        val departmentId = integer("department_id")
-
-        override val primaryKey = PrimaryKey(id)
-    }
-
-    object Courses : YdbTable("courses") {
+    object Students : Table("students") {
         val id = integer("id")
         val name = varchar("name", 255)
         val departmentId = integer("department_id")
@@ -36,7 +27,15 @@ class UniversityScenarioIT : BaseYdbTest() {
         override val primaryKey = PrimaryKey(id)
     }
 
-    object Enrollments : YdbTable("enrollments") {
+    object Courses : Table("courses") {
+        val id = integer("id")
+        val name = varchar("name", 255)
+        val departmentId = integer("department_id")
+
+        override val primaryKey = PrimaryKey(id)
+    }
+
+    object Enrollments : Table("enrollments") {
         val id = integer("id")
         val studentId = integer("student_id")
         val courseId = integer("course_id")

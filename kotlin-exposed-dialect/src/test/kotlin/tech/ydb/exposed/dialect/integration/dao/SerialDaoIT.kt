@@ -6,15 +6,14 @@ import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
-import tech.ydb.exposed.dialect.YdbTable
 import tech.ydb.exposed.dialect.integration.base.BaseYdbTest
 
 /**
- * YDB `Serial` works with Exposed `autoIncrement()` on [YdbTable] (YDB-style DDL).
+ * YDB `Serial` works with Exposed `autoIncrement()` on a standard [Table].
  */
 class SerialDaoIT : BaseYdbTest() {
 
-    object Events : YdbTable("serial_dao_events") {
+    object Events : Table("serial_dao_events") {
         val id = integer("id").autoIncrement()
         val name = varchar("name", 255)
 
