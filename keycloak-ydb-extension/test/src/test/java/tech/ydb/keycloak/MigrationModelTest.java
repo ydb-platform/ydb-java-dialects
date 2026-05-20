@@ -2,7 +2,6 @@ package tech.ydb.keycloak;
 
 import jakarta.persistence.EntityManager;
 import org.jboss.logging.Logger;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.keycloak.common.Version;
 import org.keycloak.connections.jpa.JpaConnectionProvider;
@@ -46,7 +45,6 @@ public class MigrationModelTest extends KeycloakModelTest {
     }
 
     @Test
-    @Ignore("After https://github.com/ydb-platform/ydb-java-dialects/pull/212")
     public void multipleEntities() {
         inComittedTransaction(1, (session , i) -> {
             String currentVersion = new ModelVersion(Version.VERSION).toString();
@@ -89,7 +87,6 @@ public class MigrationModelTest extends KeycloakModelTest {
     }
 
     @Test
-    @Ignore("After https://github.com/ydb-platform/ydb-java-dialects/pull/212")
     public void duplicates() {
         inComittedTransaction(1, (session, i) -> {
             String currentVersion = new ModelVersion(Version.VERSION).toString();
@@ -168,7 +165,6 @@ public class MigrationModelTest extends KeycloakModelTest {
     }
 
     @Test
-    @Ignore("After https://github.com/ydb-platform/ydb-java-dialects/pull/212")
     public void duplicatedUpdateTime() {
         inComittedTransaction(1, (session, i) -> {
             String currentVersion = new ModelVersion(Version.VERSION).toString();
