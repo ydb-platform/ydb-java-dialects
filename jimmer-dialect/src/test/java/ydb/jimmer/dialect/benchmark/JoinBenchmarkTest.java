@@ -101,10 +101,57 @@ public class JoinBenchmarkTest extends AbstractSelectTest {
 
     @Benchmark
     public void benchmarkLeft() {
+        benchmarkJoin(JoinType.LEFT);
+    }
+
+    @Benchmark
+    public void benchmarkLeftDialectOnly() {
+        benchmarkJoinDialectOnly(JoinType.LEFT);
+    }
+
+    @Benchmark
+    public void benchmarkRight() {
+        benchmarkJoin(JoinType.RIGHT);
+    }
+
+    @Benchmark
+    public void benchmarkRightDialectOnly() {
+        benchmarkJoinDialectOnly(JoinType.RIGHT);
+    }
+
+    @Benchmark
+    public void benchmarkInner() {
+        benchmarkJoin(JoinType.INNER);
+    }
+
+    @Benchmark
+    public void benchmarkInnerDialectOnly() {
+        benchmarkJoinDialectOnly(JoinType.INNER);
+    }
+
+    @Benchmark
+    public void benchmarkFull() {
+        benchmarkJoin(JoinType.FULL);
+    }
+
+    @Benchmark
+    public void benchmarkFullDialectOnly() {
+        benchmarkJoinDialectOnly(JoinType.FULL);
+    }
+
+    private void benchmarkJoin(JoinType joinType) {
         StudentTable table = StudentTable.$;
-        getYqlClient()
+        yqlClient
                 .createQuery(table)
-                .orderBy(table.group(JoinType.LEFT).name().asc())
+                .orderBy(table.group(joinType).name().asc())
+                .select(table);
+    }
+
+    private void benchmarkJoinDialectOnly(JoinType joinType) {
+        StudentTable table = StudentTable.$;
+        sqlClient
+                .createQuery(table)
+                .orderBy(table.group(joinType).name().asc())
                 .select(table);
     }
 
