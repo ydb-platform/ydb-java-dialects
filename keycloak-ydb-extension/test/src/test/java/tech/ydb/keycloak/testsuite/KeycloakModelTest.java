@@ -442,7 +442,7 @@ public abstract class KeycloakModelTest {
     }
 
     protected <T, R> R inComittedTransaction(T parameter, BiFunction<KeycloakSession, T, R> what) {
-        return inComittedTransaction(parameter, what, null);
+        return inComittedTransaction(parameter, what, null, null);
     }
 
     protected void inComittedTransaction(Consumer<KeycloakSession> what) {
@@ -453,11 +453,17 @@ public abstract class KeycloakModelTest {
     }
 
     protected <R> R inComittedTransaction(Function<KeycloakSession, R> what) {
-        return inComittedTransaction(1, (a, b) -> what.apply(a), null);
+        return inComittedTransaction(1, (a, b) -> what.apply(a), null, null);
     }
 
     protected <T, R> R inComittedTransaction(
             T parameter, BiFunction<KeycloakSession, T, R> what, BiConsumer<KeycloakSession, T> onCommit) {
+        return inComittedTransaction(parameter, what, onCommit, null);
+    }
+
+    protected <T, R> R inComittedTransaction(
+            T parameter, BiFunction<KeycloakSession, T, R> what,
+            BiConsumer<KeycloakSession, T> onCommit, BiConsumer<KeycloakSession, T> onRollback) {
         AtomicReference<R> res = new AtomicReference<>();
         KeycloakModelUtils.runJobInTransaction(getFactory(), session -> {
             session.getTransactionManager().enlistAfterCompletion(new AbstractKeycloakTransaction() {
@@ -468,6 +474,7 @@ public abstract class KeycloakModelTest {
 
                 @Override
                 protected void rollbackImpl() {
+                    if (onRollback != null) onRollback.accept(session, parameter);
                 }
             });
             res.set(what.apply(session, parameter));
@@ -480,6 +487,13 @@ public abstract class KeycloakModelTest {
             final RealmModel realm = session.realms().getRealm(realmId);
             session.getContext().setRealm(realm);
             return what.apply(session, realm);
+        });
+    }
+
+    protected void withRealmConsumer(String realmId, BiConsumer<KeycloakSession, RealmModel> what) {
+        withRealm(realmId, (session, realm) -> {
+            what.accept(session, realm);
+            return null;
         });
     }
 
@@ -499,6 +513,7 @@ public abstract class KeycloakModelTest {
     protected static RealmModel createRealm(KeycloakSession s, String name) {
         RealmModel realm = s.realms().getRealmByName(name);
         if (realm != null) {
+            s.getContext().setRealm(realm);
             s.realms().removeRealm(realm.getId());
         }
         return s.realms().createRealm(name);

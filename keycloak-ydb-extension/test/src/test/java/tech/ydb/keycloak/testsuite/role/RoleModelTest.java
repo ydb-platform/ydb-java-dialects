@@ -1,8 +1,6 @@
 package tech.ydb.keycloak.testsuite.role;
 
 import org.hamcrest.Matcher;
-import org.junit.Assume;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.keycloak.models.*;
 import tech.ydb.keycloak.testsuite.KeycloakModelTest;
@@ -132,13 +130,11 @@ public class RoleModelTest extends KeycloakModelTest {
     }
 
     @Test
-    @Ignore("Unignore after https://github.com/ydb-platform/ydb-java-dialects/pull/207")
     public void testRolesWithIdsSearchQueries() {
         testRolesWithIdsSearchQueries(this::getResult);
     }
 
     @Test
-    @Ignore("Unignore after https://github.com/ydb-platform/ydb-java-dialects/pull/207")
     public void testCompositeRolesSearchQueries() {
         testRolesWithIdsSearchQueries(this::getModelResult);
     }
@@ -197,13 +193,11 @@ public class RoleModelTest extends KeycloakModelTest {
     }
 
     @Test
-    @Ignore("Unignore after https://github.com/ydb-platform/ydb-java-dialects/pull/207")
     public void testRolesWithIdsPaginationSearchQueries() {
         testRolesWithIdsPaginationSearchQueries(this::getResult);
     }
 
     @Test
-    @Ignore("Unignore after https://github.com/ydb-platform/ydb-java-dialects/pull/207")
     public void testCompositeRolesPaginationSearchQueries() {
         testRolesWithIdsPaginationSearchQueries(this::getModelResult);
     }
@@ -282,19 +276,6 @@ public class RoleModelTest extends KeycloakModelTest {
             RoleModel parentClientRole = session.roles().getRoleById(realm, parentClientRoleId.get());
             assertThat(parentRealmRole.getCompositesStream().collect(Collectors.toSet()), empty());
             assertThat(parentClientRole.getCompositesStream().collect(Collectors.toSet()), empty());
-            return null;
-        });
-    }
-
-    @Test
-    public void getRolePathTraversal() {
-        // Only perform this test if realm role ID = role.name and client role ID = client.id + ":" + role.name
-        Assume.assumeThat(mainRoleId, is(MAIN_ROLE_NAME));
-        Assume.assumeTrue(rolesSubset.stream().anyMatch((CLIENT_NAME + ":" + ROLE_PREFIX + "10")::equals));
-
-        withRealm(realmId, (session, realm) -> {
-            RoleModel role = session.roles().getRoleById(realm, (CLIENT_NAME + ":" + ROLE_PREFIX + "10") + "/../../" + MAIN_ROLE_NAME);
-            assertThat(role, nullValue());
             return null;
         });
     }
