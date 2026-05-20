@@ -1,6 +1,5 @@
 package tech.ydb.keycloak.testsuite.group;
 
-import org.junit.Ignore;
 import org.junit.Test;
 import org.keycloak.models.Constants;
 import org.keycloak.models.GroupModel;
@@ -152,7 +151,6 @@ public class GroupModelTest extends KeycloakModelTest {
     }
 
     @Test
-    @Ignore("Implement YdbRealmProvider.removeGroup or use ignore FOR UPDATE in hibernate-dialect")
     public void testGroupByNameCacheInvalidation() {
         String subGroupId1 = withRealm(realmId, (session, realm) -> {
             GroupModel group = session.groups().createGroup(realm, "parent-1");
