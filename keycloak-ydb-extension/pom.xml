@@ -15,6 +15,7 @@
   <modules>
     <module>core</module>
     <module>test</module>
+    <module>retry-proxy</module>
   </modules>
 
   <properties>
@@ -36,6 +37,9 @@
 
     <hikaricp.version>7.0.2</hikaricp.version>
     <hibernate-v7.ydb.dialect.version>0.9.1</hibernate-v7.ydb.dialect.version>
+
+    <ktor.version>3.4.1</ktor.version>
+    <logback.version>1.5.16</logback.version>
   </properties>
 
   <dependencyManagement>

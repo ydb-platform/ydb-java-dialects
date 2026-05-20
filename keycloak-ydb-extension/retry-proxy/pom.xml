@@ -12,13 +12,12 @@
   </parent>
 
   <packaging>jar</packaging>
-  <name>keycloak-ydb-extension (core)</name>
-  <artifactId>keycloak-ydb-extension</artifactId>
+  <name>keycloak-ydb-extension (retry-proxy)</name>
+  <artifactId>keycloak-ydb-retry-proxy</artifactId>
   <version>1.0-SNAPSHOT</version>
 
   <build>
     <sourceDirectory>src/main/kotlin</sourceDirectory>
-    <testSourceDirectory>src/test/kotlin</testSourceDirectory>
     <plugins>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
@@ -44,13 +43,6 @@
             </goals>
             <phase>compile</phase>
           </execution>
-          <execution>
-            <id>java-test-compile</id>
-            <goals>
-              <goal>testCompile</goal>
-            </goals>
-            <phase>test-compile</phase>
-          </execution>
         </executions>
       </plugin>
       <plugin>
@@ -66,7 +58,6 @@
             <configuration>
               <sourceDirs>
                 <sourceDir>${project.basedir}/src/main/kotlin</sourceDir>
-                <sourceDir>${project.basedir}/src/main/java</sourceDir>
               </sourceDirs>
             </configuration>
           </execution>
@@ -78,14 +69,12 @@
             <configuration>
               <sourceDirs>
                 <sourceDir>${project.basedir}/src/test/kotlin</sourceDir>
-                <sourceDir>${project.basedir}/src/test/java</sourceDir>
               </sourceDirs>
             </configuration>
           </execution>
         </executions>
       </plugin>
       <plugin>
-
         <artifactId>maven-shade-plugin</artifactId>
         <version>3.5.0</version>
         <executions>
@@ -95,21 +84,10 @@
               <goal>shade</goal>
             </goals>
             <configuration>
-              <artifactSet>
-                <includes>
-                  <include>org.jetbrains.kotlin:kotlin-stdlib</include>
-                  <include>org.jetbrains.kotlin:kotlin-reflect</include>
-                  <include>org.jetbrains.kotlin:*</include>
-
-                  <include>tech.ydb.jdbc:*</include>
-                  <include>tech.ydb:*</include>
-                  <include>tech.ydb.dialects:*</include>
-                  <include>com.zaxxer:HikariCP</include>
-                  <include>io.r2dbc:*</include>
-                </includes>
-              </artifactSet>
-
               <transformers>
+                <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+                  <mainClass>tech.ydb.keycloak.proxy.RetryProxyKt</mainClass>
+                </transformer>
                 <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
               </transformers>
             </configuration>
@@ -119,100 +97,73 @@
     </plugins>
   </build>
 
-  <dependencyManagement>
-    <dependencies>
-      <dependency>
-        <groupId>org.keycloak</groupId>
-        <artifactId>keycloak-parent</artifactId>
-        <version>${keycloak.version}</version>
-        <type>pom</type>
-        <scope>import</scope>
-      </dependency>
-      <dependency>
-        <groupId>org.junit</groupId>
-        <artifactId>junit-bom</artifactId>
-        <version>6.0.1</version>
-        <type>pom</type>
-        <scope>import</scope>
-      </dependency>
-    </dependencies>
-  </dependencyManagement>
-
   <dependencies>
     <dependency>
       <groupId>org.jetbrains.kotlin</groupId>
       <artifactId>kotlin-stdlib</artifactId>
       <version>${kotlin.version}</version>
     </dependency>
+
+    <!-- Ktor Server -->
     <dependency>
-      <groupId>org.jetbrains.kotlin</groupId>
-      <artifactId>kotlin-reflect</artifactId>
-      <version>${kotlin.version}</version>
+      <groupId>io.ktor</groupId>
+      <artifactId>ktor-server-core-jvm</artifactId>
+      <version>${ktor.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>io.ktor</groupId>
+      <artifactId>ktor-server-netty-jvm</artifactId>
+      <version>${ktor.version}</version>
     </dependency>
 
-    <!-- keycloak -->
+    <!-- Ktor Client -->
     <dependency>
-      <groupId>org.keycloak</groupId>
-      <artifactId>keycloak-server-spi</artifactId>
-      <scope>provided</scope>
+      <groupId>io.ktor</groupId>
+      <artifactId>ktor-client-core-jvm</artifactId>
+      <version>${ktor.version}</version>
     </dependency>
     <dependency>
-      <groupId>org.keycloak</groupId>
-      <artifactId>keycloak-server-spi-private</artifactId>
-      <scope>provided</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.keycloak</groupId>
-      <artifactId>keycloak-model-jpa</artifactId>
-      <scope>provided</scope>
+      <groupId>io.ktor</groupId>
+      <artifactId>ktor-client-cio-jvm</artifactId>
+      <version>${ktor.version}</version>
     </dependency>
 
-    <!-- YDB -->
+    <!-- Logging -->
     <dependency>
-      <groupId>tech.ydb.jdbc</groupId>
-      <artifactId>ydb-jdbc-driver</artifactId>
-      <version>${ydb-jdbc-driver.version}</version>
+      <groupId>ch.qos.logback</groupId>
+      <artifactId>logback-classic</artifactId>
+      <version>${logback.version}</version>
     </dependency>
 
+    <!-- Test -->
     <dependency>
-      <groupId>tech.ydb.dialects</groupId>
-      <artifactId>liquibase-ydb-dialect</artifactId>
-      <version>1.1.1</version>
+      <groupId>io.ktor</groupId>
+      <artifactId>ktor-server-test-host-jvm</artifactId>
+      <version>${ktor.version}</version>
+      <scope>test</scope>
     </dependency>
-
     <dependency>
-      <groupId>tech.ydb.dialects</groupId>
-      <artifactId>hibernate-ydb-dialect-v7</artifactId>
-      <version>${hibernate-v7.ydb.dialect.version}</version>
+      <groupId>io.ktor</groupId>
+      <artifactId>ktor-client-mock-jvm</artifactId>
+      <version>${ktor.version}</version>
+      <scope>test</scope>
     </dependency>
-
-    <dependency>
-      <groupId>com.zaxxer</groupId>
-      <artifactId>HikariCP</artifactId>
-      <version>${hikaricp.version}</version>
-    </dependency>
-
-    <!-- tests -->
     <dependency>
       <groupId>org.junit.jupiter</groupId>
       <artifactId>junit-jupiter</artifactId>
+      <version>5.14.3</version>
       <scope>test</scope>
     </dependency>
     <dependency>
-      <groupId>tech.ydb.test</groupId>
-      <artifactId>ydb-junit5-support</artifactId>
-      <version>2.3.27</version>
+      <groupId>io.mockk</groupId>
+      <artifactId>mockk-jvm</artifactId>
+      <version>1.13.16</version>
       <scope>test</scope>
     </dependency>
     <dependency>
-      <groupId>org.mockito.kotlin</groupId>
-      <artifactId>mockito-kotlin</artifactId>
-      <version>6.1.0</version>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.jboss.resteasy</groupId>
-      <artifactId>resteasy-core</artifactId>
+      <groupId>org.jetbrains.kotlinx</groupId>
+      <artifactId>kotlinx-coroutines-test</artifactId>
+      <version>1.10.2</version>
       <scope>test</scope>
     </dependency>
   </dependencies>

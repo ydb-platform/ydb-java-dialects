@@ -2,10 +2,10 @@ package tech.ydb.keycloak.realm
 
 import org.jboss.logging.Logger
 import org.keycloak.Config
+import org.keycloak.connections.jpa.JpaConnectionProvider
 import org.keycloak.models.KeycloakSession
 import org.keycloak.models.KeycloakSessionFactory
 import org.keycloak.models.RealmProviderFactory
-import org.keycloak.connections.jpa.JpaConnectionProvider
 import tech.ydb.keycloak.config.ProviderConfig.PROVIDER_ID
 import tech.ydb.keycloak.config.ProviderConfig.PROVIDER_PRIORITY
 

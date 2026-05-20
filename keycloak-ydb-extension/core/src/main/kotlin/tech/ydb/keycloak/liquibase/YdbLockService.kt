@@ -4,8 +4,8 @@ import liquibase.Scope
 import liquibase.exception.DatabaseException
 import liquibase.executor.ExecutorService
 import liquibase.lockservice.StandardLockService
-import liquibase.statement.core.CreateDatabaseChangeLogLockTableStatement
 import liquibase.statement.core.DeleteStatement
+import liquibase.statement.core.RawSqlStatement
 import liquibase.statement.core.LockDatabaseChangeLogStatement
 import org.jboss.logging.Logger
 import org.keycloak.common.util.Time
@@ -26,7 +26,7 @@ class YdbLockService : StandardLockServiceYdb() {
     if (!isDatabaseChangeLogLockTableCreated) {
       try {
         log.trace("Create Database Lock Table")
-        executor.execute(CreateDatabaseChangeLogLockTableStatement())
+        executor.execute(RawSqlStatement(buildCreateLockTableSql()))
         database.commit()
       } catch (de: DatabaseException) {
         log.warn("Failed to create lock table. Maybe other transaction created in the meantime. Retrying...", de)
@@ -176,6 +176,26 @@ class YdbLockService : StandardLockServiceYdb() {
     } finally {
       cleanupLockState()
     }
+  }
+
+  /**
+   * YQL for Liquibase lock table (see [tech.ydb.liquibase.sqlgenerator.CreateDatabaseChangeLogLockTableGeneratorYdb]).
+   * Raw SQL is used here because generic Liquibase emits PostgreSQL DDL (INT, BOOLEAN, VARCHAR),
+   * which YDB rejects.
+   */
+  private fun buildCreateLockTableSql(): String {
+    val tableName = database.escapeTableName(
+      database.liquibaseCatalogName,
+      database.liquibaseSchemaName,
+      database.databaseChangeLogLockTableName
+    )
+    return "CREATE TABLE $tableName (" +
+      "ID INT32, " +
+      "LOCKED BOOL, " +
+      "LOCKGRANTED DATETIME, " +
+      "LOCKEDBY TEXT, " +
+      "PRIMARY KEY(ID)" +
+      ")"
   }
 
   companion object {
