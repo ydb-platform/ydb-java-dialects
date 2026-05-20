@@ -10,5 +10,6 @@ CREATE TABLE IF NOT EXISTS `REQUIRED_ACTION_PROVIDER`
     `PRIORITY`       Int32,
 
     INDEX            idx_req_act_prov_realm GLOBAL ON (`REALM_ID`),
+--     FOREIGN KEY (REALM_ID) REFERENCES REALM (ID),
     PRIMARY KEY (`ID`)
 );

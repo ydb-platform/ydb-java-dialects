@@ -14,7 +14,5 @@ CREATE TABLE IF NOT EXISTS FED_USER_CREDENTIAL
 
     INDEX idx_fu_credential GLOBAL ON (USER_ID, TYPE),
     INDEX idx_fu_credential_ru GLOBAL ON (REALM_ID, USER_ID),
-    INDEX idx_fed_credential_realm GLOBAL ON (REALM_ID),
---     FOREIGN KEY (REALM_ID) REFERENCES REALM (ID),
     PRIMARY KEY (ID)
 );

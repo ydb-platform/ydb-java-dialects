@@ -9,8 +9,7 @@ CREATE TABLE IF NOT EXISTS OFFLINE_CLIENT_SESSION
     `EXTERNAL_CLIENT_ID`      Utf8 NOT NULL DEFAULT "local",
     `VERSION`                 Int32 DEFAULT 0,
 
-    INDEX idx_offl_client_sess_client GLOBAL ON (CLIENT_ID),
-    INDEX idx_offl_client_sess_user GLOBAL ON (USER_SESSION_ID),
-    INDEX idx_offl_client_sess_ext_client GLOBAL ON (EXTERNAL_CLIENT_ID),
+    INDEX idx_offline_css_by_client GLOBAL ON (CLIENT_ID, OFFLINE_FLAG),
+    INDEX idx_offline_css_by_client_storage_provider GLOBAL ON (CLIENT_STORAGE_PROVIDER, EXTERNAL_CLIENT_ID, OFFLINE_FLAG),
     PRIMARY KEY (USER_SESSION_ID, CLIENT_ID, CLIENT_STORAGE_PROVIDER, EXTERNAL_CLIENT_ID, OFFLINE_FLAG)
 );

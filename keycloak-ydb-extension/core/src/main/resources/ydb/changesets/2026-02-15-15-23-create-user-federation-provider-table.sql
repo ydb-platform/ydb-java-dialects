@@ -10,8 +10,6 @@ CREATE TABLE IF NOT EXISTS USER_FEDERATION_PROVIDER
     `REALM_ID`            Utf8,
 
     INDEX idx_usr_fed_prv_realm GLOBAL ON (REALM_ID),
-    INDEX idx_usr_fed_prv_name GLOBAL ON (PROVIDER_NAME),
-    INDEX idx_usr_fed_prv_priority GLOBAL ON (PRIORITY),
 --     FOREIGN KEY (REALM_ID) REFERENCES REALM (ID),
     PRIMARY KEY (ID)
 );

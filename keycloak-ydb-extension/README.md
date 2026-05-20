@@ -17,6 +17,23 @@ When using YDB you must avoid giving the YDB URL to Keycloak’s default datasou
 
 The extension is enabled when its JAR is in the `providers` directory and the YDB JDBC URL is configured. No separate “enable” flag is required.
 
+### Connection Pool (HikariCP)
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `KC_SPI_CONNECTIONS_JPA_YDB_POOL_SIZE` | `50` | Maximum pool size |
+| `KC_SPI_CONNECTIONS_JPA_YDB_MIN_IDLE` | `10` | Minimum idle connections |
+| `KC_SPI_CONNECTIONS_JPA_YDB_CONNECTION_TIMEOUT` | `30000` | Connection timeout (ms) |
+| `KC_SPI_CONNECTIONS_JPA_YDB_IDLE_TIMEOUT` | `600000` | Idle connection timeout (ms) |
+| `KC_SPI_CONNECTIONS_JPA_YDB_MAX_LIFETIME` | `1800000` | Max connection lifetime (ms) |
+
+Or in `keycloak.conf`:
+
+```properties
+spi-connections-jpa-ydb-pool-size=50
+spi-connections-jpa-ydb-min-idle=10
+```
+
 ## Getting started
 
 1. Build and package the extension, then put the JAR in Keycloak’s `providers` directory (or use the Docker setup below).

@@ -250,4 +250,10 @@
   <changeSet id="2026-03-06-00-21-create-admin-event-entity-table" author="keycloak-ydb-extension">
     <sqlFile path="ydb/changesets/2026-03-06-00-21-create-admin-event-entity-table.sql"/>
   </changeSet>
+  <changeSet id="2026-05-20-01-create-associated-policy-table" author="keycloak-ydb-extension">
+    <sqlFile path="ydb/changesets/2026-05-20-01-create-associated-policy-table.sql"/>
+  </changeSet>
+  <changeSet id="2026-05-20-02-create-scope-policy-table" author="keycloak-ydb-extension">
+    <sqlFile path="ydb/changesets/2026-05-20-02-create-scope-policy-table.sql"/>
+  </changeSet>
 </databaseChangeLog>

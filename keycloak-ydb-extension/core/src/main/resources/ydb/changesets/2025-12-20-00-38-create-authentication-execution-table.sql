@@ -13,5 +13,7 @@ CREATE TABLE IF NOT EXISTS `AUTHENTICATION_EXECUTION`
 
     INDEX                idx_auth_exec_realm_flow GLOBAL ON (`REALM_ID`, `FLOW_ID`),
     INDEX                idx_auth_exec_flow GLOBAL ON (`FLOW_ID`),
+--     FOREIGN KEY (REALM_ID) REFERENCES REALM (ID),
+--     FOREIGN KEY (FLOW_ID) REFERENCES AUTHENTICATION_FLOW (ID),
     PRIMARY KEY (`ID`)
 );

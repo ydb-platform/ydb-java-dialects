@@ -36,6 +36,8 @@ import org.keycloak.storage.datastore.DefaultDatastoreProviderFactory;
 import tech.ydb.keycloak.client.YdbClientProviderFactory;
 import tech.ydb.keycloak.client.YdbClientScopeProviderFactory;
 import tech.ydb.keycloak.connection.YdbConnectionProviderFactoryImpl;
+import tech.ydb.keycloak.liquibase.YdbDBLockProviderFactory;
+import tech.ydb.keycloak.liquibase.YdbLiquibaseConnectionProvider;
 import tech.ydb.keycloak.realm.YdbRealmProviderFactory;
 import tech.ydb.keycloak.testsuite.Config;
 import tech.ydb.keycloak.testsuite.KeycloakModelParameters;
@@ -83,8 +85,8 @@ public class Ydb extends KeycloakModelParameters {
                     .add(JpaRoleProviderFactory.class)
                     .add(JpaUpdaterProviderFactory.class)
                     .add(JpaUserProviderFactory.class)
-                    .add(LiquibaseConnectionProviderFactory.class)
-                    .add(LiquibaseDBLockProviderFactory.class)
+                    .add(YdbLiquibaseConnectionProvider.class)
+                    .add(YdbDBLockProviderFactory.class)
                     .add(JpaUserSessionPersisterProviderFactory.class)
                     .add(JpaRevokedTokensPersisterProviderFactory.class)
                     .add(MigrationProviderFactory.class)
@@ -131,12 +133,13 @@ public class Ydb extends KeycloakModelParameters {
         cf.spi("client").defaultProvider(PROVIDER_ID)
                 .spi("clientScope").defaultProvider(PROVIDER_ID)
                 .spi("realm").defaultProvider(PROVIDER_ID)
+                .spi("connectionsLiquibase").defaultProvider(PROVIDER_ID)
+                .spi("dblock").defaultProvider(PROVIDER_ID)
                 .spi("group").defaultProvider("jpa")
                 .spi("idp").defaultProvider("jpa")
                 .spi("role").defaultProvider("jpa")
                 .spi("user").defaultProvider("jpa")
-                .spi("deploymentState").defaultProvider("jpa")
-                .spi("dblock").defaultProvider("jpa");
+                .spi("deploymentState").defaultProvider("jpa");
 
         // YDB connection - use ydb provider with jdbcUrl from YdbHelper
         if (ydbHelper != null) {

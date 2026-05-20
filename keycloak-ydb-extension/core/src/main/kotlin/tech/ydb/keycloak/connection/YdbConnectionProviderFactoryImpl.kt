@@ -1,5 +1,7 @@
 package tech.ydb.keycloak.connection
 
+import com.zaxxer.hikari.HikariConfig
+import com.zaxxer.hikari.HikariDataSource
 import jakarta.persistence.EntityManagerFactory
 import jakarta.persistence.SynchronizationType.SYNCHRONIZED
 import liquibase.GlobalConfiguration
@@ -10,7 +12,6 @@ import org.keycloak.ServerStartupError
 import org.keycloak.connections.jpa.DefaultJpaConnectionProvider
 import org.keycloak.connections.jpa.JpaConnectionProvider
 import org.keycloak.connections.jpa.JpaConnectionProviderFactory
-import org.keycloak.connections.jpa.JpaKeycloakTransaction
 import org.keycloak.connections.jpa.support.EntityManagerProxy
 import org.keycloak.connections.jpa.updater.JpaUpdaterProvider
 import org.keycloak.connections.jpa.updater.JpaUpdaterProvider.Status.EMPTY
@@ -41,9 +42,12 @@ class YdbConnectionProviderFactoryImpl : JpaConnectionProviderFactory, ServerInf
   private lateinit var config: Config.Scope
 
   private var jtaEnabled by Delegates.notNull<Boolean>()
+  private lateinit var jdbcUrl: String
 
   @Volatile
   private lateinit var entityManagerFactory: EntityManagerFactory
+
+  private lateinit var dataSource: HikariDataSource
 
   override fun create(session: KeycloakSession): JpaConnectionProvider {
     val emf = getOrCreateEntityManagerFactory(session)
@@ -55,14 +59,20 @@ class YdbConnectionProviderFactoryImpl : JpaConnectionProviderFactory, ServerInf
       emf.createEntityManager(SYNCHRONIZED)
     }
 
+    val keycloakEm = EntityManagerProxy.create(session, em, true)
+    val ydbEm = YdbEntityManagerProxy.create(keycloakEm)
+
     if (!jtaEnabled) {
-      session.transactionManager.enlist(JpaKeycloakTransaction(em))
+      session.transactionManager.enlist(YdbJpaKeycloakTransaction(ydbEm))
     }
-    return DefaultJpaConnectionProvider(EntityManagerProxy.create(session, em, true))
+    return DefaultJpaConnectionProvider(ydbEm)
   }
 
   override fun init(scope: Config.Scope) {
     config = scope
+    jdbcUrl = requireNotNull(config["jdbcUrl"]) {
+      "YDB JDBC URL is required"
+    }
   }
 
   override fun postInit(factory: KeycloakSessionFactory) {
@@ -77,10 +87,6 @@ class YdbConnectionProviderFactoryImpl : JpaConnectionProviderFactory, ServerInf
     factory.create().use { session -> getOrCreateEntityManagerFactory(session) }
 
     KeycloakModelUtils.runJobInTransaction(factory) { session -> migrateModel(session) }
-  }
-
-  private fun resolveJdbcUrl(): String = requireNotNull(config["jdbcUrl"]) {
-    "YDB JDBC URL is required"
   }
 
   private fun createOrUpdateSchema(
@@ -142,6 +148,9 @@ class YdbConnectionProviderFactoryImpl : JpaConnectionProviderFactory, ServerInf
     if (::entityManagerFactory.isInitialized) {
       entityManagerFactory.close()
     }
+    if (::dataSource.isInitialized) {
+      dataSource.close()
+    }
   }
 
   override fun getId(): String = PROVIDER_ID
@@ -150,10 +159,9 @@ class YdbConnectionProviderFactoryImpl : JpaConnectionProviderFactory, ServerInf
 
   override fun getConnection(): Connection {
     try {
-      val url = resolveJdbcUrl()
       val driver = YdbDriver::class.java.name
       Class.forName(driver)
-      return DriverManager.getConnection(url)
+      return DriverManager.getConnection(jdbcUrl)
     } catch (e: Exception) {
       throw RuntimeException("Failed to connect to database", e)
     }
@@ -216,8 +224,19 @@ class YdbConnectionProviderFactoryImpl : JpaConnectionProviderFactory, ServerInf
   private fun buildPropertiesFromScope(): MutableMap<String, Any> {
     val properties = mutableMapOf<String, Any>()
 
-    properties[AvailableSettings.JAKARTA_JDBC_URL] = resolveJdbcUrl()
-    properties[AvailableSettings.JAKARTA_JDBC_DRIVER] = YdbDriver::class.java.name
+    val hikariConfig = HikariConfig().apply {
+      jdbcUrl = this@YdbConnectionProviderFactoryImpl.jdbcUrl
+      driverClassName = YdbDriver::class.java.name
+      maximumPoolSize = config.getInt("poolSize", 50)
+      minimumIdle = config.getInt("minIdle", 10)
+      connectionTimeout = config.getLong("connectionTimeout", 30000)
+      idleTimeout = config.getLong("idleTimeout", 600000)
+      maxLifetime = config.getLong("maxLifetime", 1800000)
+    }
+    dataSource = HikariDataSource(hikariConfig)
+    logger.info("HikariCP pool created: maxSize=${hikariConfig.maximumPoolSize}, minIdle=${hikariConfig.minimumIdle}")
+
+    properties[AvailableSettings.JAKARTA_NON_JTA_DATASOURCE] = dataSource
 
     getSchema()?.let { properties[JpaUtils.HIBERNATE_DEFAULT_SCHEMA] = it }
 

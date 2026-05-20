@@ -8,10 +8,5 @@ CREATE TABLE IF NOT EXISTS BROKER_LINK
     `TOKEN`               Utf8,
     `USER_ID`             Utf8 NOT NULL,
 
-    INDEX idx_broker_link_realm GLOBAL ON (REALM_ID),
-    INDEX idx_broker_link_user GLOBAL ON (USER_ID),
-    INDEX idx_broker_link_provider GLOBAL ON (IDENTITY_PROVIDER),
-    INDEX idx_broker_link_broker_user GLOBAL ON (BROKER_USER_ID),
---     FOREIGN KEY (REALM_ID) REFERENCES REALM (ID),
     PRIMARY KEY (IDENTITY_PROVIDER, USER_ID)
 );
