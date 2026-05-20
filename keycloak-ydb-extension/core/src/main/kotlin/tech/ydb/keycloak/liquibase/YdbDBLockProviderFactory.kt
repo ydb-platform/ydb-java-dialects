@@ -18,7 +18,7 @@ class YdbDBLockProviderFactory : DBLockProviderFactory {
 
   override fun init(config: Config.Scope) {
     this.lockWaitTimeoutMillis = Time.toMillis(config.getLong("lockWaitTimeout", 900))
-    logger.debug("Liquibase lock provider configured with lockWaitTime: $lockWaitTimeoutMillis seconds")
+    logger.debug("Liquibase lock provider configured with lockWaitTimeout: ${lockWaitTimeoutMillis}ms")
   }
 
   override fun create(session: KeycloakSession): YdbDBLockProvider {
