@@ -30,7 +30,7 @@ services:
       - MON_PORT=8765
       - YDB_KAFKA_PROXY_PORT=9092
     healthcheck:
-      test: [ "CMD", "ydb", "--endpoint", "grpc://localhost:2136", "--database", "/local", "scheme", "ls" ]
+      test: [ "CMD-SHELL", "/bin/sh /health_check" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -51,7 +51,7 @@ services:
       - keycloak
     depends_on:
       ydb:
-        condition: service_started
+        condition: service_healthy
 
   retry-proxy:
     build:
@@ -67,4 +67,6 @@ services:
     networks:
       - keycloak
     depends_on:
-      - ydb-keycloak
+      ydb-keycloak:
+        condition: service_started
+    restart: on-failure
