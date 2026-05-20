@@ -1,9 +1,8 @@
-package tech.ydb.exposed.dialect.spring.boot.autoconfigure
+﻿package tech.ydb.exposed.dialect.spring.boot.autoconfigure
 
 import org.springframework.context.annotation.Condition
 import org.springframework.context.annotation.ConditionContext
 import org.springframework.core.type.AnnotatedTypeMetadata
-import tech.ydb.exposed.dialect.YDB_JDBC_URL_PREFIX
 
 internal class OnYdbJdbcUrlCondition : Condition {
 
@@ -12,7 +11,7 @@ internal class OnYdbJdbcUrlCondition : Condition {
             ?.trim()
             ?: return false
 
-        return url.startsWith(YDB_JDBC_URL_PREFIX)
+        return url.startsWith(STARTER_YDB_JDBC_URL_PREFIX)
     }
 }
 

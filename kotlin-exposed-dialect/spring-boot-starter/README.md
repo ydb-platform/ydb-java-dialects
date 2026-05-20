@@ -7,7 +7,9 @@ that the generic starter does not know about:
 
 - registering the YDB JDBC dialect in Exposed;
 - aligning `spring.datasource.url` with `forceSignedDatetimes=...`;
-- supplying the recommended `DatabaseConfig` for YDB;
+- defaulting `spring.datasource.driver-class-name` to `tech.ydb.jdbc.YdbDriver` when it is omitted;
+- supplying the recommended `DatabaseConfig` for YDB as the primary Spring bean;
+- creating an Exposed `Database` bean from the Spring-managed `DataSource`;
 - exposing `YdbTransactionOperations` for retry-aware Exposed transactions.
 
 ## Dependency
@@ -36,6 +38,12 @@ spring:
     ydb:
       enable-signed-datetimes: false
 ```
+
+If `spring.datasource.driver-class-name` is not specified, the starter sets it to
+`tech.ydb.jdbc.YdbDriver` automatically.
+
+When `spring.exposed.ydb.enable-signed-datetimes=true`, the starter also propagates the
+matching `forceSignedDatetimes=true` flag into the normalized JDBC URL.
 
 ## Retry-aware transactions
 

@@ -1,13 +1,10 @@
-package tech.ydb.exposed.dialect.spring.boot.autoconfigure
+﻿package tech.ydb.exposed.dialect.spring.boot.autoconfigure
 
 import org.springframework.boot.SpringApplication
 import org.springframework.boot.env.EnvironmentPostProcessor
 import org.springframework.core.Ordered
 import org.springframework.core.env.ConfigurableEnvironment
 import org.springframework.core.env.MapPropertySource
-import tech.ydb.exposed.dialect.YDB_DRIVER_CLASS
-import tech.ydb.exposed.dialect.YDB_JDBC_URL_PREFIX
-import tech.ydb.exposed.dialect.ydbJdbcUrl
 
 class YdbExposedEnvironmentPostProcessor : EnvironmentPostProcessor, Ordered {
 
@@ -21,7 +18,7 @@ class YdbExposedEnvironmentPostProcessor : EnvironmentPostProcessor, Ordered {
             ?.trim()
             ?: return
 
-        if (!rawUrl.startsWith(YDB_JDBC_URL_PREFIX)) {
+        if (!rawUrl.startsWith(STARTER_YDB_JDBC_URL_PREFIX)) {
             return
         }
 
@@ -32,14 +29,14 @@ class YdbExposedEnvironmentPostProcessor : EnvironmentPostProcessor, Ordered {
         )
 
         val overrides = linkedMapOf<String, Any>(
-            SPRING_DATASOURCE_URL_PROPERTY to ydbJdbcUrl(
+            SPRING_DATASOURCE_URL_PROPERTY to ydbStarterJdbcUrl(
                 url = rawUrl,
                 enableSignedDatetimes = enableSignedDatetimes
             )
         )
 
         if (environment.getProperty(SPRING_DATASOURCE_DRIVER_PROPERTY).isNullOrBlank()) {
-            overrides[SPRING_DATASOURCE_DRIVER_PROPERTY] = YDB_DRIVER_CLASS
+            overrides[SPRING_DATASOURCE_DRIVER_PROPERTY] = STARTER_YDB_DRIVER_CLASS
         }
 
         environment.propertySources.remove(PROPERTY_SOURCE_NAME)

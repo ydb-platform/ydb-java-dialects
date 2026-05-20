@@ -1,6 +1,7 @@
-package tech.ydb.exposed.dialect.spring.boot.autoconfigure
+﻿package tech.ydb.exposed.dialect.spring.boot.autoconfigure
 
 import org.jetbrains.exposed.v1.core.DatabaseConfig
+import org.jetbrains.exposed.v1.core.Table
 import org.jetbrains.exposed.v1.jdbc.Database
 import org.jetbrains.exposed.v1.jdbc.SchemaUtils
 import org.jetbrains.exposed.v1.jdbc.insert
@@ -19,7 +20,7 @@ import org.springframework.core.env.Environment
 import org.springframework.test.context.DynamicPropertyRegistry
 import org.springframework.test.context.DynamicPropertySource
 import tech.ydb.exposed.dialect.YdbDialect
-import tech.ydb.exposed.dialect.YdbTable
+import tech.ydb.exposed.dialect.createYdbStatement
 import tech.ydb.test.junit5.YdbHelperExtension
 import java.sql.Connection
 
@@ -31,11 +32,12 @@ import java.sql.Connection
 )
 class YdbSpringBootContextTest {
 
-    object SpringBootTable : YdbTable("spring_boot_starter_table") {
+    object SpringBootTable : Table("spring_boot_starter_table") {
         val id = integer("id")
         val name = varchar("name", 128)
 
         override val primaryKey = PrimaryKey(id)
+        override fun createStatement(): List<String> = createYdbStatement()
     }
 
     @Autowired
@@ -103,7 +105,13 @@ class YdbSpringBootContextTest {
         @JvmStatic
         @DynamicPropertySource
         fun springDatasourceProperties(registry: DynamicPropertyRegistry) {
-            registry.add("spring.datasource.url") { buildJdbcUrl() }
+            registry.add("spring.datasource.url") {
+                ydbStarterJdbcUrl(
+                    url = buildJdbcUrl(),
+                    enableSignedDatetimes = true
+                )
+            }
+            registry.add("spring.datasource.driver-class-name") { "tech.ydb.jdbc.YdbDriver" }
         }
 
         private fun buildJdbcUrl(): String = buildString {

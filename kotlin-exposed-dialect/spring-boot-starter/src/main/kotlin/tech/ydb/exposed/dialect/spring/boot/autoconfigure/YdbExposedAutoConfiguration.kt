@@ -1,4 +1,4 @@
-package tech.ydb.exposed.dialect.spring.boot.autoconfigure
+﻿package tech.ydb.exposed.dialect.spring.boot.autoconfigure
 
 import org.jetbrains.exposed.v1.core.DatabaseConfig
 import org.jetbrains.exposed.v1.jdbc.Database
@@ -8,47 +8,47 @@ import org.springframework.boot.autoconfigure.AutoConfiguration
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
-import org.springframework.boot.autoconfigure.jdbc.DataSourceTransactionManagerAutoConfiguration
 import org.springframework.boot.context.properties.EnableConfigurationProperties
-import org.springframework.context.ApplicationContext
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Conditional
+import org.springframework.context.annotation.DependsOn
+import org.springframework.context.annotation.Primary
 import tech.ydb.exposed.dialect.YdbDialect
 import tech.ydb.exposed.dialect.registerYdbDialect
-import tech.ydb.exposed.dialect.ydbDatabaseConfig
 import javax.sql.DataSource
 
 /**
- * YDB-specific layer on top of Exposed's Spring Boot starter.
+ * Spring Boot bridge for the YDB Exposed dialect.
  *
- * Exposed already knows how to wire its Spring transaction manager; this configuration only adds
- * the YDB dialect registration, YDB defaults, and a retry-aware transaction entrypoint.
+ * The official Exposed Spring Boot starter knows how to integrate Exposed with Spring
+ * transactions, but it does not know anything about YDB dialect registration, YDB defaults,
+ * or the JDBC flag required for signed temporal mode. This auto-configuration layers those
+ * pieces on top as a separate optional artifact.
  */
-@AutoConfiguration(before = [DataSourceTransactionManagerAutoConfiguration::class])
+@AutoConfiguration
 @ConditionalOnClass(Database::class, YdbDialect::class, ExposedAutoConfiguration::class)
 @Conditional(OnYdbJdbcUrlCondition::class)
 @EnableConfigurationProperties(YdbExposedProperties::class)
-class YdbExposedAutoConfiguration(
-    applicationContext: ApplicationContext,
-    private val properties: YdbExposedProperties
-) : ExposedAutoConfiguration(applicationContext) {
+class YdbExposedAutoConfiguration {
 
     @Bean
-    fun ydbDialectRegistration(): InitializingBean = InitializingBean {
+    fun ydbDialectRegistration(properties: YdbExposedProperties): InitializingBean = InitializingBean {
         registerYdbDialect(properties.enableSignedDatetimes)
     }
 
     @Bean
-    @ConditionalOnMissingBean(DatabaseConfig::class)
-    override fun databaseConfig(): DatabaseConfig =
-        ydbDatabaseConfig(enableSignedDatetimes = properties.enableSignedDatetimes)
+    @Primary
+    fun ydbDatabaseConfig(properties: YdbExposedProperties): DatabaseConfig =
+        ydbStarterDatabaseConfig(enableSignedDatetimes = properties.enableSignedDatetimes)
 
     @Bean
+    @DependsOn("ydbDialectRegistration")
     @ConditionalOnMissingBean(Database::class)
-    fun database(dataSource: DataSource, databaseConfig: DatabaseConfig): Database {
-        registerYdbDialect(properties.enableSignedDatetimes)
-        return Database.connect(dataSource, databaseConfig = databaseConfig)
-    }
+    fun database(dataSource: DataSource, ydbDatabaseConfig: DatabaseConfig): Database =
+        Database.connect(
+            datasource = dataSource,
+            databaseConfig = ydbDatabaseConfig
+        )
 
     @Bean
     @ConditionalOnBean(Database::class)
