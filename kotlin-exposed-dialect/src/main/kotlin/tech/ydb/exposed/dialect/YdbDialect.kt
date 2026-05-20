@@ -358,7 +358,8 @@ internal object YdbFunctionProvider : FunctionProvider() {
  * Use [registerYdbDialect] then `Database.connect("jdbc:ydb:...")`.
  *
  * Notable behavior:
- * - [YdbTable] — YQL `CREATE TABLE` with table-level PK, inline indexes, TTL.
+ * - [createYdbStatement] — helper for YQL `CREATE TABLE` with a table-level PK,
+ *   intended for `Table.createStatement()` overrides.
  * - [tech.ydb.exposed.dialect.YdbFunctionProvider.upsert] / [replace] → native YQL `UPSERT` / `REPLACE`
  *   (`onUpdate` / `keyColumns` ignored).
  * - [createIndex] → `ALTER TABLE ... ADD INDEX ... GLOBAL` (post-create indexes).

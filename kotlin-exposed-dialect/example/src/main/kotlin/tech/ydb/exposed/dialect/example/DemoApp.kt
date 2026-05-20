@@ -6,23 +6,19 @@ import org.jetbrains.exposed.v1.jdbc.deleteWhere
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.update
 import org.jetbrains.exposed.v1.jdbc.upsert
-import org.jetbrains.exposed.v1.core.DatabaseConfig
 import org.jetbrains.exposed.v1.jdbc.Database
 import tech.ydb.exposed.dialect.registerYdbDialect
+import tech.ydb.exposed.dialect.ydbDatabaseConfig
 import tech.ydb.exposed.dialect.ydbDecimalLiteral
 import tech.ydb.exposed.dialect.ydbTransaction
 import java.math.BigDecimal
-import java.sql.Connection
 
 fun main() {
     registerYdbDialect()
     val db = Database.connect(
         url = "jdbc:ydb:grpc://localhost:2136/local",
         driver = "tech.ydb.jdbc.YdbDriver",
-        databaseConfig = DatabaseConfig {
-            defaultIsolationLevel = Connection.TRANSACTION_SERIALIZABLE
-            useNestedTransactions = false
-        }
+        databaseConfig = ydbDatabaseConfig()
     )
 
     ydbTransaction(db) {

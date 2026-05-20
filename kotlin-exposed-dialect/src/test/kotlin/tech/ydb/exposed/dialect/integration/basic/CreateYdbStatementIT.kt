@@ -1,17 +1,15 @@
 package tech.ydb.exposed.dialect.integration.basic
 
 import org.jetbrains.exposed.v1.core.Table
-import org.jetbrains.exposed.v1.jdbc.SchemaUtils
 import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import tech.ydb.exposed.dialect.createYdbStatement
 import tech.ydb.exposed.dialect.integration.base.BaseYdbTest
-import tech.ydb.exposed.dialect.ydbUint64
 import tech.ydb.exposed.dialect.javatime.ydbTimestamp64
-import java.sql.SQLException
+import tech.ydb.exposed.dialect.ydbUint64
 
-class YdbTableIT : BaseYdbTest() {
+class CreateYdbStatementIT : BaseYdbTest() {
 
     object BasicTable : Table("unit_basic_table") {
         val id = integer("id")

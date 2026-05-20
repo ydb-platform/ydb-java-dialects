@@ -28,7 +28,6 @@ import org.jetbrains.exposed.v1.jdbc.transactions.TransactionManager
  *     id Int32 NOT NULL,
  *     email Utf8 NOT NULL,
  *     name Utf8 NOT NULL,
- *     INDEX ...,
  *     PRIMARY KEY (id)
  * )
  * ```
@@ -39,12 +38,13 @@ import org.jetbrains.exposed.v1.jdbc.transactions.TransactionManager
  * - appending a table-level `PRIMARY KEY (...)` clause;
  * - preserving `NOT NULL` for non-nullable columns;
  * - preserving database-side default values;
- * - appending Exposed indexes declared on this table.
+ * - preserving Exposed [Table.storageParameters], so YDB-specific `WITH (...)`
+ *   clauses can still be declared on the table.
  *
- * The generated statement is plain `CREATE TABLE`, not
- * `CREATE TABLE IF NOT EXISTS`. This is useful for migration tools, because an
- * already existing table should normally fail the migration instead of being
- * silently ignored.
+ * The generated statement uses `CREATE TABLE IF NOT EXISTS`, matching
+ * Exposed's schema-creation flow. Post-create indexes declared through
+ * Exposed [Table.index] are still emitted separately through the dialect's
+ * `createIndex(...)` path.
  *
  * Example:
  *
@@ -55,14 +55,6 @@ import org.jetbrains.exposed.v1.jdbc.transactions.TransactionManager
  *     val name = varchar("name", 255)
  *
  *     override val primaryKey = PrimaryKey(id)
- *
- *     init {
- *         index(false, email)
- *         index("email-cover-idx", isUnique = true, email)
- *     }
- *
- *     val emailIndexDefinition
- *         get() = indices.single { !it.unique && it.columns == listOf(email) }
  *
  *     override fun createStatement() = createYdbStatement()
  * }
