@@ -3,22 +3,22 @@ package tech.ydb.exposed.dialect.integration.ttl
 import org.jetbrains.exposed.v1.core.Table
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
-import tech.ydb.exposed.dialect.YdbTable
-import tech.ydb.exposed.dialect.YdbTtlColumnMode
+import tech.ydb.exposed.dialect.createYdbStatement
 import tech.ydb.exposed.dialect.integration.base.BaseYdbTest
 import tech.ydb.exposed.dialect.ydbUint64
 
 class NumericTtlTypesIT : BaseYdbTest() {
 
-    object NumericTtlItems : YdbTable("numeric_ttl_items") {
+    object NumericTtlItems : Table("numeric_ttl_items") {
         val id = integer("id")
         val modifiedAtEpoch = ydbUint64("modified_at_epoch")
 
         override val primaryKey = PrimaryKey(id)
 
-        init {
-            ttl(modifiedAtEpoch, "PT1H", YdbTtlColumnMode.SECONDS)
-        }
+        override val storageParameters: List<TableStorageParameter> =
+            listOf(RawTableStorageParameter("TTL = Interval(\"PT1H\") ON modified_at_epoch AS SECONDS"))
+
+        override fun createStatement(): List<String> = createYdbStatement()
     }
 
     override val tables: List<Table> = listOf(NumericTtlItems)

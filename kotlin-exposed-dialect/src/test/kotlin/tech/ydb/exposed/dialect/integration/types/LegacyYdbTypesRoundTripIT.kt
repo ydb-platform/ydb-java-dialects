@@ -5,7 +5,7 @@ import org.jetbrains.exposed.v1.jdbc.insert
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
-import tech.ydb.exposed.dialect.YdbTable
+import tech.ydb.exposed.dialect.createYdbStatement
 import tech.ydb.exposed.dialect.integration.base.BaseYdbTest
 import tech.ydb.exposed.dialect.javatime.ydbDate
 import tech.ydb.exposed.dialect.javatime.ydbDatetime
@@ -19,7 +19,7 @@ import java.time.LocalDateTime
 /** Round-trip for legacy YDB temporal/interval types (`Date`, `Datetime`, `Timestamp`, `Interval`). */
 class LegacyYdbTypesRoundTripIT : BaseYdbTest() {
 
-    object LegacyTypes : YdbTable("legacy_ydb_types_round_trip") {
+    object LegacyTypes : Table("legacy_ydb_types_round_trip") {
         val id = integer("id")
         val dateCol = ydbDate("date_col")
         val dateTimeCol = ydbDatetime("datetime_col")
@@ -27,6 +27,8 @@ class LegacyYdbTypesRoundTripIT : BaseYdbTest() {
         val intervalCol = ydbInterval("interval_col")
 
         override val primaryKey = PrimaryKey(id)
+
+        override fun createStatement(): List<String> = createYdbStatement()
     }
 
     override val tables: List<Table> = listOf(LegacyTypes)

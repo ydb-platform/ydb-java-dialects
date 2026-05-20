@@ -8,16 +8,18 @@ import org.jetbrains.exposed.v1.jdbc.insert
 import org.jetbrains.exposed.v1.jdbc.select
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
-import tech.ydb.exposed.dialect.YdbTable
+import tech.ydb.exposed.dialect.createYdbStatement
 import tech.ydb.exposed.dialect.integration.base.BaseYdbTest
 
 class SubqueryIT : BaseYdbTest() {
 
-    object Sales : YdbTable("sales") {
+    object Sales : Table("sales") {
         val id = integer("id")
         val customer = varchar("customer", 255)
         val amount = integer("amount")
         override val primaryKey = PrimaryKey(id)
+
+        override fun createStatement(): List<String> = createYdbStatement()
     }
 
     override val tables: List<Table> = listOf(Sales)

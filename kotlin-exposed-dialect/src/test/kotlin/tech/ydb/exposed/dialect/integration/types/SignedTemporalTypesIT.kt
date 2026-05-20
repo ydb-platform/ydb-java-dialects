@@ -8,7 +8,7 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import tech.ydb.exposed.dialect.YdbDialect
-import tech.ydb.exposed.dialect.YdbTable
+import tech.ydb.exposed.dialect.createYdbStatement
 import tech.ydb.exposed.dialect.integration.base.BaseYdbTest
 import tech.ydb.exposed.dialect.javatime.ydbDate32
 import tech.ydb.exposed.dialect.javatime.ydbDatetime64
@@ -18,18 +18,20 @@ import java.time.LocalDate
 import java.time.LocalDateTime
 
 /**
- * Signed temporal columns with [registerYdbDialect] `enableSignedDatetimes = true` and
+ * Signed temporal columns with [tech.ydb.exposed.dialect.registerYdbDialect] `enableSignedDatetimes = true` and
  * `forceSignedDatetimes=true` on the JDBC URL (set explicitly in [jdbcUrlSuffix]).
  */
 class SignedTemporalTypesIT : BaseYdbTest() {
 
-    object SignedTemporal : YdbTable("signed_temporal_types") {
+    object SignedTemporal : Table("signed_temporal_types") {
         val id = integer("id")
         val dateCol = ydbDate32("date_col")
         val dateTimeCol = ydbDatetime64("datetime_col")
         val timestampCol = ydbTimestamp64("timestamp_col")
 
         override val primaryKey = PrimaryKey(id)
+
+        override fun createStatement(): List<String> = createYdbStatement()
     }
 
     override val enableSignedDatetimes: Boolean = true

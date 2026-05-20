@@ -10,6 +10,7 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Test
+import tech.ydb.exposed.dialect.createYdbStatement
 import tech.ydb.exposed.dialect.integration.base.BaseYdbTest
 
 /** Exposed [Entity] / [IdTable] smoke test against YDB. */
@@ -21,6 +22,8 @@ class DaoSmokeIT : BaseYdbTest() {
         val body = text("body")
 
         override val primaryKey = PrimaryKey(id)
+
+        override fun createStatement(): List<String> = createYdbStatement()
     }
 
     class Article(id: EntityID<String>) : Entity<String>(id) {

@@ -9,6 +9,7 @@ import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import tech.ydb.exposed.dialect.YdbDialect
+import tech.ydb.exposed.dialect.createYdbStatement
 import tech.ydb.exposed.dialect.integration.base.BaseYdbTest
 
 class YdbIndexSqlIT : BaseYdbTest() {
@@ -27,6 +28,8 @@ class YdbIndexSqlIT : BaseYdbTest() {
 
         val emailIndexDefinition
             get() = indices.single { !it.unique && it.columns == listOf(email) }
+
+        override fun createStatement() = createYdbStatement()
     }
 
     @Test

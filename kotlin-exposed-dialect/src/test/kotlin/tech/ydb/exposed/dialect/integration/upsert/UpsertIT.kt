@@ -9,8 +9,9 @@ import org.jetbrains.exposed.v1.jdbc.upsert
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Test
-import tech.ydb.exposed.dialect.YdbTable
+import tech.ydb.exposed.dialect.createYdbStatement
 import tech.ydb.exposed.dialect.integration.base.BaseYdbTest
+import tech.ydb.exposed.dialect.ydbUint64
 
 /**
  * Integration coverage for Exposed [Table.upsert] / [Table.replace] backed by native YQL.
@@ -22,23 +23,32 @@ import tech.ydb.exposed.dialect.integration.base.BaseYdbTest
  */
 class UpsertIT : BaseYdbTest() {
 
-    object Products : YdbTable("upsert_products") {
+    object Products : Table("upsert_products") {
         val id = integer("id")
         val name = varchar("name", 255)
+
         override val primaryKey = PrimaryKey(id)
+
+        override fun createStatement(): List<String> = createYdbStatement()
     }
 
-    object Inventory : YdbTable("upsert_inventory") {
+    object Inventory : Table("upsert_inventory") {
         val id = integer("id")
         val name = varchar("name", 255)
         val quantity = integer("quantity").default(0)
+
         override val primaryKey = PrimaryKey(id)
+
+        override fun createStatement(): List<String> = createYdbStatement()
     }
 
-    object NullableItems : YdbTable("upsert_nullable_items") {
+    object NullableItems : Table("upsert_nullable_items") {
         val id = integer("id")
-        val note = varchar("note", 64).nullable()
+        val note = ydbUint64("note").nullable()
+
         override val primaryKey = PrimaryKey(id)
+
+        override fun createStatement(): List<String> = createYdbStatement()
     }
 
     override val tables: List<Table> = listOf(Products, Inventory, NullableItems)
@@ -220,7 +230,7 @@ class UpsertIT : BaseYdbTest() {
     fun `Table upsert can clear a nullable column when explicitly set to null`() = tx {
         NullableItems.upsert {
             it[id] = 1
-            it[note] = "present"
+            it[note] = 4
         }
         NullableItems.upsert {
             it[id] = 1

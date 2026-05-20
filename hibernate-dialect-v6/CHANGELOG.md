@@ -1,0 +1,66 @@
+- Add YDB constraint violation exception mapping to hibernate specific exception
+- Disable ordinal SELECT item references (`ORDER BY 1`, `GROUP BY 1`) — YDB does not support them
+- Add `'u` suffix to string literals to everywhere used Utf8 type instead of String. For escape symbol added custom translation to it had String type, not Utf8.
+- Support `lower`, `upper` and `concat` functions
+
+## 1.5.2 ##
+
+- Set LIMIT Long.MAX_VALUE in case, when there is offset without limit. Workaround on this issue https://github.com/ydb-platform/ydb/issues/33136
+
+## 1.5.1 ##
+
+- Fixed @JdbcTypeCode annotation on fields: Json, JsonDocument and others with YdbJdbcCode
+
+## 1.5.0 ##
+
+- Support for `GenerationType.IDENTITY` with JDBC YDB Driver **2.3.11** and later.
+- Support for `Date32`, `Datetime64`, and `Timestamp64` YDB types.
+
+## 1.4.1 ##
+
+- Deleted `InExpressionCountLimit`
+
+## 1.4.0 ##
+
+- Added hint for YQL pragma queries
+
+## 1.3.0 ##
+
+- Added support UUID YDB type
+
+## 1.2.0 ##
+
+- Added custom decimal jdbc codes `DECIMAL_31_9`, `DECIMAL_35_0`, `DECIMAL_35_9`
+
+## 1.1.0 ##
+
+- Added hint for scan queries
+
+## 1.0.0 ##
+
+- Fixed: data time type converters
+
+## 0.9.5 ##
+
+- Added query hint for view index for "select * from ... where" queries
+
+## 0.9.4 ##
+
+- Fixed the generated bool value
+
+## 0.9.3 ##
+
+- Supported enum field of Entity
+
+## 0.9.2 ##
+
+- Supported LocalDateTime with datetime YDB primitive type and mapped to java.sql.Types.TIME
+
+## 0.9.1 ##
+
+- Full CRUD operations
+- Support LIKE / ILIKE statement with ESCAPE
+- Support LIMIT ? OFFSET ? statement
+- Support ORDER BY ? statement
+- @OneToOne, @ManyToMany, @OneToMany, @ManyToOne
+- Generate table schema

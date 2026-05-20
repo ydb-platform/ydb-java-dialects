@@ -72,7 +72,7 @@ internal class YdbDateColumnType(
     override fun fromLocalDate(value: kotlinx.datetime.LocalDate): LocalDate = value.toJavaLocalDate()
 
     override fun setParameter(stmt: PreparedStatementApi, index: Int, value: Any?) {
-        bindYdbParameter(stmt, index, value, jdbcTypeCode, this)
+        bindYdbParameter(stmt, index, value, jdbcTypeCode)
     }
 }
 
@@ -89,7 +89,7 @@ internal class YdbDateTimeColumnType(
         value.toJavaLocalDateTime()
 
     override fun setParameter(stmt: PreparedStatementApi, index: Int, value: Any?) {
-        bindYdbParameter(stmt, index, value, jdbcTypeCode, this)
+        bindYdbParameter(stmt, index, value, jdbcTypeCode)
     }
 }
 
@@ -106,7 +106,7 @@ internal class YdbTimestampColumnType(
         Instant.ofEpochMilli(value.toEpochMilliseconds())
 
     override fun setParameter(stmt: PreparedStatementApi, index: Int, value: Any?) {
-        bindYdbParameter(stmt, index, value, jdbcTypeCode, this)
+        bindYdbParameter(stmt, index, value, jdbcTypeCode)
     }
 }
 

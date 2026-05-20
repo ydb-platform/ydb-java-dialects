@@ -6,7 +6,7 @@ import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
-import tech.ydb.exposed.dialect.YdbTable
+import tech.ydb.exposed.dialect.createYdbStatement
 import tech.ydb.exposed.dialect.integration.base.BaseYdbTest
 import tech.ydb.exposed.dialect.ydbInterval
 import tech.ydb.exposed.dialect.ydbInterval64
@@ -14,18 +14,22 @@ import java.time.Duration
 
 class IntervalTypesIT : BaseYdbTest() {
 
-    object Interval64Types : YdbTable("interval64_types") {
+    object Interval64Types : Table("interval64_types") {
         val id = integer("id")
         val durationCol = ydbInterval64("duration_col")
 
         override val primaryKey = PrimaryKey(id)
+
+        override fun createStatement(): List<String> = createYdbStatement()
     }
 
-    object LegacyIntervalTypes : YdbTable("legacy_interval_types") {
+    object LegacyIntervalTypes : Table("legacy_interval_types") {
         val id = integer("id")
         val durationCol = ydbInterval("duration_col")
 
         override val primaryKey = PrimaryKey(id)
+
+        override fun createStatement(): List<String> = createYdbStatement()
     }
 
     override val tables: List<Table> = listOf(Interval64Types, LegacyIntervalTypes)

@@ -7,7 +7,7 @@ import org.junit.jupiter.api.Assertions.assertArrayEquals
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
-import tech.ydb.exposed.dialect.YdbTable
+import tech.ydb.exposed.dialect.createYdbStatement
 import tech.ydb.exposed.dialect.integration.base.BaseYdbTest
 import tech.ydb.exposed.dialect.ydbDecimal
 import tech.ydb.exposed.dialect.ydbInterval64
@@ -39,7 +39,7 @@ import tech.ydb.exposed.dialect.javatime.ydbTimestamp64
  */
 class AllTypesRoundTripIT : BaseYdbTest() {
 
-    object ScalarTypes : YdbTable("all_types_scalars") {
+    object ScalarTypes : Table("all_types_scalars") {
         val id = integer("id")
         val byteCol = byte("byte_col")
         val ubyteCol = ydbUbyte("ubyte_col")
@@ -57,18 +57,22 @@ class AllTypesRoundTripIT : BaseYdbTest() {
         val binaryCol = binary("binary_col")
 
         override val primaryKey = PrimaryKey(id)
+
+        override fun createStatement(): List<String> = createYdbStatement()
     }
 
-    object StandardTemporal : YdbTable("all_types_std_temporal") {
+    object StandardTemporal : Table("all_types_std_temporal") {
         val id = integer("id")
         val dateCol = ydbDate("date_col")
         val dateTimeCol = ydbDatetime("datetime_col")
         val timestampCol = ydbTimestamp("timestamp_col")
 
         override val primaryKey = PrimaryKey(id)
+
+        override fun createStatement(): List<String> = createYdbStatement()
     }
 
-    object YdbExtensionTypes : YdbTable("all_types_ydb_ext") {
+    object YdbExtensionTypes : Table("all_types_ydb_ext") {
         val id = integer("id")
         val amount = ydbDecimal("amount", 12, 4)
         val jsonCol = ydbJson("json_col")
@@ -81,6 +85,8 @@ class AllTypesRoundTripIT : BaseYdbTest() {
         val interval64Col = ydbInterval64("interval64_col")
 
         override val primaryKey = PrimaryKey(id)
+
+        override fun createStatement(): List<String> = createYdbStatement()
     }
 
     override val tables: List<Table> = listOf(ScalarTypes, StandardTemporal, YdbExtensionTypes)

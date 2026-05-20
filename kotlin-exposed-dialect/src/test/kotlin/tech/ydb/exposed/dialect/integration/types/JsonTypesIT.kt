@@ -6,25 +6,29 @@ import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
-import tech.ydb.exposed.dialect.YdbTable
+import tech.ydb.exposed.dialect.createYdbStatement
 import tech.ydb.exposed.dialect.integration.base.BaseYdbTest
 import tech.ydb.exposed.dialect.ydbJson
 import tech.ydb.exposed.dialect.ydbJsonDocument
 
 class JsonTypesIT : BaseYdbTest() {
 
-    object JsonTypes : YdbTable("json_types") {
+    object JsonTypes : Table("json_types") {
         val id = integer("id")
         val payload = ydbJson("payload")
 
         override val primaryKey = PrimaryKey(id)
+
+        override fun createStatement(): List<String> = createYdbStatement()
     }
 
-    object JsonDocumentTypes : YdbTable("json_document_types") {
+    object JsonDocumentTypes : Table("json_document_types") {
         val id = integer("id")
         val payload = ydbJsonDocument("payload")
 
         override val primaryKey = PrimaryKey(id)
+
+        override fun createStatement(): List<String> = createYdbStatement()
     }
 
     override val tables: List<Table> = listOf(JsonTypes, JsonDocumentTypes)

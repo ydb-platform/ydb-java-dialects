@@ -1,22 +1,21 @@
-# Kotlin Exposed YDB Dialect
+﻿# Kotlin Exposed YDB Dialect
 
 YDB integration for [JetBrains Exposed](https://github.com/JetBrains/Exposed) via JDBC.
+
 The module provides:
 
-- a Kotlin Exposed `VendorDialect` for YDB (SQL, type mapping, post-create indexes);
-- [`YdbTable`](src/main/kotlin/tech/ydb/exposed/dialect/YdbTable.kt) for YQL `CREATE TABLE` (table-level PK, inline indexes, TTL);
-- `Table.upsert` / `Table.replace` DSL backed by native YDB `UPSERT` / `REPLACE`;
-- a retryable transaction wrapper that handles YDB's OCC retries transparently.
-
-For Spring Boot applications there is a separate optional module:
-`kotlin-exposed-ydb-dialect-spring-boot-starter`.
+- a Kotlin Exposed `VendorDialect` for YDB;
+- `createYdbStatement()` for YDB-compatible `CREATE TABLE` rendering;
+- native `UPSERT` / `REPLACE` support through Exposed's `Table.upsert` and `Table.replace`;
+- retry-aware `ydbTransaction { ... }` for YDB OCC conflicts;
+- YDB-specific column types for temporal, JSON, interval, decimal, UUID, and unsigned values.
 
 ## Requirements
 
 - JDK 17+
 - Maven
-- [YDB JDBC driver](https://github.com/ydb-platform/ydb-jdbc-driver) on the application classpath (not bundled with this artifact)
-- JetBrains Exposed 1.x
+- [YDB JDBC driver](https://github.com/ydb-platform/ydb-jdbc-driver) on the application classpath
+- JetBrains Exposed 1.3.x
 
 ```xml
 <dependency>
@@ -36,11 +35,16 @@ For Spring Boot applications there is a separate optional module:
 ```kotlin
 import org.jetbrains.exposed.v1.jdbc.Database
 import tech.ydb.exposed.dialect.registerYdbDialect
+import tech.ydb.exposed.dialect.ydbDatabaseConfig
 import tech.ydb.exposed.dialect.ydbTransaction
 
-registerYdbDialect() // or registerYdbDialect(enableSignedDatetimes = true)
+registerYdbDialect()
 
-val db = Database.connect("jdbc:ydb:grpc://localhost:2136/local")
+val db = Database.connect(
+    url = "jdbc:ydb:grpc://localhost:2136/local",
+    driver = "tech.ydb.jdbc.YdbDriver",
+    databaseConfig = ydbDatabaseConfig()
+)
 
 ydbTransaction(db) {
     // Exposed DSL / DAO code
@@ -49,18 +53,20 @@ ydbTransaction(db) {
 
 ## Defining tables
 
-YDB requires a table-level `PRIMARY KEY (…)` in `CREATE TABLE`, not `col Type PRIMARY KEY` on a column.
-Use [`YdbTable`](src/main/kotlin/tech/ydb/exposed/dialect/YdbTable.kt) for schema DDL; plain Exposed
-`Table` + `SchemaUtils.create` still works for DML/tests but emits inline PK SQL that YDB rejects.
+YDB requires a table-level `PRIMARY KEY (...)` in `CREATE TABLE`, not the inline
+`column Type PRIMARY KEY` form that Exposed may generate for a single-column PK.
+
+Because Exposed 1.3.0 does not expose a dialect hook for this part of `CREATE TABLE`,
+YDB schema generation is implemented as a local workaround: override `createStatement()`
+and delegate to `createYdbStatement()`.
 
 ```kotlin
-import tech.ydb.exposed.dialect.YdbIndexScope
-import tech.ydb.exposed.dialect.YdbIndexSyncMode
-import tech.ydb.exposed.dialect.YdbTable
+import org.jetbrains.exposed.v1.core.Table
+import tech.ydb.exposed.dialect.createYdbStatement
 import tech.ydb.exposed.dialect.javatime.ydbTimestamp64
 import tech.ydb.exposed.dialect.ydbDecimal
 
-object Products : YdbTable("products") {
+object Products : Table("products") {
     val id = integer("id")
     val sku = varchar("sku", 64)
     val name = varchar("name", 255)
@@ -71,27 +77,52 @@ object Products : YdbTable("products") {
     override val primaryKey = PrimaryKey(id)
 
     init {
-        // Post-create index (ALTER TABLE … ADD INDEX … GLOBAL) — same as on Exposed Table
         index(false, sku)
-
-        // Inline index in CREATE TABLE (COVER / ASYNC / WITH)
-        secondaryIndex(
-            name = "products_category_idx",
-            category,
-            scope = YdbIndexScope.GLOBAL,
-            syncMode = YdbIndexSyncMode.ASYNC,
-            coverColumns = listOf(name, price)
-        )
-
-        ttl(expiresAt, "P30D")
     }
+
+    override fun createStatement(): List<String> = createYdbStatement()
 }
 ```
 
-## Insert / upsert / replace / update / delete
+`createYdbStatement()`:
 
-Exposed's standard DSL works as-is. YDB's native `UPSERT` and `REPLACE` are exposed via
-the same `Table.upsert` / `Table.replace` extensions Exposed provides for other vendors:
+- renders all columns without inline PK declarations;
+- appends a table-level `PRIMARY KEY (...)`;
+- preserves `NOT NULL` and `DEFAULT`;
+- preserves `storageParameters`, so YDB-specific `WITH (...)` clauses can still be used.
+
+Post-create indexes declared through `Table.index(...)` are still emitted through the dialect's
+standard `ALTER TABLE ... ADD INDEX ... GLOBAL` path.
+
+### TTL via storage parameters
+
+If you need YDB-specific table options such as TTL, declare them through Exposed
+`storageParameters` and keep the DDL override:
+
+```kotlin
+import org.jetbrains.exposed.v1.core.RawTableStorageParameter
+import org.jetbrains.exposed.v1.core.Table
+import org.jetbrains.exposed.v1.core.TableStorageParameter
+import tech.ydb.exposed.dialect.createYdbStatement
+import tech.ydb.exposed.dialect.javatime.ydbTimestamp64
+
+object Sessions : Table("sessions") {
+    val id = integer("id")
+    val expireAt = ydbTimestamp64("expire_at")
+
+    override val primaryKey = PrimaryKey(id)
+
+    override val storageParameters: List<TableStorageParameter> =
+        listOf(RawTableStorageParameter("TTL = Interval(\"PT1H\") ON expire_at"))
+
+    override fun createStatement(): List<String> = createYdbStatement()
+}
+```
+
+## Insert / upsert / replace
+
+Exposed's regular DSL works as-is. The dialect also maps Exposed's `upsert` / `replace`
+to native YDB `UPSERT` / `REPLACE`.
 
 ```kotlin
 Products.upsert {
@@ -111,195 +142,176 @@ Products.replace {
 }
 ```
 
-ANSI `MERGE` is intentionally rejected — `UPSERT` / `REPLACE` cover the same use cases.
+Behavioral notes:
 
-YDB `UPSERT` writes only the columns listed in the DSL block; on primary-key conflict, other
-columns are left unchanged. Exposed's `onUpdate` and `keyColumns` are **ignored** (no
-`ON DUPLICATE KEY UPDATE`). `upsert(where)` **throws** — use `update { }` for conditional writes.
+- `UPSERT` writes only the columns listed in the statement;
+- on PK conflict, columns omitted from `UPSERT` remain unchanged;
+- `REPLACE` overwrites the row by PK, so omitted columns are reset to defaults;
+- `upsert(where)` is not supported;
+- ANSI `MERGE` is intentionally rejected.
 
 ## Retryable transactions
 
-YDB uses Optimistic Concurrency Control, so a transaction can fail with `Transaction locks
-invalidated` under contention. Use `ydbTransaction` instead of plain `transaction` to retry
-the body on retryable YDB statuses (`ABORTED`, `OVERLOADED`, `BAD_SESSION`, ...):
+YDB uses Optimistic Concurrency Control, so a transaction can fail with a retryable status.
+Use `ydbTransaction` instead of plain `transaction` when you want retries on retryable YDB errors.
 
 ```kotlin
 import tech.ydb.exposed.dialect.YdbRetryConfig
 import tech.ydb.exposed.dialect.ydbTransaction
 
 ydbTransaction(db) {
-    // read-write; retries transient YDB statuses (ABORTED, OVERLOADED, BAD_SESSION, ...)
+    // read-write transaction
 }
 
 ydbTransaction(db, retry = YdbRetryConfig.IDEMPOTENT) {
-    // idempotent body — UNDETERMINED and other non-transient retryable codes are retried too
+    // safe-to-repeat body
 }
 
 ydbTransaction(db, readOnly = true, retry = YdbRetryConfig.IDEMPOTENT) {
-    // read-only snapshot work
+    // read-only transaction
 }
 ```
 
-Backoff uses full jitter for `ABORTED` / `UNDETERMINED`, equal jitter for `UNAVAILABLE` / transport /
-`OVERLOADED`, and zero delay for session errors. Status codes are read from `SQLException.errorCode`
-(YDB vendor codes), not from error message text.
-
-Use `retry = YdbRetryConfig.IDEMPOTENT` only when the body can be safely re-executed (pure reads,
-single `UPSERT` / `REPLACE`, idempotent business logic). Customize attempts and backoff via
-`YdbRetryConfig` or `YdbRetryConfig.DEFAULT.copy(maxAttempts = 3)`.
+`YdbRetryConfig.IDEMPOTENT` should only be used when the body can be safely executed more than once.
 
 ## Types
 
-Default mapping for standard Exposed types:
+Default Exposed type mapping:
 
-| Exposed             | YDB                |
-|---------------------|--------------------|
-| `byte` / `ubyte`    | `Int8` / `Uint8`   |
-| `short` / `ushort`  | `Int16` / `Uint16` |
-| `integer`/`uinteger`| `Int32`/`Uint32`   |
-| `long`              | `Int64`            |
-| `float` / `double`  | `Float` / `Double` |
-| `bool`              | `Bool`             |
-| `varchar` / `text`  | `Text`             |
-| `binary` / `blob`   | `Bytes`            |
-| `uuid`              | `Uuid`             |
-| `date`              | `Date`             |
-| `datetime`          | `Datetime`         |
-| `timestamp`         | `Timestamp`        |
-| `json`              | `Json`             |
-| `jsonb`             | `JsonDocument`     |
+| Exposed              | YDB                |
+|----------------------|--------------------|
+| `byte` / `ubyte`     | `Int8` / `Uint8`   |
+| `short` / `ushort`   | `Int16` / `Uint16` |
+| `integer` / `uinteger` | `Int32` / `Uint32` |
+| `long`               | `Int64`            |
+| `float` / `double`   | `Float` / `Double` |
+| `bool`               | `Bool`             |
+| `varchar` / `text`   | `Text`             |
+| `binary` / `blob`    | `Bytes`            |
+| `uuid`               | `Uuid`             |
+| `date`               | `Date`             |
+| `datetime`           | `Datetime`         |
+| `timestamp`          | `Timestamp`        |
+| `json`               | `Json`             |
+| `jsonb`              | `JsonDocument`     |
 
-`varchar(n)` maps to `Text` (length is not preserved in YDB DDL).
-
-### Production types (`ydb*` / `javatime.*`)
-
-For temporal and unsigned columns, use **`ydbDate` / `ydbDate32`**, **`ydbUbyte`**, **`ydbUint32`**, etc.
-They bind via YDB JDBC vendor type codes. Standard Exposed `date()`, `ubyte()`, `binary()` use
-generic JDBC binding — DDL still maps correctly for many cases, but edge cases (unsigned ranges,
-signed vs legacy temporal) may differ. **Prefer `ydb*` / `javatime.*` in production.**
-
-Pick unsigned legacy or signed extended temporal types per column on any `Table`;
-JDBC vendor code drives both bind and DDL `sqlType()`:
-
-```kotlin
-import tech.ydb.exposed.dialect.javatime.ydbDate
-import tech.ydb.exposed.dialect.javatime.ydbDate32
-import tech.ydb.exposed.dialect.javatime.ydbDatetime64
-
-object Events : Table("events") {
-    val created = ydbDate("created")           // Date
-    val expires = ydbDate32("expires")         // Date32
-    val updated = ydbDatetime64("updated")     // Datetime64
-}
-```
-
-Optional: `registerYdbDialect(enableSignedDatetimes = true)` switches **dialect** DDL names for
-standard Exposed `date` / `datetime` / `timestamp` to `Date32` / `Datetime64` / `Timestamp64`.
-Add `forceSignedDatetimes=true` to the JDBC URL yourself when the driver requires it.
-Per-column types remain explicit (`ydbDate` vs `ydbDate32`).
-
-Additional YDB-specific column types are available via extension functions on `Table`:
+YDB-specific extensions are available through `ydb*` and `javatime.*`, for example:
 
 ```kotlin
 ydbDecimal("price", precision = 10, scale = 2)
 ydbInterval("duration")
 ydbJson("payload")
-ydbJsonDocument("indexed_payload")   // JsonDocument, analogue of jsonb
-ydbUuid("id")                        // native Uuid; same as Exposed uuid() under this dialect
+ydbJsonDocument("indexed_payload")
+ydbUuid("id")
 ydbUint64("counter")
 ```
 
-`ydbUint64` / `ydbUlong` are backed by `Long` / `ULong` with range `0..Long.MAX_VALUE` for the
-JDBC long path. Use a wider type if you need the full `Uint64` range.
-
-For Decimal literals inside update expressions there's `ydbDecimalLiteral`:
+Signed temporal mode can be enabled through:
 
 ```kotlin
-import tech.ydb.exposed.dialect.ydbDecimalLiteral
-
-it.update(Products.price, ydbDecimalLiteral(BigDecimal("45.00"), 10, 2))
+registerYdbDialect(enableSignedDatetimes = true)
 ```
 
-## Identifiers
-
-Exposed `autoIncrement()` maps to YDB `Serial` / `BigSerial`:
+and, for JDBC URL normalization:
 
 ```kotlin
-object Orders : YdbTable("orders") {
-    val id = integer("id").autoIncrement()
-    val total = ydbDecimal("total", precision = 12, scale = 2)
-    override val primaryKey = PrimaryKey(id)
+ydbJdbcUrl("jdbc:ydb:grpc://localhost:2136/local", enableSignedDatetimes = true)
+```
+
+## Schema management in production
+
+Schema generation through Exposed is supported, but for YDB it is intentionally treated as a
+compatibility workaround rather than the primary schema-management model.
+
+In production, the recommended approach is:
+
+1. manage schema through versioned migrations such as Flyway or Liquibase;
+2. keep Exposed table definitions aligned with that schema;
+3. validate drift through Exposed migration helpers.
+
+If your application uses schema validation or migration diff generation through Exposed,
+also add:
+
+```xml
+<dependency>
+    <groupId>org.jetbrains.exposed</groupId>
+    <artifactId>exposed-migration-core</artifactId>
+    <version>${exposed.version}</version>
+</dependency>
+<dependency>
+    <groupId>org.jetbrains.exposed</groupId>
+    <artifactId>exposed-migration-jdbc</artifactId>
+    <version>${exposed.version}</version>
+</dependency>
+```
+
+This repository includes integration coverage for:
+
+- manual schema creation through raw SQL;
+- YDB-compatible drift detection for missing columns and secondary indexes;
+- empty diff for matching schema;
+- non-empty diff for drifted schema.
+
+In Exposed 1.3.0, the full `MigrationUtils.statementsRequiredForDatabaseMigration(...)` path
+unconditionally reads CHECK-constraint metadata from `INFORMATION_SCHEMA.CHECK_CONSTRAINTS`.
+YDB does not expose that metadata through the current JDBC driver, so the repository validates
+externally managed schemas through the compatible building blocks that Exposed already provides:
+
+```kotlin
+import org.jetbrains.exposed.v1.jdbc.SchemaUtils
+import tech.ydb.exposed.dialect.ydbTransaction
+
+ydbTransaction(db, readOnly = true) {
+    val missingColumns = SchemaUtils.addMissingColumnsStatements(Products, withLogs = true)
+    val existingIndexes = db.dialectMetadata.existingIndices(Products).getValue(Products)
 }
 ```
 
-For UUID keys use `ydbUuid("id")` or Exposed `uuid()` under this dialect. Unsigned `Serial`
-columns are not supported.
+When schema was changed through raw SQL just before validation, run the diff in a fresh transaction
+so Exposed does not validate against stale metadata cache.
 
-## Indexes
-
-- **Post-create** (any `Table` or `YdbTable`): Exposed `index()` / `index(customName, isUnique, …)`
-  → `ALTER TABLE … ADD INDEX … GLOBAL [UNIQUE] ON (…)`.
-- **Inline in `CREATE TABLE`** (`YdbTable` only): [`secondaryIndex`](src/main/kotlin/tech/ydb/exposed/dialect/YdbTable.kt)
-  with optional `COVER`, `ASYNC`, `WITH`.
+That validation path is the one that matters most in real projects, where schema changes are usually
+applied by dedicated migration tools rather than by ORM-driven DDL generation.
 
 ## Known limitations
 
-Inherited from Exposed `VendorDialect` unless overridden here: foreign keys, sequences,
-`SELECT … FOR UPDATE`, dialect-specific features aimed at PostgreSQL/MySQL may produce SQL
-that YDB does not support. This module overrides indexes, UPSERT/REPLACE, LIMIT/OFFSET, JSON
-functions, and YDB type names — not the entire DDL surface.
-
-- No ANSI `MERGE`; use `UPSERT` / `REPLACE`.
-- Plain `Table` DDL uses Exposed's inline `PRIMARY KEY` on columns — use `YdbTable` (or hand-written YQL).
-- No Yson / timezone-aware temporal types in this module.
-- Functional indexes (Exposed `index` with expressions) are rejected.
+- Exposed 1.3.0 does not expose a dialect hook for PK rendering inside `CREATE TABLE`;
+- every table intended for YDB DDL must override `createStatement()` and call `createYdbStatement()`;
+- plain `Table` / `IdTable` DDL without that override emits inline PK SQL that YDB rejects;
+- functional indexes are not supported;
+- `ALTER TABLE ... ADD INDEX ... GLOBAL UNIQUE` depends on YDB support for unique indexes on existing tables;
+- ANSI `MERGE` is not supported;
+- `Uint64` binding is limited to the `0..Long.MAX_VALUE` range in the current implementation.
 
 ## Tests
 
-Integration tests use [testcontainers](https://www.testcontainers.org/) via
-`tech.ydb.test:ydb-junit5-support` — no manual Docker setup needed:
+Unit tests:
+
+```bash
+mvn test
+```
+
+Integration tests:
 
 ```bash
 mvn verify
 ```
 
-DDL-focused tests use `YdbTable`; many other integration tests still use plain `Table` and may
-fail `SchemaUtils.create` on YDB until migrated to `YdbTable` (inline `PRIMARY KEY` in Exposed DDL).
+The build separates unit and integration tests through surefire/failsafe. Integration tests run
+against YDB in testcontainers.
 
 ## Demo application
 
-The `example/` module contains a runnable demo. Install the dialect first:
+The `example/` module contains a small runnable demo. Install the dialect first:
 
 ```bash
 mvn -DskipTests -DskipITs install
 ```
 
-Then run the demo:
+Then run:
 
 ```bash
 cd example
 mvn exec:java -Dexec.mainClass=tech.ydb.exposed.dialect.example.DemoAppKt
 ```
 
-It expects a YDB instance at `jdbc:ydb:grpc://localhost:2136/local`.
-
-## Spring Boot starter
-
-Spring support is published as a separate artifact so the core dialect stays Spring-neutral:
-
-```xml
-<dependency>
-    <groupId>tech.ydb.dialects</groupId>
-    <artifactId>kotlin-exposed-ydb-dialect-spring-boot-starter</artifactId>
-    <version>0.9.0</version>
-</dependency>
-```
-
-The starter builds on top of Exposed's own `exposed-spring-boot-starter` and adds:
-
-- YDB dialect registration during Spring Boot startup;
-- `spring.datasource.url` normalization for `forceSignedDatetimes=...`;
-- the recommended YDB `DatabaseConfig`;
-- `YdbTransactionOperations` for retry-aware Exposed transactions inside Spring services.
-
-See [`spring-boot-starter/`](spring-boot-starter) for the dedicated module.

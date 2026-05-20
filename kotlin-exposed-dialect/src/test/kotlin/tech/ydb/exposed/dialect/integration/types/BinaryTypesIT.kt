@@ -6,16 +6,18 @@ import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.junit.jupiter.api.Assertions.assertArrayEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
-import tech.ydb.exposed.dialect.YdbTable
+import tech.ydb.exposed.dialect.createYdbStatement
 import tech.ydb.exposed.dialect.integration.base.BaseYdbTest
 
 class BinaryTypesIT : BaseYdbTest() {
 
-    object BinaryTypes : YdbTable("binary_types") {
+    object BinaryTypes : Table("binary_types") {
         val id = integer("id")
         val payload = binary("payload")
 
         override val primaryKey = PrimaryKey(id)
+
+        override fun createStatement(): List<String> = createYdbStatement()
     }
 
     override val tables: List<Table> = listOf(BinaryTypes)

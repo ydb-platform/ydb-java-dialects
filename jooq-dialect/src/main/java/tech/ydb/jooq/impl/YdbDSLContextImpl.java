@@ -340,4 +340,14 @@ public class YdbDSLContextImpl extends DefaultDSLContext implements YdbDSLContex
     public <R extends Record> ReplaceValuesStepN<R> replaceInto(Table<R> into, Collection<? extends Field<?>> fields) {
         return new ReplaceImpl<>(configuration(), into, fields);
     }
+
+    @Override
+    public Batch batchReplace(TableRecord<?>... records) {
+        return new BatchReplace(this, records);
+    }
+
+    @Override
+    public Batch batchReplace(Collection<? extends TableRecord<?>> records) {
+        return batchReplace(records.toArray(TableRecord[]::new));
+    }
 }
