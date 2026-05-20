@@ -6,5 +6,6 @@ CREATE TABLE IF NOT EXISTS `DEFAULT_CLIENT_SCOPE`
 
     INDEX           idx_defcls_realm GLOBAL ON (`REALM_ID`),
     INDEX           idx_defcls_scope GLOBAL ON (`SCOPE_ID`),
+--     FOREIGN KEY (REALM_ID) REFERENCES REALM (ID),
     PRIMARY KEY (`REALM_ID`, `SCOPE_ID`)
 );

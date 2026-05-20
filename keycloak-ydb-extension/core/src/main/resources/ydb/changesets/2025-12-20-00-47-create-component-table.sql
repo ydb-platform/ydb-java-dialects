@@ -10,5 +10,6 @@ CREATE TABLE IF NOT EXISTS COMPONENT
 
     INDEX idx_component_realm GLOBAL ON (REALM_ID),
     INDEX idx_component_provider_type GLOBAL ON (PROVIDER_TYPE),
+--     FOREIGN KEY (REALM_ID) REFERENCES REALM (ID),
     PRIMARY KEY (ID)
 );

@@ -7,5 +7,6 @@ CREATE TABLE IF NOT EXISTS CLIENT_ATTRIBUTES
     INDEX idx_client_att_by_name_value GLOBAL ON (`NAME`, `VALUE`),
 --     INDEX idx_client_att_by_name_value GLOBAL ON (`NAME`, SUBSTRING(`VALUE`, 1, 255)),
 --     not implemented in ydb...
+--     FOREIGN KEY (CLIENT_ID) REFERENCES CLIENT (ID),
     PRIMARY KEY (CLIENT_ID, NAME)
 );
