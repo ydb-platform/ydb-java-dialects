@@ -1,59 +1,56 @@
 package tech.ydb.exposed.dialect.integration.basic
 
+import org.jetbrains.exposed.v1.core.Table
+import org.jetbrains.exposed.v1.jdbc.SchemaUtils
 import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
-import tech.ydb.exposed.dialect.YdbTable
-import tech.ydb.exposed.dialect.YdbTtlColumnMode
+import tech.ydb.exposed.dialect.createYdbStatement
 import tech.ydb.exposed.dialect.integration.base.BaseYdbTest
 import tech.ydb.exposed.dialect.ydbUint64
 import tech.ydb.exposed.dialect.javatime.ydbTimestamp64
+import java.sql.SQLException
 
 class YdbTableIT : BaseYdbTest() {
 
-    object BasicTable : YdbTable("unit_basic_table") {
+    object BasicTable : Table("unit_basic_table") {
         val id = integer("id")
         val name = varchar("name", 255)
 
         override val primaryKey = PrimaryKey(id)
+
+        override fun createStatement() = createYdbStatement()
     }
 
-    object TtlTimestampTable : YdbTable("unit_ttl_timestamp_table") {
+    object TtlTimestampTable : Table("unit_ttl_timestamp_table") {
         val id = integer("id")
         val expireAt = ydbTimestamp64("expire_at")
 
+        override val storageParameters: List<TableStorageParameter> =
+            listOf(RawTableStorageParameter("TTL = Interval(\"PT1H\") ON expire_at"))
+
         override val primaryKey = PrimaryKey(id)
 
-        init {
-            ttl(expireAt, "PT1H")
-        }
+        override fun createStatement() = createYdbStatement()
     }
 
-    object TtlNumericTable : YdbTable("unit_ttl_numeric_table") {
+    object TtlNumericTable : Table("unit_ttl_numeric_table") {
         val id = integer("id")
         val modifiedAtEpoch = ydbUint64("modified_at_epoch")
 
+        override val storageParameters: List<TableStorageParameter> =
+            listOf(RawTableStorageParameter("TTL = Interval(\"PT1H\") ON modified_at_epoch AS SECONDS"))
+
         override val primaryKey = PrimaryKey(id)
 
-        init {
-            ttl(modifiedAtEpoch, "PT1H", YdbTtlColumnMode.SECONDS)
-        }
+        override fun createStatement() = createYdbStatement()
     }
 
-    object NoPkTable : YdbTable("unit_no_pk_table") {
+    object NoPkTable : Table("unit_no_pk_table") {
         val id = integer("id")
         val name = varchar("name", 255)
-    }
 
-    object InvalidNumericTtlTable : YdbTable("unit_invalid_numeric_ttl_table") {
-        val id = integer("id")
-        val modifiedAtEpoch = integer("modified_at_epoch")
-
-        override val primaryKey = PrimaryKey(id)
-
-        init {
-            ttl(modifiedAtEpoch, "PT1H", YdbTtlColumnMode.SECONDS)
-        }
+        override fun createStatement() = createYdbStatement()
     }
 
     @Test
@@ -89,30 +86,5 @@ class YdbTableIT : BaseYdbTest() {
         assertThrows(IllegalStateException::class.java) {
             NoPkTable.ddl
         }
-    }
-
-    @Test
-    fun `fails when numeric TTL column type is unsupported`() = tx {
-        assertThrows(IllegalArgumentException::class.java) {
-            InvalidNumericTtlTable.ddl
-        }
-    }
-
-    @Test
-    fun `rejects invalid TTL interval early`() {
-        val error = assertThrows(IllegalArgumentException::class.java) {
-            object : YdbTable("invalid_ttl_interval_table") {
-                val id = integer("id")
-                val expireAt = ydbTimestamp64("expire_at")
-
-                override val primaryKey = PrimaryKey(id)
-
-                init {
-                    ttl(expireAt, """PT1H" ON hacked""")
-                }
-            }
-        }
-
-        assertTrue(error.message?.contains("Invalid YDB TTL interval") == true, error.message)
     }
 }

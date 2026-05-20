@@ -5,9 +5,7 @@ import org.jetbrains.exposed.v1.core.Table
 import org.jetbrains.exposed.v1.jdbc.Database
 import org.jetbrains.exposed.v1.jdbc.JdbcTransaction
 import org.jetbrains.exposed.v1.jdbc.SchemaUtils
-import org.jetbrains.exposed.v1.jdbc.transactions.TransactionManager
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
-import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.extension.RegisterExtension
 import tech.ydb.exposed.dialect.YDB_DRIVER_CLASS
@@ -63,21 +61,6 @@ abstract class BaseYdbTest {
                 SchemaUtils.create(*tables.toTypedArray())
             }
         }
-    }
-
-    @AfterEach
-    fun teardown() {
-        if (!::db.isInitialized) return
-
-        if (tables.isNotEmpty()) {
-            runCatching {
-                transaction(db) {
-                    SchemaUtils.drop(*tables.toTypedArray())
-                }
-            }
-        }
-
-        runCatching { TransactionManager.closeAndUnregister(db) }
     }
 
     protected fun tx(block: JdbcTransaction.() -> Unit) = ydbTransaction(db, statement = block)

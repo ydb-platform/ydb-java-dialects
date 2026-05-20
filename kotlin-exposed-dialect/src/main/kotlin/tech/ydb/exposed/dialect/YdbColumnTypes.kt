@@ -12,7 +12,6 @@ package tech.ydb.exposed.dialect
 import org.jetbrains.exposed.v1.core.Column
 import org.jetbrains.exposed.v1.core.ColumnType
 import org.jetbrains.exposed.v1.core.Expression
-import org.jetbrains.exposed.v1.core.IColumnType
 import org.jetbrains.exposed.v1.core.QueryBuilder
 import org.jetbrains.exposed.v1.core.Table
 import org.jetbrains.exposed.v1.core.statements.api.PreparedStatementApi
@@ -100,16 +99,16 @@ internal fun bindYdbParameter(
     stmt: PreparedStatementApi,
     index: Int,
     value: Any?,
-    targetSqlType: Int,
-    columnType: IColumnType<*>
+    targetSqlType: Int
 ) {
+    val jdbcStatement = (stmt as? JdbcPreparedStatementImpl)?.statement
+        ?: error("YDB column bind requires JdbcPreparedStatementImpl (got ${stmt::class.qualifiedName});")
+
     if (value == null) {
-        stmt.setNull(index, columnType)
+        jdbcStatement.setNull(index, targetSqlType)
         return
     }
 
-    val jdbcStatement = (stmt as? JdbcPreparedStatementImpl)?.statement
-        ?: error("YDB column bind requires JdbcPreparedStatementImpl (got ${stmt::class.qualifiedName});")
     jdbcStatement.setObject(index, value, targetSqlType)
 }
 
@@ -143,7 +142,7 @@ internal class YdbDecimalColumnType(
 
     override fun setParameter(stmt: PreparedStatementApi, index: Int, value: Any?) {
         val dbValue = value?.let { normalizeScale(it as BigDecimal) }
-        bindYdbParameter(stmt, index, dbValue, targetSqlType, this)
+        bindYdbParameter(stmt, index, dbValue, targetSqlType)
     }
 
     private fun normalizeScale(value: BigDecimal): BigDecimal {
@@ -168,7 +167,7 @@ internal abstract class YdbTypedStringColumnType(
         "'${value.replace("'", "''")}'"
 
     override fun setParameter(stmt: PreparedStatementApi, index: Int, value: Any?) {
-        bindYdbParameter(stmt, index, value, targetSqlType, this)
+        bindYdbParameter(stmt, index, value, targetSqlType)
     }
 }
 
@@ -190,7 +189,7 @@ internal class YdbUuidColumnType : ColumnType<UUID>() {
     override fun nonNullValueToString(value: UUID): String = "Uuid(\"$value\")"
 
     override fun setParameter(stmt: PreparedStatementApi, index: Int, value: Any?) {
-        bindYdbParameter(stmt, index, value, YdbJdbcCode.UUID, this)
+        bindYdbParameter(stmt, index, value, YdbJdbcCode.UUID)
     }
 }
 
@@ -224,7 +223,7 @@ internal class YdbUint64ColumnType : ColumnType<Long>() {
     }
 
     override fun setParameter(stmt: PreparedStatementApi, index: Int, value: Any?) {
-        bindYdbParameter(stmt, index, value, YdbJdbcCode.UINT64, this)
+        bindYdbParameter(stmt, index, value, YdbJdbcCode.UINT64)
     }
 }
 
@@ -250,7 +249,7 @@ internal class YdbUByteColumnType : ColumnType<UByte>() {
             is Number -> value.toShort()
             else -> error("Unexpected bind value for Uint8: $value of ${value::class}")
         }
-        bindYdbParameter(stmt, index, dbValue, YdbJdbcCode.UINT8, this)
+        bindYdbParameter(stmt, index, dbValue, YdbJdbcCode.UINT8)
     }
 }
 
@@ -275,7 +274,7 @@ internal class YdbUShortColumnType : ColumnType<UShort>() {
             is Number -> value.toInt()
             else -> error("Unexpected bind value for Uint16: $value of ${value::class}")
         }
-        bindYdbParameter(stmt, index, dbValue, YdbJdbcCode.UINT16, this)
+        bindYdbParameter(stmt, index, dbValue, YdbJdbcCode.UINT16)
     }
 }
 
@@ -300,7 +299,7 @@ internal class YdbUIntegerColumnType : ColumnType<UInt>() {
             is Number -> value.toLong()
             else -> error("Unexpected bind value for Uint32: $value of ${value::class}")
         }
-        bindYdbParameter(stmt, index, dbValue, YdbJdbcCode.UINT32, this)
+        bindYdbParameter(stmt, index, dbValue, YdbJdbcCode.UINT32)
     }
 }
 
@@ -324,7 +323,7 @@ internal class YdbULongColumnType : ColumnType<ULong>() {
             is ULong -> value.toLongCompatibleUint64()
             else -> value
         }
-        bindYdbParameter(stmt, index, dbValue, YdbJdbcCode.UINT64, this)
+        bindYdbParameter(stmt, index, dbValue, YdbJdbcCode.UINT64)
     }
 }
 
@@ -345,7 +344,7 @@ internal class YdbIntervalColumnType(
     override fun nonNullValueToString(value: Duration): String = "'$value'"
 
     override fun setParameter(stmt: PreparedStatementApi, index: Int, value: Any?) {
-        bindYdbParameter(stmt, index, value, jdbcTypeCode, this)
+        bindYdbParameter(stmt, index, value, jdbcTypeCode)
     }
 }
 

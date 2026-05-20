@@ -8,41 +8,49 @@ import org.jetbrains.exposed.v1.jdbc.insert
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
-import tech.ydb.exposed.dialect.YdbTable
+import tech.ydb.exposed.dialect.createYdbStatement
 import tech.ydb.exposed.dialect.integration.base.BaseYdbTest
 
 class UniversityScenarioIT : BaseYdbTest() {
 
-    object Departments : YdbTable("departments") {
+    object Departments : Table("departments") {
         val id = integer("id")
         val name = varchar("name", 255)
 
         override val primaryKey = PrimaryKey(id)
+
+        override fun createStatement(): List<String> = createYdbStatement()
     }
 
-    object Students : YdbTable("students") {
-        val id = integer("id")
-        val name = varchar("name", 255)
-        val departmentId = integer("department_id")
-
-        override val primaryKey = PrimaryKey(id)
-    }
-
-    object Courses : YdbTable("courses") {
+    object Students : Table("students") {
         val id = integer("id")
         val name = varchar("name", 255)
         val departmentId = integer("department_id")
 
         override val primaryKey = PrimaryKey(id)
+
+        override fun createStatement(): List<String> = createYdbStatement()
     }
 
-    object Enrollments : YdbTable("enrollments") {
+    object Courses : Table("courses") {
+        val id = integer("id")
+        val name = varchar("name", 255)
+        val departmentId = integer("department_id")
+
+        override val primaryKey = PrimaryKey(id)
+
+        override fun createStatement(): List<String> = createYdbStatement()
+    }
+
+    object Enrollments : Table("enrollments") {
         val id = integer("id")
         val studentId = integer("student_id")
         val courseId = integer("course_id")
         val semester = varchar("semester", 64)
 
         override val primaryKey = PrimaryKey(id)
+
+        override fun createStatement(): List<String> = createYdbStatement()
     }
 
     override val tables: List<Table> = listOf(

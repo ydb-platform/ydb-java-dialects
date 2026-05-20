@@ -5,7 +5,6 @@ import org.jetbrains.exposed.v1.core.IColumnType
 import org.jetbrains.exposed.v1.core.statements.api.PreparedStatementApi
 import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Test
-import tech.ydb.exposed.dialect.YdbUint64ColumnType
 import tech.ydb.exposed.dialect.bindYdbParameter
 import tech.ydb.exposed.dialect.code.YdbJdbcCode
 import java.io.InputStream
@@ -22,7 +21,7 @@ class BindYdbParameterTest {
         }
 
         assertThrows(IllegalStateException::class.java) {
-            bindYdbParameter(fakeStmt, 1, 42L, YdbJdbcCode.UINT64, YdbUint64ColumnType())
+            bindYdbParameter(fakeStmt, 1, 42L, YdbJdbcCode.UINT64)
         }
     }
 }

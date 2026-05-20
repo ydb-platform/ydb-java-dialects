@@ -4,7 +4,7 @@ YDB integration for [JetBrains Exposed](https://github.com/JetBrains/Exposed) vi
 The module provides:
 
 - a Kotlin Exposed `VendorDialect` for YDB (SQL, type mapping, post-create indexes);
-- [`YdbTable`](src/main/kotlin/tech/ydb/exposed/dialect/YdbTable.kt) for YQL `CREATE TABLE` (table-level PK, inline indexes, TTL);
+- [`createYdbStatement`](src/main/kotlin/tech/ydb/exposed/dialect/createYdbStatement.kt) for YQL `CREATE TABLE` (table-level PK, inline indexes, TTL);
 - `Table.upsert` / `Table.replace` DSL backed by native YDB `UPSERT` / `REPLACE`;
 - a retryable transaction wrapper that handles YDB's OCC retries transparently.
 
@@ -47,7 +47,7 @@ ydbTransaction(db) {
 ## Defining tables
 
 YDB requires a table-level `PRIMARY KEY (…)` in `CREATE TABLE`, not `col Type PRIMARY KEY` on a column.
-Use [`YdbTable`](src/main/kotlin/tech/ydb/exposed/dialect/YdbTable.kt) for schema DDL; plain Exposed
+Use [`createYdbStatement`](src/main/kotlin/tech/ydb/exposed/dialect/createYdbStatement.kt) for schema DDL; plain Exposed
 `Table` + `SchemaUtils.create` still works for DML/tests but emits inline PK SQL that YDB rejects.
 
 ```kotlin
@@ -57,7 +57,7 @@ import tech.ydb.exposed.dialect.YdbTable
 import tech.ydb.exposed.dialect.javatime.ydbTimestamp64
 import tech.ydb.exposed.dialect.ydbDecimal
 
-object Products : YdbTable("products") {
+object Products : Table("products") {
     val id = integer("id")
     val sku = varchar("sku", 64)
     val name = varchar("name", 255)
@@ -70,18 +70,9 @@ object Products : YdbTable("products") {
     init {
         // Post-create index (ALTER TABLE … ADD INDEX … GLOBAL) — same as on Exposed Table
         index(false, sku)
-
-        // Inline index in CREATE TABLE (COVER / ASYNC / WITH)
-        secondaryIndex(
-            name = "products_category_idx",
-            category,
-            scope = YdbIndexScope.GLOBAL,
-            syncMode = YdbIndexSyncMode.ASYNC,
-            coverColumns = listOf(name, price)
-        )
-
-        ttl(expiresAt, "P30D")
     }
+  
+    override fun createStatement(): List<String> = createYdbStatement()
 }
 ```
 
@@ -236,7 +227,7 @@ columns are not supported.
 
 - **Post-create** (any `Table` or `YdbTable`): Exposed `index()` / `index(customName, isUnique, …)`
   → `ALTER TABLE … ADD INDEX … GLOBAL [UNIQUE] ON (…)`.
-- **Inline in `CREATE TABLE`** (`YdbTable` only): [`secondaryIndex`](src/main/kotlin/tech/ydb/exposed/dialect/YdbTable.kt)
+- **Inline in `CREATE TABLE`** (`YdbTable` only): [`secondaryIndex`](src/main/kotlin/tech/ydb/exposed/dialect/createYdbStatement.kt)
   with optional `COVER`, `ASYNC`, `WITH`.
 
 ## Known limitations

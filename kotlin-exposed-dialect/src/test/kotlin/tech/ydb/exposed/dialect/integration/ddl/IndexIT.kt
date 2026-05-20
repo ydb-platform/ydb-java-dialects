@@ -5,12 +5,12 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import tech.ydb.exposed.dialect.YdbDialect
-import tech.ydb.exposed.dialect.YdbTable
+import tech.ydb.exposed.dialect.createYdbStatement
 import tech.ydb.exposed.dialect.integration.base.BaseYdbTest
 
 class IndexIT : BaseYdbTest() {
 
-    object Customers : YdbTable("customers") {
+    object Customers : Table("customers") {
         val id = integer("id")
         val name = varchar("name", 255)
         val email = varchar("email", 255)
@@ -23,6 +23,8 @@ class IndexIT : BaseYdbTest() {
 
         val emailIndexDefinition
             get() = indices.single { it.columns == listOf(email) }
+
+        override fun createStatement(): List<String> = createYdbStatement()
     }
 
     override val tables: List<Table> = listOf(Customers)
