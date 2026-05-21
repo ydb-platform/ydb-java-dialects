@@ -1,0 +1,39 @@
+name: Keycloak YDB Extension CI with Maven
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'keycloak-ydb-extension/**'
+      - '.github/workflows/ci-keycloak-ydb-extension.yaml'
+  pull_request:
+    paths:
+      - 'keycloak-ydb-extension/**'
+      - '.github/workflows/ci-keycloak-ydb-extension.yaml'
+
+env:
+  MAVEN_ARGS: --batch-mode --update-snapshots -Dstyle.color=always
+
+jobs:
+  build:
+    name: Keycloak YDB Extension
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: maven
+
+      - name: Download dependencies
+        working-directory: ./keycloak-ydb-extension
+        run: mvn $MAVEN_ARGS dependency:go-offline
+
+      - name: Build & test (unit + Keycloak model tests with YDB)
+        working-directory: ./keycloak-ydb-extension
+        run: mvn $MAVEN_ARGS verify
