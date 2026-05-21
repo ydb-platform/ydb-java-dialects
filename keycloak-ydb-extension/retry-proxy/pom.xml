@@ -115,6 +115,11 @@
       <artifactId>ktor-server-netty-jvm</artifactId>
       <version>${ktor.version}</version>
     </dependency>
+    <dependency>
+      <groupId>io.ktor</groupId>
+      <artifactId>ktor-server-forwarded-header-jvm</artifactId>
+      <version>${ktor.version}</version>
+    </dependency>
 
     <!-- Ktor Client -->
     <dependency>

@@ -108,10 +108,30 @@ class ProxyControllerTest {
         status = HttpStatusCode.Found,
       )
 
-    createClient { followRedirects = false }.get("/login").let {
+    createClient { followRedirects = false }.get("/login") {
+      header(HttpHeaders.Host, "localhost:9090")
+    }.let {
       assertEquals(HttpStatusCode.Found, it.status)
-      assertTrue(it.headers[HttpHeaders.Location]!!.contains("/realms/master"))
-      assertFalse(it.headers[HttpHeaders.Location]!!.contains("backend:8080"))
+      assertEquals("http://localhost:9090/realms/master", it.headers[HttpHeaders.Location])
+    }
+  }
+
+  @Test
+  fun rewritesLocationHeaderWithHttpsFromForwarded() = withProxy {
+    coEvery { proxyService.proxyRequest(any(), any(), any(), any(), any(), any(), any(), any()) } returns
+      Success(
+        body = ByteArray(0),
+        headers = headersOf(HttpHeaders.Location, "http://backend:8080/realms/master"),
+        contentType = null,
+        status = HttpStatusCode.Found,
+      )
+
+    createClient { followRedirects = false }.get("/login") {
+      header(HttpHeaders.Forwarded, "for=1.2.3.4;host=client.example.com;proto=https")
+      header(HttpHeaders.Host, "client.example.com")
+    }.let {
+      assertEquals(HttpStatusCode.Found, it.status)
+      assertEquals("https://client.example.com/realms/master", it.headers[HttpHeaders.Location])
     }
   }
 
