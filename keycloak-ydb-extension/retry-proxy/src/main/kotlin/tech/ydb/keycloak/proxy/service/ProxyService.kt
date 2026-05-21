@@ -10,6 +10,7 @@ import kotlinx.coroutines.isActive
 import org.slf4j.LoggerFactory
 import tech.ydb.keycloak.proxy.config.ProxyConfig
 import tech.ydb.keycloak.proxy.service.ProxyResult.*
+import tech.ydb.keycloak.proxy.utils.YdbRetryableBody
 import tech.ydb.keycloak.proxy.utils.isHeader
 import tech.ydb.keycloak.proxy.utils.isHopByHop
 import kotlin.coroutines.coroutineContext
@@ -46,9 +47,7 @@ class ProxyService(
 
       val responseBody = response.readRawBytes()
 
-      val isRetryable = response.status.value == 503 && String(responseBody).contains("ydb_retryable")
-
-      if (isRetryable) {
+      if (YdbRetryableBody.isRetryable503(response.status, responseBody)) {
         if (retryWithBackoff(attempt, method, path)) continue
       } else {
         return Success(responseBody, response.headers, response.contentType(), response.status)
