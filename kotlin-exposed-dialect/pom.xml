@@ -33,6 +33,7 @@
         <license>
             <name>Apache License, Version 2.0</name>
             <url>https://www.apache.org/licenses/LICENSE-2.0</url>
+            <distribution>repo</distribution>
         </license>
     </licenses>
 
@@ -40,6 +41,7 @@
         <url>https://github.com/ydb-platform/ydb-java-dialects</url>
         <connection>scm:git:https://github.com/ydb-platform/ydb-java-dialects.git</connection>
         <developerConnection>scm:git:https://github.com/ydb-platform/ydb-java-dialects.git</developerConnection>
+        <tag>HEAD</tag>
     </scm>
 
     <properties>
@@ -57,6 +59,8 @@
 
         <ydb.sdk.version>2.4.3</ydb.sdk.version>
         <ydb.jdbc.version>2.3.22</ydb.jdbc.version>
+
+        <dokka.version>2.0.0</dokka.version>
     </properties>
 
     <dependencyManagement>
@@ -79,13 +83,6 @@
         </dependency>
 
         <dependency>
-            <groupId>org.jetbrains.kotlin</groupId>
-            <artifactId>kotlin-reflect</artifactId>
-            <version>${kotlin.version}</version>
-            <scope>test</scope>
-        </dependency>
-
-        <dependency>
             <groupId>org.jetbrains.exposed</groupId>
             <artifactId>exposed-core</artifactId>
         </dependency>
@@ -95,7 +92,14 @@
             <artifactId>exposed-jdbc</artifactId>
         </dependency>
 
-        <!-- Test -->
+        <!-- Test dependencies -->
+        <dependency>
+            <groupId>org.jetbrains.kotlin</groupId>
+            <artifactId>kotlin-reflect</artifactId>
+            <version>${kotlin.version}</version>
+            <scope>test</scope>
+        </dependency>
+
         <dependency>
             <groupId>tech.ydb.jdbc</groupId>
             <artifactId>ydb-jdbc-driver</artifactId>
@@ -172,10 +176,11 @@
                         <configuration>
                             <jvmTarget>17</jvmTarget>
                             <sourceDirs>
-                                <sourceDir>src/main/kotlin</sourceDir>
+                                <sourceDir>${project.basedir}/src/main/kotlin</sourceDir>
                             </sourceDirs>
                         </configuration>
                     </execution>
+
                     <execution>
                         <id>test-compile</id>
                         <phase>test-compile</phase>
@@ -185,37 +190,22 @@
                         <configuration>
                             <jvmTarget>17</jvmTarget>
                             <sourceDirs>
-                                <sourceDir>src/test/kotlin</sourceDir>
+                                <sourceDir>${project.basedir}/src/test/kotlin</sourceDir>
                             </sourceDirs>
                         </configuration>
                     </execution>
                 </executions>
             </plugin>
 
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-javadoc-plugin</artifactId>
-                <version>3.5.0</version>
-                <configuration>
-                    <source>17</source>
-                </configuration>
-                <executions>
-                    <execution>
-                        <id>attach-javadocs</id>
-                        <goals>
-                            <goal>jar</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
-
+            <!-- Sources jar required by Maven Central -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-source-plugin</artifactId>
-                <version>3.2.1</version>
+                <version>3.3.1</version>
                 <executions>
                     <execution>
                         <id>attach-sources</id>
+                        <phase>package</phase>
                         <goals>
                             <goal>jar-no-fork</goal>
                         </goals>
@@ -223,45 +213,35 @@
                 </executions>
             </plugin>
 
-            <!-- Unit tests (no YDB needed) -->
+            <!-- Javadocs jar required by Maven Central.
+                 For Kotlin projects use Dokka to produce javadoc classifier. -->
+            <plugin>
+                <groupId>org.jetbrains.dokka</groupId>
+                <artifactId>dokka-maven-plugin</artifactId>
+                <version>${dokka.version}</version>
+                <executions>
+                    <execution>
+                        <id>attach-dokka-javadocs</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>javadocJar</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <!-- All tests: unit + integration, so mvn clean test runs everything -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
                 <version>3.1.0</version>
                 <configuration>
                     <useModulePath>false</useModulePath>
-                    <includes>
-                        <include>**/*Test.*</include>
-                    </includes>
-                    <excludes>
-                        <exclude>**/*IT.*</exclude>
-                    </excludes>
+                    <environmentVariables>
+                        <TESTCONTAINERS_REUSE_ENABLE>true</TESTCONTAINERS_REUSE_ENABLE>
+                        <YDB_DOCKER_IMAGE>ydbplatform/local-ydb:trunk</YDB_DOCKER_IMAGE>
+                    </environmentVariables>
                 </configuration>
-            </plugin>
-
-            <!-- Integration tests (YDB via testcontainers) -->
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-failsafe-plugin</artifactId>
-                <version>3.1.0</version>
-                <executions>
-                    <execution>
-                        <id>integration-tests</id>
-                        <goals>
-                            <goal>integration-test</goal>
-                            <goal>verify</goal>
-                        </goals>
-                        <configuration>
-                            <includes>
-                                <include>**/*IT.*</include>
-                            </includes>
-                            <environmentVariables>
-                                <TESTCONTAINERS_REUSE_ENABLE>true</TESTCONTAINERS_REUSE_ENABLE>
-                                <YDB_DOCKER_IMAGE>ydbplatform/local-ydb:trunk</YDB_DOCKER_IMAGE>
-                            </environmentVariables>
-                        </configuration>
-                    </execution>
-                </executions>
             </plugin>
         </plugins>
     </build>
@@ -295,6 +275,7 @@
                             </gpgArguments>
                         </configuration>
                     </plugin>
+
                     <plugin>
                         <groupId>org.sonatype.central</groupId>
                         <artifactId>central-publishing-maven-plugin</artifactId>
