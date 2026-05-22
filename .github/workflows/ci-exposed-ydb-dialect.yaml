@@ -41,3 +41,7 @@ jobs:
       - name: Build & verify (unit + integration tests with testcontainers)
         working-directory: ./kotlin-exposed-dialect
         run: mvn $MAVEN_ARGS verify
+
+      - name: Compile demo
+        working-directory: ./kotlin-exposed-dialect
+        run: mvn clean install -DskipTests && cd example && mvn --batch-mode --update-snapshots compile
