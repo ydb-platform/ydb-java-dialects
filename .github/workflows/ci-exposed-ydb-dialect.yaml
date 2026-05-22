@@ -43,5 +43,5 @@ jobs:
         run: mvn $MAVEN_ARGS verify
 
       - name: Compile demo
-        working-directory: ./kotlin-exposed-dialect/example
-        run: mvn --batch-mode --update-snapshots compile
+        working-directory: ./kotlin-exposed-dialect
+        run: mvn clean install -DskipTests && cd example && mvn --batch-mode --update-snapshots compile
