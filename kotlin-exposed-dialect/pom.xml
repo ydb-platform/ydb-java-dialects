@@ -61,6 +61,7 @@
         <ydb.jdbc.version>2.3.22</ydb.jdbc.version>
 
         <dokka.version>2.0.0</dokka.version>
+        <surefire.version>3.2.5</surefire.version>
     </properties>
 
     <dependencyManagement>
@@ -213,8 +214,7 @@
                 </executions>
             </plugin>
 
-            <!-- Javadocs jar required by Maven Central.
-                 For Kotlin projects use Dokka to produce javadoc classifier. -->
+            <!-- Javadocs jar required by Maven Central -->
             <plugin>
                 <groupId>org.jetbrains.dokka</groupId>
                 <artifactId>dokka-maven-plugin</artifactId>
@@ -230,13 +230,16 @@
                 </executions>
             </plugin>
 
-            <!-- All tests: unit + integration, so mvn clean test runs everything -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
                 <version>3.1.0</version>
                 <configuration>
                     <useModulePath>false</useModulePath>
+                    <includes>
+                        <include>**/*Test.*</include>
+                        <include>**/*IT.*</include>
+                    </includes>
                     <environmentVariables>
                         <TESTCONTAINERS_REUSE_ENABLE>true</TESTCONTAINERS_REUSE_ENABLE>
                         <YDB_DOCKER_IMAGE>ydbplatform/local-ydb:trunk</YDB_DOCKER_IMAGE>
