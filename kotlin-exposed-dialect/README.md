@@ -33,23 +33,132 @@ The module provides:
 ## Quick start
 
 ```kotlin
+import org.jetbrains.exposed.v1.core.DatabaseConfig
 import org.jetbrains.exposed.v1.jdbc.Database
 import tech.ydb.exposed.dialect.registerYdbDialect
-import tech.ydb.exposed.dialect.ydbDatabaseConfig
 import tech.ydb.exposed.dialect.ydbTransaction
+import java.sql.Connection
 
 registerYdbDialect()
 
 val db = Database.connect(
     url = "jdbc:ydb:grpc://localhost:2136/local",
     driver = "tech.ydb.jdbc.YdbDriver",
-    databaseConfig = ydbDatabaseConfig()
+    databaseConfig = DatabaseConfig {
+        defaultIsolationLevel = Connection.TRANSACTION_SERIALIZABLE
+        defaultReadOnly = false
+        useNestedTransactions = false
+    }
 )
 
 ydbTransaction(db) {
     // Exposed DSL / DAO code
 }
 ```
+
+These `DatabaseConfig` defaults match the tested YDB connection recipe used by the
+integration tests and mirror the behavior that the former Spring Boot starter applied automatically.
+
+## Spring Boot 3
+
+No dedicated Spring Boot starter is shipped for the dialect. For Spring Boot 3,
+use Exposed's official Spring integration and add a small YDB-specific configuration
+class in the application itself.
+
+Add the usual Exposed Spring dependency together with the dialect and the YDB JDBC driver:
+
+```xml
+<dependency>
+    <groupId>org.jetbrains.exposed</groupId>
+    <artifactId>exposed-spring-boot-starter</artifactId>
+    <version>${exposed.version}</version>
+</dependency>
+<dependency>
+    <groupId>tech.ydb.dialects</groupId>
+    <artifactId>kotlin-exposed-ydb-dialect</artifactId>
+    <version>0.9.0</version>
+</dependency>
+<dependency>
+    <groupId>tech.ydb.jdbc</groupId>
+    <artifactId>ydb-jdbc-driver</artifactId>
+    <version><!-- align with your YDB deployment --></version>
+</dependency>
+```
+
+Example application properties:
+
+```yaml
+spring:
+  datasource:
+    url: jdbc:ydb:grpc://localhost:2136/local?forceSignedDatetimes=false
+    driver-class-name: tech.ydb.jdbc.YdbDriver
+  exposed:
+    generate-ddl: false
+    show-sql: false
+    ydb:
+      enable-signed-datetimes: false
+```
+
+In this setup, `spring.exposed.ydb.enable-signed-datetimes` is an application-level
+property used by the custom configuration below. If signed temporal mode is enabled,
+keep it aligned with the JDBC URL by setting `forceSignedDatetimes=true` as well.
+If the URL already contains query parameters, append it as `&forceSignedDatetimes=true`.
+
+Example configuration:
+
+```kotlin
+import org.jetbrains.exposed.v1.core.DatabaseConfig
+import org.jetbrains.exposed.v1.jdbc.Database
+import org.springframework.beans.factory.InitializingBean
+import org.springframework.beans.factory.annotation.Value
+import org.springframework.context.annotation.Bean
+import org.springframework.context.annotation.Configuration
+import org.springframework.context.annotation.DependsOn
+import tech.ydb.exposed.dialect.registerYdbDialect
+import java.sql.Connection
+import javax.sql.DataSource
+
+@Configuration
+class YdbExposedConfiguration(
+    @Value("\${spring.exposed.ydb.enable-signed-datetimes:false}")
+    private val enableSignedDatetimes: Boolean
+) {
+    @Bean
+    fun ydbDialectRegistration(): InitializingBean = InitializingBean {
+        registerYdbDialect(enableSignedDatetimes = enableSignedDatetimes)
+    }
+
+    @Bean
+    fun databaseConfig(): DatabaseConfig = DatabaseConfig {
+        defaultIsolationLevel = Connection.TRANSACTION_SERIALIZABLE
+        defaultReadOnly = false
+        useNestedTransactions = false
+    }
+
+    @Bean
+    @DependsOn("ydbDialectRegistration")
+    fun database(dataSource: DataSource, databaseConfig: DatabaseConfig): Database =
+        Database.connect(
+            datasource = dataSource,
+            databaseConfig = databaseConfig
+        )
+}
+```
+
+This keeps the Spring setup close to the official Exposed guide while making the YDB-specific
+parts explicit in the application:
+
+- register the dialect through `registerYdbDialect(...)`;
+- set `tech.ydb.jdbc.YdbDriver` explicitly;
+- keep `forceSignedDatetimes=...` in the JDBC URL aligned with the dialect mode;
+- create the Exposed `Database` from the Spring-managed `DataSource`;
+- use the YDB-oriented `DatabaseConfig` defaults shown above.
+
+That is the same logic the former dedicated starter used to automate, now expressed as
+application-level configuration instead of a separate published module.
+
+For retry-aware YDB transactions inside Spring services, inject `Database` and call
+`ydbTransaction(database) { ... }` directly, or wrap that call in your own helper component.
 
 ## Defining tables
 
@@ -146,7 +255,9 @@ Behavioral notes:
 
 - `UPSERT` writes only the columns listed in the statement;
 - on PK conflict, columns omitted from `UPSERT` remain unchanged;
+- when inserting a new row, every required `NOT NULL` column without a default must be initialized;
 - `REPLACE` overwrites the row by PK, so omitted columns are reset to defaults;
+- if a required column has no default, omitting it from `REPLACE` yields an error;
 - `upsert(where)` is not supported;
 - ANSI `MERGE` is intentionally rejected.
 
@@ -178,22 +289,22 @@ ydbTransaction(db, readOnly = true, retry = YdbRetryConfig.IDEMPOTENT) {
 
 Default Exposed type mapping:
 
-| Exposed              | YDB                |
-|----------------------|--------------------|
-| `byte` / `ubyte`     | `Int8` / `Uint8`   |
-| `short` / `ushort`   | `Int16` / `Uint16` |
+| Exposed                | YDB                |
+|------------------------|--------------------|
+| `byte` / `ubyte`       | `Int8` / `Uint8`   |
+| `short` / `ushort`     | `Int16` / `Uint16` |
 | `integer` / `uinteger` | `Int32` / `Uint32` |
-| `long`               | `Int64`            |
-| `float` / `double`   | `Float` / `Double` |
-| `bool`               | `Bool`             |
-| `varchar` / `text`   | `Text`             |
-| `binary` / `blob`    | `Bytes`            |
-| `uuid`               | `Uuid`             |
-| `date`               | `Date`             |
-| `datetime`           | `Datetime`         |
-| `timestamp`          | `Timestamp`        |
-| `json`               | `Json`             |
-| `jsonb`              | `JsonDocument`     |
+| `long`                 | `Int64`            |
+| `float` / `double`     | `Float` / `Double` |
+| `bool`                 | `Bool`             |
+| `varchar` / `text`     | `Text`             |
+| `binary` / `blob`      | `Bytes`            |
+| `uuid`                 | `Uuid`             |
+| `date`                 | `Date`             |
+| `datetime`             | `Datetime`         |
+| `timestamp`            | `Timestamp`        |
+| `json`                 | `Json`             |
+| `jsonb`                | `JsonDocument`     |
 
 YDB-specific extensions are available through `ydb*` and `javatime.*`, for example:
 
@@ -212,11 +323,14 @@ Signed temporal mode can be enabled through:
 registerYdbDialect(enableSignedDatetimes = true)
 ```
 
-and, for JDBC URL normalization:
+When it is enabled, align the JDBC URL manually as well, for example:
 
-```kotlin
-ydbJdbcUrl("jdbc:ydb:grpc://localhost:2136/local", enableSignedDatetimes = true)
+```text
+jdbc:ydb:grpc://localhost:2136/local?forceSignedDatetimes=true
 ```
+
+If the URL already contains other query parameters, append the flag as
+`&forceSignedDatetimes=true`.
 
 ## Schema management in production
 
@@ -300,18 +414,8 @@ mvn verify
 The build separates unit and integration tests through surefire/failsafe. Integration tests run
 against YDB in testcontainers.
 
-## Demo application
+## Example module
 
-The `example/` module contains a small runnable demo. Install the dialect first:
-
-```bash
-mvn -DskipTests -DskipITs install
-```
-
-Then run:
-
-```bash
-cd example
-mvn exec:java -Dexec.mainClass=tech.ydb.exposed.dialect.example.DemoAppKt
-```
-
+The `example/` module demonstrates Exposed DSL usage together with the YDB-specific
+`createYdbStatement()` override. Its connection bootstrap should follow the same
+`registerYdbDialect(...) + Database.connect(...) + DatabaseConfig { ... }` recipe shown above.
