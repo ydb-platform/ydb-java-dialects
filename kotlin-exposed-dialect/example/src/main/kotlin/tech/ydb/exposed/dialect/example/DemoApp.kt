@@ -1,5 +1,6 @@
 package tech.ydb.exposed.dialect.example
 
+import org.jetbrains.exposed.v1.core.DatabaseConfig
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.jdbc.SchemaUtils
 import org.jetbrains.exposed.v1.jdbc.deleteWhere
@@ -8,17 +9,20 @@ import org.jetbrains.exposed.v1.jdbc.update
 import org.jetbrains.exposed.v1.jdbc.upsert
 import org.jetbrains.exposed.v1.jdbc.Database
 import tech.ydb.exposed.dialect.registerYdbDialect
-import tech.ydb.exposed.dialect.ydbDatabaseConfig
 import tech.ydb.exposed.dialect.ydbDecimalLiteral
 import tech.ydb.exposed.dialect.ydbTransaction
 import java.math.BigDecimal
+import java.sql.Connection
 
 fun main() {
     registerYdbDialect()
     val db = Database.connect(
         url = "jdbc:ydb:grpc://localhost:2136/local",
         driver = "tech.ydb.jdbc.YdbDriver",
-        databaseConfig = ydbDatabaseConfig()
+        databaseConfig = DatabaseConfig {
+            defaultIsolationLevel = Connection.TRANSACTION_SERIALIZABLE
+            useNestedTransactions = false
+        }
     )
 
     ydbTransaction(db) {
