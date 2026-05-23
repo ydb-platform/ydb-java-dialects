@@ -39,7 +39,7 @@ public class YdbTransactionInterceptorReplacer
         registry.removeBeanDefinition(TRANSACTION_INTERCEPTOR_BEAN_NAME);
         registry.registerBeanDefinition(TRANSACTION_INTERCEPTOR_BEAN_NAME, newBd);
 
-        log.info(
+        log.debug(
                 "registered YdbTransactionInterceptorFactory as bean '{}'",
                 TRANSACTION_INTERCEPTOR_BEAN_NAME);
     }

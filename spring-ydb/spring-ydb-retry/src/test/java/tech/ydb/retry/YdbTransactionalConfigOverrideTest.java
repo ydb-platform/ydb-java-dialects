@@ -136,6 +136,19 @@ class YdbTransactionalConfigOverrideTest extends InterceptorTestSupport {
     }
 
     @Test
+    void shouldUseInterfaceMethodYdbTransactionalOverrides() throws Throwable {
+        TestableInterceptor interceptor = interceptorWithConfig(true, 1, 0, 0, 0, 0);
+        interceptor.enqueueOutcome(new ConfigurableStatusException(CLIENT_CANCELLED), "ok");
+
+        Object result = interceptor.invoke(invocationFor(
+                InterfaceAnnotatedService.class.getMethod("interfaceAnnotatedIdempotentRetry"),
+                new InterfaceAnnotatedServiceImpl()));
+
+        assertEquals("ok", result);
+        assertEquals(2, interceptor.allInvocations());
+    }
+
+    @Test
     void shouldNotRetryTransportUnavailableWhenNotIdempotent() {
         TestableInterceptor interceptor = interceptorWithConfig(true, 5, 0, 0, 0, 0);
         interceptor.enqueueOutcome(new ConfigurableStatusException(TRANSPORT_UNAVAILABLE), "ok");
@@ -347,5 +360,17 @@ class YdbTransactionalConfigOverrideTest extends InterceptorTestSupport {
 
         assertEquals(BAD_SESSION, exception.getStatus().getCode());
         assertEquals(1, interceptor.allInvocations());
+    }
+
+    interface InterfaceAnnotatedService {
+        @YdbTransactional(maxRetries = 2, idempotent = true)
+        String interfaceAnnotatedIdempotentRetry();
+    }
+
+    static final class InterfaceAnnotatedServiceImpl implements InterfaceAnnotatedService {
+        @Override
+        public String interfaceAnnotatedIdempotentRetry() {
+            return "ok";
+        }
     }
 }

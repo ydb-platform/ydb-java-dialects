@@ -46,9 +46,13 @@ abstract class InterceptorTestSupport {
     }
 
     static MethodInvocation invocationFor(String methodName) {
-        MethodInvocation invocation = Mockito.mock(MethodInvocation.class);
         Method method = methodOf(methodName);
         Object target = targetFor(methodName);
+        return invocationFor(method, target);
+    }
+
+    static MethodInvocation invocationFor(Method method, Object target) {
+        MethodInvocation invocation = Mockito.mock(MethodInvocation.class);
         Mockito.when(invocation.getMethod()).thenReturn(method);
         Mockito.when(invocation.getThis()).thenReturn(target);
         Mockito.when(invocation.getArguments()).thenReturn(new Object[0]);
@@ -98,6 +102,11 @@ abstract class InterceptorTestSupport {
         @Override
         protected Object invokeWithinTransaction(
                 Method method, Class<?> targetClass, InvocationCallback invocation) throws Throwable {
+            try {
+                invocation.proceedWithInvocation();
+            } catch (Throwable ignored) {
+
+            }
             attempts.incrementAndGet();
             Object result = outcomes.removeFirst();
             if (result instanceof Throwable throwable) {

@@ -1,7 +1,9 @@
 package tech.ydb.retry;
 
+import java.lang.reflect.AnnotatedElement;
 import java.lang.reflect.Method;
 import org.aopalliance.intercept.MethodInvocation;
+import org.springframework.aop.ProxyMethodInvocation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.aop.support.AopUtils;
@@ -69,7 +71,9 @@ public class YdbTransactionInterceptor extends TransactionInterceptor {
             throws Throwable {
         for (int attempt = 0; ; attempt++) {
             try {
-                return this.invokeWithinTransaction(invocation.getMethod(), targetClass, createCallback(invocation));
+                MethodInvocation cloneInvocation = cloneInvocation(invocation);
+                return this.invokeWithinTransaction(
+                        invocation.getMethod(), targetClass, createCallback(cloneInvocation));
             } catch (Throwable ex) {
                 if (ex instanceof Error) {
                     throw ex;
@@ -113,15 +117,32 @@ public class YdbTransactionInterceptor extends TransactionInterceptor {
             Method method, @Nullable Class<?> targetClass) {
         Method specificMethod =
                 targetClass != null ? AopUtils.getMostSpecificMethod(method, targetClass) : method;
-        YdbTransactional methodLevel =
-                AnnotatedElementUtils.findMergedAnnotation(specificMethod, YdbTransactional.class);
-        if (methodLevel != null) {
-            return methodLevel;
+
+        YdbTransactional annotation = findYdbTransactional(specificMethod);
+        if (annotation != null) {
+            return annotation;
         }
-        if (targetClass != null) {
-            return AnnotatedElementUtils.findMergedAnnotation(targetClass, YdbTransactional.class);
+
+        annotation = findYdbTransactional(targetClass);
+        if (annotation != null) {
+            return annotation;
         }
-        return null;
+
+        if (!specificMethod.equals(method)) {
+            annotation = findYdbTransactional(method);
+            if (annotation != null) {
+                return annotation;
+            }
+        }
+
+        return findYdbTransactional(method.getDeclaringClass());
+    }
+
+    @Nullable
+    private YdbTransactional findYdbTransactional(@Nullable AnnotatedElement element) {
+        return element != null
+                ? AnnotatedElementUtils.findMergedAnnotation(element, YdbTransactional.class)
+                : null;
     }
 
     @Nullable
@@ -151,5 +172,12 @@ public class YdbTransactionInterceptor extends TransactionInterceptor {
                 return invocation.getArguments();
             }
         };
+    }
+
+    private MethodInvocation cloneInvocation(MethodInvocation invocation) {
+        if (invocation instanceof ProxyMethodInvocation proxyMethodInvocation) {
+            return proxyMethodInvocation.invocableClone();
+        }
+        return invocation;
     }
 }

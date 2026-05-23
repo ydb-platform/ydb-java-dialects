@@ -42,11 +42,29 @@ class YdbTransactionInterceptorFactoryTest {
     }
 
     @Test
-    void getObjectShouldThrowNpeWhenRetryPropertiesIsNull() {
+    void getObjectShouldThrowIllegalStateWhenRetryPropertiesIsNull() {
         YdbTransactionInterceptorFactory factory = new YdbTransactionInterceptorFactory();
         factory.setTransactionAttributeSource(new AnnotationTransactionAttributeSource());
 
-        assertThrows(NullPointerException.class, factory::getObject);
+        IllegalStateException exception =
+                assertThrows(IllegalStateException.class, factory::getObject);
+
+        assertEquals(
+                "retryProperties must be set before creating YdbTransactionInterceptor",
+                exception.getMessage());
+    }
+
+    @Test
+    void getObjectShouldThrowIllegalStateWhenTransactionAttributeSourceIsNull() {
+        YdbTransactionInterceptorFactory factory = new YdbTransactionInterceptorFactory();
+        factory.setRetryProperties(new YdbRetryProperties());
+
+        IllegalStateException exception =
+                assertThrows(IllegalStateException.class, factory::getObject);
+
+        assertEquals(
+                "transactionAttributeSource must be set before creating YdbTransactionInterceptor",
+                exception.getMessage());
     }
 
     @Test

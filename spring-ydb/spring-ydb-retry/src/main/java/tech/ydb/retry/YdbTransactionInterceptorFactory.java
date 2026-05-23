@@ -33,6 +33,9 @@ public class YdbTransactionInterceptorFactory
 
     @Override
     public YdbTransactionInterceptor getObject() {
+        requireRetryProperties();
+        requireTransactionAttributeSource();
+
         YdbTransactionInterceptor interceptor = new YdbTransactionInterceptor(retryProperties.toConfig(), Thread::sleep);
         interceptor.setTransactionAttributeSource(transactionAttributeSource);
         if (beanFactory != null) {
@@ -45,6 +48,20 @@ public class YdbTransactionInterceptorFactory
         }
 
         return interceptor;
+    }
+
+    private void requireRetryProperties() {
+        if (retryProperties == null) {
+            throw new IllegalStateException(
+                    "retryProperties must be set before creating YdbTransactionInterceptor");
+        }
+    }
+
+    private void requireTransactionAttributeSource() {
+        if (transactionAttributeSource == null) {
+            throw new IllegalStateException(
+                    "transactionAttributeSource must be set before creating YdbTransactionInterceptor");
+        }
     }
 
     @Nullable

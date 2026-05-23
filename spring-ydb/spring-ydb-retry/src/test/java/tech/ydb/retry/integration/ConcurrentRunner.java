@@ -49,11 +49,24 @@ class ConcurrentRunner {
     }
 
     ConcurrentResult awaitCompletion(long timeout, TimeUnit unit) throws Exception {
-        for (Future<?> f : futures) {
-            f.get(timeout, unit);
+        boolean completed = false;
+        try {
+            for (Future<?> f : futures) {
+                f.get(timeout, unit);
+            }
+            completed = true;
+            return new ConcurrentResult(successCount.get(), errors);
+        } finally {
+            if (completed) {
+                executor.shutdown();
+            } else {
+                executor.shutdownNow();
+            }
         }
-        executor.shutdown();
-        return new ConcurrentResult(successCount.get(), errors);
+    }
+
+    boolean isShutdown() {
+        return executor.isShutdown();
     }
 
     record ConcurrentResult(int successCount, List<Throwable> errors) {
