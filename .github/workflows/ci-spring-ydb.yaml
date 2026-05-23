@@ -1,0 +1,76 @@
+name: Spring YDB CI with Maven
+
+on:
+  push:
+    paths:
+      - 'spring-ydb/**'
+    branches:
+      - main
+  pull_request:
+    paths:
+      - 'spring-ydb/**'
+
+env:
+  MAVEN_ARGS: --batch-mode --update-snapshots -Dstyle.color=always
+
+jobs:
+  prepare:
+    name: Prepare Maven cache
+    runs-on: ubuntu-24.04
+
+    env:
+      MAVEN_ARGS: --batch-mode -Dstyle.color=always
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: Download dependencies (Default)
+        working-directory: ./spring-ydb
+        run: mvn $MAVEN_ARGS dependency:resolve-plugins dependency:go-offline
+
+      - name: Download dependencies (Spring Boot 3)
+        working-directory: ./spring-ydb
+        run: mvn $MAVEN_ARGS -Pspring-boot3 dependency:resolve-plugins dependency:go-offline
+
+      - name: Download dependencies (Spring Boot 4)
+        working-directory: ./spring-ydb
+        run: mvn $MAVEN_ARGS -Pspring-boot4 dependency:resolve-plugins dependency:go-offline
+
+  build:
+    name: Spring YDB build & tests
+    runs-on: ubuntu-24.04
+    needs: prepare
+
+    strategy:
+      matrix:
+        java: [ '17', '21', '24' ]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK ${{matrix.java}}
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{matrix.java}}
+          distribution: 'temurin'
+          cache: maven
+
+      - name: Build spring-ydb
+        working-directory: ./spring-ydb
+        run: mvn $MAVEN_ARGS package
+
+      - name: Tests with Spring Boot 3
+        working-directory: ./spring-ydb
+        run: mvn $MAVEN_ARGS -Pspring-boot3 test
+
+      - name: Tests with Spring Boot 4
+        working-directory: ./spring-ydb
+        run: mvn $MAVEN_ARGS -Pspring-boot4 test
