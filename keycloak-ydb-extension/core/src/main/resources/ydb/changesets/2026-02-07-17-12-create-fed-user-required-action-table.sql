@@ -1,0 +1,11 @@
+CREATE TABLE IF NOT EXISTS FED_USER_REQUIRED_ACTION
+(
+    `REQUIRED_ACTION`     Utf8 NOT NULL DEFAULT " ",
+    `USER_ID`             Utf8 NOT NULL,
+    `REALM_ID`            Utf8 NOT NULL,
+    `STORAGE_PROVIDER_ID` Utf8,
+
+    INDEX idx_fu_required_action GLOBAL ON (USER_ID, REQUIRED_ACTION),
+    INDEX idx_fu_required_action_ru GLOBAL ON (REALM_ID, USER_ID),
+    PRIMARY KEY (REQUIRED_ACTION, USER_ID)
+);

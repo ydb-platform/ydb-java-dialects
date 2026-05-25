@@ -1,0 +1,2 @@
+tech.ydb.keycloak.liquibase.YdbLockSqlGenerator
+tech.ydb.keycloak.liquibase.YdbUnlockSqlGenerator

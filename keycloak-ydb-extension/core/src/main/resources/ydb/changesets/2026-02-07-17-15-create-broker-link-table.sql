@@ -1,0 +1,12 @@
+CREATE TABLE IF NOT EXISTS BROKER_LINK
+(
+    `IDENTITY_PROVIDER`   Utf8 NOT NULL,
+    `STORAGE_PROVIDER_ID` Utf8,
+    `REALM_ID`            Utf8 NOT NULL,
+    `BROKER_USER_ID`      Utf8,
+    `BROKER_USERNAME`     Utf8,
+    `TOKEN`               Utf8,
+    `USER_ID`             Utf8 NOT NULL,
+
+    PRIMARY KEY (IDENTITY_PROVIDER, USER_ID)
+);

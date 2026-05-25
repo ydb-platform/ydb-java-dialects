@@ -1,0 +1,8 @@
+CREATE TABLE IF NOT EXISTS FEDERATED_USER
+(
+    `ID`                  Utf8 NOT NULL,
+    `STORAGE_PROVIDER_ID` Utf8,
+    `REALM_ID`            Utf8 NOT NULL,
+
+    PRIMARY KEY (ID)
+);

@@ -1,0 +1,12 @@
+CREATE TABLE IF NOT EXISTS IDENTITY_PROVIDER_MAPPER
+(
+    `ID`              Utf8 NOT NULL,
+    `NAME`            Utf8 NOT NULL,
+    `IDP_ALIAS`       Utf8 NOT NULL,
+    `IDP_MAPPER_NAME` Utf8 NOT NULL,
+    `REALM_ID`        Utf8 NOT NULL,
+
+    INDEX idx_id_prov_mapp_realm GLOBAL ON (REALM_ID),
+--     FOREIGN KEY (REALM_ID) REFERENCES REALM (ID),
+    PRIMARY KEY (ID)
+);

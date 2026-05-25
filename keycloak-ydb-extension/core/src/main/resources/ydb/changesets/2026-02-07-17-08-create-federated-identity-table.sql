@@ -1,0 +1,14 @@
+CREATE TABLE IF NOT EXISTS FEDERATED_IDENTITY
+(
+    `IDENTITY_PROVIDER`  Utf8 NOT NULL,
+    `REALM_ID`           Utf8,
+    `FEDERATED_USER_ID`  Utf8,
+    `FEDERATED_USERNAME` Utf8,
+    `TOKEN`              Utf8,
+    `USER_ID`            Utf8 NOT NULL,
+
+    INDEX idx_fedidentity_user GLOBAL ON (USER_ID),
+    INDEX idx_fedidentity_feduser GLOBAL ON (FEDERATED_USER_ID),
+--     FOREIGN KEY (USER_ID) REFERENCES USER_ENTITY (ID),
+    PRIMARY KEY (IDENTITY_PROVIDER, USER_ID)
+);

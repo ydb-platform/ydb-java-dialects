@@ -1,0 +1,8 @@
+CREATE TABLE IF NOT EXISTS REVOKED_TOKEN
+(
+    `ID`     Utf8 NOT NULL,
+    `EXPIRE` Int64 NOT NULL,
+
+    INDEX idx_rev_token_on_expire GLOBAL ON (EXPIRE),
+    PRIMARY KEY (ID)
+);

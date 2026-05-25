@@ -1,0 +1,72 @@
+version: '3.4'
+
+volumes:
+  ydb_data:
+    driver: local
+  ydb_certs:
+    driver: local
+
+networks:
+  keycloak:
+    driver: bridge
+
+services:
+  ydb:
+    image: ydbplatform/local-ydb:latest
+    platform: linux/amd64
+    ports:
+      - '2135:2135'  # GRPC TLS
+      - '2136:2136'  # GRPC
+      - '8765:8765'  # Monitoring UI
+      - '9092:9092'  # Kafka Proxy
+    volumes:
+      - 'ydb_certs:/ydb_certs'
+      - 'ydb_data:/ydb_data'
+    networks:
+      - keycloak
+    environment:
+      - GRPC_TLS_PORT=2135
+      - GRPC_PORT=2136
+      - MON_PORT=8765
+      - YDB_KAFKA_PROXY_PORT=9092
+    healthcheck:
+      test: [ "CMD-SHELL", "/bin/sh /health_check" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  ydb-keycloak:
+    image: quay.io/keycloak/keycloak:26.4.7
+    container_name: ydb-keycloak
+    expose:
+      - '8080'
+    volumes:
+      - ./providers/keycloak-ydb-extension-1.0-SNAPSHOT.jar:/opt/keycloak/providers/keycloak-ydb-extension-1.0-SNAPSHOT.jar
+      - ./conf/keycloak.conf:/opt/keycloak/conf/keycloak.conf
+    entrypoint: /opt/keycloak/bin/kc.sh
+    command: >
+      -v start-dev
+      --cache=local
+    networks:
+      - keycloak
+    depends_on:
+      ydb:
+        condition: service_healthy
+
+  retry-proxy:
+    build:
+      context: ../retry-proxy
+    environment:
+      - TARGET_URL=http://ydb-keycloak:8080
+      - MAX_RETRIES=10
+      - BASE_DELAY_MS=50
+      - MAX_DELAY_MS=2000
+      - LISTEN_PORT=8080
+    ports:
+      - 9090:8080
+    networks:
+      - keycloak
+    depends_on:
+      ydb-keycloak:
+        condition: service_started
+    restart: on-failure
