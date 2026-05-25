@@ -318,7 +318,7 @@ class YdbTransactionalConfigOverrideTest extends InterceptorTestSupport {
         interceptor.invoke(invocationFor("ydbIdempotentRetry"));
 
         assertEquals(1, delays.size());
-        assertTrue(delays.getFirst() >= 0);
+        assertTrue(delays.get(0) >= 0);
     }
 
     @Test

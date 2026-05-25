@@ -17,7 +17,7 @@ for transactional operations with [YDB](https://ydb.tech).
 
 ### Requirements
 
-- Java 21 or above
+- Java 17 or above
 - Spring Boot 3.4+ / Spring Framework 6.2+
 - [YDB JDBC Driver](https://github.com/ydb-platform/ydb-jdbc-driver)
 - Access to a YDB Database instance
