@@ -42,8 +42,8 @@ import java.util.concurrent.TimeUnit;
 @BenchmarkMode(Mode.AverageTime)
 @OutputTimeUnit(TimeUnit.MICROSECONDS)
 @State(Scope.Thread)
-@Warmup(iterations = 5, time = 2)
-@Measurement(iterations = 5, time = 3)
+@Warmup(iterations = 5, time = 10)
+@Measurement(iterations = 10, time = 15)
 @Fork(1)
 public class CrudBenchmark {
     private static final String YDB_IMAGE = "cr.yandex/yc/yandex-docker-local-ydb:latest";
@@ -57,7 +57,7 @@ public class CrudBenchmark {
                 PRIMARY KEY (id)
             );""".formatted(TABLE);
 
-    @Param({"10", "20", "50", "100", "200", "500", "1000", "10000", "100000"})
+    @Param({"10", "20", "50", "100", "200", "500", "1000", "10000"})
     public int rowCount;
 
     private FixedHostPortGenericContainer<?> ydbContainer;
@@ -65,6 +65,7 @@ public class CrudBenchmark {
     private TableClient tableClient;
     private DataSource dataSource;
 
+    private List<UUID> seedIds;
     private List<EntityUuid> newEntities;
 
     private static JSqlClient sqlClient;
@@ -93,7 +94,12 @@ public class CrudBenchmark {
         ds.setUrl("jdbc:ydb:" + endpoint + database);
         dataSource = ds;
         sqlClient = JSqlClient.newBuilder()
-                .setDialect(new YdbDialect())
+                .setDialect(new YdbDialect() {
+                    @Override
+                    public String transCacheOperatorTableDDL() {
+                        throw new UnsupportedOperationException();
+                    }
+                })
                 .setConnectionManager(ConnectionManager.simpleConnectionManager(dataSource))
                 .build();
         yqlClient = YqlClientBuilder.getYqlClient(dataSource);
@@ -119,10 +125,12 @@ public class CrudBenchmark {
 
         yqlClient.createDelete(table).execute();
 
+        seedIds = new ArrayList<>();
         List<EntityUuid> seedEntities = new ArrayList<>();
         newEntities = new ArrayList<>();
         for (int i = 0; i < rowCount; i++) {
             UUID id = UUID.randomUUID();
+            seedIds.add(id);
             seedEntities.add(EntityUuidDraft.$.produce(entity -> {
                 entity.setId(id);
                 entity.setValue("entity-" + id);
@@ -170,6 +178,16 @@ public class CrudBenchmark {
         sqlClient.getEntities()
                 .saveEntitiesCommand(newEntities)
                 .execute();
+    }
+
+    @Benchmark
+    public void deleteYdb() {
+        yqlClient.getEntities().deleteAll(EntityUuid.class, seedIds);
+    }
+
+    @Benchmark
+    public void deleteJimmer() {
+        yqlClient.getEntities().deleteAll(EntityUuid.class, seedIds);
     }
 
     public static void main(String[] args) throws RunnerException {
