@@ -48,7 +48,7 @@
         <dependency>
             <groupId>tech.ydb.dialects</groupId>
             <artifactId>spring-data-jdbc-ydb</artifactId>
-            <version>1.1.0</version>
+            <version>1.2.1</version>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -173,4 +173,17 @@
             </plugin>
         </plugins>
     </build>
+
+    <profiles>
+        <profile>
+            <id>spring-boot4</id>
+            <dependencies>
+                <dependency>
+                    <groupId>org.springframework.boot</groupId>
+                    <artifactId>spring-boot-starter-flyway</artifactId>
+                    <scope>test</scope>
+                </dependency>
+            </dependencies>
+        </profile>
+    </profiles>
 </project>
