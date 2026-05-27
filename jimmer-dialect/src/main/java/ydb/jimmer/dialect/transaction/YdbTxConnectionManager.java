@@ -64,15 +64,22 @@ public class YdbTxConnectionManager implements TxConnectionManager {
                 Scope scope = createScope(parent, propagation);
                 scopeLocal.set(scope);
                 try {
-                    R result;
+                    boolean errorOccurred = false;
                     try {
-                        result = execute(scope.con, block);
+                        return execute(scope.con, block);
                     } catch (RuntimeException | Error ex) {
-                        scope.terminate(true);
-                        throw ex;
+                        errorOccurred = true;
+
+                        if (ex instanceof RuntimeException) {
+                            if (i == maxAttempts - 1 || !isRetryable(ex.getCause())) {
+                                throw ex;
+                            }
+                        } else {
+                            throw ex;
+                        }
+                    } finally {
+                        scope.terminate(errorOccurred);
                     }
-                    scope.terminate(false);
-                    return result;
                 } finally {
                     if (parent != null) {
                         scopeLocal.set(parent);
@@ -80,15 +87,8 @@ public class YdbTxConnectionManager implements TxConnectionManager {
                         scopeLocal.remove();
                     }
                 }
-            } catch (SQLException | RuntimeException ex) {
-                RuntimeException e = new ExecutionException("JDBC error raised: " + ex.getMessage(), ex);
-                if (ex instanceof RuntimeException rex) {
-                    e = rex;
-                }
-
-                if (i == maxAttempts - 1 || !isRetryable(e.getCause())) {
-                    throw e;
-                }
+            } catch (SQLException ex) {
+                throw new ExecutionException("JDBC error raised: " + ex.getMessage(), ex);
             }
 
             try {
