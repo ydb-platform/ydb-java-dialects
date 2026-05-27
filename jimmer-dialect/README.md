@@ -13,7 +13,12 @@ for a custom JSqlClient.
 - Custom type mappings to utilize YDB's data types.
 - Support for YDB-specific features and functions.
 - Transaction modes and isolation levels.
+- Retries with exponential backoff
 - YDB keyset pagination.
+
+### Missing Features
+
+- No support for YQL data type "Datetime64": the current mapping for the Java class LocalDateTime is incorrect
 
 ## Getting Started
 
