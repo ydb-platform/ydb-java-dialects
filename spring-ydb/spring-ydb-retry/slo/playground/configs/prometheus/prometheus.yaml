@@ -1,0 +1,16 @@
+global:
+  scrape_interval: 1s
+  evaluation_interval: 1s
+
+scrape_configs:
+  - job_name: 'app-with-retry'
+    static_configs:
+      - targets: ['app-with-retry:9464']
+    metrics_path: '/metrics'
+    scrape_interval: 5s
+
+  - job_name: 'app-no-retry'
+    static_configs:
+      - targets: ['app-no-retry:9464']
+    metrics_path: '/metrics'
+    scrape_interval: 5s
