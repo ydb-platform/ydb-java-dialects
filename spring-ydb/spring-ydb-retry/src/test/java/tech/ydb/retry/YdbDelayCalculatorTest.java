@@ -6,9 +6,6 @@ import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static tech.ydb.core.StatusCode.ABORTED;
-import static tech.ydb.core.StatusCode.OVERLOADED;
-import static tech.ydb.core.StatusCode.UNAVAILABLE;
 
 class YdbDelayCalculatorTest {
 
@@ -16,25 +13,26 @@ class YdbDelayCalculatorTest {
     void shouldCalculateBackoffFromFirstRetryWithoutZeroDelayFormula() {
         YdbRetryPolicyConfig config = new YdbRetryPolicyConfig(true, 5, 50, 5, 5_000, 500);
 
-        assertEquals(50, YdbDelayCalculator.calculateBackoff(50, 5_000, config.getSlowPow(), 0));
-        assertEquals(5, YdbDelayCalculator.calculateBackoff(5, 500, config.getFastPow(), 0));
+        assertEquals(50, YdbDelayCalculator.calculateBackoffMillis(50, 5_000, config.getSlowCeiling(), 0));
+        assertEquals(5, YdbDelayCalculator.calculateBackoffMillis(5, 500, config.getFastCeiling(), 0));
     }
 
     @Test
-    void shouldUseDotNetCeilingWhenCalculatingBackoffCap() {
+    void shouldClampToCapBackoff() {
         YdbRetryPolicyConfig config = new YdbRetryPolicyConfig(true, 5, 1, 1, 300, 300);
 
-        assertEquals(300, YdbDelayCalculator.calculateBackoff(1, 300, config.getSlowPow(), 9));
-        assertEquals(300, YdbDelayCalculator.calculateBackoff(1, 300, config.getFastPow(), 9));
+        assertEquals(300,
+                YdbDelayCalculator.calculateBackoffMillis(1, 300, config.getSlowCeiling(), 9));
+        assertEquals(300,
+                YdbDelayCalculator.calculateBackoffMillis(1, 300, config.getFastCeiling(), 9));
     }
 
     @Test
     void shouldUseInclusiveRangeForFullJitter() {
-        YdbRetryPolicyConfig config = new YdbRetryPolicyConfig(true, 5, 1, 1, 1, 1);
         Set<Long> observed = new HashSet<>();
 
         for (int i = 0; i < 256; i++) {
-            long delay = YdbDelayCalculator.calculateDelay(ABORTED, config, 0);
+            long delay = YdbDelayCalculator.fullJitterMillis(1, 1, 1, 0);
             assertTrue(delay >= 0 && delay <= 1);
             observed.add(delay);
         }
@@ -45,11 +43,10 @@ class YdbDelayCalculatorTest {
 
     @Test
     void shouldUseEqualJitterRange() {
-        YdbRetryPolicyConfig config = new YdbRetryPolicyConfig(true, 5, 2, 2, 2, 2);
         Set<Long> observed = new HashSet<>();
 
         for (int i = 0; i < 256; i++) {
-            long delay = YdbDelayCalculator.calculateDelay(UNAVAILABLE, config, 0);
+            long delay = YdbDelayCalculator.equalJitterMillis(2, 2, 1, 0);
             assertTrue(delay >= 1 && delay <= 2);
             observed.add(delay);
         }
@@ -60,8 +57,6 @@ class YdbDelayCalculatorTest {
 
     @Test
     void shouldKeepOddRemainderForFirstOverloadedRetry() {
-        YdbRetryPolicyConfig config = new YdbRetryPolicyConfig(true, 5, 1, 1, 1, 1);
-
-        assertEquals(1, YdbDelayCalculator.calculateDelay(OVERLOADED, config, 0));
+        assertEquals(1, YdbDelayCalculator.equalJitterMillis(1, 1, 1, 0));
     }
 }

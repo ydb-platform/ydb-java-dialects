@@ -33,8 +33,8 @@ class IdempotentRetryIntegrationTest extends YdbDockerTest {
     @ParameterizedTest(name = "Idempotent executeQuery non-retryable")
     @EnumSource(
             value = StatusCode.class,
-            names = {"TIMEOUT", "SESSION_EXPIRED"})
-    void shouldNotRetryTimeoutOrSessionExpiredWhenIdempotentExecuteQuery(StatusCode code) {
+            names = {"TIMEOUT"})
+    void shouldNotRetryTimeoutWhenIdempotentExecuteQuery(StatusCode code) {
         DeterministicErrorChannel.configure().onError("executeQuery", 1, code);
 
         assertThrows(
@@ -43,6 +43,19 @@ class IdempotentRetryIntegrationTest extends YdbDockerTest {
 
         assertEquals(1, DeterministicErrorChannel.getCallCount("executeQuery"));
         assertNull(userService.findById(1L));
+    }
+
+    @ParameterizedTest(name = "Idempotent executeQuery retried with zero delay")
+    @EnumSource(
+            value = StatusCode.class,
+            names = {"SESSION_EXPIRED"})
+    void shouldRetrySessionExpiredWhenIdempotentExecuteQuery(StatusCode code) {
+        DeterministicErrorChannel.configure().onError("executeQuery", 1, code);
+
+        userService.saveIdempotent(createUser(10L, "user10", "first10", "last10"));
+
+        assertEquals(2, DeterministicErrorChannel.getCallCount("executeQuery"));
+        assertNotNull(userService.findById(10L));
     }
 
     @ParameterizedTest(name = "Non-idempotent executeQuery")
@@ -75,8 +88,8 @@ class IdempotentRetryIntegrationTest extends YdbDockerTest {
     @ParameterizedTest(name = "Idempotent commit non-retryable")
     @EnumSource(
             value = StatusCode.class,
-            names = {"TIMEOUT", "SESSION_EXPIRED"})
-    void shouldNotRetryTimeoutOrSessionExpiredWhenIdempotentCommit(StatusCode code) {
+            names = {"TIMEOUT"})
+    void shouldNotRetryTimeoutWhenIdempotentCommit(StatusCode code) {
         DeterministicErrorChannel.configure().onError("commitTransaction", 1, code);
 
         assertThrows(
@@ -84,6 +97,19 @@ class IdempotentRetryIntegrationTest extends YdbDockerTest {
                 () -> userService.saveIdempotent(createUser(4L, "user4", "first4", "last4")));
 
         assertEquals(1, DeterministicErrorChannel.getCallCount("commitTransaction"));
+    }
+
+    @ParameterizedTest(name = "Idempotent commit retried with zero delay")
+    @EnumSource(
+            value = StatusCode.class,
+            names = {"SESSION_EXPIRED"})
+    void shouldRetrySessionExpiredWhenIdempotentCommit(StatusCode code) {
+        DeterministicErrorChannel.configure().onError("commitTransaction", 1, code);
+
+        userService.saveIdempotent(createUser(11L, "user11", "first11", "last11"));
+
+        assertEquals(2, DeterministicErrorChannel.getCallCount("commitTransaction"));
+        assertNotNull(userService.findById(11L));
     }
 
     @ParameterizedTest(name = "Idempotent commit")

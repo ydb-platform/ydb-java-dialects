@@ -1,6 +1,7 @@
 package tech.ydb.retry;
 
 import java.lang.reflect.Method;
+import java.sql.SQLException;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -11,9 +12,7 @@ import org.springframework.transaction.annotation.AnnotationTransactionAttribute
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
-import tech.ydb.core.Status;
 import tech.ydb.core.StatusCode;
-import tech.ydb.jdbc.exception.YdbStatusable;
 
 abstract class InterceptorTestSupport {
 
@@ -205,16 +204,23 @@ abstract class InterceptorTestSupport {
         }
     }
 
-    static final class ConfigurableStatusException extends RuntimeException implements YdbStatusable {
+    /**
+     * Mimics what {@code tech.ydb.jdbc.exception.ExceptionFactory} produces at runtime: a
+     * {@link RuntimeException} that wraps a {@link SQLException} whose {@code errorCode} is the
+     * {@link StatusCode#getCode() YDB status code}. This is exactly the shape that the JDBC driver
+     * propagates and what Spring-Data wraps into a {@code DataAccessException}.
+     */
+    static final class ConfigurableStatusException extends RuntimeException {
         private final StatusCode statusCode;
 
         ConfigurableStatusException(StatusCode statusCode) {
+            super("test exception with status " + statusCode, new SQLException(
+                    "test exception with status " + statusCode, null, statusCode.getCode()));
             this.statusCode = statusCode;
         }
 
-        @Override
-        public Status getStatus() {
-            return Status.of(statusCode);
+        StatusCode statusCode() {
+            return statusCode;
         }
     }
 }

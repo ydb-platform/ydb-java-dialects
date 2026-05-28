@@ -1,52 +1,47 @@
 package tech.ydb.retry;
 
-import org.springframework.lang.Nullable;
-import tech.ydb.core.StatusCode;
+import java.util.concurrent.ThreadLocalRandom;
 
-public class YdbDelayCalculator {
-    public static long calculateDelay(
-            @Nullable StatusCode statusCode, YdbRetryPolicyConfig retryConfig, int attempt) {
-        if (statusCode == null) {
-            return 0;
+/**
+ * Backoff math, ported one-to-one from {@code kotlin-exposed-dialect}'s {@code YdbRetryPolicy.kt}.
+ *
+ * <p>{@link #calculateBackoffMillis} computes the un-jittered backoff window as
+ * {@code min(baseMs * 2^min(ceiling, attempt), capMs)}; {@link #fullJitterMillis} and
+ * {@link #equalJitterMillis} then apply jitter on top of that window.
+ */
+public final class YdbDelayCalculator {
+
+    private YdbDelayCalculator() {
+    }
+
+    /**
+     * Pre-jitter backoff window: {@code min(baseMs * 2^min(ceiling, attempt), capMs)}.
+     */
+    public static int calculateBackoffMillis(int baseMs, int capMs, int ceiling, int attempt) {
+        int shift = Math.min(ceiling, attempt);
+        long scaled = (long) baseMs << shift;
+        return (int) Math.min(scaled, capMs);
+    }
+
+    /** Full jitter: uniform in {@code [0, calculatedBackoff]}. */
+    public static long fullJitterMillis(int baseMs, int capMs, int ceiling, int attempt) {
+        int calculatedBackoff = calculateBackoffMillis(baseMs, capMs, ceiling, attempt);
+        return randomLong(calculatedBackoff + 1L);
+    }
+
+    /**
+     * Equal jitter: {@code calculatedBackoff/2 + calculatedBackoff%2 + random(0..calculatedBackoff/2)}.
+     */
+    public static long equalJitterMillis(int baseMs, int capMs, int ceiling, int attempt) {
+        int calculatedBackoff = calculateBackoffMillis(baseMs, capMs, ceiling, attempt);
+        int temp = calculatedBackoff / 2;
+        return temp + calculatedBackoff % 2 + randomLong(temp + 1L);
+    }
+
+    private static long randomLong(long boundExclusive) {
+        if (boundExclusive <= 0) {
+            return 0L;
         }
-
-        return switch (statusCode) {
-            case BAD_SESSION, SESSION_BUSY -> 0;
-            case UNDETERMINED, ABORTED, CLIENT_CANCELLED, CLIENT_INTERNAL_ERROR -> delayWithFullJitter(
-                    retryConfig.getFastBackoffBaseMs(),
-                    retryConfig.getFastCapBackoffMs(),
-                    retryConfig.getFastPow(),
-                    attempt,
-                    retryConfig);
-            case UNAVAILABLE, TRANSPORT_UNAVAILABLE -> delayWithEqualJitter(
-                    retryConfig.getFastBackoffBaseMs(),
-                    retryConfig.getFastCapBackoffMs(),
-                    retryConfig.getFastPow(),
-                    attempt,
-                    retryConfig);
-            case OVERLOADED, CLIENT_RESOURCE_EXHAUSTED -> delayWithEqualJitter(
-                    retryConfig.getSlowBackoffBaseMs(),
-                    retryConfig.getSlowCapBackoffMs(),
-                    retryConfig.getSlowPow(),
-                    attempt,
-                    retryConfig);
-            default -> 0;
-        };
-    }
-
-    static long calculateBackoff(int baseMs, int capMs, int pow, int attempt) {
-        return Math.min((long) baseMs * (1L << Math.min(pow, attempt)), capMs);
-    }
-
-    private static long delayWithFullJitter(
-            int baseMs, int capMs, int pow, int attempt, YdbRetryPolicyConfig retryConfig) {
-        return retryConfig.getJitter(calculateBackoff(baseMs, capMs, pow, attempt));
-    }
-
-    private static long delayWithEqualJitter(
-            int baseMs, int capMs, int pow, int attempt, YdbRetryPolicyConfig retryConfig) {
-        long calculatedBackoff = calculateBackoff(baseMs, capMs, pow, attempt);
-        long temp = calculatedBackoff / 2;
-        return temp + calculatedBackoff % 2 + retryConfig.getJitter(temp);
+        return ThreadLocalRandom.current().nextLong(boundExclusive);
     }
 }

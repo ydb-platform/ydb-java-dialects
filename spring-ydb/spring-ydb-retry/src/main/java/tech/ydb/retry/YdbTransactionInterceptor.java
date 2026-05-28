@@ -2,10 +2,11 @@ package tech.ydb.retry;
 
 import java.lang.reflect.AnnotatedElement;
 import java.lang.reflect.Method;
+import java.util.OptionalLong;
 import org.aopalliance.intercept.MethodInvocation;
-import org.springframework.aop.ProxyMethodInvocation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.aop.ProxyMethodInvocation;
 import org.springframework.aop.support.AopUtils;
 import org.springframework.core.annotation.AnnotatedElementUtils;
 import org.springframework.lang.Nullable;
@@ -14,8 +15,6 @@ import org.springframework.transaction.interceptor.TransactionAttribute;
 import org.springframework.transaction.interceptor.TransactionAttributeSource;
 import org.springframework.transaction.interceptor.TransactionInterceptor;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
-import tech.ydb.core.StatusCode;
-import tech.ydb.jdbc.exception.YdbStatusable;
 
 public class YdbTransactionInterceptor extends TransactionInterceptor {
 
@@ -44,29 +43,34 @@ public class YdbTransactionInterceptor extends TransactionInterceptor {
         }
 
         if (isParticipatingInExistingTransaction(txAttr)) {
-            log.debug(
-                    "YDB retry is disabled for method {} because it participates in an existing transaction",
-                    invocation.getMethod().toGenericString());
+            if (log.isDebugEnabled()) {
+                log.debug("YDB retry is disabled for method "
+                        + invocation.getMethod().toGenericString()
+                        + " because it participates in an existing transaction");
+            }
             return this.invokeWithinTransaction(invocation.getMethod(), targetClass, createCallback(invocation));
         }
 
         YdbTransactional ydbTransactional = resolveYdbTransactionAnnotation(invocation.getMethod(), targetClass);
-        YdbRetryPolicyConfig retryConfig = this.retryConfig.merge(ydbTransactional);
+        YdbRetryPolicyConfig effectiveConfig = this.retryConfig.merge(ydbTransactional);
         boolean isIdempotent = ydbTransactional != null && ydbTransactional.idempotent();
 
-        if (!retryConfig.isEnabled()) {
-            log.debug("YDB retry is disabled for method {}", invocation.getMethod().toGenericString());
+        if (!effectiveConfig.isEnabled()) {
+            if (log.isDebugEnabled()) {
+                log.debug("YDB retry is disabled for method "
+                        + invocation.getMethod().toGenericString());
+            }
             return this.invokeWithinTransaction(invocation.getMethod(), targetClass, createCallback(invocation));
         }
 
-        return invokeWithinTransactionWithRetryContext(invocation, targetClass, retryConfig, isIdempotent);
+        return invokeWithinTransactionWithRetryContext(invocation, targetClass, effectiveConfig, isIdempotent);
     }
 
     @Nullable
     private Object invokeWithinTransactionWithRetryContext(
             final MethodInvocation invocation,
             @Nullable Class<?> targetClass,
-            YdbRetryPolicyConfig retryConfig,
+            YdbRetryPolicyConfig effectiveConfig,
             boolean isIdempotent)
             throws Throwable {
         for (int attempt = 0; ; attempt++) {
@@ -78,15 +82,13 @@ public class YdbTransactionInterceptor extends TransactionInterceptor {
                 if (ex instanceof Error) {
                     throw ex;
                 }
-                StatusCode statusCode = extractStatusCode(ex);
-                if (!YdbRetryPolicy.shouldRetry(statusCode, isIdempotent)) {
+                int vendorCode = YdbRetryPolicy.extractVendorCode(ex);
+                OptionalLong delay =
+                        YdbRetryPolicy.getNextRetryDelayMs(vendorCode, attempt, effectiveConfig, isIdempotent);
+                if (delay.isEmpty()) {
                     throw ex;
                 }
-                if (attempt >= retryConfig.getMaxRetries()) {
-                    throw ex;
-                }
-                long delay = YdbDelayCalculator.calculateDelay(statusCode, retryConfig, attempt);
-                sleep(delay, ex);
+                sleep(delay.getAsLong(), ex);
             }
         }
     }
@@ -143,18 +145,6 @@ public class YdbTransactionInterceptor extends TransactionInterceptor {
         return element != null
                 ? AnnotatedElementUtils.findMergedAnnotation(element, YdbTransactional.class)
                 : null;
-    }
-
-    @Nullable
-    private StatusCode extractStatusCode(Throwable throwable) {
-        Throwable current = throwable;
-        while (current != null) {
-            if (current instanceof YdbStatusable statusable && statusable.getStatus() != null) {
-                return statusable.getStatus().getCode();
-            }
-            current = current.getCause();
-        }
-        return null;
     }
 
     private InvocationCallback createCallback(MethodInvocation invocation) {

@@ -1,8 +1,17 @@
 package tech.ydb.retry;
 
-import java.util.concurrent.ThreadLocalRandom;
 import org.springframework.lang.Nullable;
 
+/**
+ * Retry and backoff settings.
+ *
+ * <p>Two-tier backoff matches {@code kotlin-exposed-dialect}'s {@code YdbRetryConfig}:
+ * <ul>
+ *   <li><b>Fast tier:</b> {@code ABORTED}, {@code UNDETERMINED}, {@code UNAVAILABLE},
+ *       transport errors.</li>
+ *   <li><b>Slow tier:</b> {@code OVERLOADED}, {@code CLIENT_RESOURCE_EXHAUSTED}.</li>
+ * </ul>
+ */
 public final class YdbRetryPolicyConfig {
     public static final boolean DEFAULT_ENABLED = true;
     public static final int DEFAULT_MAX_RETRIES = 10;
@@ -17,8 +26,8 @@ public final class YdbRetryPolicyConfig {
     private final int fastBackoffBaseMs;
     private final int slowCapBackoffMs;
     private final int fastCapBackoffMs;
-    private final int slowPow;
-    private final int fastPow;
+    private final int slowCeiling;
+    private final int fastCeiling;
 
     public YdbRetryPolicyConfig() {
         this(
@@ -47,20 +56,13 @@ public final class YdbRetryPolicyConfig {
             throw new IllegalArgumentException("backoff values must be >= 0");
         }
         this.enabled = enabled;
+        this.maxRetries = maxRetries;
         this.slowBackoffBaseMs = slowBackoffBaseMs;
         this.fastBackoffBaseMs = fastBackoffBaseMs;
         this.slowCapBackoffMs = slowCapBackoffMs;
         this.fastCapBackoffMs = fastCapBackoffMs;
-        this.maxRetries = maxRetries;
-        this.slowPow = powerForCap(this.slowCapBackoffMs);
-        this.fastPow = powerForCap(this.fastCapBackoffMs);
-    }
-
-    public long getJitter(long bound) {
-        if (bound <= 0) {
-            return 0;
-        }
-        return ThreadLocalRandom.current().nextLong(bound + 1);
+        this.slowCeiling = ceilingFromCapBackoffMs(slowCapBackoffMs);
+        this.fastCeiling = ceilingFromCapBackoffMs(fastCapBackoffMs);
     }
 
     public boolean isEnabled() {
@@ -87,12 +89,12 @@ public final class YdbRetryPolicyConfig {
         return fastCapBackoffMs;
     }
 
-    public int getSlowPow() {
-        return slowPow;
+    public int getSlowCeiling() {
+        return slowCeiling;
     }
 
-    public int getFastPow() {
-        return fastPow;
+    public int getFastCeiling() {
+        return fastCeiling;
     }
 
     public YdbRetryPolicyConfig merge(@Nullable YdbTransactional transactionPolicy) {
@@ -126,18 +128,22 @@ public final class YdbRetryPolicyConfig {
         };
     }
 
-    private static int mergeNonNegativeInt(String name, int candidate, int fallback)
-            throws IllegalArgumentException {
+    private static int mergeNonNegativeInt(String name, int candidate, int fallback) {
         if (candidate < -1) {
             throw new IllegalArgumentException(String.format("%s is invalid", name));
         }
         return candidate == -1 ? fallback : candidate;
     }
 
-    private static int powerForCap(int capMs) {
-        if (capMs <= 0) {
+    /**
+     * Ceiling on the exponent so that {@code baseMs * 2^ceiling} just reaches {@code capMs}.
+     * Ported one-to-one from kotlin-exposed: {@code ceil(ln(capMs + 1) / ln(2))}.
+     */
+    static int ceilingFromCapBackoffMs(int capBackoffMs) {
+        if (capBackoffMs <= 0) {
             return 0;
         }
-        return Integer.SIZE - Integer.numberOfLeadingZeros(capMs);
+        double value = capBackoffMs + 1.0d;
+        return (int) Math.ceil(Math.log(value) / Math.log(2.0d));
     }
 }

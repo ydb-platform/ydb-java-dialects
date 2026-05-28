@@ -160,45 +160,35 @@ class YdbRetryPolicyConfigTest extends InterceptorTestSupport {
     }
 
     @Test
-    void getJitterShouldReturnValueWithinRange() {
-        YdbRetryPolicyConfig config = new YdbRetryPolicyConfig();
-        long bound = 100;
-        for (int i = 0; i < 50; i++) {
-            long jitter = config.getJitter(bound);
-            assertTrue(jitter >= 0 && jitter <= bound);
-        }
-    }
-
-    @Test
-    void powShouldBeComputedFromCapValues() {
+    void ceilingShouldBeComputedFromCapValues() {
         YdbRetryPolicyConfig config = new YdbRetryPolicyConfig(true, 5, 100, 20, 2000, 300);
 
-        int expectedSlowPow = Integer.SIZE - Integer.numberOfLeadingZeros(2000);
-        int expectedFastPow = Integer.SIZE - Integer.numberOfLeadingZeros(300);
+        int expectedSlowCeiling = (int) Math.ceil(Math.log(2001) / Math.log(2));
+        int expectedFastCeiling = (int) Math.ceil(Math.log(301) / Math.log(2));
 
-        assertEquals(expectedSlowPow, config.getSlowPow());
-        assertEquals(expectedFastPow, config.getFastPow());
+        assertEquals(expectedSlowCeiling, config.getSlowCeiling());
+        assertEquals(expectedFastCeiling, config.getFastCeiling());
     }
 
     @Test
-    void powForSmallCapShouldBeOne() {
+    void ceilingForSmallCapShouldBeOne() {
         YdbRetryPolicyConfig config = new YdbRetryPolicyConfig(true, 1, 0, 0, 1, 1);
-        assertEquals(1, config.getSlowPow());
-        assertEquals(1, config.getFastPow());
+        assertEquals(1, config.getSlowCeiling());
+        assertEquals(1, config.getFastCeiling());
     }
 
     @Test
-    void powForCapTwoShouldBeTwo() {
+    void ceilingForCapTwoShouldBeTwo() {
         YdbRetryPolicyConfig config = new YdbRetryPolicyConfig(true, 1, 0, 0, 2, 2);
-        assertEquals(2, config.getSlowPow());
-        assertEquals(2, config.getFastPow());
+        assertEquals(2, config.getSlowCeiling());
+        assertEquals(2, config.getFastCeiling());
     }
 
     @Test
-    void powForZeroCapShouldBeZero() {
+    void ceilingForZeroCapShouldBeZero() {
         YdbRetryPolicyConfig config = new YdbRetryPolicyConfig(true, 1, 0, 0, 0, 0);
-        assertEquals(0, config.getSlowPow());
-        assertEquals(0, config.getFastPow());
+        assertEquals(0, config.getSlowCeiling());
+        assertEquals(0, config.getFastCeiling());
     }
 
     @Test

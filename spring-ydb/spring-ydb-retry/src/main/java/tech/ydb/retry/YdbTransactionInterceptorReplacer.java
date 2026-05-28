@@ -21,16 +21,19 @@ public class YdbTransactionInterceptorReplacer
     public void postProcessBeanDefinitionRegistry(BeanDefinitionRegistry registry)
             throws BeansException {
         if (!registry.containsBeanDefinition(TRANSACTION_INTERCEPTOR_BEAN_NAME)) {
-            log.debug("BeanDefinition '{}' not found", TRANSACTION_INTERCEPTOR_BEAN_NAME);
+            if (log.isDebugEnabled()) {
+                log.debug("BeanDefinition '" + TRANSACTION_INTERCEPTOR_BEAN_NAME + "' not found");
+            }
             return;
         }
 
         BeanDefinition existingBd = registry.getBeanDefinition(TRANSACTION_INTERCEPTOR_BEAN_NAME);
 
         if (YdbTransactionInterceptorFactory.class.getName().equals(existingBd.getBeanClassName())) {
-            log.debug(
-                    "BeanDefinition '{}' is already YdbTransactionInterceptorFactory",
-                    TRANSACTION_INTERCEPTOR_BEAN_NAME);
+            if (log.isDebugEnabled()) {
+                log.debug("BeanDefinition '" + TRANSACTION_INTERCEPTOR_BEAN_NAME
+                        + "' is already YdbTransactionInterceptorFactory");
+            }
             return;
         }
 
@@ -39,9 +42,10 @@ public class YdbTransactionInterceptorReplacer
         registry.removeBeanDefinition(TRANSACTION_INTERCEPTOR_BEAN_NAME);
         registry.registerBeanDefinition(TRANSACTION_INTERCEPTOR_BEAN_NAME, newBd);
 
-        log.debug(
-                "registered YdbTransactionInterceptorFactory as bean '{}'",
-                TRANSACTION_INTERCEPTOR_BEAN_NAME);
+        if (log.isDebugEnabled()) {
+            log.debug("registered YdbTransactionInterceptorFactory as bean '"
+                    + TRANSACTION_INTERCEPTOR_BEAN_NAME + "'");
+        }
     }
 
     private AbstractBeanDefinition buildYdbInterceptorBeanDefinition(BeanDefinition existingBd) {
