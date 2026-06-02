@@ -1,3 +1,11 @@
+## 1.2.2 ##
+
+- Fixed YDB Decimal
+
+## 1.2.1 ##
+
+- Reverted public visible for YdbSqlType
+
 ## 1.2.0 ##
 
 - Support for `Date32`, `Datetime64`, and `Timestamp64` YDB types.
@@ -17,6 +25,6 @@
 
 ## 0.9.1 ##
 
-- Supported VIEW statement from @ViewIndex 
-- YdbDialect fully supports YQL 
+- Supported VIEW statement from @ViewIndex
+- YdbDialect fully supports YQL
 - Supported specific @YdbType

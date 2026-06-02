@@ -14,7 +14,7 @@ final class YdbConst {
     private static final int SQL_KIND_DECIMAL = 1 << 14; // 16384
 
     public static int ydbDecimal(int precision, int scale) {
-        return SQL_KIND_DECIMAL + (precision << 6) + (scale & 0x111111);
+        return SQL_KIND_DECIMAL + (precision << 6) + (scale & 0b111111);
     }
 
     private YdbConst() { };
