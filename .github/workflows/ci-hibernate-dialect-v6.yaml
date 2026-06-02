@@ -23,10 +23,10 @@ jobs:
         java: [ '17', '21' ]
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Set up JDK ${{matrix.java}}
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           java-version: ${{matrix.java}}
           distribution: 'temurin'
@@ -46,7 +46,7 @@ jobs:
         working-directory: ./hibernate-dialect-v6
         run: mvn $MAVEN_ARGS install
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           repository: ydb-platform/ydb-java-examples
           ref: master
