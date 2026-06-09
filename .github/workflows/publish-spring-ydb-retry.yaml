@@ -1,35 +1,35 @@
-name: Publish Spring YDB
+name: Publish Spring YDB Retry
 
 on:
   push:
     tags:
-      - 'spring-ydb/v*.*.*'
+      - 'spring-ydb-retry/v*.*.*'
 
 env:
   MAVEN_ARGS: --batch-mode --no-transfer-progress -Dstyle.color=always
 
 jobs:
   validate:
-    name: Validate Spring YDB
+    name: Validate Spring YDB Retry
     runs-on: ubuntu-24.04
 
     steps:
       - uses: actions/checkout@v5
 
-      - name: Extract spring-ydb version
+      - name: Extract spring-ydb-retry version
         run: |
-          cd spring-ydb
-          SPRING_YDB_VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
-          echo "SPRING_YDB_VERSION=$SPRING_YDB_VERSION" >> "$GITHUB_ENV"
+          cd spring-ydb-retry
+          SPRING_YDB_RETRY_VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
+          echo "SPRING_YDB_RETRY_VERSION=$SPRING_YDB_RETRY_VERSION" >> "$GITHUB_ENV"
 
       - name: Fail workflow if version is snapshot
-        if: endsWith(env.SPRING_YDB_VERSION, 'SNAPSHOT')
+        if: endsWith(env.SPRING_YDB_RETRY_VERSION, 'SNAPSHOT')
         uses: actions/github-script@v8
         with:
           script: core.setFailed('SNAPSHOT version cannot be published')
 
       - name: Fail workflow if version is not equal to tag name
-        if: format('spring-ydb/v{0}', env.SPRING_YDB_VERSION) != github.ref_name
+        if: format('spring-ydb-retry/v{0}', env.SPRING_YDB_RETRY_VERSION) != github.ref_name
         uses: actions/github-script@v8
         with:
           script: core.setFailed('Release name must be equal to project version')
@@ -42,15 +42,15 @@ jobs:
           cache: 'maven'
 
       - name: Download dependencies
-        working-directory: ./spring-ydb
+        working-directory: ./spring-ydb-retry
         run: mvn $MAVEN_ARGS -Pspring-boot-minimal dependency:go-offline
 
       - name: Build with Maven
-        working-directory: ./spring-ydb
+        working-directory: ./spring-ydb-retry
         run: mvn $MAVEN_ARGS -Pspring-boot-minimal package
 
   publish:
-    name: Publish Spring YDB
+    name: Publish Spring YDB Retry
     runs-on: ubuntu-latest
     needs: validate
 
@@ -75,7 +75,7 @@ jobs:
           server-password: MAVEN_PASSWORD
 
       - name: Publish package
-        working-directory: ./spring-ydb
+        working-directory: ./spring-ydb-retry
         run: mvn $MAVEN_ARGS -Possrh-s01,spring-boot-minimal -Dgpg.passphrase=${{ secrets.MAVEN_OSSRH_GPG_PASSWORD }} clean deploy
         env:
           MAVEN_USERNAME: ${{ secrets.MAVEN_OSSRH_USERNAME }}

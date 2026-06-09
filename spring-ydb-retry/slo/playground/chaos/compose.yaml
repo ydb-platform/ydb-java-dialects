@@ -11,14 +11,6 @@ x-ydb-node: &ydb-node
     - slo-network
   volumes:
     - ../configs/ydb.yaml:/opt/ydb/cfg/config.yaml
-  deploy:
-    resources:
-      limits:
-        cpus: '1.0'
-        memory: 768M
-      reservations:
-        cpus: '0.5'
-        memory: 512M
 
 name: ydb-slo
 
@@ -279,8 +271,8 @@ services:
 
   app-with-retry:
     build:
-      context: ../../../..
-      dockerfile: spring-ydb-retry/slo/Dockerfile
+      context: ../../..
+      dockerfile: slo/Dockerfile
     container_name: ydb-app-with-retry
     platform: linux/amd64
     networks:
@@ -306,8 +298,8 @@ services:
 
   app-no-retry:
     build:
-      context: ../../../..
-      dockerfile: spring-ydb-retry/slo/Dockerfile
+      context: ../../..
+      dockerfile: slo/Dockerfile
     container_name: ydb-app-no-retry
     platform: linux/amd64
     networks:

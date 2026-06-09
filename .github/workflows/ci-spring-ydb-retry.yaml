@@ -1,14 +1,14 @@
-name: Spring YDB CI with Maven
+name: Spring YDB Retry CI with Maven
 
 on:
   push:
     paths:
-      - 'spring-ydb/**'
+      - 'spring-ydb-retry/**'
     branches:
       - main
   pull_request:
     paths:
-      - 'spring-ydb/**'
+      - 'spring-ydb-retry/**'
 
 env:
   MAVEN_ARGS: --batch-mode --update-snapshots -Dstyle.color=always
@@ -33,19 +33,19 @@ jobs:
           cache: 'maven'
 
       - name: Download dependencies (Default)
-        working-directory: ./spring-ydb
+        working-directory: ./spring-ydb-retry
         run: mvn $MAVEN_ARGS dependency:resolve-plugins dependency:go-offline
 
       - name: Download dependencies (Spring Boot 3)
-        working-directory: ./spring-ydb
+        working-directory: ./spring-ydb-retry
         run: mvn $MAVEN_ARGS -Pspring-boot3 dependency:resolve-plugins dependency:go-offline
 
       - name: Download dependencies (Spring Boot 4)
-        working-directory: ./spring-ydb
+        working-directory: ./spring-ydb-retry
         run: mvn $MAVEN_ARGS -Pspring-boot4 dependency:resolve-plugins dependency:go-offline
 
   build:
-    name: Spring YDB build & tests
+    name: Spring YDB Retry build & tests
     runs-on: ubuntu-24.04
     needs: prepare
 
@@ -63,14 +63,14 @@ jobs:
           distribution: 'temurin'
           cache: maven
 
-      - name: Build spring-ydb
-        working-directory: ./spring-ydb
+      - name: Build spring-ydb-retry
+        working-directory: ./spring-ydb-retry
         run: mvn $MAVEN_ARGS package
 
       - name: Tests with Spring Boot 3
-        working-directory: ./spring-ydb
+        working-directory: ./spring-ydb-retry
         run: mvn $MAVEN_ARGS -Pspring-boot3 test
 
       - name: Tests with Spring Boot 4
-        working-directory: ./spring-ydb
+        working-directory: ./spring-ydb-retry
         run: mvn $MAVEN_ARGS -Pspring-boot4 test
