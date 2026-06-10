@@ -65,6 +65,6 @@ public class RetryTest extends AbstractSelectTest {
         );
         long elapsed = System.currentTimeMillis() - start;
 
-        Assertions.assertTrue(elapsed >= 300, "the backoff time is less than 100ms");
+        Assertions.assertTrue(elapsed >= 300, "the backoff time is less than 300ms");
     }
 }
