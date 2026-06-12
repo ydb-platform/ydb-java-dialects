@@ -2,8 +2,6 @@ package ydb.jimmer.dialect;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import org.babyfish.jimmer.jackson.ImmutableModule;
 import org.babyfish.jimmer.meta.ImmutableProp;
 import org.babyfish.jimmer.meta.ImmutableType;
 import org.babyfish.jimmer.sql.cache.TransactionCacheOperator;
@@ -70,9 +68,7 @@ public class UuidTransactionCacheOperator extends TransactionCacheOperator {
         }
         this.mapper = mapper != null ?
                 mapper :
-                new ObjectMapper()
-                        .registerModule(new JavaTimeModule())
-                        .registerModule(new ImmutableModule());
+                new ObjectMapper().findAndRegisterModules();
         this.batchSize = batchSize;
     }
 
