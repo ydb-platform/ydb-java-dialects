@@ -99,7 +99,7 @@ class YdbTransactionInterceptorReplacerTest {
         PlatformTransactionManager txManager = Mockito.mock(PlatformTransactionManager.class);
         YdbRetryProperties properties = new YdbRetryProperties();
         properties.setEnabled(false);
-        properties.setMaxRetries(3);
+        properties.setMaxAttempts(3);
         TransactionAttributeSource tas = new AnnotationTransactionAttributeSource();
 
         beanFactory.registerSingleton("transactionManager", txManager);

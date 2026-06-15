@@ -70,36 +70,41 @@ public @interface YdbTransactional {
     boolean enabled() default true;
 
     /**
-     * Specifies the maximum number of retry attempts after the initial failed execution.
-     * The annotated method may be executed up to {@code maxRetries + 1} times in total.
-     * Use {@code -1} to inherit the value from the global retry configuration.
-     * A value of {@code 0} is not supported; use {@code enabled() = false} to disable retry.
+     * Specifies the maximum total number of attempts, counting the initial execution.
+     * For example, {@code maxAttempts = 3} allows the initial attempt plus up to two retries,
+     * while {@code maxAttempts = 1} executes the method exactly once without retries.
+     * Use {@code 0} to inherit the value from the global retry configuration.
+     * Negative values are not allowed.
      */
-    int maxRetries() default -1;
+    int maxAttempts() default 0;
 
     /**
      * Overrides the base delay in milliseconds for the slow backoff strategy.
-     * Use {@code -1} to inherit the value from the global retry configuration.
+     * Use {@code 0} to inherit the value from the global retry configuration.
+     * Negative values are not allowed.
      */
-    int slowBackoffBaseMs() default -1;
+    int slowBackoffBaseMs() default 0;
 
     /**
      * Overrides the base delay in milliseconds for the fast backoff strategy.
-     * Use {@code -1} to inherit the value from the global retry configuration.
+     * Use {@code 0} to inherit the value from the global retry configuration.
+     * Negative values are not allowed.
      */
-    int fastBackoffBaseMs() default -1;
+    int fastBackoffBaseMs() default 0;
 
     /**
      * Overrides the maximum delay in milliseconds for the slow backoff strategy.
-     * Use {@code -1} to inherit the value from the global retry configuration.
+     * Use {@code 0} to inherit the value from the global retry configuration.
+     * Negative values are not allowed.
      */
-    int slowCapBackoffMs() default -1;
+    int slowCapBackoffMs() default 0;
 
     /**
      * Overrides the maximum delay in milliseconds for the fast backoff strategy.
-     * Use {@code -1} to inherit the value from the global retry configuration.
+     * Use {@code 0} to inherit the value from the global retry configuration.
+     * Negative values are not allowed.
      */
-    int fastCapBackoffMs() default -1;
+    int fastCapBackoffMs() default 0;
 
     /**
      * Marks the transactional method as idempotent for YDB retries.

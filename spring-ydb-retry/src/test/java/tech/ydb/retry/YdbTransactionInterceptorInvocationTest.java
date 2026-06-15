@@ -13,7 +13,7 @@ class YdbTransactionInterceptorInvocationTest extends InterceptorTestSupport {
 
     @Test
     void shouldCloneProxyMethodInvocationForEachRetryAttempt() throws Throwable {
-        TestableInterceptor interceptor = interceptorWithConfig(true, 3, 0, 0, 0, 0);
+        TestableInterceptor interceptor = interceptorWithConfig(true, 4, 0, 0, 0, 0);
 
         Method method = methodOf("ydbCustomRetry");
         Object target = new YdbTransactionalTestService();

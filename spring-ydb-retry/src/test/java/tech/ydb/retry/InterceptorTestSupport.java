@@ -22,15 +22,15 @@ abstract class InterceptorTestSupport {
     }
 
     static TestableInterceptor interceptorWithConfig(
-            boolean enabled, int maxRetries, int slowBase, int fastBase, int slowCap, int fastCap) {
+            boolean enabled, int maxAttempts, int slowBase, int fastBase, int slowCap, int fastCap) {
         return interceptorWithSleeper(
-                enabled, maxRetries, slowBase, fastBase, slowCap, fastCap, delay -> {
+                enabled, maxAttempts, slowBase, fastBase, slowCap, fastCap, delay -> {
                 });
     }
 
     static TestableInterceptor interceptorWithSleeper(
             boolean enabled,
-            int maxRetries,
+            int maxAttempts,
             int slowBase,
             int fastBase,
             int slowCap,
@@ -38,7 +38,7 @@ abstract class InterceptorTestSupport {
             BackoffSleeper sleeper) {
         TestableInterceptor interceptor =
                 new TestableInterceptor(
-                        new YdbRetryPolicyConfig(enabled, maxRetries, slowBase, fastBase, slowCap, fastCap),
+                        new YdbRetryPolicyConfig(enabled, maxAttempts, slowBase, fastBase, slowCap, fastCap),
                         sleeper);
         interceptor.setTransactionAttributeSource(new AnnotationTransactionAttributeSource());
         return interceptor;
@@ -123,27 +123,27 @@ abstract class InterceptorTestSupport {
     }
 
     static class YdbTransactionalTestService {
-        @YdbTransactional(maxRetries = 2)
+        @YdbTransactional(maxAttempts = 3)
         public String ydbCustomRetry() {
             return "ok";
         }
 
-        @YdbTransactional(maxRetries = 5)
+        @YdbTransactional(maxAttempts = 6)
         public String ydbRequiredRetry() {
             return "ok";
         }
 
-        @YdbTransactional(maxRetries = 2, propagation = Propagation.REQUIRES_NEW)
+        @YdbTransactional(maxAttempts = 3, propagation = Propagation.REQUIRES_NEW)
         public String ydbRequiresNewRetry() {
             return "ok";
         }
 
-        @YdbTransactional(maxRetries = 3, propagation = Propagation.NESTED)
+        @YdbTransactional(maxAttempts = 4, propagation = Propagation.NESTED)
         public String ydbNestedRetry() {
             return "ok";
         }
 
-        @YdbTransactional(maxRetries = 3, propagation = Propagation.NOT_SUPPORTED)
+        @YdbTransactional(maxAttempts = 4, propagation = Propagation.NOT_SUPPORTED)
         public String ydbNotSupportedRetry() {
             return "ok";
         }
@@ -174,7 +174,7 @@ abstract class InterceptorTestSupport {
         }
 
         @YdbTransactional(
-                maxRetries = 100,
+                maxAttempts = 100,
                 slowBackoffBaseMs = 200,
                 fastBackoffBaseMs = 10,
                 slowCapBackoffMs = 10000,
@@ -183,22 +183,22 @@ abstract class InterceptorTestSupport {
             return "ok";
         }
 
-        @YdbTransactional(maxRetries = -2)
-        public String ydbNegativeMaxRetries() {
+        @YdbTransactional(maxAttempts = -2)
+        public String ydbNegativeMaxAttempts() {
             return "ok";
         }
 
-        @YdbTransactional(maxRetries = 0)
-        public String ydbZeroMaxRetries() {
+        @YdbTransactional(maxAttempts = 0)
+        public String ydbZeroMaxAttempts() {
             return "ok";
         }
 
-        @YdbTransactional(maxRetries = 5, idempotent = true)
+        @YdbTransactional(maxAttempts = 6, idempotent = true)
         public String ydbIdempotentRetry() {
             return "ok";
         }
 
-        @YdbTransactional(maxRetries = 3)
+        @YdbTransactional(maxAttempts = 4)
         public String ydbNonIdempotentRetry() {
             return "ok";
         }

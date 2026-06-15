@@ -51,7 +51,7 @@ class NonRetryableCommitIntegrationTest extends YdbDockerTest {
 
         assertThrows(
                 Exception.class,
-                () -> userService.saveWithMaxRetries3(createUser(2L, "user2", "first2", "last2")));
+                () -> userService.saveWithMaxAttempts4(createUser(2L, "user2", "first2", "last2")));
         assertEquals(1, DeterministicErrorChannel.getCallCount("commitTransaction"));
         assertNull(userService.findById(2L));
     }

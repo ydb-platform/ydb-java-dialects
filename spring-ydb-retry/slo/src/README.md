@@ -23,7 +23,7 @@ java -jar target/ydb-slo-workload-1.0.0-SNAPSHOT-exec.jar \
   --server.port=8081 \
   --spring.datasource.url=jdbc:ydb:grpc://localhost:2136/Root/testdb \
   --ydb.transaction.retry.enabled=true \
-  --ydb.transaction.retry.max-retries=10 \
+  --ydb.transaction.retry.max-attempts=10 \
   --slo.ref=with-retry
 
 # Without retry
@@ -76,7 +76,7 @@ All parameters are set via environment variables (or Spring Boot command-line ar
 | `SERVER_PORT`                       | `8080`                                       | HTTP port (Actuator endpoints)                         |
 | `SPRING_DATASOURCE_URL`             | `jdbc:ydb:grpc://localhost:2136/Root/testdb` | YDB JDBC URL                                           |
 | `YDB_TRANSACTION_RETRY_ENABLED`     | `true`                                       | Enable/disable retry                                   |
-| `YDB_TRANSACTION_RETRY_MAX_RETRIES` | `10`                                         | Max retry attempts                                     |
+| `YDB_TRANSACTION_RETRY_MAX_ATTEMPTS` | `10`                                        | Max total attempts (incl. initial execution)           |
 | `SLO_RUN_ID`                        | auto                                         | Shared run identifier used for the result folder name  |
 | `SLO_RESULTS_DIR`                   | `results`                                    | Root directory where per-run result folders are stored |
 

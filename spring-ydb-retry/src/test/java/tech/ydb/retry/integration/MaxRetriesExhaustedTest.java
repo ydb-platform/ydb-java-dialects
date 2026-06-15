@@ -38,7 +38,7 @@ class MaxRetriesExhaustedTest extends YdbDockerTest {
 
         assertThrows(
                 Exception.class,
-                () -> userService.saveWithMaxRetries3(createUser(1L, "user1", "first1", "last1")));
+                () -> userService.saveWithMaxAttempts4(createUser(1L, "user1", "first1", "last1")));
         assertEquals(4, DeterministicErrorChannel.getCallCount("executeQuery"));
     }
 
@@ -48,7 +48,7 @@ class MaxRetriesExhaustedTest extends YdbDockerTest {
                 .onError("executeQuery", 1, StatusCode.ABORTED)
                 .onError("executeQuery", 2, StatusCode.ABORTED);
 
-        userService.saveWithMaxRetries3(createUser(2L, "user2", "first2", "last2"));
+        userService.saveWithMaxAttempts4(createUser(2L, "user2", "first2", "last2"));
 
         assertEquals(3, DeterministicErrorChannel.getCallCount("executeQuery"));
         assertNotNull(userService.findById(2L));

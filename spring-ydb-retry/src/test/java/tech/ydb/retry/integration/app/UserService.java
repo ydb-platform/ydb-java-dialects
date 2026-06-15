@@ -23,8 +23,8 @@ public class UserService {
         userRepository.save(user);
     }
 
-    @YdbTransactional(maxRetries = 3)
-    public void saveWithMaxRetries3(User user) {
+    @YdbTransactional(maxAttempts = 4)
+    public void saveWithMaxAttempts4(User user) {
         userRepository.save(user);
     }
 
@@ -33,7 +33,7 @@ public class UserService {
         userRepository.save(user);
     }
 
-    @YdbTransactional(maxRetries = 50, idempotent = true)
+    @YdbTransactional(maxAttempts = 51, idempotent = true)
     public void updateFirstname(Long id, String firstname) {
         userRepository.findById(id);
         userRepository.updateFirstnameById(id, firstname);

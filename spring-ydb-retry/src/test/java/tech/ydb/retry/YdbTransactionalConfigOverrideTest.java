@@ -23,7 +23,7 @@ class YdbTransactionalConfigOverrideTest extends InterceptorTestSupport {
 
     @Test
     void shouldOverrideMaxRetriesFromAnnotation() throws Throwable {
-        TestableInterceptor interceptor = interceptorWithConfig(true, 1, 0, 0, 0, 0);
+        TestableInterceptor interceptor = interceptorWithConfig(true, 2, 0, 0, 0, 0);
         interceptor.enqueueOutcome(new ConfigurableStatusException(ABORTED), "ok");
 
         Object result = interceptor.invoke(invocationFor("ydbCustomRetry"));
@@ -35,7 +35,7 @@ class YdbTransactionalConfigOverrideTest extends InterceptorTestSupport {
 
     @Test
     void shouldUseConfigMaxRetriesWhenAnnotationNotSet() throws Throwable {
-        TestableInterceptor interceptor = interceptorWithConfig(true, 2, 0, 0, 0, 0);
+        TestableInterceptor interceptor = interceptorWithConfig(true, 3, 0, 0, 0, 0);
         interceptor.enqueueOutcome(new ConfigurableStatusException(BAD_SESSION), "ok");
 
         Object result = interceptor.invoke(invocationFor("defaultRetry"));
@@ -47,7 +47,7 @@ class YdbTransactionalConfigOverrideTest extends InterceptorTestSupport {
 
     @Test
     void shouldExhaustAnnotatedMaxRetriesAndPropagate() {
-        TestableInterceptor interceptor = interceptorWithConfig(true, 1, 0, 0, 0, 0);
+        TestableInterceptor interceptor = interceptorWithConfig(true, 2, 0, 0, 0, 0);
         interceptor.enqueueOutcome(
                 new ConfigurableStatusException(SESSION_BUSY),
                 new ConfigurableStatusException(OVERLOADED),
@@ -65,7 +65,7 @@ class YdbTransactionalConfigOverrideTest extends InterceptorTestSupport {
 
     @Test
     void shouldUseAnnotatedMaxRetriesWhenLowerThanConfig() {
-        TestableInterceptor interceptor = interceptorWithConfig(true, 1, 0, 0, 0, 0);
+        TestableInterceptor interceptor = interceptorWithConfig(true, 2, 0, 0, 0, 0);
         interceptor.enqueueOutcome(
                 new ConfigurableStatusException(OVERLOADED),
                 new ConfigurableStatusException(BAD_SESSION),
@@ -83,7 +83,7 @@ class YdbTransactionalConfigOverrideTest extends InterceptorTestSupport {
 
     @Test
     void shouldUseAnnotatedMaxRetriesWhenHigherThanConfig() throws Throwable {
-        TestableInterceptor interceptor = interceptorWithConfig(true, 1, 0, 0, 0, 0);
+        TestableInterceptor interceptor = interceptorWithConfig(true, 2, 0, 0, 0, 0);
         interceptor.enqueueOutcome(
                 new ConfigurableStatusException(BAD_SESSION),
                 new ConfigurableStatusException(SESSION_BUSY),
@@ -99,7 +99,7 @@ class YdbTransactionalConfigOverrideTest extends InterceptorTestSupport {
 
     @Test
     void shouldRetryDifferentStatusCodesAcrossRetries() throws Throwable {
-        TestableInterceptor interceptor = interceptorWithConfig(true, 1, 0, 0, 0, 0);
+        TestableInterceptor interceptor = interceptorWithConfig(true, 2, 0, 0, 0, 0);
         interceptor.enqueueOutcome(
                 new ConfigurableStatusException(ABORTED),
                 new ConfigurableStatusException(BAD_SESSION),
@@ -113,7 +113,7 @@ class YdbTransactionalConfigOverrideTest extends InterceptorTestSupport {
 
     @Test
     void shouldNotRetryClientCancelledWhenNotIdempotent() {
-        TestableInterceptor interceptor = interceptorWithConfig(true, 5, 0, 0, 0, 0);
+        TestableInterceptor interceptor = interceptorWithConfig(true, 6, 0, 0, 0, 0);
         interceptor.enqueueOutcome(new ConfigurableStatusException(CLIENT_CANCELLED), "ok");
 
         ConfigurableStatusException exception =
@@ -127,7 +127,7 @@ class YdbTransactionalConfigOverrideTest extends InterceptorTestSupport {
 
     @Test
     void shouldNotRetryClientCancelledEvenWhenIdempotent() {
-        TestableInterceptor interceptor = interceptorWithConfig(true, 5, 0, 0, 0, 0);
+        TestableInterceptor interceptor = interceptorWithConfig(true, 6, 0, 0, 0, 0);
         interceptor.enqueueOutcome(new ConfigurableStatusException(CLIENT_CANCELLED), "ok");
 
         ConfigurableStatusException exception =
@@ -141,7 +141,7 @@ class YdbTransactionalConfigOverrideTest extends InterceptorTestSupport {
 
     @Test
     void shouldNotRetryClientInternalErrorEvenWhenIdempotent() {
-        TestableInterceptor interceptor = interceptorWithConfig(true, 5, 0, 0, 0, 0);
+        TestableInterceptor interceptor = interceptorWithConfig(true, 6, 0, 0, 0, 0);
         interceptor.enqueueOutcome(new ConfigurableStatusException(CLIENT_INTERNAL_ERROR), "ok");
 
         ConfigurableStatusException exception =
@@ -155,7 +155,7 @@ class YdbTransactionalConfigOverrideTest extends InterceptorTestSupport {
 
     @Test
     void shouldUseInterfaceMethodYdbTransactionalOverrides() throws Throwable {
-        TestableInterceptor interceptor = interceptorWithConfig(true, 1, 0, 0, 0, 0);
+        TestableInterceptor interceptor = interceptorWithConfig(true, 2, 0, 0, 0, 0);
         interceptor.enqueueOutcome(new ConfigurableStatusException(TRANSPORT_UNAVAILABLE), "ok");
 
         Object result = interceptor.invoke(invocationFor(
@@ -168,7 +168,7 @@ class YdbTransactionalConfigOverrideTest extends InterceptorTestSupport {
 
     @Test
     void shouldNotRetryTransportUnavailableWhenNotIdempotent() {
-        TestableInterceptor interceptor = interceptorWithConfig(true, 5, 0, 0, 0, 0);
+        TestableInterceptor interceptor = interceptorWithConfig(true, 6, 0, 0, 0, 0);
         interceptor.enqueueOutcome(new ConfigurableStatusException(TRANSPORT_UNAVAILABLE), "ok");
 
         ConfigurableStatusException exception =
@@ -182,7 +182,7 @@ class YdbTransactionalConfigOverrideTest extends InterceptorTestSupport {
 
     @Test
     void shouldRetryTransportUnavailableWhenIdempotent() throws Throwable {
-        TestableInterceptor interceptor = interceptorWithConfig(true, 5, 0, 0, 0, 0);
+        TestableInterceptor interceptor = interceptorWithConfig(true, 6, 0, 0, 0, 0);
         interceptor.enqueueOutcome(new ConfigurableStatusException(TRANSPORT_UNAVAILABLE), "ok");
 
         Object result = interceptor.invoke(invocationFor("ydbIdempotentRetry"));
@@ -193,7 +193,7 @@ class YdbTransactionalConfigOverrideTest extends InterceptorTestSupport {
 
     @Test
     void shouldRetryClientResourceExhaustedWhenNotIdempotent() throws Throwable {
-        TestableInterceptor interceptor = interceptorWithConfig(true, 5, 0, 0, 0, 0);
+        TestableInterceptor interceptor = interceptorWithConfig(true, 6, 0, 0, 0, 0);
         interceptor.enqueueOutcome(new ConfigurableStatusException(CLIENT_RESOURCE_EXHAUSTED), "ok");
 
         Object result = interceptor.invoke(invocationFor("ydbNonIdempotentRetry"));
@@ -204,7 +204,7 @@ class YdbTransactionalConfigOverrideTest extends InterceptorTestSupport {
 
     @Test
     void shouldRetryClientResourceExhaustedWhenIdempotent() throws Throwable {
-        TestableInterceptor interceptor = interceptorWithConfig(true, 5, 0, 0, 0, 0);
+        TestableInterceptor interceptor = interceptorWithConfig(true, 6, 0, 0, 0, 0);
         interceptor.enqueueOutcome(new ConfigurableStatusException(CLIENT_RESOURCE_EXHAUSTED), "ok");
 
         Object result = interceptor.invoke(invocationFor("ydbIdempotentRetry"));
@@ -215,7 +215,7 @@ class YdbTransactionalConfigOverrideTest extends InterceptorTestSupport {
 
     @Test
     void shouldNotRetryTimeoutWhenIdempotent() {
-        TestableInterceptor interceptor = interceptorWithConfig(true, 5, 0, 0, 0, 0);
+        TestableInterceptor interceptor = interceptorWithConfig(true, 6, 0, 0, 0, 0);
         interceptor.enqueueOutcome(new ConfigurableStatusException(TIMEOUT));
 
         ConfigurableStatusException exception =
@@ -229,7 +229,7 @@ class YdbTransactionalConfigOverrideTest extends InterceptorTestSupport {
 
     @Test
     void shouldNotRetrySessionExpiredWhenNotIdempotent() {
-        TestableInterceptor interceptor = interceptorWithConfig(true, 5, 0, 0, 0, 0);
+        TestableInterceptor interceptor = interceptorWithConfig(true, 6, 0, 0, 0, 0);
         interceptor.enqueueOutcome(new ConfigurableStatusException(SESSION_EXPIRED));
 
         ConfigurableStatusException exception =
@@ -243,7 +243,7 @@ class YdbTransactionalConfigOverrideTest extends InterceptorTestSupport {
 
     @Test
     void shouldRetryAlwaysRetryableCodesWhenIdempotent() throws Throwable {
-        TestableInterceptor interceptor = interceptorWithConfig(true, 5, 0, 0, 0, 0);
+        TestableInterceptor interceptor = interceptorWithConfig(true, 6, 0, 0, 0, 0);
         interceptor.enqueueOutcome(new ConfigurableStatusException(ABORTED), "ok");
 
         Object result = interceptor.invoke(invocationFor("ydbIdempotentRetry"));
@@ -254,7 +254,7 @@ class YdbTransactionalConfigOverrideTest extends InterceptorTestSupport {
 
     @Test
     void shouldRetryMixedStatusCodesWhenIdempotent() throws Throwable {
-        TestableInterceptor interceptor = interceptorWithConfig(true, 5, 0, 0, 0, 0);
+        TestableInterceptor interceptor = interceptorWithConfig(true, 6, 0, 0, 0, 0);
         interceptor.enqueueOutcome(
                 new ConfigurableStatusException(ABORTED),
                 new ConfigurableStatusException(UNDETERMINED),
@@ -269,7 +269,7 @@ class YdbTransactionalConfigOverrideTest extends InterceptorTestSupport {
 
     @Test
     void shouldRetrySessionExpiredWithZeroDelayWhenIdempotent() throws Throwable {
-        TestableInterceptor interceptor = interceptorWithConfig(true, 5, 0, 0, 0, 0);
+        TestableInterceptor interceptor = interceptorWithConfig(true, 6, 0, 0, 0, 0);
         interceptor.enqueueOutcome(new ConfigurableStatusException(SESSION_EXPIRED), "ok");
 
         Object result = interceptor.invoke(invocationFor("ydbIdempotentRetry"));
@@ -280,7 +280,7 @@ class YdbTransactionalConfigOverrideTest extends InterceptorTestSupport {
 
     @Test
     void shouldStopAtIdempotentOnlyCodeWhenNotIdempotent() {
-        TestableInterceptor interceptor = interceptorWithConfig(true, 5, 0, 0, 0, 0);
+        TestableInterceptor interceptor = interceptorWithConfig(true, 6, 0, 0, 0, 0);
         interceptor.enqueueOutcome(
                 new ConfigurableStatusException(BAD_SESSION), new ConfigurableStatusException(TIMEOUT));
 
@@ -297,7 +297,7 @@ class YdbTransactionalConfigOverrideTest extends InterceptorTestSupport {
     void shouldNotReachDelayCalculatorForTimeoutWhenIdempotent() {
         List<Long> delays = new ArrayList<>();
         TestableInterceptor interceptor =
-                interceptorWithSleeper(true, 5, 100, 50, 1000, 500, delays::add);
+                interceptorWithSleeper(true, 6, 100, 50, 1000, 500, delays::add);
         interceptor.enqueueOutcome(new ConfigurableStatusException(TIMEOUT));
 
         assertThrows(
@@ -312,7 +312,7 @@ class YdbTransactionalConfigOverrideTest extends InterceptorTestSupport {
     void shouldUseZeroDelayForSessionExpiredWhenIdempotent() throws Throwable {
         List<Long> delays = new ArrayList<>();
         TestableInterceptor interceptor =
-                interceptorWithSleeper(true, 5, 100, 50, 1000, 500, delays::add);
+                interceptorWithSleeper(true, 6, 100, 50, 1000, 500, delays::add);
         interceptor.enqueueOutcome(new ConfigurableStatusException(SESSION_EXPIRED), "ok");
 
         Object result = interceptor.invoke(invocationFor("ydbIdempotentRetry"));
@@ -326,7 +326,7 @@ class YdbTransactionalConfigOverrideTest extends InterceptorTestSupport {
     void shouldUseFastBackoffForUndeterminedWhenIdempotent() throws Throwable {
         List<Long> delays = new ArrayList<>();
         TestableInterceptor interceptor =
-                interceptorWithSleeper(true, 5, 100, 50, 1000, 500, delays::add);
+                interceptorWithSleeper(true, 6, 100, 50, 1000, 500, delays::add);
         interceptor.enqueueOutcome(new ConfigurableStatusException(UNDETERMINED), "ok");
 
         interceptor.invoke(invocationFor("ydbIdempotentRetry"));
@@ -338,7 +338,7 @@ class YdbTransactionalConfigOverrideTest extends InterceptorTestSupport {
     @Test
     void shouldDelayFirstOverloadedRetryUsingZeroBasedRetryIndex() throws Throwable {
         List<Long> delays = new ArrayList<>();
-        TestableInterceptor interceptor = interceptorWithSleeper(true, 5, 1, 1, 1, 1, delays::add);
+        TestableInterceptor interceptor = interceptorWithSleeper(true, 6, 1, 1, 1, 1, delays::add);
         interceptor.enqueueOutcome(new ConfigurableStatusException(OVERLOADED), "ok");
 
         Object result = interceptor.invoke(invocationFor("ydbCustomRetry"));
@@ -350,7 +350,7 @@ class YdbTransactionalConfigOverrideTest extends InterceptorTestSupport {
 
     @Test
     void shouldNotRetryWhenMethodDisablesRetry() {
-        TestableInterceptor interceptor = interceptorWithConfig(true, 3, 0, 0, 0, 0);
+        TestableInterceptor interceptor = interceptorWithConfig(true, 4, 0, 0, 0, 0);
         interceptor.enqueueOutcome(new ConfigurableStatusException(BAD_SESSION), "ok");
 
         ConfigurableStatusException exception =
@@ -364,7 +364,7 @@ class YdbTransactionalConfigOverrideTest extends InterceptorTestSupport {
 
     @Test
     void shouldNotRetryWhenGlobalConfigDisablesRetryEvenIfMethodEnablesIt() {
-        TestableInterceptor interceptor = interceptorWithConfig(false, 3, 0, 0, 0, 0);
+        TestableInterceptor interceptor = interceptorWithConfig(false, 4, 0, 0, 0, 0);
         interceptor.enqueueOutcome(new ConfigurableStatusException(BAD_SESSION), "ok");
 
         ConfigurableStatusException exception =
@@ -377,7 +377,7 @@ class YdbTransactionalConfigOverrideTest extends InterceptorTestSupport {
     }
 
     interface InterfaceAnnotatedService {
-        @YdbTransactional(maxRetries = 2, idempotent = true)
+        @YdbTransactional(maxAttempts = 3, idempotent = true)
         String interfaceAnnotatedIdempotentRetry();
     }
 
