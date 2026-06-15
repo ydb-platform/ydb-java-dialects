@@ -1,8 +1,9 @@
 package ydb.jimmer.dialect.chaosTests;
 
 import org.babyfish.jimmer.sql.exception.ExecutionException;
+import ydb.jimmer.dialect.transaction.YdbVendorCode;
 
-import java.sql.SQLTimeoutException;
+import java.sql.SQLException;
 import java.util.function.Supplier;
 
 public class FailFirstN<R> implements Supplier<R> {
@@ -28,7 +29,10 @@ public class FailFirstN<R> implements Supplier<R> {
     @Override
     public R get() {
         if (attempt++ < n) {
-            throw new ExecutionException("Expected failure number " + attempt, new SQLTimeoutException());
+            throw new ExecutionException(
+                    "Expected failure number " + attempt,
+                    new SQLException("", "", YdbVendorCode.UNAVAILABLE)
+            );
         }
 
         return result;

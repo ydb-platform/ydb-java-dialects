@@ -8,7 +8,6 @@ import org.jetbrains.annotations.Nullable;
 import javax.sql.DataSource;
 import java.sql.Connection;
 import java.sql.SQLException;
-import java.sql.SQLTimeoutException;
 import java.util.function.Function;
 
 /**
@@ -71,7 +70,7 @@ public class YdbTxConnectionManager implements TxConnectionManager {
                         errorOccurred = true;
 
                         if (ex instanceof RuntimeException) {
-                            if (i == maxAttempts - 1 || !isRetryable(ex.getCause())) {
+                            if (i == maxAttempts - 1 || !isRetryable(ex)) {
                                 throw ex;
                             }
                         } else {
@@ -103,17 +102,30 @@ public class YdbTxConnectionManager implements TxConnectionManager {
         throw new RuntimeException("Max attempts exceeded");
     }
 
+    /**
+     * Checks whether the error returned by the JDBC driver is retryable.
+     * Currently, the errors retryable only with idempotent queries are not supported.
+     * Jimmer always wraps non-runtime exceptions in ExecutionException.
+     *
+     * @param ex exception returned by Jimmer
+     * @return can the query be retried after returning this exception
+     */
     private boolean isRetryable(Throwable ex) {
-        return ex instanceof SQLTimeoutException ||
-                (ex instanceof SQLException && isRetryableSqlState((SQLException) ex));
+        Throwable current = ex;
+        while (current != null) {
+            if (current instanceof SQLException sqlException) {
+                int vendorCode = sqlException.getErrorCode();
+                if (vendorCode != 0) {
+                    return isRetryableVendorCode(vendorCode);
+                }
+            }
+            current = current.getCause();
+        }
+        return false;
     }
 
-    private boolean isRetryableSqlState(SQLException ex) {
-        String sqlState = ex.getSQLState();
-        return sqlState != null && (
-                sqlState.startsWith("40") || // Transaction rollback
-                        sqlState.startsWith("08")   // Connection exception
-        );
+    private boolean isRetryableVendorCode(int vendorCode) {
+        return YdbVendorCode.TRANSIENT_VENDOR_CODES.contains(vendorCode);
     }
 
     protected Connection openConnection() throws SQLException {
