@@ -22,10 +22,6 @@ public class YdbTransactionInterceptor extends TransactionInterceptor {
     private final YdbRetryPolicyConfig retryConfig;
     private final BackoffSleeper backoffSleeper;
 
-    public YdbTransactionInterceptor() {
-        this(new YdbRetryPolicyConfig(), Thread::sleep);
-    }
-
     YdbTransactionInterceptor(YdbRetryPolicyConfig retryConfig, BackoffSleeper backoffSleeper) {
         this.retryConfig = retryConfig;
         this.backoffSleeper = backoffSleeper;

@@ -92,8 +92,10 @@ class YdbRetryPolicyTest {
     @Test
     void shouldReturnEmptyWhenAttemptBudgetExhausted() {
         YdbRetryPolicyConfig config = new YdbRetryPolicyConfig(true, 2, 0, 0, 0, 0);
+        // maxAttempts counts the initial execution, so with budget=2 only the first
+        // failure (attempt=0) is allowed to schedule a retry; the second one exhausts the budget.
         assertTrue(YdbRetryPolicy.getNextRetryDelayMs(ABORTED, 0, config, false).isPresent());
-        assertTrue(YdbRetryPolicy.getNextRetryDelayMs(ABORTED, 1, config, false).isPresent());
+        assertTrue(YdbRetryPolicy.getNextRetryDelayMs(ABORTED, 1, config, false).isEmpty());
         assertTrue(YdbRetryPolicy.getNextRetryDelayMs(ABORTED, 2, config, false).isEmpty());
     }
 
