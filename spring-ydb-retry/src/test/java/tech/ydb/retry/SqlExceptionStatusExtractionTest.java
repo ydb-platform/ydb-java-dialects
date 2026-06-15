@@ -19,7 +19,7 @@ class SqlExceptionStatusExtractionTest extends InterceptorTestSupport {
 
     @Test
     void shouldRetryWhenSqlExceptionDirectlyCarriesRetryableStatus() throws Throwable {
-        TestableInterceptor interceptor = interceptorWithConfig(true, 3, 0, 0, 0, 0);
+        TestableInterceptor interceptor = interceptorWithConfig(true, 4, 0, 0, 0, 0);
         interceptor.enqueueOutcome(plainSqlException(BAD_SESSION.getCode()), "ok");
 
         Object result = interceptor.invoke(invocationFor("regularTx"));
@@ -30,7 +30,7 @@ class SqlExceptionStatusExtractionTest extends InterceptorTestSupport {
 
     @Test
     void shouldRetryWhenSqlExceptionIsBuriedInSpringDataAccessWrapper() throws Throwable {
-        TestableInterceptor interceptor = interceptorWithConfig(true, 3, 0, 0, 0, 0);
+        TestableInterceptor interceptor = interceptorWithConfig(true, 4, 0, 0, 0, 0);
         DataIntegrityViolationException wrapper = new DataIntegrityViolationException(
                 "wrapped", plainSqlException(ABORTED.getCode()));
         interceptor.enqueueOutcome(wrapper, "ok");
@@ -43,7 +43,7 @@ class SqlExceptionStatusExtractionTest extends InterceptorTestSupport {
 
     @Test
     void shouldNotRetryWhenSqlExceptionHasNonRetryableStatus() {
-        TestableInterceptor interceptor = interceptorWithConfig(true, 5, 0, 0, 0, 0);
+        TestableInterceptor interceptor = interceptorWithConfig(true, 6, 0, 0, 0, 0);
         interceptor.enqueueOutcome(plainSqlException(SCHEME_ERROR.getCode()));
 
         SQLException thrown =
@@ -55,7 +55,7 @@ class SqlExceptionStatusExtractionTest extends InterceptorTestSupport {
 
     @Test
     void shouldNotRetryWhenSqlExceptionHasZeroVendorCode() {
-        TestableInterceptor interceptor = interceptorWithConfig(true, 5, 0, 0, 0, 0);
+        TestableInterceptor interceptor = interceptorWithConfig(true, 6, 0, 0, 0, 0);
         interceptor.enqueueOutcome(new SQLException("non-ydb driver", null, 0));
 
         assertThrows(SQLException.class, () -> interceptor.invoke(invocationFor("regularTx")));
@@ -64,7 +64,7 @@ class SqlExceptionStatusExtractionTest extends InterceptorTestSupport {
 
     @Test
     void shouldNotRetryWhenSqlExceptionHasUnknownVendorCode() {
-        TestableInterceptor interceptor = interceptorWithConfig(true, 5, 0, 0, 0, 0);
+        TestableInterceptor interceptor = interceptorWithConfig(true, 6, 0, 0, 0, 0);
         interceptor.enqueueOutcome(new SQLException("some-other-driver", null, 12345));
 
         assertThrows(SQLException.class, () -> interceptor.invoke(invocationFor("regularTx")));

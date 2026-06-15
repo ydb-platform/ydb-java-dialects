@@ -11,7 +11,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static tech.ydb.retry.YdbRetryPolicyConfig.DEFAULT_FAST_BACKOFF_BASE_MS;
 import static tech.ydb.retry.YdbRetryPolicyConfig.DEFAULT_FAST_CAP_BACKOFF_MS;
-import static tech.ydb.retry.YdbRetryPolicyConfig.DEFAULT_MAX_RETRIES;
+import static tech.ydb.retry.YdbRetryPolicyConfig.DEFAULT_MAX_ATTEMPTS;
 import static tech.ydb.retry.YdbRetryPolicyConfig.DEFAULT_SLOW_BACKOFF_BASE_MS;
 import static tech.ydb.retry.YdbRetryPolicyConfig.DEFAULT_SLOW_CAP_BACKOFF_MS;
 
@@ -21,7 +21,7 @@ class YdbRetryPolicyConfigTest extends InterceptorTestSupport {
     void defaultConstructorShouldSetDefaultValues() {
         YdbRetryPolicyConfig config = new YdbRetryPolicyConfig();
 
-        assertEquals(DEFAULT_MAX_RETRIES, config.getMaxRetries());
+        assertEquals(DEFAULT_MAX_ATTEMPTS, config.getMaxAttempts());
         assertEquals(DEFAULT_SLOW_BACKOFF_BASE_MS, config.getSlowBackoffBaseMs());
         assertEquals(DEFAULT_FAST_BACKOFF_BASE_MS, config.getFastBackoffBaseMs());
         assertEquals(DEFAULT_SLOW_CAP_BACKOFF_MS, config.getSlowCapBackoffMs());
@@ -32,7 +32,7 @@ class YdbRetryPolicyConfigTest extends InterceptorTestSupport {
     void customConstructorShouldSetValues() {
         YdbRetryPolicyConfig config = new YdbRetryPolicyConfig(true, 5, 100, 20, 2000, 300);
 
-        assertEquals(5, config.getMaxRetries());
+        assertEquals(5, config.getMaxAttempts());
         assertEquals(100, config.getSlowBackoffBaseMs());
         assertEquals(20, config.getFastBackoffBaseMs());
         assertEquals(2000, config.getSlowCapBackoffMs());
@@ -40,13 +40,13 @@ class YdbRetryPolicyConfigTest extends InterceptorTestSupport {
     }
 
     @Test
-    void shouldThrowWhenMaxRetriesIsZero() {
-        assertThrows(
-                IllegalArgumentException.class, () -> new YdbRetryPolicyConfig(true, 0, 0, 0, 0, 0));
+    void shouldAcceptZeroMaxAttempts() {
+        YdbRetryPolicyConfig config = new YdbRetryPolicyConfig(true, 0, 0, 0, 0, 0);
+        assertEquals(0, config.getMaxAttempts());
     }
 
     @Test
-    void shouldThrowWhenMaxRetriesIsNegative() {
+    void shouldThrowWhenMaxAttemptsIsNegative() {
         assertThrows(
                 IllegalArgumentException.class, () -> new YdbRetryPolicyConfig(true, -1, 0, 0, 0, 0));
     }
@@ -91,7 +91,7 @@ class YdbRetryPolicyConfigTest extends InterceptorTestSupport {
 
         YdbRetryPolicyConfig merged = original.merge(annotation);
 
-        assertEquals(5, merged.getMaxRetries());
+        assertEquals(5, merged.getMaxAttempts());
         assertEquals(100, merged.getSlowBackoffBaseMs());
         assertEquals(20, merged.getFastBackoffBaseMs());
         assertEquals(2000, merged.getSlowCapBackoffMs());
@@ -108,7 +108,7 @@ class YdbRetryPolicyConfigTest extends InterceptorTestSupport {
 
         YdbRetryPolicyConfig merged = original.merge(annotation);
 
-        assertEquals(100, merged.getMaxRetries());
+        assertEquals(100, merged.getMaxAttempts());
         assertEquals(200, merged.getSlowBackoffBaseMs());
         assertEquals(10, merged.getFastBackoffBaseMs());
         assertEquals(10000, merged.getSlowCapBackoffMs());
@@ -125,8 +125,8 @@ class YdbRetryPolicyConfigTest extends InterceptorTestSupport {
 
         YdbRetryPolicyConfig merged = original.merge(annotation);
 
-        // only maxRetries should change
-        assertEquals(2, merged.getMaxRetries());
+        // only maxAttempts should change
+        assertEquals(3, merged.getMaxAttempts());
         assertEquals(100, merged.getSlowBackoffBaseMs());
         assertEquals(20, merged.getFastBackoffBaseMs());
         assertEquals(2000, merged.getSlowCapBackoffMs());
@@ -134,10 +134,10 @@ class YdbRetryPolicyConfigTest extends InterceptorTestSupport {
     }
 
     @Test
-    void shouldThrowWhenYdbTransactionalMaxRetriesIsNegative() throws NoSuchMethodException {
+    void shouldThrowWhenYdbTransactionalMaxAttemptsIsNegative() throws NoSuchMethodException {
         YdbRetryPolicyConfig original = new YdbRetryPolicyConfig(true, 5, 100, 20, 2000, 300);
 
-        Method method = YdbTransactionalTestService.class.getMethod("ydbNegativeMaxRetries");
+        Method method = YdbTransactionalTestService.class.getMethod("ydbNegativeMaxAttempts");
         YdbTransactional annotation =
                 AnnotatedElementUtils.findMergedAnnotation(method, YdbTransactional.class);
 
@@ -145,18 +145,16 @@ class YdbRetryPolicyConfigTest extends InterceptorTestSupport {
     }
 
     @Test
-    void shouldRejectZeroMaxRetriesAtAnnotationMergeTime() throws NoSuchMethodException {
+    void shouldInheritGlobalMaxAttemptsWhenAnnotationIsZero() throws NoSuchMethodException {
         YdbRetryPolicyConfig original = new YdbRetryPolicyConfig(true, 5, 100, 20, 2000, 300);
 
-        Method method = YdbTransactionalTestService.class.getMethod("ydbZeroMaxRetries");
+        Method method = YdbTransactionalTestService.class.getMethod("ydbZeroMaxAttempts");
         YdbTransactional annotation =
                 AnnotatedElementUtils.findMergedAnnotation(method, YdbTransactional.class);
 
-        IllegalArgumentException exception =
-                assertThrows(IllegalArgumentException.class, () -> original.merge(annotation));
+        YdbRetryPolicyConfig merged = original.merge(annotation);
 
-        assertEquals(
-                "maxRetries must not be 0; use enabled = false to disable retry", exception.getMessage());
+        assertEquals(5, merged.getMaxAttempts());
     }
 
     @Test

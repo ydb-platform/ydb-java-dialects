@@ -14,14 +14,14 @@ import org.springframework.lang.Nullable;
  */
 public final class YdbRetryPolicyConfig {
     public static final boolean DEFAULT_ENABLED = true;
-    public static final int DEFAULT_MAX_RETRIES = 10;
+    public static final int DEFAULT_MAX_ATTEMPTS = 10;
     public static final int DEFAULT_SLOW_BACKOFF_BASE_MS = 50;
     public static final int DEFAULT_FAST_BACKOFF_BASE_MS = 5;
     public static final int DEFAULT_SLOW_CAP_BACKOFF_MS = 5_000;
     public static final int DEFAULT_FAST_CAP_BACKOFF_MS = 500;
 
     private final boolean enabled;
-    private final int maxRetries;
+    private final int maxAttempts;
     private final int slowBackoffBaseMs;
     private final int fastBackoffBaseMs;
     private final int slowCapBackoffMs;
@@ -32,7 +32,7 @@ public final class YdbRetryPolicyConfig {
     public YdbRetryPolicyConfig() {
         this(
                 DEFAULT_ENABLED,
-                DEFAULT_MAX_RETRIES,
+                DEFAULT_MAX_ATTEMPTS,
                 DEFAULT_SLOW_BACKOFF_BASE_MS,
                 DEFAULT_FAST_BACKOFF_BASE_MS,
                 DEFAULT_SLOW_CAP_BACKOFF_MS,
@@ -41,13 +41,13 @@ public final class YdbRetryPolicyConfig {
 
     public YdbRetryPolicyConfig(
             boolean enabled,
-            int maxRetries,
+            int maxAttempts,
             int slowBackoffBaseMs,
             int fastBackoffBaseMs,
             int slowCapBackoffMs,
             int fastCapBackoffMs) {
-        if (maxRetries < 1) {
-            throw new IllegalArgumentException("maxRetries must be >= 1");
+        if (maxAttempts < 0) {
+            throw new IllegalArgumentException("maxAttempts must be >= 0");
         }
         if (slowBackoffBaseMs < 0
                 || fastBackoffBaseMs < 0
@@ -56,7 +56,7 @@ public final class YdbRetryPolicyConfig {
             throw new IllegalArgumentException("backoff values must be >= 0");
         }
         this.enabled = enabled;
-        this.maxRetries = maxRetries;
+        this.maxAttempts = maxAttempts;
         this.slowBackoffBaseMs = slowBackoffBaseMs;
         this.fastBackoffBaseMs = fastBackoffBaseMs;
         this.slowCapBackoffMs = slowCapBackoffMs;
@@ -69,8 +69,8 @@ public final class YdbRetryPolicyConfig {
         return enabled;
     }
 
-    public int getMaxRetries() {
-        return maxRetries;
+    public int getMaxAttempts() {
+        return maxAttempts;
     }
 
     public int getSlowBackoffBaseMs() {
@@ -103,36 +103,26 @@ public final class YdbRetryPolicyConfig {
         }
         return new YdbRetryPolicyConfig(
                 enabled && transactionPolicy.enabled(),
-                mergeMaxRetries(transactionPolicy.maxRetries(), maxRetries),
-                mergeNonNegativeInt(
+                mergeOverride("maxAttempts", transactionPolicy.maxAttempts(), maxAttempts),
+                mergeOverride(
                         "slowBackoffBaseMs", transactionPolicy.slowBackoffBaseMs(), slowBackoffBaseMs),
-                mergeNonNegativeInt(
+                mergeOverride(
                         "fastBackoffBaseMs", transactionPolicy.fastBackoffBaseMs(), fastBackoffBaseMs),
-                mergeNonNegativeInt(
+                mergeOverride(
                         "slowCapBackoffMs", transactionPolicy.slowCapBackoffMs(), slowCapBackoffMs),
-                mergeNonNegativeInt(
+                mergeOverride(
                         "fastCapBackoffMs", transactionPolicy.fastCapBackoffMs(), fastCapBackoffMs));
     }
 
-    private static int mergeMaxRetries(int candidate, int fallback) {
-        return switch (candidate) {
-            case -1 -> fallback;
-            case 0 -> throw new IllegalArgumentException(
-                    "maxRetries must not be 0; use enabled = false to disable retry");
-            default -> {
-                if (candidate < -1) {
-                    throw new IllegalArgumentException("maxRetries must be -1 or >= 1");
-                }
-                yield candidate;
-            }
-        };
-    }
-
-    private static int mergeNonNegativeInt(String name, int candidate, int fallback) {
-        if (candidate < -1) {
-            throw new IllegalArgumentException(String.format("%s is invalid", name));
+    /**
+     * Resolves a per-method override against the global value: {@code 0} inherits the global value,
+     * a positive value overrides it, and a negative value is rejected.
+     */
+    private static int mergeOverride(String name, int candidate, int fallback) {
+        if (candidate < 0) {
+            throw new IllegalArgumentException(name + " must be >= 0");
         }
-        return candidate == -1 ? fallback : candidate;
+        return candidate == 0 ? fallback : candidate;
     }
 
     /**

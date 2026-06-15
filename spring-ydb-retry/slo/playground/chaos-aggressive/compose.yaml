@@ -290,7 +290,7 @@ services:
       SPRING_DATASOURCE_URL: jdbc:ydb:grpc://static-0:2135/Root/testdb
       SPRING_DATASOURCE_DRIVER_CLASS_NAME: tech.ydb.jdbc.YdbDriver
       YDB_TRANSACTION_RETRY_ENABLED: "true"
-      YDB_TRANSACTION_RETRY_MAX_RETRIES: "10"
+      YDB_TRANSACTION_RETRY_MAX_ATTEMPTS: "10"
       REF: with-retry
       SLO_RUN_ID: ${SLO_RUN_ID:-}
       SLO_RESULTS_DIR: /app/results

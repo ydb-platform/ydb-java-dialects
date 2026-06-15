@@ -120,7 +120,7 @@ public class SloResultWriter {
         builder.append("runTimeSeconds: ").append(config.getRunTimeSeconds()).append('\n');
         builder.append('\n');
         builder.append("retryEnabled: ").append(retryProperties.isEnabled()).append('\n');
-        builder.append("retryMaxRetries: ").append(retryProperties.getMaxRetries()).append('\n');
+        builder.append("retryMaxAttempts: ").append(retryProperties.getMaxAttempts()).append('\n');
         builder.append("retrySlowBackoffBaseMs: ")
                 .append(retryProperties.getSlowBackoffBaseMs())
                 .append('\n');

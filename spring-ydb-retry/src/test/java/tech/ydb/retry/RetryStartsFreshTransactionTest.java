@@ -60,7 +60,7 @@ class RetryStartsFreshTransactionTest extends InterceptorTestSupport {
 
         assertThrows(ConfigurableStatusException.class, () -> interceptor.invoke(invocation));
 
-        assertEquals(3, txManager.beginCount(), "max-retries + 1 attempts must each begin a tx");
+        assertEquals(3, txManager.beginCount(), "every attempt up to maxAttempts must begin a tx");
         assertEquals(3, txManager.rollbackCount(), "all three attempts must roll back");
         assertEquals(0, txManager.commitCount(), "nothing must be committed");
     }
@@ -96,9 +96,9 @@ class RetryStartsFreshTransactionTest extends InterceptorTestSupport {
     }
 
     private static YdbTransactionInterceptor newInterceptor(
-            PlatformTransactionManager txManager, int maxRetries) {
+            PlatformTransactionManager txManager, int maxAttempts) {
         YdbTransactionInterceptor interceptor = new YdbTransactionInterceptor(
-                new YdbRetryPolicyConfig(true, maxRetries, 0, 0, 0, 0), delay -> {
+                new YdbRetryPolicyConfig(true, maxAttempts, 0, 0, 0, 0), delay -> {
                 });
         interceptor.setTransactionAttributeSource(new AnnotationTransactionAttributeSource());
         interceptor.setTransactionManager(txManager);

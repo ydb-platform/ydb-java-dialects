@@ -50,7 +50,7 @@ class HappyPathIntegrationTest extends YdbDockerTest {
     @Test
     void shouldSaveWithMaxRetries3() {
         User user = createUser(3L, "user3", "first", "last");
-        userService.saveWithMaxRetries3(user);
+        userService.saveWithMaxAttempts4(user);
 
         User found = userService.findById(3L);
         assertNotNull(found);

@@ -98,13 +98,13 @@ class NestedYdbTransactionalRetryTest {
             this.self = self;
         }
 
-        @YdbTransactional(maxRetries = 5)
+        @YdbTransactional(maxAttempts = 6)
         public void outer() {
             outerCount.incrementAndGet();
             self.inner();
         }
 
-        @YdbTransactional(maxRetries = 5)
+        @YdbTransactional(maxAttempts = 6)
         public void inner() {
             innerCount.incrementAndGet();
             if (innerCount.get() == 1) {
@@ -115,13 +115,13 @@ class NestedYdbTransactionalRetryTest {
             }
         }
 
-        @YdbTransactional(maxRetries = 5)
+        @YdbTransactional(maxAttempts = 6)
         public void outerWithFailingInner() {
             outerCount.incrementAndGet();
             self.failingInner();
         }
 
-        @YdbTransactional(maxRetries = 5)
+        @YdbTransactional(maxAttempts = 6)
         public void failingInner() {
             innerCount.incrementAndGet();
             throw new ConfigurableInnerException();

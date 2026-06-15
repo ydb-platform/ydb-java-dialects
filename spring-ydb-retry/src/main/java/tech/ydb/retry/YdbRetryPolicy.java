@@ -75,7 +75,10 @@ public final class YdbRetryPolicy {
      */
     public static OptionalLong getNextRetryDelayMs(
             int vendorCode, int attempt, YdbRetryPolicyConfig config, boolean idempotent) {
-        if (attempt >= config.getMaxRetries()) {
+        // {@code attempt} is the zero-based index of the attempt that has just failed, so the next
+        // attempt is allowed only while we stay within the total {@code maxAttempts} budget
+        // (which counts the initial execution).
+        if (attempt + 1 >= config.getMaxAttempts()) {
             return OptionalLong.empty();
         }
         if (vendorCode == 0) {

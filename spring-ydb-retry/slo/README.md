@@ -104,7 +104,7 @@ Environment variables for the app containers:
 | `SERVER_PORT`                       | 8080                     | HTTP port                                         |
 | `SPRING_DATASOURCE_URL`             | -                        | YDB JDBC URL                                      |
 | `YDB_TRANSACTION_RETRY_ENABLED`     | true                     | Enable/disable retry                              |
-| `YDB_TRANSACTION_RETRY_MAX_RETRIES` | 10                       | Max retry attempts                                |
+| `YDB_TRANSACTION_RETRY_MAX_ATTEMPTS` | 10                      | Max total attempts (incl. initial execution)      |
 | `SLO_RUN_ID`                        | auto                     | Shared run identifier used for result folder name |
 | `SLO_RESULTS_DIR`                   | `/app/results` in Docker | Root directory for saved run results              |
 | `REF`                               | unknown                  | Label for metrics (with-retry / no-retry)         |

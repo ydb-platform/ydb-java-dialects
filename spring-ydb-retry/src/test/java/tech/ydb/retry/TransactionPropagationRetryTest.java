@@ -14,7 +14,7 @@ class TransactionPropagationRetryTest extends InterceptorTestSupport {
     void shouldDisableRetryWhenParticipatingInOuterTransaction() {
         TransactionSynchronizationManager.setActualTransactionActive(true);
 
-        TestableInterceptor interceptor = interceptorWithConfig(true, 1, 0, 0, 0, 0);
+        TestableInterceptor interceptor = interceptorWithConfig(true, 2, 0, 0, 0, 0);
         interceptor.enqueueOutcome(new IllegalStateException("no retry expected"));
 
         assertThrows(
@@ -26,7 +26,7 @@ class TransactionPropagationRetryTest extends InterceptorTestSupport {
     void shouldRetryWithRequiresNewInsideOuterTransaction() throws Throwable {
         TransactionSynchronizationManager.setActualTransactionActive(true);
 
-        TestableInterceptor interceptor = interceptorWithConfig(true, 1, 0, 0, 0, 0);
+        TestableInterceptor interceptor = interceptorWithConfig(true, 2, 0, 0, 0, 0);
         interceptor.enqueueOutcome(new ConfigurableStatusException(BAD_SESSION), "ok");
 
         Object result = interceptor.invoke(invocationFor("ydbRequiresNewRetry"));
@@ -39,7 +39,7 @@ class TransactionPropagationRetryTest extends InterceptorTestSupport {
     void shouldDisableRetryWithNestedPropagationInsideOuterTransaction() {
         TransactionSynchronizationManager.setActualTransactionActive(true);
 
-        TestableInterceptor interceptor = interceptorWithConfig(true, 1, 0, 0, 0, 0);
+        TestableInterceptor interceptor = interceptorWithConfig(true, 2, 0, 0, 0, 0);
         interceptor.enqueueOutcome(new ConfigurableStatusException(ABORTED));
 
         assertThrows(
@@ -52,7 +52,7 @@ class TransactionPropagationRetryTest extends InterceptorTestSupport {
     void shouldRetryWithNotSupportedPropagationInsideOuterTransaction() throws Throwable {
         TransactionSynchronizationManager.setActualTransactionActive(true);
 
-        TestableInterceptor interceptor = interceptorWithConfig(true, 1, 0, 0, 0, 0);
+        TestableInterceptor interceptor = interceptorWithConfig(true, 2, 0, 0, 0, 0);
         interceptor.enqueueOutcome(new ConfigurableStatusException(BAD_SESSION), "ok");
 
         Object result = interceptor.invoke(invocationFor("ydbNotSupportedRetry"));
