@@ -24,17 +24,13 @@ public class YqlClient extends AbstractJSqlClientDelegate {
         return delegate;
     }
 
-    public <R> R transaction(int maxAttempts, long retryDelayMs, Supplier<R> block) {
-        if (maxAttempts == 1) {
+    public <R> R transaction(RetryConfig config, Supplier<R> block) {
+        if (config.maxAttempts() == 1) {
             return transaction(block);
-        } else if (maxAttempts < 1) {
-            throw new IllegalArgumentException("maxAttempts must be a positive integer");
-        } else if (retryDelayMs < 0) {
-            throw new IllegalArgumentException("retryDelayMs must not be negative");
         }
 
         if (getConnectionManager() instanceof YdbTxConnectionManager ydbCM) {
-            return ydbCM.executeTransaction(maxAttempts, retryDelayMs, con -> block.get());
+            return ydbCM.executeTransaction(config, con -> block.get());
         }
 
         throw new IllegalStateException(
@@ -44,61 +40,60 @@ public class YqlClient extends AbstractJSqlClientDelegate {
     }
 
     public <R> R withIsolation(
-            int maxAttempts,
-            long retryDelayMs,
+            RetryConfig config,
             int isolationLevel,
             boolean readOnly,
             Supplier<R> block
     ) {
         try {
             TransactionContext.setSettings(isolationLevel, readOnly);
-            return transaction(maxAttempts, retryDelayMs, block);
+            return transaction(config, block);
         } finally {
             TransactionContext.clear();
         }
     }
 
     public <R> R withIsolation(int isolationLevel, boolean readOnly, Supplier<R> block) {
-        return withIsolation(1, 0, isolationLevel, readOnly, block);
+        return withIsolation(RetryConfig.DEFAULT, isolationLevel, readOnly, block);
     }
 
-    public <R> R serializableReadWrite(int maxAttempts, long retryDelayMs, Supplier<R> block) {
-        return withIsolation(maxAttempts, retryDelayMs, Connection.TRANSACTION_SERIALIZABLE, false, block);
+    public <R> R serializableReadWrite(RetryConfig config, Supplier<R> block) {
+        return withIsolation(config, Connection.TRANSACTION_SERIALIZABLE, false, block);
     }
 
     public <R> R serializableReadWrite(Supplier<R> block) {
-        return serializableReadWrite(1, 0, block);
+        return serializableReadWrite(RetryConfig.DEFAULT, block);
     }
 
-    public <R> R snapshotReadOnly(int maxAttempts, long retryDelayMs, Supplier<R> block) {
-        return withIsolation(maxAttempts, retryDelayMs, Connection.TRANSACTION_SERIALIZABLE, true, block);
+    public <R> R snapshotReadOnly(RetryConfig config, Supplier<R> block) {
+        return withIsolation(config, Connection.TRANSACTION_SERIALIZABLE, true, block);
     }
 
     public <R> R snapshotReadOnly(Supplier<R> block) {
-        return snapshotReadOnly(1, 0, block);
+        return snapshotReadOnly(RetryConfig.DEFAULT, block);
     }
 
-    public <R> R staleReadOnly(int maxAttempts, long retryDelayMs, Supplier<R> block) {
-        return withIsolation(maxAttempts, retryDelayMs, YdbConst.STALE_READ_ONLY, true, block);
+    public <R> R staleReadOnly(RetryConfig config, Supplier<R> block) {
+        return withIsolation(config, YdbConst.STALE_READ_ONLY, true, block);
     }
 
     public <R> R staleReadOnly(Supplier<R> block) {
-        return staleReadOnly(1, 0, block);
+        return staleReadOnly(RetryConfig.DEFAULT, block);
     }
 
-    public <R> R onlineConsistentReadOnly(int maxAttempts, long retryDelayMs, Supplier<R> block) {
-        return withIsolation(YdbConst.ONLINE_CONSISTENT_READ_ONLY, true, block);
+    public <R> R onlineConsistentReadOnly(RetryConfig config, Supplier<R> block) {
+        return withIsolation(config, YdbConst.ONLINE_CONSISTENT_READ_ONLY, true, block);
     }
 
     public <R> R onlineConsistentReadOnly(Supplier<R> block) {
-        return onlineConsistentReadOnly(1, 0, block);
+        return onlineConsistentReadOnly(RetryConfig.DEFAULT, block);
     }
 
-    public <R> R onlineInconsistentReadOnly(int maxAttempts, long retryDelayMs, Supplier<R> block) {
-        return withIsolation(YdbConst.ONLINE_INCONSISTENT_READ_ONLY, true, block);
+    public <R> R onlineInconsistentReadOnly(RetryConfig config, Supplier<R> block) {
+        return withIsolation(config, YdbConst.ONLINE_INCONSISTENT_READ_ONLY, true, block);
     }
 
     public <R> R onlineInconsistentReadOnly(Supplier<R> block) {
-        return onlineInconsistentReadOnly(1, 0, block);
+        return onlineInconsistentReadOnly(RetryConfig.DEFAULT, block);
     }
 }

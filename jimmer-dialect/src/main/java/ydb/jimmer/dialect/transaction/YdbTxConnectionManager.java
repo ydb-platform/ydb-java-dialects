@@ -18,8 +18,6 @@ public class YdbTxConnectionManager implements TxConnectionManager {
     private final DataSource dataSource;
     private final ThreadLocal<Scope> scopeLocal = new ThreadLocal<>();
 
-    private final int BACKOFF_MULTIPLIER = 2;
-
     public YdbTxConnectionManager(DataSource dataSource) {
         this.dataSource = dataSource;
     }
@@ -42,22 +40,22 @@ public class YdbTxConnectionManager implements TxConnectionManager {
         return executeTransaction(Propagation.REQUIRED, block);
     }
 
-    public final <R> R executeTransaction(int maxAttempts, long retryDelayMs, Function<Connection, R> block) {
-        return executeTransaction(maxAttempts, retryDelayMs, Propagation.REQUIRES_NEW, block);
+    public final <R> R executeTransaction(RetryConfig config, Function<Connection, R> block) {
+        return executeTransaction(config, Propagation.REQUIRES_NEW, block);
     }
 
     @Override
     public final <R> R executeTransaction(Propagation propagation, Function<Connection, R> block) {
-        return executeTransaction(1, 0, propagation, block);
+        return executeTransaction(RetryConfig.DEFAULT, propagation, block);
     }
 
     public final <R> R executeTransaction(
-            int maxAttempts,
-            long retryDelayMs,
+            RetryConfig config,
             Propagation propagation,
             Function<Connection, R> block
     ) {
-        for (int i = 0; i < maxAttempts; i++) {
+        long delay = config.retryDelayMs();
+        for (int i = 0; i < config.maxAttempts(); i++) {
             try {
                 Scope parent = scopeLocal.get();
                 Scope scope = createScope(parent, propagation);
@@ -70,7 +68,7 @@ public class YdbTxConnectionManager implements TxConnectionManager {
                         errorOccurred = true;
 
                         if (ex instanceof RuntimeException) {
-                            if (i == maxAttempts - 1 || !isRetryable(ex)) {
+                            if (i == config.maxAttempts() - 1 || !isRetryable(ex)) {
                                 throw ex;
                             }
                         } else {
@@ -91,8 +89,8 @@ public class YdbTxConnectionManager implements TxConnectionManager {
             }
 
             try {
-                Thread.sleep(retryDelayMs);
-                retryDelayMs *= BACKOFF_MULTIPLIER;
+                Thread.sleep(delay);
+                delay *= config.backoffMultiplier();
             } catch (InterruptedException ex) {
                 Thread.currentThread().interrupt();
                 throw new RuntimeException(ex);
