@@ -33,7 +33,10 @@ public record RetryConfig(
         if (maxAttempts < 1) {
             throw new IllegalArgumentException("maxAttempts must be >= 1");
         }
-        if (slowBackoffBaseMs < 0 || fastBackoffBaseMs < 0) {
+        if (slowBackoffBaseMs < 0
+                || fastBackoffBaseMs < 0
+                || slowCapBackoffMs < 0
+                || fastCapBackoffMs < 0) {
             throw new IllegalArgumentException("backoff values must be >= 0");
         }
         if (slowCeiling < 1 || fastCeiling < 1) {
