@@ -9,6 +9,10 @@ package ydb.jimmer.dialect.transaction;
  * @param fastBackoffBaseMs fast backoff to wait for fast transaction errors
  * @param slowCapBackoffMs maximum backoff for slow transaction errors
  * @param fastCapBackoffMs maximum backoff for fast transaction errors
+ * @param slowCeiling Ceiling on the exponent so that {@code slowBackoffBaseMs * multiplier^ceiling}
+ *                   just reaches {@code slowCapBackoffMs}
+ * @param fastCeiling Ceiling on the exponent so that {@code fastBackoffBaseMs * multiplier^ceiling}
+ *                   just reaches {@code fastCapBackoffMs}
  * @param backoffMultiplier A multiplier for a backoff for the next retry attempt
  * @param idempotent Are the operations in the transaction idempotent
  */
@@ -18,6 +22,8 @@ public record RetryConfig(
         int fastBackoffBaseMs,
         int slowCapBackoffMs,
         int fastCapBackoffMs,
+        int slowCeiling,
+        int fastCeiling,
         double backoffMultiplier,
         boolean idempotent
 ) {
@@ -27,11 +33,11 @@ public record RetryConfig(
         if (maxAttempts < 1) {
             throw new IllegalArgumentException("maxAttempts must be >= 1");
         }
-        if (slowBackoffBaseMs < 0
-                || fastBackoffBaseMs < 0
-                || slowCapBackoffMs < 0
-                || fastCapBackoffMs < 0) {
+        if (slowBackoffBaseMs < 0 || fastBackoffBaseMs < 0) {
             throw new IllegalArgumentException("backoff values must be >= 0");
+        }
+        if (slowCeiling < 1 || fastCeiling < 1) {
+            throw new IllegalArgumentException("ceiling values must be >= 1");
         }
         if (backoffMultiplier < 1) {
             throw new IllegalArgumentException("backoffMultiplier must be >= 1");
@@ -57,9 +63,7 @@ public record RetryConfig(
         }
 
         public Builder backoffBaseMs(int value) {
-            this.slowBackoffBaseMs = value;
-            this.fastBackoffBaseMs = value;
-            return this;
+            return this.slowBackoffBaseMs(value).fastBackoffBaseMs(value);
         }
 
         public Builder slowBackoffBaseMs(int value) {
@@ -73,9 +77,7 @@ public record RetryConfig(
         }
 
         public Builder capBackoffMs(int value) {
-            this.slowCapBackoffMs = value;
-            this.fastCapBackoffMs = value;
-            return this;
+            return this.slowCapBackoffMs(value).fastCapBackoffMs(value);
         }
 
         public Builder slowCapBackoffMs(int value) {
@@ -99,9 +101,32 @@ public record RetryConfig(
         }
 
         public RetryConfig build() {
+            if (slowCapBackoffMs < 0 || fastCapBackoffMs < 0) {
+                throw new IllegalArgumentException("backoff cap values must be >= 0");
+            }
+            if (backoffMultiplier < 1) {
+                throw new IllegalArgumentException("backoffMultiplier must be >= 1");
+            }
+
+            int slowCeiling = ceilingFromCapBackoffMs(slowCapBackoffMs, backoffMultiplier);
+            int fastCeiling = ceilingFromCapBackoffMs(fastCapBackoffMs, backoffMultiplier);
+
             return new RetryConfig(
                     maxAttempts, slowBackoffBaseMs, fastBackoffBaseMs,
-                    slowCapBackoffMs, fastCapBackoffMs, backoffMultiplier, idempotent);
+                    slowCapBackoffMs, fastCapBackoffMs, slowCeiling, fastCeiling,
+                    backoffMultiplier, idempotent);
+        }
+
+        /**
+         * Ceiling on the exponent so that {@code baseMs * multiplier^ceiling} just reaches {@code capMs}.
+         * {@code ceil(ln(capMs + multiplier - 1) / ln(multiplier))}.
+         */
+        private static int ceilingFromCapBackoffMs(int capBackoffMs, double multiplier) {
+            if (capBackoffMs <= 0) {
+                return 0;
+            }
+            double value = capBackoffMs + (multiplier - 1);
+            return (int) Math.ceil(Math.log(value) / Math.log(multiplier));
         }
     }
 }

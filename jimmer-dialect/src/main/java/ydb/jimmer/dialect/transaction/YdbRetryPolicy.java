@@ -66,18 +66,6 @@ public final class YdbRetryPolicy {
         return 0;
     }
 
-    /**
-     * Ceiling on the exponent so that {@code baseMs * multiplier^ceiling} just reaches {@code capMs}.
-     * {@code ceil(ln(capMs + multiplier - 1) / ln(multiplier))}.
-     */
-    public static int ceilingFromCapBackoffMs(int capBackoffMs, double multiplier) {
-        if (capBackoffMs <= 0) {
-            return 0;
-        }
-        double value = capBackoffMs + (multiplier - 1);
-        return (int) Math.ceil(Math.log(value) / Math.log(multiplier));
-    }
-
     public static OptionalLong getNextRetryDelayMs(int vendorCode, int attempt, RetryConfig config) {
         // {@code attempt} is the zero-based index of the attempt that has just failed, so the next
         // attempt is allowed only while we stay within the total {@code maxAttempts} budget
@@ -99,21 +87,21 @@ public final class YdbRetryPolicy {
                     OptionalLong.of(YdbDelayCalculator.fullJitterMillis(
                             config.fastBackoffBaseMs(),
                             config.fastCapBackoffMs(),
-                            ceilingFromCapBackoffMs(config.fastCapBackoffMs(), config.backoffMultiplier()),
+                            config.fastCeiling(),
                             config.backoffMultiplier(),
                             attempt));
             case YdbVendorCode.UNAVAILABLE, YdbVendorCode.TRANSPORT_UNAVAILABLE, YdbVendorCode.CLIENT_GRPC_ERROR ->
                     OptionalLong.of(YdbDelayCalculator.equalJitterMillis(
                             config.fastBackoffBaseMs(),
                             config.fastCapBackoffMs(),
-                            ceilingFromCapBackoffMs(config.fastCapBackoffMs(), config.backoffMultiplier()),
+                            config.fastCeiling(),
                             config.backoffMultiplier(),
                             attempt));
             case YdbVendorCode.OVERLOADED, YdbVendorCode.CLIENT_RESOURCE_EXHAUSTED ->
                     OptionalLong.of(YdbDelayCalculator.equalJitterMillis(
                             config.slowBackoffBaseMs(),
                             config.slowCapBackoffMs(),
-                            ceilingFromCapBackoffMs(config.slowCapBackoffMs(), config.backoffMultiplier()),
+                            config.slowCeiling(),
                             config.backoffMultiplier(),
                             attempt));
             default -> OptionalLong.empty();
