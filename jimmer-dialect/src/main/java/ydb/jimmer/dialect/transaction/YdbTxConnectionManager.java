@@ -8,11 +8,12 @@ import org.jetbrains.annotations.Nullable;
 import javax.sql.DataSource;
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.util.OptionalLong;
 import java.util.function.Function;
 
 /**
  * Provides propagation, isolation level, read only mode
- * and retry from abort/timeout for transactions.
+ * and retry for transactions.
  */
 public class YdbTxConnectionManager implements TxConnectionManager {
     private final DataSource dataSource;
@@ -54,8 +55,9 @@ public class YdbTxConnectionManager implements TxConnectionManager {
             Propagation propagation,
             Function<Connection, R> block
     ) {
-        long delay = config.retryDelayMs();
-        for (int i = 0; i < config.maxAttempts(); i++) {
+        OptionalLong delay;
+        Throwable retryableException;
+        for (int attempt = 0; attempt < config.maxAttempts(); attempt++) {
             try {
                 Scope parent = scopeLocal.get();
                 Scope scope = createScope(parent, propagation);
@@ -68,9 +70,15 @@ public class YdbTxConnectionManager implements TxConnectionManager {
                         errorOccurred = true;
 
                         if (ex instanceof RuntimeException) {
-                            if (i == config.maxAttempts() - 1 || !isRetryable(ex)) {
+                            delay = YdbRetryPolicy.getNextRetryDelayMs(
+                                    YdbRetryPolicy.extractVendorCode(ex),
+                                    attempt,
+                                    config
+                            );
+                            if (delay.isEmpty()) {
                                 throw ex;
                             }
+                            retryableException = ex;
                         } else {
                             throw ex;
                         }
@@ -89,41 +97,15 @@ public class YdbTxConnectionManager implements TxConnectionManager {
             }
 
             try {
-                Thread.sleep(delay);
-                delay *= config.backoffMultiplier();
+                Thread.sleep(delay.getAsLong());
             } catch (InterruptedException ex) {
                 Thread.currentThread().interrupt();
+                ex.addSuppressed(retryableException);
                 throw new RuntimeException(ex);
             }
         }
 
         throw new RuntimeException("Max attempts exceeded");
-    }
-
-    /**
-     * Checks whether the error returned by the JDBC driver is retryable.
-     * Currently, the errors retryable only with idempotent queries are not supported.
-     * Jimmer always wraps non-runtime exceptions in ExecutionException.
-     *
-     * @param ex exception returned by Jimmer
-     * @return can the query be retried after returning this exception
-     */
-    private boolean isRetryable(Throwable ex) {
-        Throwable current = ex;
-        while (current != null) {
-            if (current instanceof SQLException sqlException) {
-                int vendorCode = sqlException.getErrorCode();
-                if (vendorCode != 0) {
-                    return isRetryableVendorCode(vendorCode);
-                }
-            }
-            current = current.getCause();
-        }
-        return false;
-    }
-
-    private boolean isRetryableVendorCode(int vendorCode) {
-        return YdbVendorCode.TRANSIENT_VENDOR_CODES.contains(vendorCode);
     }
 
     protected Connection openConnection() throws SQLException {

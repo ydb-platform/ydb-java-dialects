@@ -14,7 +14,7 @@ public class RetryTest extends AbstractSelectTest {
         FailFirstN<?> chaosPolicy = new FailFirstN<>(maxAttempts - 1);
         Assertions.assertDoesNotThrow(() ->
                 getIsolationClient().transaction(
-                        new RetryConfig(maxAttempts, 0),
+                        new RetryConfig(maxAttempts, 0, 0),
                         chaosPolicy
                 )
         );
@@ -29,7 +29,7 @@ public class RetryTest extends AbstractSelectTest {
         Assertions.assertThrows(
                 ExecutionException.class, () ->
                 getIsolationClient().transaction(
-                        new RetryConfig(maxAttempts, 0),
+                        new RetryConfig(maxAttempts, 0, 0),
                         new AlwaysFail<>()
                 )
         );
@@ -43,7 +43,7 @@ public class RetryTest extends AbstractSelectTest {
         Assertions.assertThrows(
                 ExecutionException.class, () ->
                 getIsolationClient().transaction(
-                        new RetryConfig(maxAttempts, 0),
+                        new RetryConfig(maxAttempts, 0, 0),
                         chaosPolicy
                 )
         );
@@ -60,12 +60,12 @@ public class RetryTest extends AbstractSelectTest {
         long start = System.currentTimeMillis();
         Assertions.assertDoesNotThrow(() ->
                 getIsolationClient().transaction(
-                        new RetryConfig(maxAttempts, 100),
+                        new RetryConfig(maxAttempts, 100, 100),
                         chaosPolicy
                 )
         );
         long elapsed = System.currentTimeMillis() - start;
 
-        Assertions.assertTrue(elapsed >= 300, "the backoff time is less than 300ms");
+        Assertions.assertTrue(elapsed >= 150, "the backoff time is less than 150ms");
     }
 }
