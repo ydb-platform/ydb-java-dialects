@@ -21,19 +21,11 @@ public record RetryConfig(
         double backoffMultiplier,
         boolean idempotent
 ) {
-    public final static RetryConfig DEFAULT = new RetryConfig();
-
-    public final static int DEFAULT_MAX_ATTEMPTS = 1;
-    public static final int DEFAULT_SLOW_BACKOFF_BASE_MS = 50;
-    public static final int DEFAULT_FAST_BACKOFF_BASE_MS = 5;
-    public static final int DEFAULT_SLOW_CAP_BACKOFF_MS = 5_000;
-    public static final int DEFAULT_FAST_CAP_BACKOFF_MS = 500;
-    public final static double DEFAULT_BACKOFF_MULTIPLIER = 2;
-    public final static boolean DEFAULT_IDEMPOTENT = false;
+    public final static RetryConfig DEFAULT = new Builder().build();
 
     public RetryConfig {
         if (maxAttempts < 1) {
-            throw new IllegalArgumentException("maxAttempts must be a positive integer");
+            throw new IllegalArgumentException("maxAttempts must be >= 1");
         }
         if (slowBackoffBaseMs < 0
                 || fastBackoffBaseMs < 0
@@ -42,89 +34,74 @@ public record RetryConfig(
             throw new IllegalArgumentException("backoff values must be >= 0");
         }
         if (backoffMultiplier < 1) {
-            throw new IllegalArgumentException("backoffMultiplier must be a positive integer");
+            throw new IllegalArgumentException("backoffMultiplier must be >= 1");
         }
     }
 
-    public RetryConfig() {
-        this(DEFAULT_MAX_ATTEMPTS);
+    public static Builder builder() {
+        return new Builder();
     }
 
-    public RetryConfig(int maxAttempts) {
-        this(
-                maxAttempts,
-                DEFAULT_SLOW_BACKOFF_BASE_MS,
-                DEFAULT_FAST_BACKOFF_BASE_MS
-        );
-    }
+    public static final class Builder {
+        private int maxAttempts = 1;
+        private int slowBackoffBaseMs = 50;
+        private int fastBackoffBaseMs = 5;
+        private int slowCapBackoffMs = 5_000;
+        private int fastCapBackoffMs = 500;
+        private double backoffMultiplier = 2.0;
+        private boolean idempotent = false;
 
-    public RetryConfig(
-            int maxAttempts,
-            int slowBackoffBaseMs,
-            int fastBackoffBaseMs
-    ) {
-        this(
-                maxAttempts,
-                slowBackoffBaseMs,
-                fastBackoffBaseMs,
-                DEFAULT_SLOW_CAP_BACKOFF_MS,
-                DEFAULT_FAST_CAP_BACKOFF_MS,
-                DEFAULT_BACKOFF_MULTIPLIER
-        );
-    }
+        public Builder maxAttempts(int value) {
+            this.maxAttempts = value;
+            return this;
+        }
 
-    public RetryConfig(
-            int maxAttempts,
-            int slowBackoffBaseMs,
-            int fastBackoffBaseMs,
-            int slowCapBackoffMs,
-            int fastCapBackoffMs
-    ) {
-        this(
-                maxAttempts,
-                slowBackoffBaseMs,
-                fastBackoffBaseMs,
-                slowCapBackoffMs,
-                fastCapBackoffMs,
-                DEFAULT_BACKOFF_MULTIPLIER
-        );
-    }
+        public Builder backoffBaseMs(int value) {
+            this.slowBackoffBaseMs = value;
+            this.fastBackoffBaseMs = value;
+            return this;
+        }
 
-    public RetryConfig(
-            int maxAttempts,
-            int slowBackoffBaseMs,
-            int fastBackoffBaseMs,
-            int slowCapBackoffMs,
-            int fastCapBackoffMs,
-            boolean idempotent
-    ) {
-        this(
-                maxAttempts,
-                slowBackoffBaseMs,
-                fastBackoffBaseMs,
-                slowCapBackoffMs,
-                fastCapBackoffMs,
-                DEFAULT_BACKOFF_MULTIPLIER,
-                idempotent
-        );
-    }
+        public Builder slowBackoffBaseMs(int value) {
+            this.slowBackoffBaseMs = value;
+            return this;
+        }
 
-    public RetryConfig(
-            int maxAttempts,
-            int slowBackoffBaseMs,
-            int fastBackoffBaseMs,
-            int slowCapBackoffMs,
-            int fastCapBackoffMs,
-            double backoffMultiplier
-    ) {
-        this(
-                maxAttempts,
-                slowBackoffBaseMs,
-                fastBackoffBaseMs,
-                slowCapBackoffMs,
-                fastCapBackoffMs,
-                backoffMultiplier,
-                DEFAULT_IDEMPOTENT
-        );
+        public Builder fastBackoffBaseMs(int value) {
+            this.fastBackoffBaseMs = value;
+            return this;
+        }
+
+        public Builder capBackoffMs(int value) {
+            this.slowCapBackoffMs = value;
+            this.fastCapBackoffMs = value;
+            return this;
+        }
+
+        public Builder slowCapBackoffMs(int value) {
+            this.slowCapBackoffMs = value;
+            return this;
+        }
+
+        public Builder fastCapBackoffMs(int value) {
+            this.fastCapBackoffMs = value;
+            return this;
+        }
+
+        public Builder backoffMultiplier(double value) {
+            this.backoffMultiplier = value;
+            return this;
+        }
+
+        public Builder idempotent(boolean value) {
+            this.idempotent = value;
+            return this;
+        }
+
+        public RetryConfig build() {
+            return new RetryConfig(
+                    maxAttempts, slowBackoffBaseMs, fastBackoffBaseMs,
+                    slowCapBackoffMs, fastCapBackoffMs, backoffMultiplier, idempotent);
+        }
     }
 }

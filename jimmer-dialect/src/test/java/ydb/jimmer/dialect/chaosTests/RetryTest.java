@@ -14,7 +14,10 @@ public class RetryTest extends AbstractSelectTest {
         FailFirstN<?> chaosPolicy = new FailFirstN<>(maxAttempts - 1);
         Assertions.assertDoesNotThrow(() ->
                 getIsolationClient().transaction(
-                        new RetryConfig(maxAttempts, 0, 0),
+                        RetryConfig.builder()
+                                .maxAttempts(maxAttempts)
+                                .backoffBaseMs(0)
+                                .build(),
                         chaosPolicy
                 )
         );
@@ -29,7 +32,10 @@ public class RetryTest extends AbstractSelectTest {
         Assertions.assertThrows(
                 ExecutionException.class, () ->
                 getIsolationClient().transaction(
-                        new RetryConfig(maxAttempts, 0, 0),
+                        RetryConfig.builder()
+                                .maxAttempts(maxAttempts)
+                                .backoffBaseMs(0)
+                                .build(),
                         new AlwaysFail<>()
                 )
         );
@@ -43,7 +49,10 @@ public class RetryTest extends AbstractSelectTest {
         Assertions.assertThrows(
                 ExecutionException.class, () ->
                 getIsolationClient().transaction(
-                        new RetryConfig(maxAttempts, 0, 0),
+                        RetryConfig.builder()
+                                .maxAttempts(maxAttempts)
+                                .backoffBaseMs(0)
+                                .build(),
                         chaosPolicy
                 )
         );
@@ -60,7 +69,10 @@ public class RetryTest extends AbstractSelectTest {
         long start = System.currentTimeMillis();
         Assertions.assertDoesNotThrow(() ->
                 getIsolationClient().transaction(
-                        new RetryConfig(maxAttempts, 100, 100),
+                        RetryConfig.builder()
+                                .maxAttempts(maxAttempts)
+                                .backoffBaseMs(100)
+                                .build(),
                         chaosPolicy
                 )
         );
