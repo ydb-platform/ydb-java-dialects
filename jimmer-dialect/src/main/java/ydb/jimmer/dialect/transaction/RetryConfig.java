@@ -122,6 +122,7 @@ public record RetryConfig(
 
         /**
          * Ceiling on the exponent so that {@code baseMs * multiplier^ceiling} just reaches {@code capMs}.
+         * The formula is ported from {@code spring-ydb-retry}'s {@code YdbRetryPolicyConfig.java}:
          * {@code ceil(ln(capMs + multiplier - 1) / ln(multiplier))}.
          */
         private static int ceilingFromCapBackoffMs(int capBackoffMs, double multiplier) {

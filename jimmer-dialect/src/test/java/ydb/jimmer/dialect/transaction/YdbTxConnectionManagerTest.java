@@ -1,9 +1,9 @@
-package ydb.jimmer.dialect;
+package ydb.jimmer.dialect.transaction;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
-import ydb.jimmer.dialect.transaction.YdbTxConnectionManager;
+import ydb.jimmer.dialect.AbstractTest;
 
 import javax.sql.DataSource;
 
