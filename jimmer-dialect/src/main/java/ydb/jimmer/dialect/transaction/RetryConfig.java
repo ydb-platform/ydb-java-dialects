@@ -42,8 +42,8 @@ public record RetryConfig(
         if (slowCeiling < 1 || fastCeiling < 1) {
             throw new IllegalArgumentException("ceiling values must be >= 1");
         }
-        if (backoffMultiplier < 1) {
-            throw new IllegalArgumentException("backoffMultiplier must be >= 1");
+        if (backoffMultiplier <= 1) {
+            throw new IllegalArgumentException("backoffMultiplier must be > 1");
         }
     }
 
