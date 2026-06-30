@@ -175,8 +175,8 @@
 
     <dependency>
       <groupId>tech.ydb.dialects</groupId>
-      <artifactId>hibernate-ydb-dialect-v7</artifactId>
-      <version>${hibernate-v7.ydb.dialect.version}</version>
+      <artifactId>hibernate-ydb-dialect</artifactId>
+      <version>${hibernate.ydb.dialect.version}</version>
     </dependency>
 
     <dependency>

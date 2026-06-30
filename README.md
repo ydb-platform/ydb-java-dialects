@@ -17,7 +17,7 @@ tools like Flyway and Liquibase.
   Designed to use YDB features while providing a
   familiar experience for Hibernate users.
   For more information, please visit the appropriate [module](./hibernate-dialect-v5).
-- *Hibernate 6+*:
+- *Hibernate 6*:
   Hibernate Dialect for YDB is designed to leverage features of YDB while
   providing a familiar experience to Hibernate users.
   For more information, please visit the appropriate [module](./hibernate-dialect).

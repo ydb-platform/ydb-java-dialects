@@ -36,7 +36,7 @@
     <liquibase-ydb-dialect>1.1.1</liquibase-ydb-dialect>
 
     <hikaricp.version>7.0.2</hikaricp.version>
-    <hibernate-v7.ydb.dialect.version>0.9.2</hibernate-v7.ydb.dialect.version>
+    <hibernate.ydb.dialect.version>1.7.0</hibernate.ydb.dialect.version>
 
     <ktor.version>3.4.1</ktor.version>
     <logback.version>1.5.16</logback.version>
