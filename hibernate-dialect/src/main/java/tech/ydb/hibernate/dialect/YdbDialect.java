@@ -6,7 +6,6 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
-import org.hibernate.Version;
 import org.hibernate.boot.model.FunctionContributions;
 import org.hibernate.boot.model.TypeContributions;
 import org.hibernate.dialect.Dialect;
@@ -256,12 +255,10 @@ public class YdbDialect extends Dialect {
                 .getBasicTypeRegistry()
                 .resolve(StandardBasicTypes.LOCAL_DATE_TIME);
 
-        if (needsCustomCurrentTimeFunction()) {
-            functionRegistry.register(
-                    "current_time",
-                    new CurrentFunction("current_time", currentTime(), localDateTimeType)
-            );
-        }
+        functionRegistry.register(
+                "current_time",
+                new CurrentFunction("current_time", currentTime(), localDateTimeType)
+        );
 
         functionRegistry.registerPattern(
                 "lower",
@@ -495,22 +492,6 @@ public class YdbDialect extends Dialect {
                 default -> null;
             };
         };
-    }
-
-    private static boolean needsCustomCurrentTimeFunction() {
-        String[] parts = Version.getVersionString().split("\\.");
-        if (parts.length < 1) {
-            return true;
-        }
-        int major = Integer.parseInt(parts[0].replaceAll("[^0-9].*", ""));
-        if (major >= 7) {
-            return false;
-        }
-        if (parts.length < 2) {
-            return true;
-        }
-        int minor = Integer.parseInt(parts[1].replaceAll("[^0-9].*", ""));
-        return minor < 6;
     }
 
     private static int ydbDecimal(int precision, int scale) {
