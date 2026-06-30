@@ -7,12 +7,10 @@ on:
     paths:
       - 'keycloak-ydb-extension/**'
       - 'hibernate-dialect/**'
-      - '.github/workflows/ci-keycloak-ydb-extension.yaml'
   pull_request:
     paths:
       - 'keycloak-ydb-extension/**'
       - 'hibernate-dialect/**'
-      - '.github/workflows/ci-keycloak-ydb-extension.yaml'
 
 env:
   MAVEN_ARGS: --batch-mode --update-snapshots -Dstyle.color=always
