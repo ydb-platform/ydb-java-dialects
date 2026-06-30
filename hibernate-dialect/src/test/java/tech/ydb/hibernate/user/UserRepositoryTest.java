@@ -3,6 +3,7 @@ package tech.ydb.hibernate.user;
 import java.sql.Date;
 import java.sql.Timestamp;
 import java.time.Instant;
+import java.time.LocalDateTime;
 import org.hibernate.cfg.AvailableSettings;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -81,7 +82,9 @@ public class UserRepositoryTest {
                     Date date = session
                             .createQuery("select current date", Date.class).getSingleResult();
 
-                    session.createQuery("select current time").getSingleResult();
+                    LocalDateTime localDateTime = session
+                            .createQuery("select current time", LocalDateTime.class)
+                            .getSingleResult();
                 }
         ));
     }
