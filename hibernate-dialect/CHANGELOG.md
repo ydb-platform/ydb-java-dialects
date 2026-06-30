@@ -1,6 +1,8 @@
 ## 1.7.0 ##
 
-- Unified Hibernate dialect: renamed `hibernate-dialect-v6` module to `hibernate-dialect`, removed `hibernate-dialect-v7`
+- Unified Hibernate dialect: renamed `hibernate-dialect-v6` module to `hibernate-dialect`, removed separate `hibernate-dialect-v7` module
+- Hibernate 6 and Hibernate 7 are supported in a single artifact (`-Phibernate7` build for Hibernate 7 / Keycloak)
+- OFFSET without LIMIT: apply `LIMIT Long.MAX_VALUE` when only OFFSET is present (YDB workaround, Hibernate 6 and 7)
 
 ## 1.6.0 ##
 
