@@ -3,6 +3,7 @@
 - Renamed `hibernate-dialect-v6` to `hibernate-dialect`, removed `hibernate-dialect-v7`
 - Support Hibernate 7
 - Support OFFSET without LIMIT
+- Dropped `current time` in HQL
 
 ## 1.6.0 ##
 

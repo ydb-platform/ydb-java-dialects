@@ -9,7 +9,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import org.hibernate.boot.model.FunctionContributions;
 import org.hibernate.boot.model.TypeContributions;
 import org.hibernate.dialect.Dialect;
-import org.hibernate.dialect.function.CurrentFunction;
 import org.hibernate.dialect.identity.IdentityColumnSupport;
 import org.hibernate.dialect.pagination.LimitHandler;
 import org.hibernate.dialect.pagination.LimitOffsetLimitHandler;
@@ -27,7 +26,6 @@ import org.hibernate.service.ServiceRegistry;
 import org.hibernate.sql.ast.SqlAstTranslatorFactory;
 import org.hibernate.sql.ast.spi.SqlAppender;
 import org.hibernate.tool.schema.spi.Exporter;
-import org.hibernate.type.BasicType;
 
 import static org.hibernate.internal.util.JdbcExceptionHelper.extractErrorCode;
 import static org.hibernate.type.SqlTypes.BIGINT;
@@ -249,16 +247,6 @@ public class YdbDialect extends Dialect {
 
         final SqmFunctionRegistry functionRegistry = functionContributions.getFunctionRegistry();
         final TypeConfiguration typeConfig = functionContributions.getTypeConfiguration();
-
-        final BasicType<LocalDateTime> localDateTimeType = functionContributions
-                .getTypeConfiguration()
-                .getBasicTypeRegistry()
-                .resolve(StandardBasicTypes.LOCAL_DATE_TIME);
-
-        functionRegistry.register(
-                "current_time",
-                new CurrentFunction("current_time", currentTime(), localDateTimeType)
-        );
 
         functionRegistry.registerPattern(
                 "lower",
