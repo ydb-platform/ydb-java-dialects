@@ -2,10 +2,7 @@ package tech.ydb.hibernate.dialect.identity;
 
 import java.sql.JDBCType;
 import org.hibernate.MappingException;
-import org.hibernate.dialect.Dialect;
 import org.hibernate.dialect.identity.IdentityColumnSupportImpl;
-import org.hibernate.id.PostInsertIdentityPersister;
-import org.hibernate.id.insert.GetGeneratedKeysDelegate;
 import static org.hibernate.type.SqlTypes.BIGINT;
 import static org.hibernate.type.SqlTypes.INTEGER;
 import static org.hibernate.type.SqlTypes.SMALLINT;
@@ -37,13 +34,5 @@ public class YdbIdentityColumnSupport extends IdentityColumnSupportImpl {
     @Override
     public boolean supportsIdentityColumns() {
         return true;
-    }
-
-    @Override
-    public GetGeneratedKeysDelegate buildGetGeneratedKeysDelegate(
-            PostInsertIdentityPersister persister,
-            Dialect dialect
-    ) {
-        return new GetGeneratedKeysDelegate(persister, dialect, false);
     }
 }

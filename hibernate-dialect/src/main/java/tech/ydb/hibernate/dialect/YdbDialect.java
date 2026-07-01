@@ -6,9 +6,9 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
+import org.hibernate.Version;
 import org.hibernate.boot.model.FunctionContributions;
 import org.hibernate.boot.model.TypeContributions;
-import org.hibernate.Version;
 import org.hibernate.dialect.Dialect;
 import org.hibernate.dialect.identity.IdentityColumnSupport;
 import org.hibernate.dialect.pagination.LimitHandler;
@@ -16,7 +16,7 @@ import org.hibernate.dialect.pagination.LimitOffsetLimitHandler;
 import org.hibernate.engine.jdbc.dialect.spi.DialectResolutionInfo;
 import org.hibernate.exception.ConstraintViolationException;
 import org.hibernate.exception.spi.SQLExceptionConversionDelegate;
-import org.hibernate.mapping.Constraint;
+import static org.hibernate.internal.util.JdbcExceptionHelper.extractErrorCode;
 import org.hibernate.mapping.ForeignKey;
 import org.hibernate.mapping.Index;
 import org.hibernate.query.spi.QueryOptions;
@@ -27,8 +27,6 @@ import org.hibernate.service.ServiceRegistry;
 import org.hibernate.sql.ast.SqlAstTranslatorFactory;
 import org.hibernate.sql.ast.spi.SqlAppender;
 import org.hibernate.tool.schema.spi.Exporter;
-
-import static org.hibernate.internal.util.JdbcExceptionHelper.extractErrorCode;
 import static org.hibernate.type.SqlTypes.BIGINT;
 import static org.hibernate.type.SqlTypes.BINARY;
 import static org.hibernate.type.SqlTypes.BIT;
@@ -94,8 +92,8 @@ import tech.ydb.hibernate.dialect.types.YdbJdbcType;
  * @author Kirill Kurdyukov
  */
 public class YdbDialect extends Dialect {
-    private static final Exporter<ForeignKey> FOREIGN_KEY_EMPTY_EXPORTER = new EmptyExporter<>();
-    private static final Exporter<Constraint> UNIQUE_KEY_EMPTY_EXPORTER = new EmptyExporter<>();
+    @SuppressWarnings({"rawtypes"})
+    private static final Exporter EMPTY_EXPORTER = new EmptyExporter<>();
     private static final List<QueryHintHandler> QUERY_HINT_HANDLERS = List.of(
             IndexQueryHintHandler.INSTANCE,
             ScanQueryHintHandler.INSTANCE,
@@ -124,7 +122,7 @@ public class YdbDialect extends Dialect {
             case TIMESTAMP, TIMESTAMP_UTC -> "Timestamp";
             case TIMESTAMP_WITH_TIMEZONE -> "TzTimestamp";
             case CHAR, VARCHAR, CLOB, NCHAR, NVARCHAR, NCLOB,
-                    LONG32VARCHAR, LONG32NVARCHAR, LONGVARCHAR, LONGNVARCHAR -> "Text";
+                 LONG32VARCHAR, LONG32NVARCHAR, LONGVARCHAR, LONGNVARCHAR -> "Text";
             case BINARY, VARBINARY, BLOB, LONGVARBINARY, LONG32VARBINARY -> "Bytes";
             case JSON -> "Json";
             case UUID, YdbJdbcCode.UUID -> "Uuid";
@@ -432,15 +430,15 @@ public class YdbDialect extends Dialect {
         return false;
     }
 
-    @SuppressWarnings({"rawtypes", "unchecked", "override"})
+    @SuppressWarnings({"rawtypes", "override"})
     @Override
     public Exporter getUniqueKeyExporter() {
-        return UNIQUE_KEY_EMPTY_EXPORTER;
+        return EMPTY_EXPORTER;
     }
 
     @Override
     public Exporter<ForeignKey> getForeignKeyExporter() {
-        return FOREIGN_KEY_EMPTY_EXPORTER;
+        return EMPTY_EXPORTER;
     }
 
     @Override
