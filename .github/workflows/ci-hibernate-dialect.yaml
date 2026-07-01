@@ -46,13 +46,9 @@ jobs:
         working-directory: ./hibernate-dialect
         run: mvn $MAVEN_ARGS install
 
-      - name: Tests with Hibernate 6.6
-        working-directory: ./hibernate-dialect
-        run: mvn $MAVEN_ARGS -Phibernate6-latest test
-
       - name: Tests with Hibernate 7
         working-directory: ./hibernate-dialect
-        run: mvn $MAVEN_ARGS -Phibernate7 test
+        run: mvn $MAVEN_ARGS clean install -Phibernate7
 
       - uses: actions/checkout@v5
         with:
