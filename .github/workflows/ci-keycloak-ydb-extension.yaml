@@ -32,7 +32,7 @@ jobs:
 
       - name: Build Hibernate Dialect (Hibernate 7)
         working-directory: ./hibernate-dialect
-        run: mvn $MAVEN_ARGS -Phibernate7 install
+        run: mvn $MAVEN_ARGS install
 
       - name: Download dependencies
         working-directory: ./keycloak-ydb-extension

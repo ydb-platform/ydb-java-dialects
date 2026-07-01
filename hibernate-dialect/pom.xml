@@ -43,8 +43,6 @@
 
         <ydb.sdk.version>2.3.13</ydb.sdk.version>
         <ydb.jdbc.version>2.3.18</ydb.jdbc.version>
-
-        <hibernate.compile.source.dir>src/main/java</hibernate.compile.source.dir>
     </properties>
 
     <licenses>
@@ -110,7 +108,6 @@
     </dependencies>
 
     <build>
-        <sourceDirectory>${hibernate.compile.source.dir}</sourceDirectory>
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -192,6 +189,15 @@
 
     <profiles>
         <profile>
+            <id>hibernate6</id>
+            <activation>
+                <activeByDefault>true</activeByDefault>
+            </activation>
+            <properties>
+                <hibernate.version>6.2.7.Final</hibernate.version>
+            </properties>
+        </profile>
+        <profile>
             <id>hibernate6-latest</id>
             <properties>
                 <hibernate.version>6.6.22.Final</hibernate.version>
@@ -200,35 +206,25 @@
         <profile>
             <id>hibernate7</id>
             <properties>
-                <hibernate.version>7.1.4.Final</hibernate.version>
-                <hibernate.source.dir>${project.build.directory}/generated-sources/hibernate7</hibernate.source.dir>
-                <hibernate.compile.source.dir>${hibernate.source.dir}</hibernate.compile.source.dir>
+                <hibernate7.version>7.1.4.Final</hibernate7.version>
             </properties>
             <build>
                 <plugins>
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
-                        <artifactId>maven-antrun-plugin</artifactId>
-                        <version>3.1.0</version>
-                        <executions>
-                            <execution>
-                                <id>merge-hibernate7-sources</id>
-                                <phase>generate-sources</phase>
-                                <goals>
-                                    <goal>run</goal>
-                                </goals>
-                                <configuration>
-                                    <target>
-                                        <copy todir="${hibernate.source.dir}" overwrite="true">
-                                            <fileset dir="${project.basedir}/src/main/java"/>
-                                        </copy>
-                                        <copy todir="${hibernate.source.dir}" overwrite="true">
-                                            <fileset dir="${project.basedir}/src/hibernate7/java"/>
-                                        </copy>
-                                    </target>
-                                </configuration>
-                            </execution>
-                        </executions>
+                        <artifactId>maven-surefire-plugin</artifactId>
+                        <configuration>
+                            <classpathDependencyExcludes>
+                                <classpathDependencyExclude>org.hibernate.orm:hibernate-core</classpathDependencyExclude>
+                            </classpathDependencyExcludes>
+                            <additionalClasspathDependencies>
+                                <additionalClasspathDependency>
+                                    <groupId>org.hibernate.orm</groupId>
+                                    <artifactId>hibernate-core</artifactId>
+                                    <version>${hibernate7.version}</version>
+                                </additionalClasspathDependency>
+                            </additionalClasspathDependencies>
+                        </configuration>
                     </plugin>
                 </plugins>
             </build>

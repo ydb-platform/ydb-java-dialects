@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import org.hibernate.boot.model.FunctionContributions;
 import org.hibernate.boot.model.TypeContributions;
+import org.hibernate.Version;
 import org.hibernate.dialect.Dialect;
 import org.hibernate.dialect.identity.IdentityColumnSupport;
 import org.hibernate.dialect.pagination.LimitHandler;
@@ -414,6 +415,10 @@ public class YdbDialect extends Dialect {
 
     @Override
     public String getForUpdateString() {
+        // Hibernate 7 generates FOR UPDATE for some JPA lock modes; YDB has no row locks — omit the hint.
+        if (Version.getVersionString().startsWith("7")) {
+            return "";
+        }
         throw new UnsupportedOperationException("YDB does not support FOR UPDATE statement");
     }
 
@@ -427,8 +432,9 @@ public class YdbDialect extends Dialect {
         return false;
     }
 
+    @SuppressWarnings({"rawtypes", "unchecked", "override"})
     @Override
-    public Exporter<Constraint> getUniqueKeyExporter() {
+    public Exporter getUniqueKeyExporter() {
         return UNIQUE_KEY_EMPTY_EXPORTER;
     }
 

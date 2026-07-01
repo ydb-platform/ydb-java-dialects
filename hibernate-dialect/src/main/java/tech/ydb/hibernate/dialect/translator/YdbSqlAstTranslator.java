@@ -1,13 +1,11 @@
 package tech.ydb.hibernate.dialect.translator;
 
 import org.hibernate.engine.spi.SessionFactoryImplementor;
-import org.hibernate.query.sqm.FetchClauseType;
-import org.hibernate.sql.ast.Clause;
 import org.hibernate.sql.ast.spi.AbstractSqlAstTranslator;
 import org.hibernate.sql.ast.tree.Statement;
-import org.hibernate.sql.ast.tree.expression.Expression;
 import org.hibernate.sql.ast.tree.expression.QueryLiteral;
 import org.hibernate.sql.ast.tree.predicate.LikePredicate;
+import org.hibernate.sql.ast.tree.select.QueryPart;
 import org.hibernate.sql.exec.spi.JdbcOperation;
 
 /**
@@ -20,40 +18,14 @@ public class YdbSqlAstTranslator<T extends JdbcOperation> extends AbstractSqlAst
     }
 
     @Override
-    protected void renderOffsetFetchClause(
-            Expression offsetExpression,
-            Expression fetchExpression,
-            FetchClauseType fetchClauseType,
-            boolean renderOffsetRowsKeyword
-    ) {
-        // Workaround on this issue:
-        // https://github.com/ydb-platform/ydb/issues/33136
-        if (offsetExpression != null && fetchExpression == null) {
-            appendSql(" limit ");
-            appendSql(Long.toString(Long.MAX_VALUE));
-        }
-
-        if (fetchExpression != null) {
-            appendSql(" limit ");
-            getClauseStack().push(Clause.FETCH);
-            try {
-                fetchExpression.accept(this);
-            } finally {
-                getClauseStack().pop();
-            }
-        }
-
-        if (offsetExpression != null) {
-            appendSql(" offset ");
-            getClauseStack().push(Clause.OFFSET);
-            try {
-                offsetExpression.accept(this);
-            } finally {
-                getClauseStack().pop();
-            }
+    public void visitOffsetFetchClause(QueryPart queryPart) {
+        if (!isRowNumberingCurrentQueryPart()) {
+            renderLimitOffsetClause(queryPart);
         }
     }
 
+    // Hibernate 6 support
+    @SuppressWarnings({"override"})
     @Override
     public void visitLikePredicate(LikePredicate likePredicate) {
         if (likePredicate.isCaseSensitive()) {
@@ -82,8 +54,23 @@ public class YdbSqlAstTranslator<T extends JdbcOperation> extends AbstractSqlAst
                     acceptEscapeCharacter(likePredicate);
                 }
             } else {
-                renderCaseInsensitiveLikeEmulation(likePredicate.getMatchExpression(), likePredicate.getPattern(), likePredicate.getEscapeCharacter(), likePredicate.isNegated());
+                renderCaseInsensitiveLikeEmulation(
+                        likePredicate.getMatchExpression(),
+                        likePredicate.getPattern(),
+                        likePredicate.getEscapeCharacter(),
+                        likePredicate.isNegated()
+                );
             }
+        }
+    }
+
+    // Hibernate 7 support (parent hook is absent in Hibernate 6)
+    @SuppressWarnings({"override"})
+    protected void renderLikePredicate(LikePredicate likePredicate) {
+        likePredicate.getPattern().accept(this);
+        if (likePredicate.getEscapeCharacter() != null) {
+            appendSql(" escape ");
+            acceptEscapeCharacter(likePredicate);
         }
     }
 
