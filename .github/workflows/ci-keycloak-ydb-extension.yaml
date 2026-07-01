@@ -6,11 +6,11 @@ on:
       - main
     paths:
       - 'keycloak-ydb-extension/**'
-      - '.github/workflows/ci-keycloak-ydb-extension.yaml'
+      - 'hibernate-dialect/**'
   pull_request:
     paths:
       - 'keycloak-ydb-extension/**'
-      - '.github/workflows/ci-keycloak-ydb-extension.yaml'
+      - 'hibernate-dialect/**'
 
 env:
   MAVEN_ARGS: --batch-mode --update-snapshots -Dstyle.color=always
@@ -29,6 +29,10 @@ jobs:
           java-version: '21'
           distribution: 'temurin'
           cache: maven
+
+      - name: Build Hibernate Dialect (Hibernate 7)
+        working-directory: ./hibernate-dialect
+        run: mvn $MAVEN_ARGS install
 
       - name: Download dependencies
         working-directory: ./keycloak-ydb-extension

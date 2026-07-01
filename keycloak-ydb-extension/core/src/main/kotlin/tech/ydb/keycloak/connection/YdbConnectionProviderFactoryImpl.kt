@@ -25,7 +25,6 @@ import org.keycloak.models.dblock.DBLockProvider
 import org.keycloak.models.utils.KeycloakModelUtils
 import org.keycloak.provider.ServerInfoAwareProviderFactory
 import tech.ydb.hibernate.dialect.YdbDialect
-import tech.ydb.hibernate.dialect.YdbSettings
 import tech.ydb.jdbc.YdbDriver
 import tech.ydb.keycloak.config.ProviderConfig.PROVIDER_ID
 import tech.ydb.keycloak.config.ProviderConfig.PROVIDER_PRIORITY
@@ -238,8 +237,6 @@ class YdbConnectionProviderFactoryImpl : JpaConnectionProviderFactory, ServerInf
     logger.info("HikariCP pool created: maxSize=${hikariConfig.maximumPoolSize}, minIdle=${hikariConfig.minimumIdle}")
 
     properties[AvailableSettings.JAKARTA_NON_JTA_DATASOURCE] = dataSource
-
-    properties[YdbSettings.IGNORE_LOCK_HINTS] = true
 
     getSchema()?.let { properties[JpaUtils.HIBERNATE_DEFAULT_SCHEMA] = it }
 
