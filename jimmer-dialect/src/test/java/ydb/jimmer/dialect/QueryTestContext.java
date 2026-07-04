@@ -79,9 +79,9 @@ public class QueryTestContext {
                     expect,
                     actual,
                     "statements[" + index + "].batch[" + batchIndex + "].variables[" + i + "] is error, " +
-                            "expected variables: " +
-                            Arrays.toString(values) +
-                            ", actual variables: " +
+                            "expected variable: " +
+                            expect +
+                            ", actual variable: " +
                             actual
             );
         }

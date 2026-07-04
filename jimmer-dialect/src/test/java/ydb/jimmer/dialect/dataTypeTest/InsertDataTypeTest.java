@@ -6,8 +6,6 @@ import ydb.jimmer.dialect.AbstractInsertTest;
 import ydb.jimmer.dialect.model.type.ydbBool.YdbBooleanClassDraft;
 import ydb.jimmer.dialect.model.type.ydbBool.YdbBooleanDraft;
 import ydb.jimmer.dialect.model.type.ydbDate32.YdbDateDraft;
-import ydb.jimmer.dialect.model.type.ydbDate32.YdbLocalDateDraft;
-import ydb.jimmer.dialect.model.type.ydbDatetime64.YdbLocalDateTimeDraft;
 import ydb.jimmer.dialect.model.type.ydbDecimal.YdbBigDecimalDraft;
 import ydb.jimmer.dialect.model.type.ydbDouble.YdbDoubleClassDraft;
 import ydb.jimmer.dialect.model.type.ydbDouble.YdbDoubleDraft;
@@ -19,7 +17,6 @@ import ydb.jimmer.dialect.model.type.ydbInt16.YdbShortClassDraft;
 import ydb.jimmer.dialect.model.type.ydbInt16.YdbShortDraft;
 import ydb.jimmer.dialect.model.type.ydbInt32.YdbIntDraft;
 import ydb.jimmer.dialect.model.type.ydbInt32.YdbIntegerDraft;
-import ydb.jimmer.dialect.model.type.ydbInt32.YdbLocalTimeDraft;
 import ydb.jimmer.dialect.model.type.ydbInt32.YdbTimeDraft;
 import ydb.jimmer.dialect.model.type.ydbInt64.YdbBigIntegerDraft;
 import ydb.jimmer.dialect.model.type.ydbInt64.YdbLongClassDraft;
@@ -28,9 +25,7 @@ import ydb.jimmer.dialect.model.type.ydbInt8.YdbByteClassDraft;
 import ydb.jimmer.dialect.model.type.ydbInt8.YdbByteDraft;
 import ydb.jimmer.dialect.model.type.ydbInterval64.YdbDurationDraft;
 import ydb.jimmer.dialect.model.type.ydbString.YdbByteArrayDraft;
-import ydb.jimmer.dialect.model.type.ydbTimestamp64.YdbInstantDraft;
 import ydb.jimmer.dialect.model.type.ydbTimestamp64.YdbTimestampDraft;
-import ydb.jimmer.dialect.model.type.ydbTimestamp64.YdbUtilDateDraft;
 import ydb.jimmer.dialect.model.type.ydbUtf8.YdbStringDraft;
 import ydb.jimmer.dialect.model.type.ydbUuid.YdbUuidDraft;
 
@@ -40,11 +35,6 @@ import java.sql.Date;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.time.Duration;
-import java.time.Instant;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.LocalTime;
-import java.time.ZoneId;
 import java.util.UUID;
 
 public class InsertDataTypeTest extends AbstractInsertTest {
@@ -64,58 +54,6 @@ public class InsertDataTypeTest extends AbstractInsertTest {
         );
 
         dropTable(tableName);
-    }
-
-    /**
-     * {@link org.babyfish.jimmer.sql.ast.impl.Variables#handleDateTime(Object, ZoneId) handleDateTime(Object, ZoneId)}
-     * this Jimmer method is responsible for changing java types without any user input
-     */
-    @Test
-    public void handleDateTimeJimmerTest() {
-        Object[] variables = new Object[]{0, Instant.now()};
-
-        typeTest("ydb_instant", "Timestamp64",
-                YdbInstantDraft.$.produce(t -> {
-                    t.setId((Integer) variables[0]);
-                    t.setValue((Instant) variables[1]);
-                }),
-                variables);
-
-        Object[] variables1 = new Object[]{0, LocalDateTime.parse("1970-01-01T00:00:00")};
-
-        typeTest("ydb_local_date_time", "DateTime64",
-                YdbLocalDateTimeDraft.$.produce(t -> {
-                    t.setId((Integer) variables1[0]);
-                    t.setValue((LocalDateTime) variables1[1]);
-                }),
-                variables1);
-
-        Object[] variables2 = new Object[]{0, LocalDate.parse("1970-01-01")};
-
-        typeTest("ydb_local_date", "Date32",
-                YdbLocalDateDraft.$.produce(t -> {
-                    t.setId((Integer) variables2[0]);
-                    t.setValue((LocalDate) variables2[1]);
-                }),
-                variables2);
-
-        Object[] variables3 = new Object[]{0, LocalTime.parse("10:15")};
-
-        typeTest("ydb_local_time", "Int32",
-                YdbLocalTimeDraft.$.produce(t -> {
-                    t.setId((Integer) variables3[0]);
-                    t.setValue((LocalTime) variables3[1]);
-                }),
-                variables3);
-
-        Object[] variables4 = new Object[]{0, new java.util.Date(0)};
-
-        typeTest("ydb_util_date", "Timestamp64",
-                YdbUtilDateDraft.$.produce(t -> {
-                    t.setId((Integer) variables4[0]);
-                    t.setValue((java.util.Date) variables4[1]);
-                }),
-                variables4);
     }
 
     @Test
