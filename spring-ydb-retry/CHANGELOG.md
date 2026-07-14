@@ -1,3 +1,7 @@
+## 0.10.1 ##
+
+- Fixed `YdbTransactionInterceptor` wiring for Spring AOT by replacing legacy autowiring mode with explicit bean references.
+
 ## 0.10.0 ##
 
 - Renamed the `maxRetries` retry setting to `maxAttempts`, which now counts the total number of attempts including the initial execution (aligned with Spring Retry semantics). The `ydb.transaction.retry.max-retries` property is renamed to `ydb.transaction.retry.max-attempts`.

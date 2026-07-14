@@ -7,7 +7,7 @@
 
     <groupId>tech.ydb</groupId>
     <artifactId>spring-ydb-retry</artifactId>
-    <version>0.10.0</version>
+    <version>0.10.1</version>
     <packaging>jar</packaging>
 
     <name>Spring YDB Retry</name>
