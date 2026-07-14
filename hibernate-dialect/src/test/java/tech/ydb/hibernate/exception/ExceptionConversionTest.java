@@ -25,13 +25,12 @@ class ExceptionConversionTest {
 
         inTransaction(session -> {
             session.createNativeQuery(
-                    """
-                        CREATE TABLE exception_test_dup (
-                            id    Int32  NOT NULL,
-                            name  Text,
-                            PRIMARY KEY (id),
-                            INDEX idx_dup_name GLOBAL UNIQUE ON (name)
-                        )"""
+                    "CREATE TABLE exception_test_dup ("
+                            + " id Int32 NOT NULL,"
+                            + " name Text,"
+                            + " PRIMARY KEY (id),"
+                            + " INDEX idx_dup_name GLOBAL UNIQUE ON (name)"
+                            + ")"
             ).executeUpdate();
         });
     }

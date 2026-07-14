@@ -116,35 +116,34 @@ public class YdbJdbcCodeTest {
                 2.2f, 2.2
         );
         inTransaction(session -> {
+            String updateQuery = "UPDATE YdbAllTypes e "
+                    + "SET "
+                    + "e.bool = :bool, "
+                    + "e.uint8 = :uint8, "
+                    + "e.int8 = :int8, "
+                    + "e.uint16 = :uint16, "
+                    + "e.int16 = :int16, "
+                    + "e.uint32 = :uint32, "
+                    + "e.int32 = :int32, "
+                    + "e.uint64 = :uint64, "
+                    + "e.int64 = :int64, "
+                    + "e.date = :date, "
+                    + "e.datetime = :datetime, "
+                    + "e.timestamp = :timestamp, "
+                    + "e.interval = :interval, "
+                    + "e.date32 = :date32, "
+                    + "e.datetime64 = :datetime64, "
+                    + "e.timestamp64 = :timestamp64, "
+                    + "e.interval64 = :interval64, "
+                    + "e.text = :text, "
+                    + "e.json = :json, "
+                    + "e.jsonDocument = :jsonDocument, "
+                    + "e.bytes = :bytes, "
+                    + "e.yson = :yson, "
+                    + "e.aFloat = :aFloat, "
+                    + "e.aDouble = :aDouble";
             session.createQuery(
-                            """
-                                    UPDATE YdbAllTypes e
-                                    SET
-                                      e.bool = :bool,
-                                      e.uint8 = :uint8,
-                                      e.int8 = :int8,
-                                      e.uint16 = :uint16,
-                                      e.int16 = :int16,
-                                      e.uint32 = :uint32,
-                                      e.int32 = :int32,
-                                      e.uint64 = :uint64,
-                                      e.int64 = :int64,
-                                      e.date = :date,
-                                      e.datetime = :datetime,
-                                      e.timestamp = :timestamp,
-                                      e.interval = :interval,
-                                      e.date32 = :date32,
-                                      e.datetime64 = :datetime64,
-                                      e.timestamp64 = :timestamp64,
-                                      e.interval64 = :interval64,
-                                      e.text = :text,
-                                      e.json = :json,
-                                      e.jsonDocument = :jsonDocument,
-                                      e.bytes = :bytes,
-                                      e.yson = :yson,
-                                      e.aFloat = :aFloat,
-                                      e.aDouble = :aDouble
-                                    """)
+                            updateQuery)
                     .setParameter("bool", newYdbAllEntity.isBool())
                     .setParameter("uint8", newYdbAllEntity.getUint8())
                     .setParameter("int8", newYdbAllEntity.getInt8())

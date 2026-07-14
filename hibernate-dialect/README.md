@@ -21,10 +21,10 @@ features while using YDB as your underlying database.
 
 ### Requirements
 
-To use this Hibernate V6 YDB Dialect, you'll need:
+To use this Hibernate YDB Dialect, you'll need:
 
-- Java 17 or above.
-- Hibernate version 6.*
+- Java 11 or above for Hibernate version 6.*
+- Java 17 or above for Hibernate version 7.*
 - [YDB JDBC Driver](https://github.com/ydb-platform/ydb-jdbc-driver)
 - Access to a YDB Database instance
 
