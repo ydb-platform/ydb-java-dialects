@@ -3,7 +3,9 @@ package tech.ydb.retry;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
+import org.springframework.beans.PropertyValue;
 import org.springframework.beans.factory.config.BeanDefinition;
+import org.springframework.beans.factory.config.RuntimeBeanReference;
 import org.springframework.beans.factory.support.AbstractBeanDefinition;
 import org.springframework.beans.factory.support.AutowireCandidateQualifier;
 import org.springframework.beans.factory.support.BeanDefinitionBuilder;
@@ -18,6 +20,7 @@ import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -86,6 +89,40 @@ class YdbTransactionInterceptorReplacerTest {
                 beanFactory.getBeansOfType(TransactionInterceptor.class);
         assertEquals(1, interceptors.size());
         assertSame(bean, interceptors.get("transactionInterceptor"));
+    }
+
+    @Test
+    void shouldDeclareDependenciesAsExplicitPropertyReferences() {
+        DefaultListableBeanFactory beanFactory = new DefaultListableBeanFactory();
+        BeanDefinition beanDefinition =
+                BeanDefinitionBuilder.genericBeanDefinition(TransactionInterceptor.class)
+                        .getBeanDefinition();
+        beanFactory.registerBeanDefinition("transactionInterceptor", beanDefinition);
+
+        YdbTransactionInterceptorReplacer pp = new YdbTransactionInterceptorReplacer();
+        pp.postProcessBeanDefinitionRegistry(beanFactory);
+
+        AbstractBeanDefinition replaced =
+                (AbstractBeanDefinition) beanFactory.getBeanDefinition("transactionInterceptor");
+
+        // Must not rely on the legacy autowire modes: they are dropped by Spring AOT.
+        assertEquals(AbstractBeanDefinition.AUTOWIRE_NO, replaced.getAutowireMode());
+
+        PropertyValue retryProperties =
+                replaced.getPropertyValues().getPropertyValue("retryProperties");
+        assertNotNull(retryProperties);
+        assertInstanceOf(RuntimeBeanReference.class, retryProperties.getValue());
+        assertEquals(
+                YdbRetryProperties.class,
+                ((RuntimeBeanReference) retryProperties.getValue()).getBeanType());
+
+        PropertyValue transactionAttributeSource =
+                replaced.getPropertyValues().getPropertyValue("transactionAttributeSource");
+        assertNotNull(transactionAttributeSource);
+        assertInstanceOf(RuntimeBeanReference.class, transactionAttributeSource.getValue());
+        assertEquals(
+                TransactionAttributeSource.class,
+                ((RuntimeBeanReference) transactionAttributeSource.getValue()).getBeanType());
     }
 
     @Test

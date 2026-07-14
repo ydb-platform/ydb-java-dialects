@@ -4,11 +4,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.config.BeanDefinition;
+import org.springframework.beans.factory.config.RuntimeBeanReference;
 import org.springframework.beans.factory.support.AbstractBeanDefinition;
 import org.springframework.beans.factory.support.BeanDefinitionBuilder;
 import org.springframework.beans.factory.support.BeanDefinitionRegistry;
 import org.springframework.beans.factory.support.BeanDefinitionRegistryPostProcessor;
 import org.springframework.core.Ordered;
+import org.springframework.transaction.interceptor.TransactionAttributeSource;
 
 public class YdbTransactionInterceptorReplacer
         implements BeanDefinitionRegistryPostProcessor, Ordered {
@@ -51,8 +53,16 @@ public class YdbTransactionInterceptorReplacer
     private AbstractBeanDefinition buildYdbInterceptorBeanDefinition(BeanDefinition existingBd) {
         AbstractBeanDefinition newBd =
                 BeanDefinitionBuilder.genericBeanDefinition(YdbTransactionInterceptorFactory.class)
-                        .setAutowireMode(AbstractBeanDefinition.AUTOWIRE_BY_TYPE)
                         .getBeanDefinition();
+
+        // Declare dependencies as explicit property references (resolved by type) rather than
+        // relying on AUTOWIRE_BY_TYPE. The legacy autowire modes are silently dropped by Spring's
+        // AOT engine, which freezes bean definitions into generated code; explicit property values
+        // are code-generated and therefore survive AOT.
+        newBd.getPropertyValues().addPropertyValue(
+                "retryProperties", new RuntimeBeanReference(YdbRetryProperties.class));
+        newBd.getPropertyValues().addPropertyValue(
+                "transactionAttributeSource", new RuntimeBeanReference(TransactionAttributeSource.class));
 
         copyBeanDefinitionMetadata(existingBd, newBd);
         return newBd;
