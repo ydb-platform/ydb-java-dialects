@@ -8,6 +8,8 @@ import org.reactivestreams.Subscriber;
 import tech.ydb.jooq.ReplaceQuery;
 import tech.ydb.jooq.YdbDSLContext;
 
+import java.util.function.Function;
+
 public class BatchReplace extends AbstractBatch {
     private final YdbDSLContext ydbDSLContext;
     private final TableRecord<?>[] records;
@@ -20,11 +22,20 @@ public class BatchReplace extends AbstractBatch {
 
     @Override
     public int[] execute() throws DataAccessException {
+        return execute0(BatchBindStep::execute, new int[0]);
+    }
+
+    @Override
+    public long[] executeLarge() throws DataAccessException {
+        return execute0(BatchBindStep::executeLarge, new long[0]);
+    }
+
+    private <T> T execute0(Function<BatchBindStep, T> executor, T empty) {
         BatchBindStep batchBindStep = prepareBatch();
         if (batchBindStep == null) {
-            return new int[0];
+            return empty;
         }
-        int[] result = batchBindStep.execute();
+        T result = executor.apply(batchBindStep);
         updateChangedFlag();
         return result;
     }
@@ -35,7 +46,7 @@ public class BatchReplace extends AbstractBatch {
     }
 
     @Override
-    public void subscribe(Subscriber<? super Integer> subscriber) {
+    void subscribe0(Subscriber<? super R2DBC.RowCount> subscriber) {
         throw new UnsupportedOperationException("BatchReplace operation is not supported in a reactive way");
     }
 

@@ -27,6 +27,7 @@ public final class DataTypesUtils {
                 name(typeName),
                 typeName,
                 typeName,
+                typeName,
                 sqlDataType.precisionDefined() ? sqlDataType.precision() : null,
                 sqlDataType.scaleDefined() ? sqlDataType.scale() : null,
                 sqlDataType.lengthDefined() ? sqlDataType.length() : null,

@@ -2,6 +2,7 @@ package org.jooq.impl;
 
 import org.jooq.Comment;
 import org.jooq.Condition;
+import org.jooq.Context;
 import org.jooq.Field;
 import org.jooq.Name;
 import org.jooq.Record;
@@ -21,6 +22,24 @@ public class YdbTableImpl<R extends Record> extends TableImpl<R> {
     }
 
     public Table<R> viewPrimaryKey() {
-        return new HintedTable<>(this, DSL.keyword("use primary key"), new QueryPartList<>(PRIMARY_KEY));
+        return new YdbHintedTable<>(this);
+    }
+
+    private static final class YdbHintedTable<R extends Record> extends AbstractDelegatingTable<R> {
+        private YdbHintedTable(AbstractTable<R> delegate) {
+            super(delegate);
+        }
+
+        @Override
+        <O extends Record> AbstractDelegatingTable<O> construct(AbstractTable<O> newDelegate) {
+            return new YdbHintedTable<>(newDelegate);
+        }
+
+        @Override
+        public void accept(Context<?> ctx) {
+            ctx.visit(delegate)
+                    .sql(' ').visit(Keywords.K_VIEW)
+                    .sql(' ').visit(PRIMARY_KEY);
+        }
     }
 }
