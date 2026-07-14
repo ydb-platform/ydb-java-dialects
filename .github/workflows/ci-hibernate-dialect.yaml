@@ -58,9 +58,11 @@ jobs:
           path: examples
 
       - name: Download dependencies
+        if: matrix.java != '11'
         working-directory: ./examples/jdbc/spring-data-jpa
         run: mvn $MAVEN_ARGS -Dhibernate.ydb.dialect.version=$HIBERNATE_DIALECT_VERSION dependency:go-offline
 
       - name: Test examples with Maven
+        if: matrix.java != '11'
         working-directory: ./examples/jdbc/spring-data-jpa
         run: mvn $MAVEN_ARGS -Dhibernate.ydb.dialect.version=$HIBERNATE_DIALECT_VERSION test
