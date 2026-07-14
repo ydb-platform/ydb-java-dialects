@@ -75,13 +75,16 @@ public class YdbSqlAstTranslator<T extends JdbcOperation> extends AbstractSqlAst
     }
 
     private void acceptEscapeCharacter(LikePredicate likePredicate) {
-        if (likePredicate.getEscapeCharacter() instanceof QueryLiteral<?> queryLiteral
-                && queryLiteral.getLiteralValue() instanceof Character value) {
-            appendSql('\'');
-            appendSql(value);
-            appendSql('\'');
-        } else {
-            likePredicate.getEscapeCharacter().accept(this);
+        if (likePredicate.getEscapeCharacter() instanceof QueryLiteral<?>) {
+            QueryLiteral<?> queryLiteral = (QueryLiteral<?>) likePredicate.getEscapeCharacter();
+            if (queryLiteral.getLiteralValue() instanceof Character) {
+                Character value = (Character) queryLiteral.getLiteralValue();
+                appendSql('\'');
+                appendSql(value);
+                appendSql('\'');
+                return;
+            }
         }
+        likePredicate.getEscapeCharacter().accept(this);
     }
 }

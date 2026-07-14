@@ -22,13 +22,18 @@ public class YdbIdentityColumnSupport extends IdentityColumnSupportImpl {
 
     @Override
     public String getIdentityColumnString(int type) throws MappingException {
-        return switch (type) {
-            case TINYINT, SMALLINT -> "SmallSerial";
-            case INTEGER -> "Serial";
-            case BIGINT -> "BigSerial";
-            default -> throw new MappingException(
-                    "Ydb does not support identity key generation for sqlType: " + JDBCType.valueOf(type));
-        };
+        switch (type) {
+            case TINYINT:
+            case SMALLINT:
+                return "SmallSerial";
+            case INTEGER:
+                return "Serial";
+            case BIGINT:
+                return "BigSerial";
+            default:
+                throw new MappingException(
+                        "Ydb does not support identity key generation for sqlType: " + JDBCType.valueOf(type));
+        }
     }
 
     @Override

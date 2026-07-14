@@ -106,27 +106,62 @@ public class YdbDialect extends Dialect {
 
     @Override
     protected String columnType(int sqlTypeCode) {
-        return switch (sqlTypeCode) {
-            case BOOLEAN, BIT -> "Bool";
-            case TINYINT -> "Int8";
-            case SMALLINT -> "Int16";
-            case INTEGER -> "Int32";
-            case BIGINT -> "Int64";
-            case REAL, FLOAT -> "Float";
-            case DOUBLE -> "Double";
-            case NUMERIC, DECIMAL -> "Decimal($p, $s)";
-            case DATE -> "Date";
-            case INTERVAL_SECOND -> "Interval";
-            case TIME_WITH_TIMEZONE -> "TzDateTime";
-            case TIMESTAMP, TIMESTAMP_UTC -> "Timestamp";
-            case TIMESTAMP_WITH_TIMEZONE -> "TzTimestamp";
-            case CHAR, VARCHAR, CLOB, NCHAR, NVARCHAR, NCLOB,
-                 LONG32VARCHAR, LONG32NVARCHAR, LONGVARCHAR, LONGNVARCHAR -> "Text";
-            case BINARY, VARBINARY, BLOB, LONGVARBINARY, LONG32VARBINARY -> "Bytes";
-            case JSON -> "Json";
-            case UUID, YdbJdbcCode.UUID -> "Uuid";
-            default -> super.columnType(sqlTypeCode);
-        };
+        switch (sqlTypeCode) {
+            case BOOLEAN:
+            case BIT:
+                return "Bool";
+            case TINYINT:
+                return "Int8";
+            case SMALLINT:
+                return "Int16";
+            case INTEGER:
+                return "Int32";
+            case BIGINT:
+                return "Int64";
+            case REAL:
+            case FLOAT:
+                return "Float";
+            case DOUBLE:
+                return "Double";
+            case NUMERIC:
+            case DECIMAL:
+                return "Decimal($p, $s)";
+            case DATE:
+                return "Date";
+            case INTERVAL_SECOND:
+                return "Interval";
+            case TIME_WITH_TIMEZONE:
+                return "TzDateTime";
+            case TIMESTAMP:
+            case TIMESTAMP_UTC:
+                return "Timestamp";
+            case TIMESTAMP_WITH_TIMEZONE:
+                return "TzTimestamp";
+            case CHAR:
+            case VARCHAR:
+            case CLOB:
+            case NCHAR:
+            case NVARCHAR:
+            case NCLOB:
+            case LONG32VARCHAR:
+            case LONG32NVARCHAR:
+            case LONGVARCHAR:
+            case LONGNVARCHAR:
+                return "Text";
+            case BINARY:
+            case VARBINARY:
+            case BLOB:
+            case LONGVARBINARY:
+            case LONG32VARBINARY:
+                return "Bytes";
+            case JSON:
+                return "Json";
+            case UUID:
+            case YdbJdbcCode.UUID:
+                return "Uuid";
+            default:
+                return super.columnType(sqlTypeCode);
+        }
     }
 
     @Override
@@ -471,13 +506,11 @@ public class YdbDialect extends Dialect {
     public SQLExceptionConversionDelegate buildSQLExceptionConversionDelegate() {
         return (sqlException, message, sql) -> {
             String msg = sqlException.getMessage();
-
-            return switch (extractErrorCode(sqlException)) {
-                case 400120 -> msg != null && msg.contains("Conflict with existing key")
-                        ? new ConstraintViolationException(message, sqlException, sql, null)
-                        : null;
-                default -> null;
-            };
+            int errorCode = extractErrorCode(sqlException);
+            if (errorCode == 400120 && msg != null && msg.contains("Conflict with existing key")) {
+                return new ConstraintViolationException(message, sqlException, sql, null);
+            }
+            return null;
         };
     }
 

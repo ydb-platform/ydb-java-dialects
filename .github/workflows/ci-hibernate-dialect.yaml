@@ -20,7 +20,7 @@ jobs:
 
     strategy:
       matrix:
-        java: [ '17', '21' ]
+        java: [ '11', '17', '21' ]
 
     steps:
       - uses: actions/checkout@v5
@@ -47,6 +47,7 @@ jobs:
         run: mvn $MAVEN_ARGS install
 
       - name: Tests with Hibernate 7
+        if: matrix.java != '11'
         working-directory: ./hibernate-dialect
         run: mvn $MAVEN_ARGS clean install -Phibernate7
 
