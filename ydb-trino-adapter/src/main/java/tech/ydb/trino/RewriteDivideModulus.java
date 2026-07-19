@@ -1,0 +1,63 @@
+package tech.ydb.trino;
+
+import io.trino.matching.Captures;
+import io.trino.matching.Pattern;
+import io.trino.plugin.base.expression.ConnectorExpressionRule;
+import io.trino.plugin.jdbc.expression.ParameterizedExpression;
+import io.trino.spi.expression.Call;
+
+import java.util.Optional;
+
+import static io.trino.plugin.base.expression.ConnectorExpressionPatterns.argumentCount;
+import static io.trino.plugin.base.expression.ConnectorExpressionPatterns.call;
+import static io.trino.plugin.base.expression.ConnectorExpressionPatterns.functionName;
+import static io.trino.spi.expression.StandardFunctions.DIVIDE_FUNCTION_NAME;
+import static io.trino.spi.expression.StandardFunctions.MODULUS_FUNCTION_NAME;
+import static java.lang.String.format;
+
+/**
+ * Rewrite <code>$divide(a, b)</code>, <code>$modulus(a, b)</code> as <code>a / b</code>, <code>a % b</code>,
+ * but <b>only if</b> <code>b</code> <b>is a non-zero constant</b>.
+ * <br /> <br />
+ * This is because YDB, unlike Trino, suppresses arithmetic errors (including division by zero), and any
+ * non-constant expression <i>may</i> evaluate to zero and cause a different result if pushed down to YDB.
+ */
+public class RewriteDivideModulus implements ConnectorExpressionRule<Call, ParameterizedExpression> {
+    private final Pattern<Call> PATTERN;
+
+    public RewriteDivideModulus() {
+        this.PATTERN = call()
+                .with(functionName().matching(name -> name.equals(DIVIDE_FUNCTION_NAME) || name.equals(MODULUS_FUNCTION_NAME)))
+                .with(argumentCount().matching(count -> count == 2))
+                .matching((Call call, RewriteContext<ParameterizedExpression> _) ->
+                        call.getArguments().stream().noneMatch(arg -> arg instanceof Call));
+    }
+
+    @Override
+    public Pattern<Call> getPattern() {
+        return PATTERN;
+    }
+
+    @Override
+    public Optional<ParameterizedExpression> rewrite(Call call, Captures captures, RewriteContext<ParameterizedExpression> context) {
+        String operator = getOperator(call.getFunctionName());
+        return RewriteUtils.rewriteBinaryExpression(
+                call,
+                context,
+                () -> call.getArguments().get(1) instanceof io.trino.spi.expression.Constant rightConstant &&
+                        rightConstant.getValue() instanceof Number number &&
+                        number.longValue() != 0,
+                (left, right) -> format("(%s) %s (%s)", left, operator, right)
+        );
+    }
+
+    private String getOperator(io.trino.spi.expression.FunctionName functionName) {
+        if (functionName.equals(DIVIDE_FUNCTION_NAME)) {
+            return "/";
+        }
+        if (functionName.equals(MODULUS_FUNCTION_NAME)) {
+            return "%";
+        }
+        return null;
+    }
+}

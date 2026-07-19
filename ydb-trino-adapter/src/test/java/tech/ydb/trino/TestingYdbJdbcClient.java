@@ -1,0 +1,59 @@
+package tech.ydb.trino;
+
+import io.trino.plugin.base.mapping.IdentifierMapping;
+import io.trino.plugin.jdbc.BaseJdbcConfig;
+import io.trino.plugin.jdbc.ConnectionFactory;
+import io.trino.plugin.jdbc.JdbcColumnHandle;
+import io.trino.plugin.jdbc.QueryBuilder;
+import io.trino.plugin.jdbc.RemoteTableName;
+import io.trino.plugin.jdbc.logging.RemoteQueryModifier;
+import io.trino.spi.connector.ConnectorSession;
+import io.trino.spi.connector.ConnectorTableMetadata;
+import io.trino.spi.connector.SchemaTableName;
+
+import java.util.List;
+
+public class TestingYdbJdbcClient extends YdbClient {
+    private static final String YDB_HIDDEN_PK_COLUMN = "pk";
+
+    public TestingYdbJdbcClient(
+            BaseJdbcConfig config,
+            ConnectionFactory connectionFactory,
+            QueryBuilder queryBuilder,
+            IdentifierMapping identifierMapping,
+            RemoteQueryModifier remoteQueryModifier) {
+        super(config, connectionFactory, queryBuilder, identifierMapping, remoteQueryModifier);
+    }
+
+    @Override
+    public List<JdbcColumnHandle> getColumns(
+            ConnectorSession session,
+            SchemaTableName schemaTableName,
+            RemoteTableName remoteTableName) {
+        return super.getColumns(session, schemaTableName, remoteTableName)
+                .stream()
+                .filter(column -> !column.getColumnName().equals(YDB_HIDDEN_PK_COLUMN))
+                .toList();
+    }
+
+    @Override
+    protected List<String> createTableSqls(RemoteTableName remoteTableName, List<String> columns, ConnectorTableMetadata tableMetadata) {
+        String tableName = quoted(remoteTableName);
+        String columnsDeclaration = String.join(", ", columns);
+
+        boolean hasPrimaryKey = columnsDeclaration.toUpperCase().contains("PRIMARY KEY");
+        boolean hasHiddenPkColumn = columns.stream()
+                .anyMatch(col -> col.startsWith(quoted(YDB_HIDDEN_PK_COLUMN)) || col.startsWith(YDB_HIDDEN_PK_COLUMN));
+
+        String sql;
+        if (hasPrimaryKey) {
+            sql = String.format("CREATE TABLE %s (%s)", tableName, columnsDeclaration);
+        } else if (hasHiddenPkColumn) {
+            sql = String.format("CREATE TABLE %s (%s, PRIMARY KEY (%s))", tableName, columnsDeclaration, quoted(YDB_HIDDEN_PK_COLUMN));
+        } else {
+            String hiddenPkColumn = quoted(YDB_HIDDEN_PK_COLUMN) + " Serial";
+            sql = String.format("CREATE TABLE %s (%s, %s, PRIMARY KEY (%s))", tableName, columnsDeclaration, hiddenPkColumn, quoted(YDB_HIDDEN_PK_COLUMN));
+        }
+        return List.of(sql);
+    }
+}

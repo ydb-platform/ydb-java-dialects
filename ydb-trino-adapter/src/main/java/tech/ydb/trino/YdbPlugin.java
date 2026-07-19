@@ -1,12 +1,28 @@
 package tech.ydb.trino;
 
-import io.trino.plugin.jdbc.JdbcPlugin;
+import com.google.common.collect.ImmutableList;
+import com.google.inject.Module;
+import io.trino.plugin.jdbc.credential.CredentialProviderModule;
+import io.trino.spi.Plugin;
+import io.trino.spi.connector.ConnectorFactory;
 
-public class YdbPlugin
-        extends JdbcPlugin
-{
-    public YdbPlugin()
-    {
-        super("ydb", YdbClientModule::new);
+import static io.airlift.configuration.ConfigurationAwareModule.combine;
+
+public record YdbPlugin(Module module) implements Plugin {
+    private static final String NAME = "ydb";
+
+    public YdbPlugin() {
+        this(new YdbClientModule());
+    }
+
+    @Override
+    public Iterable<ConnectorFactory> getConnectorFactories() {
+        return ImmutableList.of(new YdbConnectorFactory(
+                NAME,
+                () -> combine(
+                        new CredentialProviderModule(),
+                        module
+                )
+        ));
     }
 }

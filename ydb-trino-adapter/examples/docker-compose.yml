@@ -6,6 +6,9 @@ services:
     container_name: ydb-trino-trino
     ports:
       - "8080:8080"
+      - "5005:5005"
+    environment:
+      - JAVA_OPTS=-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005
     volumes:
       - ./trino/etc:/etc/trino
       - ./trino/plugin:/usr/lib/trino/plugin/ydb

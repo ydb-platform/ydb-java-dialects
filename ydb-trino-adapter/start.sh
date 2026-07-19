@@ -1,7 +1,3 @@
-# Инструкция по сборке
-
-```bash
-
 mvn -f pom.xml -DskipTests package
 mvn -f pom.xml -DskipTests dependency:copy-dependencies -DincludeScope=runtime
 
@@ -12,12 +8,3 @@ cp target/dependency/*.jar docker/trino/plugin
 cd docker
 docker-compose down
 docker-compose up -d
-```
-
-## Запуск Trino CLI
-
-```bash
-
-
-docker exec -it ydb-trino trino
-```
