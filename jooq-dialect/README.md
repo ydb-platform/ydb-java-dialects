@@ -21,8 +21,8 @@ This project introduces a JOOQ dialect specifically tailored for the Yandex Data
 
 To utilize this JOOQ YDB Dialect, ensure you have:
 
-- Java 11 or above.
-- JOOQ 3.15 or higher.
+- Java 21 or above.
+- JOOQ 3.21 or higher.
 - [YDB JDBC Driver](https://github.com/ydb-platform/ydb-jdbc-driver)
 - Access to a YDB Database instance.
 

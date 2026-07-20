@@ -29,7 +29,7 @@ public final class FieldMapsForUpsertReplace extends AbstractQueryPart {
     private final Table<?> table;
     private final Map<Field<?>, Field<?>> empty;
     private final Map<Field<?>, List<Field<?>>> values;
-    private int rows;
+    int rows;
     private int nextRow = -1;
 
     public FieldMapsForUpsertReplace(Table<?> table) {

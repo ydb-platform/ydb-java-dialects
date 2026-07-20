@@ -6,6 +6,7 @@ import java.util.Collections;
 import java.util.List;
 import org.jooq.DSLContext;
 import org.jooq.Record12;
+import org.jooq.Record15;
 import org.jooq.Record4;
 import org.jooq.Record5;
 import org.jooq.Record6;
@@ -277,6 +278,26 @@ public class YdbDatabase extends AbstractDatabase implements ResultQueryDatabase
 
     @Override
     public ResultQuery<Record5<String, String, String, String, String>> comments(List<String> schemas) {
+        return null;
+    }
+
+    @Override
+    public ResultQuery<Record15<String, String, String, String, String, Integer, String, Integer, Integer, Boolean, String, String, String, String, String>> attributes(List<String> schemas) {
+        return null;
+    }
+
+    @Override
+    public ResultQuery<Record5<String, String, String, String, String>> identities(List<String> schemas) {
+        return null;
+    }
+
+    @Override
+    public ResultQuery<Record6<String, String, String, String, String, String>> generators(List<String> schemas) {
+        return null;
+    }
+
+    @Override
+    public ResultQuery<Record5<String, String, String, String, String>> checks(List<String> schemas) {
         return null;
     }
 }

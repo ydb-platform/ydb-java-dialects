@@ -5,6 +5,7 @@ import org.jooq.Context;
 import org.jooq.Field;
 import org.jooq.Keyword;
 import org.jooq.Record;
+import org.jooq.Scope;
 import org.jooq.Select;
 import org.jooq.Table;
 import tech.ydb.jooq.ReplaceQuery;
@@ -148,6 +149,17 @@ public class UpsertReplaceQueryImpl<R extends Record>
     @Override
     public boolean isExecutable() {
         return upsertReplaceMaps.isExecutable() || select != null;
+    }
+
+    @Override
+    int estimatedRowCount(Scope ctx) {
+        if (select != null) {
+            return Integer.MAX_VALUE;
+        } else if (InlineDerivedTable.inlineDerivedTable(ctx, table(ctx)) instanceof InlineDerivedTable) {
+            return Integer.MAX_VALUE;
+        } else {
+            return upsertReplaceMaps.rows;
+        }
     }
 
     private UpsertReplaceQueryImpl<R> copy(Consumer<? super UpsertReplaceQueryImpl<R>> finisher) {

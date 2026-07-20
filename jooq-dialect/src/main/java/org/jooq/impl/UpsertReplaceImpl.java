@@ -543,7 +543,7 @@ public abstract sealed class UpsertReplaceImpl<R extends Record, T1, T2, T3, T4,
         } else if (object instanceof FieldLike f) {
             delegate.addValue(field, index, f.asField());
         } else if (field != null) {
-            delegate.addValue(field, index, field.getDataType().convert(object));
+            delegate.addValue(field, index, AbstractDataType.convert0(field.getDataType(), object, Internal.converterContext()));
         } else {
             delegate.addValue(field, index, (T) object);
         }
@@ -782,7 +782,7 @@ public abstract sealed class UpsertReplaceImpl<R extends Record, T1, T2, T3, T4,
     }
 
     public SELF set(Record record) {
-        return set(Tools.mapOfChangedValues(record));
+        return set(Tools.mapOfTouchedValues(getDelegate(), record));
     }
 
     public SELF set(Record... records) {
