@@ -1,3 +1,7 @@
+## 2.0.0 ##
+
+- Upgrade to JOOQ 3.21 and JDK 21.
+
 ## 1.3.1 ##
 
 - Fixed bug: Allow setting fields in UpdateOperation without aliasing names ([pr](https://github.com/ydb-platform/ydb-java-dialects/pull/201)).
