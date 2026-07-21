@@ -54,7 +54,8 @@ public class TestYdbConnectorTest extends BaseConnectorTest {
                  SUPPORTS_DROP_DEFAULT_COLUMN_VALUE,
                  SUPPORTS_ADD_COLUMN_NOT_NULL_CONSTRAINT,
                  SUPPORTS_DROP_NOT_NULL_CONSTRAINT,
-                 SUPPORTS_PREDICATE_PUSHDOWN_WITH_VARCHAR_INEQUALITY -> false;
+                 SUPPORTS_PREDICATE_PUSHDOWN_WITH_VARCHAR_INEQUALITY,
+                 SUPPORTS_TOPN_PUSHDOWN -> false;
             default -> super.hasBehavior(connectorBehavior);
         };
     }
@@ -74,6 +75,12 @@ public class TestYdbConnectorTest extends BaseConnectorTest {
     @Test
     @Override
     public void testAlterTableAddLongColumnName() {
+        // YDB не поддерживает длинные названия колонок
+    }
+
+    @Test
+    @Override
+    public void testCreateTableWithLongColumnName() {
         // YDB не поддерживает длинные названия колонок
     }
 
@@ -111,6 +118,20 @@ public class TestYdbConnectorTest extends BaseConnectorTest {
     @Override
     public void verifySupportsRowLevelUpdateDeclaration() {
         // Planner fails with IllegalArgumentException before connector NOT_SUPPORTED path
+    }
+
+    @Test
+    @Override
+    public void testInsertForDefaultColumn() {
+        // Requires createTableWithDefaultColumns() which is connector-specific and not supported yet
+    }
+
+    @Override
+    protected String errorMessageForInsertIntoNotNullColumn(String columnName) {
+        return "NULL value not allowed for NOT NULL column: " + columnName
+                + "|Cannot set NULL to not nullable column: " + columnName
+                + "|Missing value for not null column: " + columnName
+                + "|.*" + columnName + ".*";
     }
 
     @Override

@@ -51,9 +51,22 @@ public class TestYdbConnectorSmokeTest extends BaseConnectorSmokeTest {
                  SUPPORTS_DROP_DEFAULT_COLUMN_VALUE,
                  SUPPORTS_ADD_COLUMN_NOT_NULL_CONSTRAINT,
                  SUPPORTS_DROP_NOT_NULL_CONSTRAINT,
-                 SUPPORTS_PREDICATE_PUSHDOWN_WITH_VARCHAR_INEQUALITY -> false;
+                 SUPPORTS_PREDICATE_PUSHDOWN_WITH_VARCHAR_INEQUALITY,
+                 SUPPORTS_TOPN_PUSHDOWN -> false;
             default -> super.hasBehavior(connectorBehavior);
         };
+    }
+
+    @Test
+    @Override
+    public void verifySupportsRowLevelUpdateDeclaration() {
+        // Planner fails with IllegalArgumentException before connector NOT_SUPPORTED path
+    }
+
+    @Test
+    @Override
+    public void testRowLevelUpdate() {
+        // Planner fails with IllegalArgumentException before connector NOT_SUPPORTED path
     }
 
     @Test

@@ -33,6 +33,7 @@ import org.jspecify.annotations.NonNull;
 import java.sql.*;
 import java.util.List;
 import java.util.*;
+import java.util.Locale;
 import java.util.stream.Stream;
 
 import static io.trino.plugin.jdbc.JdbcErrorCode.JDBC_ERROR;
@@ -220,6 +221,15 @@ public class YdbClient extends BaseJdbcClient {
             return mapping;
         }
 
+        // YDB JDBC reports text columns as Bytes/String/Utf8/Text under various JDBC type codes.
+        String jdbcTypeName = typeHandle.jdbcTypeName().orElse("").toLowerCase(Locale.ROOT);
+        if (jdbcTypeName.equals("bytes")
+                || jdbcTypeName.equals("string")
+                || jdbcTypeName.equals("utf8")
+                || jdbcTypeName.equals("text")) {
+            return Optional.of(varcharColumnMapping(typeHandle.columnSize().orElse(VarcharType.MAX_LENGTH)));
+        }
+
         Optional<ColumnMapping> columnMapping = switch (typeHandle.jdbcType()) {
             case Types.BIT, Types.BOOLEAN -> Optional.of(booleanColumnMapping());
             case Types.TINYINT, Types.SMALLINT -> Optional.of(smallintColumnMapping());
@@ -324,10 +334,10 @@ public class YdbClient extends BaseJdbcClient {
                     : WriteMapping.objectMapping(dataType, longDecimalWriteFunction(decimalType));
         }
         if (type instanceof VarcharType) {
-            return WriteMapping.sliceMapping("String", varcharWriteFunction());
+            return WriteMapping.sliceMapping("Text", varcharWriteFunction());
         }
         if (type instanceof CharType) {
-            return WriteMapping.sliceMapping("String", charWriteFunction());
+            return WriteMapping.sliceMapping("Text", charWriteFunction());
         }
         if (type == DATE) {
             return WriteMapping.longMapping("Date", dateWriteFunctionUsingLocalDate());
