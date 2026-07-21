@@ -55,6 +55,7 @@ public class TestYdbConnectorTest extends BaseConnectorTest {
                  SUPPORTS_ADD_COLUMN_NOT_NULL_CONSTRAINT,
                  SUPPORTS_DROP_NOT_NULL_CONSTRAINT,
                  SUPPORTS_PREDICATE_PUSHDOWN_WITH_VARCHAR_INEQUALITY -> false;
+            case SUPPORTS_TOPN_PUSHDOWN_WITH_VARCHAR -> true;
             default -> super.hasBehavior(connectorBehavior);
         };
     }
