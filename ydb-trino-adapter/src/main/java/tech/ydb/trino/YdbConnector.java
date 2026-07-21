@@ -14,7 +14,6 @@ import java.util.Optional;
 import java.util.Set;
 
 import static com.google.common.collect.Sets.immutableEnumSet;
-import static io.trino.spi.connector.ConnectorCapabilities.DEFAULT_COLUMN_VALUE;
 import static io.trino.spi.connector.ConnectorCapabilities.NOT_NULL_COLUMN_CONSTRAINT;
 
 @SuppressWarnings("all")
@@ -39,6 +38,7 @@ public class YdbConnector extends JdbcConnector {
 
     @Override
     public Set<ConnectorCapabilities> getCapabilities() {
-        return immutableEnumSet(DEFAULT_COLUMN_VALUE, NOT_NULL_COLUMN_CONSTRAINT);
+        // DEFAULT values are not reliably exposed via information_schema yet.
+        return immutableEnumSet(NOT_NULL_COLUMN_CONSTRAINT);
     }
 }

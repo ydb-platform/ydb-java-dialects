@@ -20,13 +20,15 @@ import static io.trino.testing.TestingSession.testSessionBuilder;
 
 public final class YdbQueryRunner {
     public static final String TPCH_SCHEMA = "ydb";
-    public static final String YDB_HIDDEN_PK_COLUMN = "haha";
+    public static final String YDB_HIDDEN_PK_COLUMN = "pk";
 
     private YdbQueryRunner() {}
 
     public static Builder builder(YdbHelperExtension ydb) {
         String jdbcUrl = buildJdbcUrl(ydb);
         return new Builder()
+                // Avoid temporary-table CTAS during INSERT; YDB does not support CREATE TABLE AS SELECT.
+                .addConnectorProperty("insert.non-transactional-insert.enabled", "true")
                 .addConnectorProperty("connection-url", jdbcUrl);
     }
 
