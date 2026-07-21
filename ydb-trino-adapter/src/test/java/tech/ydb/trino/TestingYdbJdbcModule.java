@@ -5,7 +5,6 @@ import com.google.inject.Module;
 import com.google.inject.Provides;
 import com.google.inject.Scopes;
 import com.google.inject.Singleton;
-import io.airlift.configuration.ConfigBinder;
 import io.trino.plugin.base.mapping.IdentifierMapping;
 import io.trino.plugin.jdbc.BaseJdbcConfig;
 import io.trino.plugin.jdbc.ConnectionFactory;
@@ -24,8 +23,6 @@ public class TestingYdbJdbcModule implements Module {
 
     @Override
     public void configure(Binder binder) {
-        ConfigBinder.configBinder(binder).bindConfig(YdbConfig.class);
-
         newOptionalBinder(binder, JdbcMetadataFactory.class)
                 .setBinding()
                 .to(YdbMetadataFactory.class)

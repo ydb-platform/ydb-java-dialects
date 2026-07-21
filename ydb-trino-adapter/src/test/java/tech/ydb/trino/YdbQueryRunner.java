@@ -26,9 +26,8 @@ public final class YdbQueryRunner {
 
     public static Builder builder(YdbHelperExtension ydb) {
         String jdbcUrl = buildJdbcUrl(ydb);
-        return new Builder(ydb)
-                .addConnectorProperty("connection-url", jdbcUrl)
-                .addConnectorProperty("ydb.root", ydb.database());
+        return new Builder()
+                .addConnectorProperty("connection-url", jdbcUrl);
     }
 
     private static String buildJdbcUrl(YdbHelperExtension ydb) {

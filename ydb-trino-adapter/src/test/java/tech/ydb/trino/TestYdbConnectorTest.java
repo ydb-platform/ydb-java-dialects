@@ -39,7 +39,6 @@ public class TestYdbConnectorTest extends BaseConnectorTest {
                  SUPPORTS_TRUNCATE,
                  SUPPORTS_COMMENT_ON_COLUMN,
                  SUPPORTS_COMMENT_ON_TABLE,
-                 SUPPORTS_DEFAULT_COLUMN_VALUE,
                  SUPPORTS_DROP_SCHEMA_CASCADE,
                  SUPPORTS_CREATE_MATERIALIZED_VIEW,
                  SUPPORTS_CREATE_TABLE_WITH_COLUMN_COMMENT,
@@ -61,12 +60,6 @@ public class TestYdbConnectorTest extends BaseConnectorTest {
     @Override
     public void testRenameTableToLongTableName() {
         // YDB не поддерживает длинные названия таблиц
-    }
-
-    @Test
-    @Override
-    public void testAddDefaultColumn() {
-        // YDB: Column addition with default value is not supported now.
     }
 
     @Test

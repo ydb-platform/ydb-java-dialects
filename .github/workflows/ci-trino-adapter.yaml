@@ -1,0 +1,43 @@
+name: YDB Trino Adapter CI with Maven
+
+on:
+  push:
+    paths:
+      - 'ydb-trino-adapter/**'
+      - '.github/workflows/ci-trino-adapter.yaml'
+    branches:
+      - main
+  pull_request:
+    paths:
+      - 'ydb-trino-adapter/**'
+      - '.github/workflows/ci-trino-adapter.yaml'
+
+env:
+  MAVEN_ARGS: --batch-mode --update-snapshots -Dstyle.color=always
+
+jobs:
+  build:
+    name: YDB Trino Adapter
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        java: [ '25' ]
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Set up JDK ${{matrix.java}}
+        uses: actions/setup-java@v5
+        with:
+          java-version: ${{matrix.java}}
+          distribution: 'temurin'
+          cache: maven
+
+      - name: Download Trino Adapter dependencies
+        working-directory: ./ydb-trino-adapter
+        run: mvn $MAVEN_ARGS dependency:go-offline
+
+      - name: Build and test Trino Adapter
+        working-directory: ./ydb-trino-adapter
+        run: mvn $MAVEN_ARGS clean test
