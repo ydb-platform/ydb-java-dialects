@@ -45,14 +45,12 @@ public final class YdbQueryRunner {
     public static class Builder extends DistributedQueryRunner.Builder<Builder> {
         private final Map<String, String> connectorProperties = new HashMap<>();
         private List<TpchTable<?>> initialTables = ImmutableList.of();
-        private final YdbHelperExtension ydb;
 
-        private Builder(YdbHelperExtension ydb) {
+        private Builder() {
             super(testSessionBuilder()
                     .setCatalog("ydb")
                     .setSchema(TPCH_SCHEMA)
                     .build());
-            this.ydb = ydb;
         }
 
         public Builder addConnectorProperty(String key, String value) {
