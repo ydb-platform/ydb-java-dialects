@@ -34,6 +34,7 @@ import java.sql.*;
 import java.util.List;
 import java.util.*;
 import java.util.Locale;
+import java.util.function.BiFunction;
 import java.util.stream.Stream;
 
 import static io.trino.plugin.jdbc.JdbcErrorCode.JDBC_ERROR;
@@ -394,6 +395,16 @@ public class YdbClient extends BaseJdbcClient {
 
     @Override
     public boolean isTopNGuaranteed(ConnectorSession session) {
+        return true;
+    }
+
+    @Override
+    protected Optional<BiFunction<String, Long, String>> limitFunction() {
+        return Optional.of((sql, limit) -> sql + " LIMIT " + limit);
+    }
+
+    @Override
+    public boolean isLimitGuaranteed(ConnectorSession session) {
         return true;
     }
 
