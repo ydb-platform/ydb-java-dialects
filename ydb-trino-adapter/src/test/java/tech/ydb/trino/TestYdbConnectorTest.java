@@ -55,7 +55,7 @@ public class TestYdbConnectorTest extends BaseConnectorTest {
                  SUPPORTS_ADD_COLUMN_NOT_NULL_CONSTRAINT,
                  SUPPORTS_DROP_NOT_NULL_CONSTRAINT,
                  SUPPORTS_PREDICATE_PUSHDOWN_WITH_VARCHAR_INEQUALITY,
-                 SUPPORTS_TOPN_PUSHDOWN -> false;
+                 SUPPORTS_LIMIT_PUSHDOWN -> false;
             default -> super.hasBehavior(connectorBehavior);
         };
     }
@@ -128,10 +128,12 @@ public class TestYdbConnectorTest extends BaseConnectorTest {
 
     @Override
     protected String errorMessageForInsertIntoNotNullColumn(String columnName) {
-        return "NULL value not allowed for NOT NULL column: " + columnName
+        return "(?s).*("
+                + "NULL value not allowed for NOT NULL column: " + columnName
                 + "|Cannot set NULL to not nullable column: " + columnName
                 + "|Missing value for not null column: " + columnName
-                + "|.*" + columnName + ".*";
+                + "|Missing not null column in input: " + columnName
+                + ").*";
     }
 
     @Override

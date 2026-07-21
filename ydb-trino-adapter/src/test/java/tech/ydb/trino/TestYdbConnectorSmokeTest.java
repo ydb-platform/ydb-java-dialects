@@ -52,7 +52,7 @@ public class TestYdbConnectorSmokeTest extends BaseConnectorSmokeTest {
                  SUPPORTS_ADD_COLUMN_NOT_NULL_CONSTRAINT,
                  SUPPORTS_DROP_NOT_NULL_CONSTRAINT,
                  SUPPORTS_PREDICATE_PUSHDOWN_WITH_VARCHAR_INEQUALITY,
-                 SUPPORTS_TOPN_PUSHDOWN -> false;
+                 SUPPORTS_LIMIT_PUSHDOWN -> false;
             default -> super.hasBehavior(connectorBehavior);
         };
     }

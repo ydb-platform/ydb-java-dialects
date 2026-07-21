@@ -222,12 +222,13 @@ public class YdbClient extends BaseJdbcClient {
         }
 
         // YDB JDBC reports text columns as Bytes/String/Utf8/Text under various JDBC type codes.
+        // Always map them to unbounded varchar (YDB Text has no useful fixed length).
         String jdbcTypeName = typeHandle.jdbcTypeName().orElse("").toLowerCase(Locale.ROOT);
         if (jdbcTypeName.equals("bytes")
                 || jdbcTypeName.equals("string")
                 || jdbcTypeName.equals("utf8")
                 || jdbcTypeName.equals("text")) {
-            return Optional.of(varcharColumnMapping(typeHandle.columnSize().orElse(VarcharType.MAX_LENGTH)));
+            return Optional.of(unboundedVarcharColumnMapping());
         }
 
         Optional<ColumnMapping> columnMapping = switch (typeHandle.jdbcType()) {
@@ -277,6 +278,15 @@ public class YdbClient extends BaseJdbcClient {
         }
 
         return mapToUnboundedVarchar(typeHandle);
+    }
+
+    private static ColumnMapping unboundedVarcharColumnMapping() {
+        VarcharType varcharType = createUnboundedVarcharType();
+        return ColumnMapping.sliceMapping(
+                varcharType,
+                varcharReadFunction(varcharType),
+                varcharWriteFunction(),
+                DISABLE_PUSHDOWN);
     }
 
     private static ColumnMapping varcharColumnMapping(int varcharLength) {
