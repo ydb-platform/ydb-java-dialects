@@ -39,6 +39,7 @@ import java.util.stream.Stream;
 
 import static io.trino.plugin.jdbc.JdbcErrorCode.JDBC_ERROR;
 import static io.trino.plugin.jdbc.PredicatePushdownController.DISABLE_PUSHDOWN;
+import static io.trino.plugin.jdbc.PredicatePushdownController.FULL_PUSHDOWN;
 import static io.trino.plugin.jdbc.StandardColumnMappings.*;
 import static io.trino.spi.StandardErrorCode.NOT_SUPPORTED;
 import static io.trino.spi.connector.ConnectorMetadata.MODIFYING_ROWS_MESSAGE;
@@ -90,17 +91,18 @@ public class YdbClient extends BaseJdbcClient {
                 .add(new RewriteNullIf())
                 .withTypeClass("integer_type", ImmutableSet.of("tinyint", "smallint", "integer", "bigint"))
                 .withTypeClass("numeric_type", ImmutableSet.of("tinyint", "smallint", "integer", "bigint", "decimal", "real", "double"))
+                .withTypeClass("comparable_type", ImmutableSet.of(
+                        "tinyint", "smallint", "integer", "bigint", "decimal", "real", "double", "varchar", "char", "date", "timestamp"))
                 .map("$equal(left, right)").to("left = right")
                 .map("$not_equal(left, right)").to("left <> right")
                 .map("$add(left: integer_type, right: integer_type)").to("left + right")
                 .map("$subtract(left: integer_type, right: integer_type)").to("left - right")
                 .map("$multiply(left: integer_type, right: integer_type)").to("left * right")
                 .map("$negate(value: integer_type)").to("-value")
-                // TODO in some cases we can actually push down comparison on varchar
-                .map("$less_than(left: numeric_type, right: numeric_type)").to("left < right")
-                .map("$less_than_or_equal(left: numeric_type, right: numeric_type)").to("left <= right")
-                .map("$greater_than(left: numeric_type, right: numeric_type)").to("left > right")
-                .map("$greater_than_or_equal(left: numeric_type, right: numeric_type)").to("left >= right")
+                .map("$less_than(left: comparable_type, right: comparable_type)").to("left < right")
+                .map("$less_than_or_equal(left: comparable_type, right: comparable_type)").to("left <= right")
+                .map("$greater_than(left: comparable_type, right: comparable_type)").to("left > right")
+                .map("$greater_than_or_equal(left: comparable_type, right: comparable_type)").to("left >= right")
                 .map("$is_null(value)").to("value IS NULL")
                 .map("$not($is_null(value))").to("value IS NOT NULL")
                 .map("$concat(left: varchar, right: varchar)").to("left || right")
@@ -287,7 +289,7 @@ public class YdbClient extends BaseJdbcClient {
                 varcharType,
                 varcharReadFunction(varcharType),
                 varcharWriteFunction(),
-                DISABLE_PUSHDOWN);
+                FULL_PUSHDOWN);
     }
 
     private static ColumnMapping varcharColumnMapping(int varcharLength) {
@@ -298,7 +300,7 @@ public class YdbClient extends BaseJdbcClient {
                 varcharType,
                 varcharReadFunction(varcharType),
                 varcharWriteFunction(),
-                DISABLE_PUSHDOWN);
+                FULL_PUSHDOWN);
     }
 
     private static ColumnMapping dateColumnMapping() {

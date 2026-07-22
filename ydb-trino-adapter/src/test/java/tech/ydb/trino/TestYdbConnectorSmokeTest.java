@@ -50,8 +50,7 @@ public class TestYdbConnectorSmokeTest extends BaseConnectorSmokeTest {
                  SUPPORTS_SET_DEFAULT_COLUMN_VALUE,
                  SUPPORTS_DROP_DEFAULT_COLUMN_VALUE,
                  SUPPORTS_ADD_COLUMN_NOT_NULL_CONSTRAINT,
-                 SUPPORTS_DROP_NOT_NULL_CONSTRAINT,
-                 SUPPORTS_PREDICATE_PUSHDOWN_WITH_VARCHAR_INEQUALITY -> false;
+                 SUPPORTS_DROP_NOT_NULL_CONSTRAINT -> false;
             case SUPPORTS_TOPN_PUSHDOWN_WITH_VARCHAR -> true;
             default -> super.hasBehavior(connectorBehavior);
         };
