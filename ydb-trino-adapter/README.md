@@ -1,3 +1,7 @@
+# YDB Trino Adapter
+
+План развития и покрытие Trino connector tests: [ROADMAP.md](ROADMAP.md).
+
 # Инструкция по сборке
 
 ```bash
