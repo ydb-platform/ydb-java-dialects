@@ -5,36 +5,13 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>tech.ydb.dialects</groupId>
-    <artifactId>ydb-trino-adapter</artifactId>
+    <artifactId>ydb-trino</artifactId>
     <version>0.1.0</version>
 
     <name>YDB Trino Adapter</name>
     <description>Trino JDBC connector for YDB</description>
-    <url>https://github.com/ydb-platform/ydb-java-dialects</url>
 
     <packaging>jar</packaging>
-
-    <developers>
-        <developer>
-            <name>Kirill Kurdyukov</name>
-            <email>kurdyukov-kir@ydb.tech</email>
-            <organization>YDB</organization>
-            <organizationUrl>https://ydb.tech/</organizationUrl>
-        </developer>
-    </developers>
-
-    <scm>
-        <url>https://github.com/ydb-platform/ydb-java-dialects</url>
-        <connection>scm:git:https://github.com/ydb-platform/ydb-java-dialects.git</connection>
-        <developerConnection>scm:git:https://github.com/ydb-platform/ydb-java-dialects.git</developerConnection>
-    </scm>
-
-    <licenses>
-        <license>
-            <name>Apache License, Version 2.0</name>
-            <url>https://www.apache.org/licenses/LICENSE-2.0</url>
-        </license>
-    </licenses>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -92,12 +69,42 @@
             <artifactId>ydb-junit5-support</artifactId>
             <version>${ydb.sdk.version}</version>
             <scope>test</scope>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.apache.logging.log4j</groupId>
+                    <artifactId>log4j-slf4j-impl</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>testcontainers</artifactId>
+            <version>1.20.0</version>
+            <scope>test</scope>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.apache.logging.log4j</groupId>
+                    <artifactId>log4j-slf4j-impl</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>org.assertj</groupId>
+            <artifactId>assertj-core</artifactId>
+            <version>3.25.3</version>
+            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>io.trino</groupId>
             <artifactId>trino-testing</artifactId>
             <version>${trino.version}</version>
             <scope>test</scope>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.apache.logging.log4j</groupId>
+                    <artifactId>log4j-slf4j-impl</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>io.trino</groupId>
@@ -110,6 +117,12 @@
             <artifactId>trino-main</artifactId>
             <version>${trino.version}</version>
             <scope>test</scope>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.apache.logging.log4j</groupId>
+                    <artifactId>log4j-slf4j-impl</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>io.trino</groupId>
@@ -129,14 +142,18 @@
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.13.0</version>
+                <configuration>
+                    <debug>true</debug>
+                    <debuglevel>lines,vars,source</debuglevel>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
                 <version>3.1.0</version>
                 <configuration>
-                    <environmentVariables>
-                        <TESTCONTAINERS_REUSE_ENABLE>true</TESTCONTAINERS_REUSE_ENABLE>
-                        <YDB_ENDPOINT>localhost:2136</YDB_ENDPOINT>
-                        <YDB_DATABASE>/local</YDB_DATABASE>
-                    </environmentVariables>
                     <argLine>--add-modules jdk.incubator.vector</argLine>
                 </configuration>
             </plugin>

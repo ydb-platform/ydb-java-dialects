@@ -19,7 +19,7 @@ import tech.ydb.jdbc.YdbDriver;
 
 import static com.google.inject.multibindings.OptionalBinder.newOptionalBinder;
 
-public class YdbClientModule implements Module {
+public class TestingYdbJdbcModule implements Module {
 
     @Override
     public void configure(Binder binder) {
@@ -40,7 +40,7 @@ public class YdbClientModule implements Module {
             QueryBuilder queryBuilder,
             IdentifierMapping identifierMapping,
             RemoteQueryModifier remoteQueryModifier) {
-        return new YdbClient(config, connectionFactory, queryBuilder, identifierMapping, remoteQueryModifier);
+        return new TestingYdbJdbcClient(config, connectionFactory, queryBuilder, identifierMapping, remoteQueryModifier);
     }
 
     @Provides
