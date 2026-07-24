@@ -4,6 +4,8 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import org.hibernate.boot.model.FunctionContributions;
@@ -71,10 +73,7 @@ import org.hibernate.type.spi.TypeConfiguration;
 import tech.ydb.hibernate.dialect.code.YdbJdbcCode;
 import tech.ydb.hibernate.dialect.exporter.EmptyExporter;
 import tech.ydb.hibernate.dialect.exporter.YdbIndexExporter;
-import tech.ydb.hibernate.dialect.hint.IndexQueryHintHandler;
-import tech.ydb.hibernate.dialect.hint.PragmaQueryHintHandler;
-import tech.ydb.hibernate.dialect.hint.QueryHintHandler;
-import tech.ydb.hibernate.dialect.hint.ScanQueryHintHandler;
+import tech.ydb.hibernate.dialect.hint.QueryHints;
 import tech.ydb.hibernate.dialect.identity.YdbIdentityColumnSupport;
 import tech.ydb.hibernate.dialect.translator.YdbSqlAstTranslatorFactory;
 import tech.ydb.hibernate.dialect.types.BigDecimalJavaType;
@@ -93,11 +92,6 @@ import tech.ydb.hibernate.dialect.types.YdbJdbcType;
 public class YdbDialect extends Dialect {
     @SuppressWarnings({"rawtypes"})
     private static final Exporter EMPTY_EXPORTER = new EmptyExporter<>();
-    private static final List<QueryHintHandler> QUERY_HINT_HANDLERS = List.of(
-            IndexQueryHintHandler.INSTANCE,
-            ScanQueryHintHandler.INSTANCE,
-            PragmaQueryHintHandler.INSTANCE
-    );
     private static final ConcurrentHashMap<Integer, DecimalJdbcType> DECIMAL_JDBC_TYPE_CACHE = new ConcurrentHashMap<>();
 
     public YdbDialect(DialectResolutionInfo dialectResolutionInfo) {
@@ -303,36 +297,59 @@ public class YdbDialect extends Dialect {
     @Override
     public String addSqlHintOrComment(String sql, QueryOptions queryOptions, boolean commentsEnabled) {
         if (queryOptions.getDatabaseHints() != null) {
-            for (var queryHintHandler : QUERY_HINT_HANDLERS) {
-                sql = queryHintHandler.addQueryHints(sql, queryOptions.getDatabaseHints());
+            String sqlWithDatabaseHints = applyQueryHints(sql, queryOptions.getDatabaseHints());
+            if (sqlWithDatabaseHints != null) {
+                sql = sqlWithDatabaseHints;
             }
         }
 
-        if (queryOptions.getComment() != null) {
-            boolean commentIsHint = false;
-
-            var hints = queryOptions.getComment().split(";");
-
-            for (var queryHintHandler : QUERY_HINT_HANDLERS) {
-                for (var hint : hints) {
-                    hint = hint.trim();
-                    if (queryHintHandler.commentIsHint(hint)) {
-                        commentIsHint = true;
-                        sql = queryHintHandler.addQueryHints(sql, List.of(hint));
-                    }
-                }
-            }
-
-            if (commentIsHint) {
-                return sql;
-            }
+        String comment = queryOptions.getComment();
+        if (comment == null) {
+            return sql;
         }
 
-        if (commentsEnabled && queryOptions.getComment() != null) {
-            sql = prependComment(sql, queryOptions.getComment());
+        String sqlWithCommentHits = applyQueryHints(sql, Arrays.asList(comment.split(";")));
+        if (sqlWithCommentHits != null) {
+            return sqlWithCommentHits;
+        }
+
+        return commentsEnabled ? prependComment(sql, comment) : sql;
+    }
+
+    private static String applyQueryHints(String sql, List<String> hints) {
+        List<String> indexes = new ArrayList<>();
+        List<String> pragmas = new ArrayList<>();
+        boolean scan = false;
+
+        for (String hint : hints) {
+            hint = hint.trim();
+            scan = scan || hint.equals("use_scan");
+
+            addHintValueIfMatches(hint, "use_index:", indexes);
+            addHintValueIfMatches(hint, "add_pragma:", pragmas);
+        }
+
+        if (indexes.isEmpty() && !scan && pragmas.isEmpty()) {
+            return null;
+        }
+
+        if (!indexes.isEmpty()) {
+            sql = QueryHints.addViewIndexesToQuery(sql, indexes);
+        }
+        if (scan) {
+            sql = QueryHints.addScanToQuery(sql);
+        }
+        if (!pragmas.isEmpty()) {
+            sql = QueryHints.addPragmasToQuery(sql, pragmas);
         }
 
         return sql;
+    }
+
+    private static void addHintValueIfMatches(String hint, String prefix, List<String> target) {
+        if (hint.startsWith(prefix)) {
+            target.add(hint.substring(prefix.length()));
+        }
     }
 
     @Override
