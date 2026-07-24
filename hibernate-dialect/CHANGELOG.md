@@ -1,6 +1,7 @@
 ## 1.7.0 ##
 
-- Fixed `HINT_COMMENT` handling: hints separated by `;` are now passed to each handler as a single batch, so multiple short-form `use_index` hints become `view a, b` instead of `view a view b`
+- Fixed `HINT_COMMENT` handling: multiple short-form `use_index` hints in one comment become `view a, b` instead of `view a view b`
+- Extended `use_index:` hint with table-and-column-aware format `use_index:<index-name>:<table-name>(<column>[,<column>...])` to pin a secondary index per `FROM`/`JOIN` when the same table is joined more than once in one query
 - Renamed `hibernate-dialect-v6` to `hibernate-dialect`, removed `hibernate-dialect-v7`
 - Support Hibernate 7
 - Support Java 11 for Hibernate 6 profile
