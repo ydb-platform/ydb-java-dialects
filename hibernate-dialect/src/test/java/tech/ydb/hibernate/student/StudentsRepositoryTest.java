@@ -206,6 +206,125 @@ public class StudentsRepositoryTest {
     }
 
     @Test
+    void studentsByGroupName_TypedViewIndex_JoinTable() {
+        /*
+            select
+                g1_0.GroupId,
+                g1_0.GroupName,
+                s1_0.GroupId,
+                s1_0.StudentId,
+                s1_0.StudentName
+            from
+                Groups view group_name_index g1_0
+            join
+                Students view students_group_index s1_0
+                    on g1_0.GroupId=s1_0.GroupId
+            where
+                g1_0.GroupName='M3439'
+         */
+        inTransaction(
+                session -> {
+                    List<Student> students = session
+                            .createQuery("FROM Group g JOIN FETCH g.students WHERE g.name = 'M3439'", Group.class)
+                            .addQueryHint("use_index:group_name_index:Groups(GroupName)")
+                            .addQueryHint("use_index:students_group_index:Students(GroupId)")
+                            .getSingleResult().getStudents();
+
+                    assertEquals(2, students.size());
+                    assertEquals("Петров П.П.", students.get(0).getName());
+                    assertEquals("Сидоров С.С.", students.get(1).getName());
+                }
+        );
+
+        inTransaction(
+                session -> {
+                    List<Student> students = session
+                            .createQuery("FROM Group g JOIN FETCH g.students WHERE g.name = 'M3439'", Group.class)
+                            .setHint(
+                                    HibernateHints.HINT_COMMENT,
+                                    "use_index:group_name_index:Groups(GroupName);" +
+                                            "use_index:students_group_index:Students(GroupId)"
+                            )
+                            .getSingleResult().getStudents();
+
+                    assertEquals(2, students.size());
+                    assertEquals("Петров П.П.", students.get(0).getName());
+                    assertEquals("Сидоров С.С.", students.get(1).getName());
+                }
+        );
+    }
+
+    @Test
+    void typedViewIndex_columnDoesNotMatch_queryStillWorks() {
+        // Hint targets Students.StudentName, but the JOIN's ON clause references only GroupId.
+        // The handler must NOT inject a view in this case; the query should still execute.
+        inTransaction(
+                session -> {
+                    List<Student> students = session
+                            .createQuery("FROM Group g JOIN FETCH g.students WHERE g.name = 'M3439'", Group.class)
+                            .addQueryHint("use_index:students_group_index:Students(StudentName)")
+                            .getSingleResult().getStudents();
+
+                    assertEquals(2, students.size());
+                    assertEquals("Петров П.П.", students.get(0).getName());
+                    assertEquals("Сидоров С.С.", students.get(1).getName());
+                }
+        );
+    }
+
+    @Test
+    void typedViewIndex_partialCompositeMatch_doesNotApply() {
+        // The composite hint requires BOTH StudentName and GroupId in the JOIN's ON clause;
+        // only GroupId is referenced, so the index must NOT be applied — the query still runs.
+        inTransaction(
+                session -> {
+                    List<Student> students = session
+                            .createQuery("FROM Group g JOIN FETCH g.students WHERE g.name = 'M3439'", Group.class)
+                            .addQueryHint("use_index:students_group_index:Students(GroupId,StudentName)")
+                            .getSingleResult().getStudents();
+
+                    assertEquals(2, students.size());
+                    assertEquals("Петров П.П.", students.get(0).getName());
+                    assertEquals("Сидоров С.С.", students.get(1).getName());
+                }
+        );
+    }
+
+    @Test
+    void groupByGroupName_TypedViewIndex_TableColumn() {
+        /*
+            select
+                g1_0.GroupId,
+                g1_0.GroupName
+            from
+                Groups view group_name_index g1_0
+            where
+                g1_0.GroupName='M3439'
+         */
+        inTransaction(
+                session -> {
+                    Group group = session
+                            .createQuery("FROM Group g WHERE g.name = 'M3439'", Group.class)
+                            .addQueryHint("use_index:group_name_index:Groups(GroupName)") // Hibernate
+                            .getSingleResult();
+
+                    assertEquals("M3439", group.getName());
+                }
+        );
+
+        inTransaction(
+                session -> {
+                    Group group = session
+                            .createQuery("FROM Group g WHERE g.name = 'M3439'", Group.class)
+                            .setHint(HibernateHints.HINT_COMMENT, "use_index:group_name_index:Groups(GroupName)") // JPA
+                            .getSingleResult();
+
+                    assertEquals("M3439", group.getName());
+                }
+        );
+    }
+
+    @Test
     void studentsByGroupName_Eager_OneToManyTest() {
         inTransaction(
                 session -> {
