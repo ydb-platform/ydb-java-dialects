@@ -329,6 +329,10 @@ public class YdbDialect extends Dialect {
             addHintValueIfMatches(hint, "add_pragma:", pragmas);
         }
 
+        if (indexes.isEmpty() && !scan && pragmas.isEmpty()) {
+            return null;
+        }
+
         if (!indexes.isEmpty()) {
             sql = QueryHints.addViewIndexesToQuery(sql, indexes);
         }
