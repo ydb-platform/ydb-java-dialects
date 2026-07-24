@@ -4,6 +4,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import org.hibernate.boot.model.FunctionContributions;
@@ -309,17 +310,25 @@ public class YdbDialect extends Dialect {
         }
 
         if (queryOptions.getComment() != null) {
+            List<String> comments = new ArrayList<>();
+            for (String comment : queryOptions.getComment().split(";")) {
+                comment = comment.trim();
+                if (!comment.isEmpty()) {
+                    comments.add(comment);
+                }
+            }
+
             boolean commentIsHint = false;
-
-            var hints = queryOptions.getComment().split(";");
-
             for (var queryHintHandler : QUERY_HINT_HANDLERS) {
-                for (var hint : hints) {
-                    hint = hint.trim();
-                    if (queryHintHandler.commentIsHint(hint)) {
-                        commentIsHint = true;
-                        sql = queryHintHandler.addQueryHints(sql, List.of(hint));
+                List<String> handlerHints = new ArrayList<>();
+                for (String comment : comments) {
+                    if (queryHintHandler.commentIsHint(comment)) {
+                        handlerHints.add(comment);
                     }
+                }
+                if (!handlerHints.isEmpty()) {
+                    commentIsHint = true;
+                    sql = queryHintHandler.addQueryHints(sql, handlerHints);
                 }
             }
 
