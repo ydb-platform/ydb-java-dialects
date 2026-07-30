@@ -6,7 +6,7 @@
 
     <groupId>tech.ydb.dialects</groupId>
     <artifactId>hibernate-ydb-dialect</artifactId>
-    <version>1.7.0</version>
+    <version>1.7.1-SNAPSHOT</version>
 
     <packaging>jar</packaging>
 
