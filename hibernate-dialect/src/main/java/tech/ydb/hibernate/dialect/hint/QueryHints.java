@@ -39,6 +39,8 @@ public final class QueryHints {
             if (shortIndex != null) {
                 LOGGER.warnf("Only one short index hint is supported; " +
                         "index '%s' will be used and index '%s' will be ignored", shortIndex, body);
+
+                continue;
             }
 
             shortIndex = body;
