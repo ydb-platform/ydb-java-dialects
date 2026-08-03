@@ -53,13 +53,11 @@ public class TagDatabaseGeneratorYdb extends TagDatabaseGenerator {
             return new Sql[]{
                     new UnparsedSql(
                             "UPDATE " + tableNameEscaped +
-                                    " ON SELECT * FROM (" +
-                                    "SELECT " + idColumnEscaped + ", " + authorColumnEscaped + ", " +
-                                    filenameColumnEscaped + ", Utf8(" + tagEscaped + ") AS " + tagColumnEscaped +
+                                    " ON SELECT " + idColumnEscaped + ", " + authorColumnEscaped + ", " +
+                                    filenameColumnEscaped + ", Text(" + tagEscaped + ") AS " + tagColumnEscaped +
                                     " FROM " + tableNameEscaped +
                                     " ORDER BY " + dateColumnEscaped + " DESC, " + orderColumnEscaped + " DESC" +
-                                    " LIMIT 1" +
-                                    ")"
+                                    " LIMIT 1"
                     )
             };
         } finally {
