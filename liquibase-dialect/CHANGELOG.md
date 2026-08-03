@@ -1,3 +1,5 @@
+## 1.1.2 ##
+
 * Fixed the `liquibase tag` command failing on YDB due to an unsupported generic `UPDATE` query ([#236](https://github.com/ydb-platform/ydb-java-dialects/issues/236)).
 
 ## 1.1.1 ##
