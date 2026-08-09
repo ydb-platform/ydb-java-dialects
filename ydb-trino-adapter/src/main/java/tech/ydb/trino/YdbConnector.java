@@ -23,7 +23,7 @@ public class YdbConnector extends JdbcConnector {
             LifeCycleManager lifeCycleManager,
             ConnectorSplitManager jdbcSplitManager,
             ConnectorPageSourceProvider jdbcPageSourceProvider,
-            ConnectorPageSinkProvider jdbcPageSinkProvider,
+            YdbPageSinkProvider jdbcPageSinkProvider,
             Optional<ConnectorAccessControl> accessControl,
             Set<Procedure> procedures,
             Set<ConnectorTableFunction> connectorTableFunctions,
@@ -38,7 +38,6 @@ public class YdbConnector extends JdbcConnector {
 
     @Override
     public Set<ConnectorCapabilities> getCapabilities() {
-        // DEFAULT values are not reliably exposed via information_schema yet.
         return immutableEnumSet(NOT_NULL_COLUMN_CONSTRAINT);
     }
 }

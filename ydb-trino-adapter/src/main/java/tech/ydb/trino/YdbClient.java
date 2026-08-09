@@ -1,6 +1,7 @@
 package tech.ydb.trino;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.inject.Inject;
 import io.opentelemetry.api.internal.StringUtils;
@@ -37,6 +38,8 @@ import java.util.Locale;
 import java.util.function.BiFunction;
 import java.util.stream.Stream;
 
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Verify.verify;
 import static io.trino.plugin.jdbc.JdbcErrorCode.JDBC_ERROR;
 import static io.trino.plugin.jdbc.PredicatePushdownController.DISABLE_PUSHDOWN;
 import static io.trino.plugin.jdbc.PredicatePushdownController.FULL_PUSHDOWN;
@@ -148,6 +151,7 @@ public class YdbClient extends BaseJdbcClient {
     }
 
     @Override
+    @SuppressWarnings("all")
     public Optional<JdbcExpression> convertProjection(
             ConnectorSession session,
             JdbcTableHandle handle,
@@ -448,7 +452,15 @@ public class YdbClient extends BaseJdbcClient {
 
     @Override
     public void dropColumn(ConnectorSession session, JdbcTableHandle handle, JdbcColumnHandle column) {
-        throw new TrinoException(NOT_SUPPORTED, "This connector does not support dropping columns");
+        try (Connection connection = connectionFactory.openConnection(session)) {
+            String sql = format(
+                    "ALTER TABLE %s DROP COLUMN %s",
+                    quoted(handle.asPlainTable().getRemoteTableName().getTableName()),
+                    quoted(column.getColumnMetadata().getName()));
+            execute(session, connection, sql);
+        } catch (SQLException e) {
+            throw new TrinoException(JDBC_ERROR, e);
+        }
     }
 
     @Override
@@ -458,7 +470,15 @@ public class YdbClient extends BaseJdbcClient {
 
     @Override
     public void dropNotNullConstraint(ConnectorSession session, JdbcTableHandle handle, JdbcColumnHandle column) {
-        throw new TrinoException(NOT_SUPPORTED, "This connector does not support dropping a not null constraint");
+        try (Connection connection = connectionFactory.openConnection(session)) {
+            String sql = format(
+                    "ALTER TABLE %s ALTER COLUMN %s DROP NOT NULL",
+                    quoted(handle.asPlainTable().getRemoteTableName().getTableName()),
+                    quoted(column.getColumnMetadata().getName()));
+            execute(session, connection, sql);
+        } catch (SQLException e) {
+            throw new TrinoException(JDBC_ERROR, e);
+        }
     }
 
     @Override
@@ -544,7 +564,66 @@ public class YdbClient extends BaseJdbcClient {
         throw new TrinoException(NOT_SUPPORTED, "This connector does not support renaming columns");
     }
 
-    // TODO maybe support in the future :)
+    @Override
+    @SuppressWarnings("all")
+    public List<JdbcColumnHandle> getPrimaryKeys(ConnectorSession session, RemoteTableName remoteTableName) {
+        String tableName = remoteTableName.getTableName();
+
+        try (Connection connection = getConnection(session)) {
+            DatabaseMetaData metaData = connection.getMetaData();
+
+            String catalogName = remoteTableName.getCatalogName().orElse(null);
+            String schemaName = remoteTableName.getSchemaName().orElse(null);
+
+            try (ResultSet primaryKeyResultSet = metaData.getPrimaryKeys(catalogName, schemaName, tableName)) {
+                ImmutableList.Builder<JdbcColumnHandle> primaryKeys = ImmutableList.builder();
+
+                while (primaryKeyResultSet.next()) {
+                    String columnName = primaryKeyResultSet.getString("COLUMN_NAME");
+
+                    SchemaTableName schemaTableName = new SchemaTableName(
+                        schemaName != null ? schemaName : "ydb",
+                        tableName
+                    );
+
+                    List<JdbcColumnHandle> allColumns = getColumns(session, schemaTableName, remoteTableName);
+                    Optional<JdbcColumnHandle> columnHandle = allColumns.stream()
+                            .filter(col -> col.getColumnName().equals(columnName))
+                            .findFirst();
+
+                    if (columnHandle.isPresent()) {
+                        primaryKeys.add(columnHandle.get());
+                    }
+                }
+
+                List<JdbcColumnHandle> result = primaryKeys.build();
+                if (!result.isEmpty()) {
+                    return result;
+                }
+            }
+        } catch (SQLException e) {
+
+        }
+
+        // For Trino's temporary tables in tests, where PK's are not created.
+        SchemaTableName schemaTableName = new SchemaTableName("ydb", tableName);
+        try {
+            List<JdbcColumnHandle> allColumns = getColumns(session, schemaTableName, remoteTableName);
+            if (!allColumns.isEmpty()) {
+                return ImmutableList.of(allColumns.get(0));
+            }
+        } catch (Exception e) {
+
+        }
+
+        return List.of();
+    }
+
+    @Override
+    public boolean supportsMerge() {
+        return true;
+    }
+
     @Override
     public JdbcMergeTableHandle beginMerge(
             ConnectorSession session,
@@ -553,21 +632,140 @@ public class YdbClient extends BaseJdbcClient {
             List<Runnable> rollbackActions,
             RetryMode retryMode
     ) {
-        throw new TrinoException(NOT_SUPPORTED, MODIFYING_ROWS_MESSAGE);
+        List<JdbcColumnHandle> primaryKeys = getPrimaryKeys(session, handle.getRequiredNamedRelation().getRemoteTableName());
+
+        SchemaTableName schemaTableName = handle.getRequiredNamedRelation().getSchemaTableName();
+        RemoteTableName remoteTableName = handle.getRequiredNamedRelation().getRemoteTableName();
+
+        List<JdbcColumnHandle> columns = getColumns(session, schemaTableName, remoteTableName);
+
+        JdbcTableHandle plainTable = new JdbcTableHandle(schemaTableName, remoteTableName, Optional.empty());
+
+        JdbcOutputTableHandle outputTableHandle = beginInsertTable(session, plainTable, columns);
+
+        return new JdbcMergeTableHandle(
+                handle,
+                outputTableHandle,
+                ImmutableMap.of(),
+                Optional.empty(),
+                primaryKeys,
+                columns,
+                updateColumnHandles);
     }
 
-    // TODO maybe support in the future :)
     @Override
-    public OptionalLong delete(
+    public void finishMerge(
             ConnectorSession session,
-            JdbcTableHandle handle
+            JdbcMergeTableHandle tableHandle,
+            Set<Long> pageSinkIds
     ) {
-        throw new TrinoException(NOT_SUPPORTED, MODIFYING_ROWS_MESSAGE);
+        try (Connection connection = getConnection(session)) {
+            if (!connection.getAutoCommit()) {
+                connection.commit();
+            }
+        } catch (SQLException e) {
+            throw new TrinoException(JDBC_ERROR, e);
+        }
+    }
+
+    @Override
+    public OptionalLong delete(ConnectorSession session, JdbcTableHandle handle) {
+        try (Connection connection = connectionFactory.openConnection(session)) {
+            PreparedQuery preparedQuery = queryBuilder.prepareDeleteQuery(
+                    this,
+                    session,
+                    connection,
+                    handle.getRequiredNamedRelation(),
+                    handle.getConstraint(),
+                    getAdditionalPredicate(handle.getConstraintExpressions(), Optional.empty()));
+
+            String deleteSql = preparedQuery.query();
+            // Very dirty hack, because it seems like YDB does not return deleted row count.
+            // However since this connector is select-oriented, this overhead might not be significant.
+            // Anyway, it will be benchmarked later.
+            String selectSql = deleteSql.replaceFirst("DELETE FROM", "SELECT COUNT(*) FROM");
+
+            long expectedCount;
+            try (PreparedStatement selectStmt = connection.prepareStatement(selectSql)) {
+                setParameters(selectStmt, preparedQuery.parameters());
+                try (ResultSet rs = selectStmt.executeQuery()) {
+                    rs.next();
+                    expectedCount = rs.getLong(1);
+                }
+            }
+
+            try (PreparedStatement preparedStatement = queryBuilder.prepareStatement(this, session, connection, preparedQuery, Optional.empty())) {
+                preparedStatement.executeUpdate();
+                connection.commit();
+            }
+
+            return OptionalLong.of(expectedCount);
+        } catch (SQLException e) {
+            throw new TrinoException(JDBC_ERROR, e);
+        }
+    }
+
+    private void setParameters(PreparedStatement stmt, List<QueryParameter> parameters) throws SQLException {
+        for (int i = 0; i < parameters.size(); i++) {
+            QueryParameter param = parameters.get(i);
+            Object value = param.getValue().orElse(null);
+            if (value == null) {
+                stmt.setNull(i + 1, Types.NULL);
+            } else if (value instanceof Long l) {
+                stmt.setLong(i + 1, l);
+            } else if (value instanceof Integer n) {
+                stmt.setInt(i + 1, n);
+            } else if (value instanceof String s) {
+                stmt.setString(i + 1, s);
+            } else if (value instanceof Double d) {
+                stmt.setDouble(i + 1, d);
+            } else if (value instanceof Boolean b) {
+                stmt.setBoolean(i + 1, b);
+            } else {
+                stmt.setObject(i + 1, value);
+            }
+        }
     }
 
     @Override
     public OptionalLong update(ConnectorSession session, JdbcTableHandle handle) {
-        throw new TrinoException(NOT_SUPPORTED, MODIFYING_ROWS_MESSAGE);
+        try (Connection connection = connectionFactory.openConnection(session)) {
+            PreparedQuery preparedQuery = queryBuilder.prepareUpdateQuery(
+                    this,
+                    session,
+                    connection,
+                    handle.getRequiredNamedRelation(),
+                    handle.getConstraint(),
+                    getAdditionalPredicate(handle.getConstraintExpressions(), Optional.empty()),
+                    handle.getUpdateAssignments());
+
+            String updateSql = preparedQuery.query();
+            // Very dirty hack, because it seems like YDB does not return deleted row count.
+            // However since this connector is select-oriented, this overhead might not be significant.
+            // Anyway, it will be benchmarked later.
+            String selectSql = updateSql.replaceFirst("UPDATE\\s+(\\S+)\\s+SET\\s+.*?\\s+WHERE\\s+", "SELECT count(*) FROM $1 WHERE ");
+
+            int setParameterCount = handle.getUpdateAssignments().size();
+
+            long expectedCount;
+            try (PreparedStatement selectStmt = connection.prepareStatement(selectSql)) {
+                List<QueryParameter> whereParameters = preparedQuery.parameters().subList(setParameterCount, preparedQuery.parameters().size());
+                setParameters(selectStmt, whereParameters);
+                try (ResultSet rs = selectStmt.executeQuery()) {
+                    rs.next();
+                    expectedCount = rs.getLong(1);
+                }
+            }
+
+            try (PreparedStatement preparedStatement = queryBuilder.prepareStatement(this, session, connection, preparedQuery, Optional.empty())) {
+                preparedStatement.executeUpdate();
+                connection.commit();
+            }
+
+            return OptionalLong.of(expectedCount);
+        } catch (SQLException e) {
+            throw new TrinoException(JDBC_ERROR, e);
+        }
     }
 
     @Override
