@@ -53,6 +53,10 @@
         <ydb.sdk.version>2.3.13</ydb.sdk.version>
         <ydb.jdbc.version>2.3.10</ydb.jdbc.version>
         <ydb.liquibase.version>1.1.1</ydb.liquibase.version>
+
+        <!-- composite (embedded) @Id support was added in Spring Data JDBC 4.0, so tests exercising it only
+             run under the spring-boot4 profile -->
+        <surefire.excludes>**/CompositeKeyUpdateTest.java</surefire.excludes>
     </properties>
 
     <dependencyManagement>
@@ -158,6 +162,9 @@
                     <environmentVariables>
                         <TESTCONTAINERS_REUSE_ENABLE>true</TESTCONTAINERS_REUSE_ENABLE>
                     </environmentVariables>
+                    <excludes>
+                        <exclude>${surefire.excludes}</exclude>
+                    </excludes>
                 </configuration>
             </plugin>
         </plugins>
@@ -182,6 +189,7 @@
             <id>spring-boot4</id>
             <properties>
                 <spring.version>4.0.3</spring.version>
+                <surefire.excludes>__none__</surefire.excludes>
             </properties>
             <dependencies>
                 <dependency>
