@@ -19,12 +19,14 @@ have been verified locally against a real YDB test container:
 - retry classification through the YDB SDK status model, with fresh merge
   connections and rollback-before-close.
 
-The full smoke class currently passes: 36 tests run, 0 failed, 0 errors, 4
-skipped. The inherited connector suite is not fully green yet. The main measured
-blocker is `testMergeLarge`: its one-million-row MERGE still ran after 11 minutes
-and was stopped manually. It must not be replaced with an empty override.
+GitHub Actions is green on PR #240: 314 tests run, 0 failed, 0 errors, 84
+skipped. This includes 36 smoke tests (4 skipped) and 278 connector tests (80
+skipped). The inherited `testMergeLarge` runs without an override and completes
+within the CI budget. An isolated local Colima run previously exceeded 11
+minutes, so MERGE scalability remains a production concern rather than a CI
+failure.
 
-## P0 — finish MERGE correctness and performance
+## P0 — harden MERGE scalability and atomicity
 
 1. Replace row-by-row prepared-statement execution in `YdbMergeSink` with a
    set-based YQL path. Candidate primitives are
@@ -41,8 +43,9 @@ and was stopped manually. It must not be replaced with an empty override.
 4. Add focused tests for composite primary keys, a non-unique first visible
    column, physical-key updates, rollback/close, and fresh-state retries.
 
-**Exit criterion:** every inherited `testMerge*` test, including
-`testMergeLarge`, runs without an override and within the GitHub Actions budget.
+**Exit criterion:** retain the current green inherited `testMerge*` suite and
+add a bounded-memory benchmark that demonstrates acceptable production-scale
+runtime for the set-based implementation.
 
 ## P1 — retry and transaction hardening
 
