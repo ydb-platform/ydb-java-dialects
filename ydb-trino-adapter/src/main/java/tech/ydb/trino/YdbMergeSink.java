@@ -3,20 +3,41 @@ package tech.ydb.trino;
 import com.google.common.collect.ImmutableList;
 import io.airlift.slice.Slice;
 import io.airlift.slice.Slices;
-import io.trino.plugin.jdbc.*;
+import io.trino.plugin.jdbc.BooleanWriteFunction;
+import io.trino.plugin.jdbc.DoubleWriteFunction;
+import io.trino.plugin.jdbc.JdbcClient;
+import io.trino.plugin.jdbc.JdbcColumnHandle;
+import io.trino.plugin.jdbc.JdbcMergeTableHandle;
+import io.trino.plugin.jdbc.JdbcOutputTableHandle;
+import io.trino.plugin.jdbc.LongWriteFunction;
+import io.trino.plugin.jdbc.ObjectWriteFunction;
+import io.trino.plugin.jdbc.QueryBuilder;
+import io.trino.plugin.jdbc.SliceWriteFunction;
+import io.trino.plugin.jdbc.WriteFunction;
 import io.trino.plugin.jdbc.logging.RemoteQueryModifier;
 import io.trino.spi.Page;
 import io.trino.spi.TrinoException;
 import io.trino.spi.block.Block;
 import io.trino.spi.block.RowBlock;
-import io.trino.spi.connector.*;
+import io.trino.spi.connector.ColumnHandle;
+import io.trino.spi.connector.ConnectorMergeSink;
+import io.trino.spi.connector.ConnectorMergeTableHandle;
+import io.trino.spi.connector.ConnectorPageSinkId;
+import io.trino.spi.connector.ConnectorSession;
+import io.trino.spi.connector.ConnectorTransactionHandle;
 import io.trino.spi.type.Type;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.stream.IntStream;
 
 import static com.google.common.collect.ImmutableSet.toImmutableSet;
@@ -75,10 +96,14 @@ public class YdbMergeSink implements ConnectorMergeSink {
 
         for (int attempt = 0; attempt < maxAttempts; attempt++) {
             Connection connection = null;
+            boolean committed = false;
             try {
                 connection = openConnection();
                 executeMergeInTransaction(connection);
                 connection.commit();
+                committed = true;
+                connection.close();
+                connection = null;
 
                 Slice value = Slices.allocate(Long.BYTES);
                 value.setLong(0, pageSinkId.getId());
@@ -86,23 +111,27 @@ public class YdbMergeSink implements ConnectorMergeSink {
             }
             catch (Exception e) {
                 if (connection != null) {
-                    try {
-                        connection.rollback();
-                    }
-                    catch (SQLException rollbackError) {
-                        e.addSuppressed(rollbackError);
-                    }
-                    finally {
+                    if (!committed) {
                         try {
-                            connection.close();
+                            connection.rollback();
                         }
-                        catch (SQLException closeError) {
-                            e.addSuppressed(closeError);
+                        catch (SQLException rollbackError) {
+                            e.addSuppressed(rollbackError);
                         }
+                    }
+                    try {
+                        connection.close();
+                    }
+                    catch (SQLException closeError) {
+                        e.addSuppressed(closeError);
                     }
                 }
 
-                if (!isRetryableError(e)) {
+                if (committed) {
+                    throw new TrinoException(JDBC_ERROR, "YDB MERGE committed, but closing its connection failed", e);
+                }
+
+                if (!YdbRetryUtils.isRetryable(e) && !isRejectedDriverSessionAcquisition(e)) {
                     throw new TrinoException(JDBC_ERROR, e);
                 }
 
@@ -126,8 +155,19 @@ public class YdbMergeSink implements ConnectorMergeSink {
     private Connection openConnection() throws SQLException {
         JdbcOutputTableHandle outputHandle = mergeHandle.getOutputTableHandle();
         Connection connection = jdbcClient.getConnection(session, outputHandle);
-        connection.setAutoCommit(false);
-        return connection;
+        try {
+            connection.setAutoCommit(false);
+            return connection;
+        }
+        catch (SQLException e) {
+            try {
+                connection.close();
+            }
+            catch (SQLException closeError) {
+                e.addSuppressed(closeError);
+            }
+            throw e;
+        }
     }
 
     private void executeMergeInTransaction(Connection connection) throws SQLException {
@@ -413,9 +453,19 @@ public class YdbMergeSink implements ConnectorMergeSink {
         }
     }
 
-    private boolean isRetryableError(Throwable error) {
-        int vendorCode = YdbRetryUtils.extractVendorCode(error);
-        return YdbRetryUtils.isRetryable(vendorCode);
+    private static boolean isRejectedDriverSessionAcquisition(Throwable error) {
+        for (Throwable cause = error; cause != null; cause = cause.getCause()) {
+            if (cause instanceof RejectedExecutionException) {
+                for (StackTraceElement frame : cause.getStackTrace()) {
+                    if (frame.getClassName().equals("tech.ydb.table.impl.pool.SessionPool") &&
+                            frame.getMethodName().equals("acquire")) {
+                        // Session acquisition was rejected locally before a statement could be sent to YDB.
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
     }
 
     @Override

@@ -3,6 +3,7 @@ package tech.ydb.trino;
 import com.google.inject.Inject;
 import io.trino.plugin.jdbc.JdbcClient;
 import io.trino.plugin.jdbc.JdbcOutputTableHandle;
+import io.trino.plugin.jdbc.JdbcPageSink;
 import io.trino.plugin.jdbc.QueryBuilder;
 import io.trino.plugin.jdbc.logging.RemoteQueryModifier;
 import io.trino.spi.connector.ConnectorInsertTableHandle;
@@ -31,13 +32,13 @@ public record YdbPageSinkProvider(
             ConnectorSession session,
             ConnectorOutputTableHandle tableHandle,
             ConnectorPageSinkId pageSinkId) {
-        return new YdbPageSink(
-                transactionHandle,
+        return new JdbcPageSink(
                 session,
                 (JdbcOutputTableHandle) tableHandle,
                 jdbcClient,
                 pageSinkId,
-                remoteQueryModifier);
+                remoteQueryModifier,
+                JdbcClient::buildInsertSql);
     }
 
     @Override
@@ -46,13 +47,13 @@ public record YdbPageSinkProvider(
             ConnectorSession session,
             ConnectorInsertTableHandle tableHandle,
             ConnectorPageSinkId pageSinkId) {
-        return new YdbPageSink(
-                transactionHandle,
+        return new JdbcPageSink(
                 session,
                 (JdbcOutputTableHandle) tableHandle,
                 jdbcClient,
                 pageSinkId,
-                remoteQueryModifier);
+                remoteQueryModifier,
+                JdbcClient::buildInsertSql);
     }
 
     @Override

@@ -1,134 +1,98 @@
 # YDB Trino Adapter — roadmap
 
-Статус относительно Trino `BaseConnectorTest` / `BaseConnectorSmokeTest`
-(ветка `ydb-trino-17-07`, ~314 тестов: ~187 green, ~127 skipped).
+This roadmap tracks the connector against Trino 479
+`BaseConnectorTest`/`BaseConnectorSmokeTest`. A green test is meaningful only
+when it exercises the advertised behavior. Empty overrides and false capability
+flags are test debt, not support.
 
-Skipped почти всегда означают `hasBehavior(...)=false` или явный `NOT_SUPPORTED`
-в `YdbClient`, а не случайный флаaky. Пустые `@Override` (тест «проходит», но ничего
-не проверяет) отмечены отдельно — это тоже долг.
+## Current DML status
 
-## Уже есть
+PR #240 adds DELETE, UPDATE, row-level UPDATE, and MERGE. The following pieces
+have been verified locally against a real YDB test container:
 
-- CREATE / DROP TABLE, INSERT (non-transactional), SELECT
-- Predicate pushdown, в том числе по `varchar` (`FULL_PUSHDOWN`, bind через JDBC → `Text`/`Utf8`)
-- LIMIT / TopN pushdown (включая TopN по varchar)
-- Базовый набор скалярных типов: bool, int*, float/double, decimal, date, timestamp, varchar/Text
-- Агрегации и часть expression rewrite (arithmetic, `IN`, string ops, …)
+- typed predicates for DELETE and UPDATE, including `varchar` values;
+- exact affected-row counts through YQL `RETURNING`, without a racy pre-count;
+- `Float`/`Double` write mappings during MERGE;
+- real JDBC primary-key metadata, including `KEY_SEQ` ordering;
+- concurrent updates identified by the test-only hidden primary key;
+- smoke MERGE and row-level UPDATE without disabling their behavior flags;
+- retry classification through the YDB SDK status model, with fresh merge
+  connections and rollback-before-close.
 
-## Phase 0 — честный тест-долг (быстро)
+The full smoke class currently passes: 36 tests run, 0 failed, 0 errors, 4
+skipped. The inherited connector suite is not fully green yet. The main measured
+blocker is `testMergeLarge`: its one-million-row MERGE still ran after 11 minutes
+and was stopped manually. It must not be replaced with an empty override.
 
-Сейчас часть тестов green из‑за пустого override. Либо починить, либо явно
-документировать/оставить skip с причиной.
+## P0 — finish MERGE correctness and performance
 
-| Тест / тема | Проблема |
-|---|---|
-| Long table / column names | Лимиты имён YDB |
-| Negative dates / year-of-era | Нет отрицательных дат в YQL |
-| `testCharVarcharComparison` | CHAR без pad → не семантика Trino CHAR |
-| `testVarcharCastToDateInPredicate` | Cast/pushdown не поддержан |
-| Row-level UPDATE declaration / `testRowLevelUpdate` | Planner падает до `NOT_SUPPORTED` |
-| `testInsertForDefaultColumn` | Нет default columns |
+1. Replace row-by-row prepared-statement execution in `YdbMergeSink` with a
+   set-based YQL path. Candidate primitives are
+   [`UPDATE ... ON`](https://ydb.tech/docs/en/yql/reference/syntax/update) and
+   [`AS_TABLE`](https://ydb.tech/docs/en/yql/reference/syntax/select/from_as_table),
+   using bounded batches of typed list-of-struct parameters.
+2. Preserve one logical MERGE transaction. Until a staging/finalize design is
+   implemented, keep one writer task and reject Trino query/task retries for a
+   direct-to-target merge.
+3. YQL `UPDATE` cannot change a primary-key value. Implement physical-key
+   changes as atomic delete+insert row changes, or reject that statement with a
+   documented `NOT_SUPPORTED` error. See the
+   [YQL UPDATE contract](https://ydb.tech/docs/en/yql/reference/syntax/update).
+4. Add focused tests for composite primary keys, a non-unique first visible
+   column, physical-key updates, rollback/close, and fresh-state retries.
 
-**Критерий готовности:** нет «пустых» overrides без комментария «unsupported by design».
+**Exit criterion:** every inherited `testMerge*` test, including
+`testMergeLarge`, runs without an override and within the GitHub Actions budget.
 
-## Phase 1 — DDL, которое уже есть в YQL (высокий ROI)
+## P1 — retry and transaction hardening
 
-YDB умеет `ALTER TABLE ... ADD/DROP COLUMN`, `SET/DROP NOT NULL`. В адаптере это
-сейчас выключено.
+- Retry only statuses classified as unconditional by the pinned YDB SDK.
+  `TIMEOUT`, `UNDETERMINED`, transport failures, and other conditional statuses
+  are unsafe for non-idempotent writes unless an operation-id/staging design
+  proves replay safety. See
+  [YDB SDK error handling](https://ydb.tech/docs/en/reference/ydb-sdk/error_handling).
+- Keep the JDBC `SessionPool.acquire` scheduler-rejection workaround limited to
+  that provably pre-execution stack. Track it against the YDB JDBC driver and
+  remove the connector workaround after upgrading to a fixed driver.
+- Do not replay buffered INSERT pages after `JdbcPageSink` may already have
+  committed an internal batch.
+- Add unit tests for status classification, interrupted backoff, rollback
+  failure suppression, connection cleanup, and a failure after commit.
+- Define memory/backpressure limits for buffered merge pages; memory usage must
+  not remain unreported.
 
-1. **DROP COLUMN** — снять `SUPPORTS_DROP_COLUMN=false`, реализовать в `YdbClient`
-2. **ADD COLUMN** (без comment / position) — базовая добавка nullable-колонок
-3. **DROP / SET NOT NULL** — если поведение совпадёт с ожиданиями Trino-тестов
+## P2 — remove remaining test debt
 
-Ожидаемый эффект: разблокировка пачки `testDrop*Column`, `testAddAndDropColumnName`,
-части not-null тестов (~10–20 кейсов).
+Audit every inherited-test override and every `hasBehavior` exception. For each
+unsupported behavior, record:
 
-**Вне scope phase 1:** rename column, `SET DATA TYPE`, column/table comments,
-`ADD COLUMN ... NOT NULL` с backfill-семантикой Trino, `WITH POSITION`.
+1. the exact YDB/YQL or Trino limitation;
+2. an authoritative documentation link or tracked upstream issue;
+3. a focused negative test that proves the connector fails clearly.
 
-## Phase 2 — UPDATE / DELETE (без MERGE)
+The existing negative-date, CHAR, cast-pushdown, and default-column overrides
+need this treatment. YDB `Date` starts at the Unix epoch; see
+[primitive types](https://ydb.tech/docs/en/yql/reference/types/primitive).
 
-В YQL есть `UPDATE` / `DELETE`. Коннектор сейчас бросает `MODIFYING_ROWS_MESSAGE`.
+## Later capability work
 
-1. Простой `DELETE` / `UPDATE` с pushdown предикатов (в т.ч. varchar через `?`)
-2. Сложные предикаты из BaseConnectorTest (LIKE, subquery, semi-join) — по мере готовности
-3. **MERGE не целиться** — в YDB нет Trino-MERGE; оставляем `SUPPORTS_MERGE=false`
-   (или позже эмулировать через UPSERT, отдельным решением)
+- schema-as-YDB-path design for CREATE/DROP/RENAME SCHEMA;
+- List/Dict/Struct mappings for Trino ARRAY/MAP/ROW;
+- views, comments, rename column, and type changes after checking current YQL
+  semantics;
+- transactional INSERT/staging instead of direct non-transactional writes.
 
-Ожидаемый эффект: до ~30–40 тестов из группы delete/update (без merge-сюиты).
+## Validation ladder
 
-**Риски:** семантика транзакций, `testRollback` / `testInsertInTransaction`,
-row-level update planner quirks, written stats.
-
-## Phase 3 — schema as path (дизайн)
-
-Trino `CREATE SCHEMA` ≠ SQL schema в YDB. Схемы естественно мапятся на директории
-в path БД.
-
-Варианты:
-
-- оставить один schema `ydb` (как сейчас) — просто и предсказуемо;
-- мапить `schema` → subdirectory + реализовать create/drop/rename directory.
-
-Без явного дизайн-решения флаги `SUPPORTS_CREATE_SCHEMA` / rename / cascade
-не включать. Cascade + views/MV — отдельно.
-
-## Phase 4 — типы контейнеров
-
-| Trino | YDB | Статус |
-|---|---|---|
-| `ARRAY` | `List` | не замаплено → skip insert/array/field-in-array |
-| `MAP` | `Dict` | не замаплено |
-| `ROW` | `Struct` | не замаплено → skip row-field + projection pushdown по nested |
-
-Нужны read/write mappings, predicate/projection pushdown, тесты data-mapping.
-Крупный объём, лучше отдельными PR по типу.
-
-## Phase 5 — Views / comments / прочее
-
-- **Views:** в YDB есть ограниченная поддержка; Trino VIEW + metadata-тесты —
-  отдельный трек. Materialized / federated MV — низкий приоритет.
-- **COMMENT ON TABLE/COLUMN:** семантика Trino не совпадает 1:1 с YDB table/column
-  properties — не блокирует core DML/DDL.
-- **RENAME COLUMN / SET COLUMN TYPE:** проверить актуальные возможности YQL;
-  сейчас считаем unsupported.
-- **RENAME TABLE across schemas:** зависит от phase 3 (path move).
-
-## Порядок PR (предложение)
-
-```text
-0. ROADMAP + подчистить пустые overrides (docs/honesty)
-1. DROP COLUMN (+ минимальные ADD COLUMN)
-2. UPDATE / DELETE (простые предикаты) → расширять предикаты
-3. Design note: schema-as-path (да/нет) → реализация или явный отказ
-4. List / Dict / Struct mappings по одному типу
-5. Views / comments по необходимости продукта
-```
-
-## Как мерить прогресс
-
-После каждого PR:
+Use JDK 25 and the Docker/Testcontainers environment documented in the root
+`AGENTS.md`:
 
 ```bash
-cd ydb-trino-adapter
-mvn test
-# смотреть surefire: Tests run / Skipped / Failures
+mvn -f ydb-trino-adapter/pom.xml -DskipTests compile
+mvn -f ydb-trino-adapter/pom.xml -Dtest='TestYdbConnectorTest#testName' test
+mvn -f ydb-trino-adapter/pom.xml -Dtest=TestYdbConnectorSmokeTest test
+mvn --batch-mode --update-snapshots -f ydb-trino-adapter/pom.xml clean test
 ```
 
-Целевые ориентиры (грубо):
-
-| Milestone | Skipped (ориентир) |
-|---|---|
-| Сейчас | ~127 |
-| После phase 1 | ~110 |
-| После phase 2 | ~70–80 |
-| После phase 4 | заметно ниже за счёт array/map/row |
-
-Точные числа зависят от того, сколько тестов завязано на комбинации флагов
-(например MERGE останется большим блоком skip).
-
-## Не делать
-
-- Включать `hasBehavior=true` без реализации в `YdbClient` / QueryBuilder
-- Ослаблять CI workflow, чтобы «позеленеть»
-- Эмулировать MERGE «лишь бы тесты» без явной семантики и документации
+Always report the test count and skipped count. Do not disable Docker-backed
+tests, weaken CI, or add a no-op override to obtain a green result.

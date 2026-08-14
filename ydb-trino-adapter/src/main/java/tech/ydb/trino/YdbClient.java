@@ -11,7 +11,22 @@ import io.trino.plugin.base.expression.ConnectorExpressionRewriter;
 import io.trino.plugin.base.mapping.IdentifierMapping;
 import io.trino.plugin.base.projection.ProjectFunctionRewriter;
 import io.trino.plugin.base.projection.ProjectFunctionRule;
-import io.trino.plugin.jdbc.*;
+import io.trino.plugin.jdbc.BaseJdbcClient;
+import io.trino.plugin.jdbc.BaseJdbcConfig;
+import io.trino.plugin.jdbc.BooleanWriteFunction;
+import io.trino.plugin.jdbc.ColumnMapping;
+import io.trino.plugin.jdbc.ConnectionFactory;
+import io.trino.plugin.jdbc.JdbcColumnHandle;
+import io.trino.plugin.jdbc.JdbcExpression;
+import io.trino.plugin.jdbc.JdbcMergeTableHandle;
+import io.trino.plugin.jdbc.JdbcOutputTableHandle;
+import io.trino.plugin.jdbc.JdbcSortItem;
+import io.trino.plugin.jdbc.JdbcTableHandle;
+import io.trino.plugin.jdbc.JdbcTypeHandle;
+import io.trino.plugin.jdbc.PreparedQuery;
+import io.trino.plugin.jdbc.QueryBuilder;
+import io.trino.plugin.jdbc.RemoteTableName;
+import io.trino.plugin.jdbc.WriteMapping;
 import io.trino.plugin.jdbc.aggregation.ImplementAvgDecimal;
 import io.trino.plugin.jdbc.aggregation.ImplementAvgFloatingPoint;
 import io.trino.plugin.jdbc.aggregation.ImplementCount;
@@ -23,29 +38,74 @@ import io.trino.plugin.jdbc.expression.JdbcConnectorExpressionRewriterBuilder;
 import io.trino.plugin.jdbc.expression.ParameterizedExpression;
 import io.trino.plugin.jdbc.expression.RewriteIn;
 import io.trino.plugin.jdbc.logging.RemoteQueryModifier;
-import io.trino.spi.connector.*;
-import io.trino.spi.expression.ConnectorExpression;
-import io.trino.spi.type.*;
 import io.trino.spi.TrinoException;
+import io.trino.spi.connector.AggregateFunction;
+import io.trino.spi.connector.ColumnHandle;
+import io.trino.spi.connector.ColumnMetadata;
+import io.trino.spi.connector.ConnectorSession;
+import io.trino.spi.connector.ConnectorTableMetadata;
+import io.trino.spi.connector.RetryMode;
+import io.trino.spi.connector.SchemaTableName;
+import io.trino.spi.connector.SortOrder;
+import io.trino.spi.expression.ConnectorExpression;
+import io.trino.spi.type.CharType;
+import io.trino.spi.type.DecimalType;
+import io.trino.spi.type.Type;
+import io.trino.spi.type.VarcharType;
 
 import jakarta.annotation.Nullable;
 import org.jspecify.annotations.NonNull;
 
-import java.sql.*;
+import java.sql.Connection;
+import java.sql.DatabaseMetaData;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Types;
+import java.util.Collection;
 import java.util.List;
-import java.util.*;
 import java.util.Locale;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.OptionalInt;
+import java.util.OptionalLong;
+import java.util.Set;
+import java.util.TreeMap;
 import java.util.function.BiFunction;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Verify.verify;
+import static io.trino.plugin.jdbc.DefaultJdbcMetadata.MERGE_ROW_ID;
 import static io.trino.plugin.jdbc.JdbcErrorCode.JDBC_ERROR;
 import static io.trino.plugin.jdbc.PredicatePushdownController.DISABLE_PUSHDOWN;
 import static io.trino.plugin.jdbc.PredicatePushdownController.FULL_PUSHDOWN;
-import static io.trino.plugin.jdbc.StandardColumnMappings.*;
+import static io.trino.plugin.jdbc.StandardColumnMappings.bigintColumnMapping;
+import static io.trino.plugin.jdbc.StandardColumnMappings.bigintWriteFunction;
+import static io.trino.plugin.jdbc.StandardColumnMappings.booleanColumnMapping;
+import static io.trino.plugin.jdbc.StandardColumnMappings.charWriteFunction;
+import static io.trino.plugin.jdbc.StandardColumnMappings.dateWriteFunctionUsingLocalDate;
+import static io.trino.plugin.jdbc.StandardColumnMappings.dateReadFunctionUsingLocalDate;
+import static io.trino.plugin.jdbc.StandardColumnMappings.decimalColumnMapping;
+import static io.trino.plugin.jdbc.StandardColumnMappings.doubleColumnMapping;
+import static io.trino.plugin.jdbc.StandardColumnMappings.doubleWriteFunction;
+import static io.trino.plugin.jdbc.StandardColumnMappings.integerColumnMapping;
+import static io.trino.plugin.jdbc.StandardColumnMappings.integerWriteFunction;
+import static io.trino.plugin.jdbc.StandardColumnMappings.longDecimalWriteFunction;
+import static io.trino.plugin.jdbc.StandardColumnMappings.realColumnMapping;
+import static io.trino.plugin.jdbc.StandardColumnMappings.realWriteFunction;
+import static io.trino.plugin.jdbc.StandardColumnMappings.shortDecimalWriteFunction;
+import static io.trino.plugin.jdbc.StandardColumnMappings.smallintColumnMapping;
+import static io.trino.plugin.jdbc.StandardColumnMappings.smallintWriteFunction;
+import static io.trino.plugin.jdbc.StandardColumnMappings.timestampColumnMapping;
+import static io.trino.plugin.jdbc.StandardColumnMappings.timestampReadFunction;
+import static io.trino.plugin.jdbc.StandardColumnMappings.timestampWriteFunction;
+import static io.trino.plugin.jdbc.StandardColumnMappings.tinyintWriteFunction;
+import static io.trino.plugin.jdbc.StandardColumnMappings.varcharColumnMapping;
+import static io.trino.plugin.jdbc.StandardColumnMappings.varcharReadFunction;
+import static io.trino.plugin.jdbc.StandardColumnMappings.varcharWriteFunction;
 import static io.trino.spi.StandardErrorCode.NOT_SUPPORTED;
-import static io.trino.spi.connector.ConnectorMetadata.MODIFYING_ROWS_MESSAGE;
 import static io.trino.spi.type.BigintType.BIGINT;
 import static io.trino.spi.type.BooleanType.BOOLEAN;
 import static io.trino.spi.type.DateType.DATE;
@@ -64,6 +124,8 @@ import static java.util.stream.Collectors.joining;
 
 public class YdbClient extends BaseJdbcClient {
     private static final String YDB_SCHEMA = "ydb";
+    private static final int YDB_DEFAULT_DECIMAL_PRECISION = 22;
+    private static final int YDB_DEFAULT_DECIMAL_SCALE = 9;
 
     private final ConnectorExpressionRewriter<ParameterizedExpression> connectorExpressionRewriter;
     private final AggregateFunctionRewriter<JdbcExpression, ParameterizedExpression> aggregateFunctionRewriter;
@@ -151,13 +213,19 @@ public class YdbClient extends BaseJdbcClient {
     }
 
     @Override
-    @SuppressWarnings("all")
     public Optional<JdbcExpression> convertProjection(
             ConnectorSession session,
             JdbcTableHandle handle,
             ConnectorExpression expression,
             Map<String, ColumnHandle> assignments
     ) {
+        if (!handle.getUpdateAssignments().isEmpty() || assignments.values().stream()
+                .filter(JdbcColumnHandle.class::isInstance)
+                .map(JdbcColumnHandle.class::cast)
+                .anyMatch(column -> column.getColumnName().equals(MERGE_ROW_ID))) {
+            return Optional.empty();
+        }
+
         JdbcTypeHandle typeHandle = YdbTypeUtils.toTypeHandle(expression.getType()).orElse(null);
         if (Objects.isNull(typeHandle)) {
             return Optional.empty();
@@ -244,21 +312,32 @@ public class YdbClient extends BaseJdbcClient {
             case Types.INTEGER -> Optional.of(integerColumnMapping());
             case Types.BIGINT -> Optional.of(bigintColumnMapping());
             case Types.REAL -> Optional.of(realColumnMapping());
-            case Types.FLOAT, Types.DOUBLE -> Optional.of(doubleColumnMapping());
+            case Types.FLOAT -> Optional.of(jdbcTypeName.equals("float") ? realColumnMapping() : doubleColumnMapping());
+            case Types.DOUBLE -> Optional.of(doubleColumnMapping());
             case Types.DECIMAL -> {
-                // We need this hack because JDBC client for some reason does not return the scale
-                // in .requiredDecimalDigits() and we have to parse it manually.
-                String typeName = typeHandle.jdbcTypeName().get();
+                String typeName = typeHandle.jdbcTypeName().orElse("Decimal");
                 int start = typeName.indexOf('(');
                 int end = typeName.indexOf(')');
-                String[] parts = typeName.substring(start + 1, end).split(",");
-                int precision = Integer.parseInt(parts[0].trim());
-                int scale = Integer.parseInt(parts[1].trim());
+                Optional<Integer> typeNamePrecision = Optional.empty();
+                Optional<Integer> typeNameScale = Optional.empty();
+                if (start >= 0 && end > start) {
+                    String[] parts = typeName.substring(start + 1, end).split(",");
+                    if (parts.length == 2) {
+                        typeNamePrecision = Optional.of(Integer.parseInt(parts[0].trim()));
+                        typeNameScale = Optional.of(Integer.parseInt(parts[1].trim()));
+                    }
+                }
 
+                int precision = typeHandle.columnSize()
+                        .orElse(typeNamePrecision.orElse(YDB_DEFAULT_DECIMAL_PRECISION));
+                int scale = typeHandle.decimalDigits()
+                        .orElse(typeNameScale.orElse(YDB_DEFAULT_DECIMAL_SCALE));
+                DecimalType decimalType = createDecimalType(precision, max(scale, 0));
+                ColumnMapping decimalMapping = decimalColumnMapping(decimalType);
                 yield Optional.of(ColumnMapping.mapping(
-                        createDecimalType(precision, max(scale, 0)),
-                        decimalColumnMapping(createDecimalType(precision, max(scale, 0))).getReadFunction(),
-                        decimalColumnMapping(createDecimalType(precision, max(scale, 0))).getWriteFunction(),
+                        decimalType,
+                        decimalMapping.getReadFunction(),
+                        decimalMapping.getWriteFunction(),
                         DISABLE_PUSHDOWN));
             }
             case Types.CHAR, Types.NCHAR -> {
@@ -372,7 +451,6 @@ public class YdbClient extends BaseJdbcClient {
     }
 
     @Override
-    @SuppressWarnings("all")
     protected Optional<TopNFunction> topNFunction() {
         // We need the hack below because Trino and YDB handle nulls differently when sorting.
         return Optional.of((query, sortItems, limit) -> {
@@ -565,58 +643,52 @@ public class YdbClient extends BaseJdbcClient {
     }
 
     @Override
-    @SuppressWarnings("all")
     public List<JdbcColumnHandle> getPrimaryKeys(ConnectorSession session, RemoteTableName remoteTableName) {
         String tableName = remoteTableName.getTableName();
+        String metadataSchemaName = remoteTableName.getSchemaName().orElse(null);
+        SchemaTableName schemaTableName = new SchemaTableName(
+                remoteTableName.getSchemaName().orElse(YDB_SCHEMA),
+                tableName);
+        List<JdbcColumnHandle> columns = getColumnsForPrimaryKeyLookup(session, schemaTableName, remoteTableName);
+        Map<String, JdbcColumnHandle> columnsByName = columns.stream()
+                .collect(Collectors.toMap(JdbcColumnHandle::getColumnName, Function.identity()));
 
         try (Connection connection = getConnection(session)) {
             DatabaseMetaData metaData = connection.getMetaData();
-
             String catalogName = remoteTableName.getCatalogName().orElse(null);
-            String schemaName = remoteTableName.getSchemaName().orElse(null);
 
-            try (ResultSet primaryKeyResultSet = metaData.getPrimaryKeys(catalogName, schemaName, tableName)) {
-                ImmutableList.Builder<JdbcColumnHandle> primaryKeys = ImmutableList.builder();
+            try (ResultSet primaryKeyResultSet = metaData.getPrimaryKeys(catalogName, metadataSchemaName, tableName)) {
+                Map<Short, JdbcColumnHandle> primaryKeysBySequence = new TreeMap<>();
 
                 while (primaryKeyResultSet.next()) {
                     String columnName = primaryKeyResultSet.getString("COLUMN_NAME");
-
-                    SchemaTableName schemaTableName = new SchemaTableName(
-                        schemaName != null ? schemaName : "ydb",
-                        tableName
-                    );
-
-                    List<JdbcColumnHandle> allColumns = getColumns(session, schemaTableName, remoteTableName);
-                    Optional<JdbcColumnHandle> columnHandle = allColumns.stream()
-                            .filter(col -> col.getColumnName().equals(columnName))
-                            .findFirst();
-
-                    if (columnHandle.isPresent()) {
-                        primaryKeys.add(columnHandle.get());
+                    JdbcColumnHandle column = columnsByName.get(columnName);
+                    if (column == null) {
+                        throw new TrinoException(
+                                JDBC_ERROR,
+                                "Primary key column '%s' is absent from JDBC column metadata for %s"
+                                        .formatted(columnName, remoteTableName));
+                    }
+                    short keySequence = primaryKeyResultSet.getShort("KEY_SEQ");
+                    if (primaryKeysBySequence.put(keySequence, column) != null) {
+                        throw new TrinoException(
+                                JDBC_ERROR,
+                                "Duplicate primary key sequence %s for %s".formatted(keySequence, remoteTableName));
                     }
                 }
-
-                List<JdbcColumnHandle> result = primaryKeys.build();
-                if (!result.isEmpty()) {
-                    return result;
-                }
+                return ImmutableList.copyOf(primaryKeysBySequence.values());
             }
-        } catch (SQLException e) {
-
         }
-
-        // For Trino's temporary tables in tests, where PK's are not created.
-        SchemaTableName schemaTableName = new SchemaTableName("ydb", tableName);
-        try {
-            List<JdbcColumnHandle> allColumns = getColumns(session, schemaTableName, remoteTableName);
-            if (!allColumns.isEmpty()) {
-                return ImmutableList.of(allColumns.get(0));
-            }
-        } catch (Exception e) {
-
+        catch (SQLException e) {
+            throw new TrinoException(JDBC_ERROR, "Failed to read primary key metadata for " + remoteTableName, e);
         }
+    }
 
-        return List.of();
+    protected List<JdbcColumnHandle> getColumnsForPrimaryKeyLookup(
+            ConnectorSession session,
+            SchemaTableName schemaTableName,
+            RemoteTableName remoteTableName) {
+        return getColumns(session, schemaTableName, remoteTableName);
     }
 
     @Override
@@ -632,16 +704,31 @@ public class YdbClient extends BaseJdbcClient {
             List<Runnable> rollbackActions,
             RetryMode retryMode
     ) {
+        if (retryMode != RetryMode.NO_RETRIES) {
+            throw new TrinoException(NOT_SUPPORTED, "Query and task retries are not supported for direct YDB MERGE");
+        }
+
         List<JdbcColumnHandle> primaryKeys = getPrimaryKeys(session, handle.getRequiredNamedRelation().getRemoteTableName());
+        if (primaryKeys.isEmpty()) {
+            throw new TrinoException(NOT_SUPPORTED, "The connector cannot perform MERGE on a table without a primary key");
+        }
 
         SchemaTableName schemaTableName = handle.getRequiredNamedRelation().getSchemaTableName();
         RemoteTableName remoteTableName = handle.getRequiredNamedRelation().getRemoteTableName();
+        RemoteTableName outputRemoteTableName = new RemoteTableName(
+                remoteTableName.getCatalogName(),
+                Optional.of(schemaTableName.getSchemaName()),
+                remoteTableName.getTableName());
 
         List<JdbcColumnHandle> columns = getColumns(session, schemaTableName, remoteTableName);
 
-        JdbcTableHandle plainTable = new JdbcTableHandle(schemaTableName, remoteTableName, Optional.empty());
-
-        JdbcOutputTableHandle outputTableHandle = beginInsertTable(session, plainTable, columns);
+        JdbcOutputTableHandle outputTableHandle = new JdbcOutputTableHandle(
+                outputRemoteTableName,
+                columns.stream().map(JdbcColumnHandle::getColumnName).toList(),
+                columns.stream().map(JdbcColumnHandle::getColumnType).toList(),
+                Optional.of(columns.stream().map(JdbcColumnHandle::getJdbcTypeHandle).toList()),
+                Optional.empty(),
+                Optional.empty());
 
         return new JdbcMergeTableHandle(
                 handle,
@@ -659,13 +746,13 @@ public class YdbClient extends BaseJdbcClient {
             JdbcMergeTableHandle tableHandle,
             Set<Long> pageSinkIds
     ) {
-        try (Connection connection = getConnection(session)) {
-            if (!connection.getAutoCommit()) {
-                connection.commit();
-            }
-        } catch (SQLException e) {
-            throw new TrinoException(JDBC_ERROR, e);
-        }
+        // Each YdbMergeSink owns and commits its transaction before reporting success.
+    }
+
+    @Override
+    public OptionalInt getMaxWriteParallelism(ConnectorSession session) {
+        // Direct-to-target merge sinks cannot be committed atomically across writer tasks.
+        return OptionalInt.of(1);
     }
 
     @Override
@@ -678,52 +765,10 @@ public class YdbClient extends BaseJdbcClient {
                     handle.getRequiredNamedRelation(),
                     handle.getConstraint(),
                     getAdditionalPredicate(handle.getConstraintExpressions(), Optional.empty()));
-
-            String deleteSql = preparedQuery.query();
-            // Very dirty hack, because it seems like YDB does not return deleted row count.
-            // However since this connector is select-oriented, this overhead might not be significant.
-            // Anyway, it will be benchmarked later.
-            String selectSql = deleteSql.replaceFirst("DELETE FROM", "SELECT COUNT(*) FROM");
-
-            long expectedCount;
-            try (PreparedStatement selectStmt = connection.prepareStatement(selectSql)) {
-                setParameters(selectStmt, preparedQuery.parameters());
-                try (ResultSet rs = selectStmt.executeQuery()) {
-                    rs.next();
-                    expectedCount = rs.getLong(1);
-                }
-            }
-
-            try (PreparedStatement preparedStatement = queryBuilder.prepareStatement(this, session, connection, preparedQuery, Optional.empty())) {
-                preparedStatement.executeUpdate();
-                connection.commit();
-            }
-
-            return OptionalLong.of(expectedCount);
-        } catch (SQLException e) {
-            throw new TrinoException(JDBC_ERROR, e);
+            return OptionalLong.of(executeReturningDml(session, connection, handle, preparedQuery));
         }
-    }
-
-    private void setParameters(PreparedStatement stmt, List<QueryParameter> parameters) throws SQLException {
-        for (int i = 0; i < parameters.size(); i++) {
-            QueryParameter param = parameters.get(i);
-            Object value = param.getValue().orElse(null);
-            if (value == null) {
-                stmt.setNull(i + 1, Types.NULL);
-            } else if (value instanceof Long l) {
-                stmt.setLong(i + 1, l);
-            } else if (value instanceof Integer n) {
-                stmt.setInt(i + 1, n);
-            } else if (value instanceof String s) {
-                stmt.setString(i + 1, s);
-            } else if (value instanceof Double d) {
-                stmt.setDouble(i + 1, d);
-            } else if (value instanceof Boolean b) {
-                stmt.setBoolean(i + 1, b);
-            } else {
-                stmt.setObject(i + 1, value);
-            }
+        catch (SQLException e) {
+            throw new TrinoException(JDBC_ERROR, e);
         }
     }
 
@@ -738,34 +783,35 @@ public class YdbClient extends BaseJdbcClient {
                     handle.getConstraint(),
                     getAdditionalPredicate(handle.getConstraintExpressions(), Optional.empty()),
                     handle.getUpdateAssignments());
-
-            String updateSql = preparedQuery.query();
-            // Very dirty hack, because it seems like YDB does not return deleted row count.
-            // However since this connector is select-oriented, this overhead might not be significant.
-            // Anyway, it will be benchmarked later.
-            String selectSql = updateSql.replaceFirst("UPDATE\\s+(\\S+)\\s+SET\\s+.*?\\s+WHERE\\s+", "SELECT count(*) FROM $1 WHERE ");
-
-            int setParameterCount = handle.getUpdateAssignments().size();
-
-            long expectedCount;
-            try (PreparedStatement selectStmt = connection.prepareStatement(selectSql)) {
-                List<QueryParameter> whereParameters = preparedQuery.parameters().subList(setParameterCount, preparedQuery.parameters().size());
-                setParameters(selectStmt, whereParameters);
-                try (ResultSet rs = selectStmt.executeQuery()) {
-                    rs.next();
-                    expectedCount = rs.getLong(1);
-                }
-            }
-
-            try (PreparedStatement preparedStatement = queryBuilder.prepareStatement(this, session, connection, preparedQuery, Optional.empty())) {
-                preparedStatement.executeUpdate();
-                connection.commit();
-            }
-
-            return OptionalLong.of(expectedCount);
-        } catch (SQLException e) {
+            return OptionalLong.of(executeReturningDml(session, connection, handle, preparedQuery));
+        }
+        catch (SQLException e) {
             throw new TrinoException(JDBC_ERROR, e);
         }
+    }
+
+    private long executeReturningDml(
+            ConnectorSession session,
+            Connection connection,
+            JdbcTableHandle handle,
+            PreparedQuery preparedQuery) throws SQLException {
+        List<JdbcColumnHandle> primaryKeys = getPrimaryKeys(
+                session,
+                handle.getRequiredNamedRelation().getRemoteTableName());
+        if (primaryKeys.isEmpty()) {
+            throw new TrinoException(NOT_SUPPORTED, "YDB DML requires a table primary key");
+        }
+        PreparedQuery returningQuery = preparedQuery.transformQuery(
+                query -> query + " RETURNING " + quoted(primaryKeys.getFirst().getColumnName()));
+
+        long affectedRows = 0;
+        try (PreparedStatement statement = queryBuilder.prepareStatement(this, session, connection, returningQuery, Optional.of(1));
+                ResultSet resultSet = statement.executeQuery()) {
+            while (resultSet.next()) {
+                affectedRows++;
+            }
+        }
+        return affectedRows;
     }
 
     @Override

@@ -20,7 +20,7 @@ import static io.trino.testing.TestingSession.testSessionBuilder;
 
 public final class YdbQueryRunner {
     public static final String TPCH_SCHEMA = "ydb";
-    public static final String YDB_HIDDEN_PK_COLUMN = "pk";
+    public static final String YDB_HIDDEN_PK_COLUMN = TestingYdbJdbcClient.YDB_HIDDEN_PK_COLUMN;
 
     private YdbQueryRunner() {}
 

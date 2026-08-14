@@ -34,7 +34,6 @@ public class TestYdbConnectorTest extends BaseConnectorTest {
                  SUPPORTS_SET_COLUMN_TYPE,
                  SUPPORTS_ROW_TYPE,
                  SUPPORTS_RENAME_COLUMN,
-                 SUPPORTS_ROW_LEVEL_UPDATE,
                  SUPPORTS_TRUNCATE,
                  SUPPORTS_COMMENT_ON_COLUMN,
                  SUPPORTS_COMMENT_ON_TABLE,
@@ -85,12 +84,6 @@ public class TestYdbConnectorTest extends BaseConnectorTest {
     @Override
     public void testVarcharCastToDateInPredicate() {
         // YDB не поддерживает такой pushdown/cast
-    }
-
-    @Test
-    @Override
-    public void verifySupportsRowLevelUpdateDeclaration() {
-        // Planner fails with IllegalArgumentException before connector NOT_SUPPORTED path
     }
 
     @Test
@@ -164,9 +157,4 @@ public class TestYdbConnectorTest extends BaseConnectorTest {
         assertThat(e.getMessage()).contains("too long");
     }
 
-    @Test
-    @Override
-    public void testMergeLarge() {
-        // TODO потом оптимизирую, сейчас таймаутится
-    }
 }

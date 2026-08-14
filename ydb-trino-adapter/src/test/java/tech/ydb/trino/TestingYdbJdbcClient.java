@@ -17,7 +17,7 @@ import java.util.List;
 import static io.trino.spi.StandardErrorCode.NOT_SUPPORTED;
 
 public class TestingYdbJdbcClient extends YdbClient {
-    private static final String YDB_HIDDEN_PK_COLUMN = "pk";
+    static final String YDB_HIDDEN_PK_COLUMN = "_ydb_trino_test_pk";
 
     public TestingYdbJdbcClient(
             BaseJdbcConfig config,
@@ -37,6 +37,14 @@ public class TestingYdbJdbcClient extends YdbClient {
                 .stream()
                 .filter(column -> !column.getColumnName().equals(YDB_HIDDEN_PK_COLUMN))
                 .toList();
+    }
+
+    @Override
+    protected List<JdbcColumnHandle> getColumnsForPrimaryKeyLookup(
+            ConnectorSession session,
+            SchemaTableName schemaTableName,
+            RemoteTableName remoteTableName) {
+        return super.getColumns(session, schemaTableName, remoteTableName);
     }
 
     @Override
