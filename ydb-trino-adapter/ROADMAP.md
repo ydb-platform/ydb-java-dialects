@@ -54,6 +54,12 @@ and was stopped manually. It must not be replaced with an empty override.
 - Keep the JDBC `SessionPool.acquire` scheduler-rejection workaround limited to
   that provably pre-execution stack. Track it against the YDB JDBC driver and
   remove the connector workaround after upgrading to a fixed driver.
+- YDB JDBC 2.3.18 connection-context caching has a close/register race under
+  concurrent connections. The connector therefore defaults
+  `cacheConnectionsInDriver` to `false`; an explicit JDBC URL option can
+  override it. This trades connection reuse for correctness and may increase
+  connection latency/load. Re-evaluate the default after upgrading to a driver
+  with a verified cache-lifecycle fix.
 - Do not replay buffered INSERT pages after `JdbcPageSink` may already have
   committed an internal batch.
 - Add unit tests for status classification, interrupted backoff, rollback

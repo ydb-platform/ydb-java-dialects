@@ -3,6 +3,7 @@ package tech.ydb.trino;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.primitives.Ints;
 import com.google.inject.Inject;
 import io.opentelemetry.api.internal.StringUtils;
 import io.trino.plugin.base.aggregation.AggregateFunctionRewriter;
@@ -316,22 +317,22 @@ public class YdbClient extends BaseJdbcClient {
             case Types.DOUBLE -> Optional.of(doubleColumnMapping());
             case Types.DECIMAL -> {
                 String typeName = typeHandle.jdbcTypeName().orElse("Decimal");
+                int precision = typeHandle.columnSize().orElse(YDB_DEFAULT_DECIMAL_PRECISION);
+                int scale = typeHandle.decimalDigits().orElse(YDB_DEFAULT_DECIMAL_SCALE);
                 int start = typeName.indexOf('(');
                 int end = typeName.indexOf(')');
-                Optional<Integer> typeNamePrecision = Optional.empty();
-                Optional<Integer> typeNameScale = Optional.empty();
                 if (start >= 0 && end > start) {
                     String[] parts = typeName.substring(start + 1, end).split(",");
                     if (parts.length == 2) {
-                        typeNamePrecision = Optional.of(Integer.parseInt(parts[0].trim()));
-                        typeNameScale = Optional.of(Integer.parseInt(parts[1].trim()));
+                        Integer typeNamePrecision = Ints.tryParse(parts[0].trim());
+                        Integer typeNameScale = Ints.tryParse(parts[1].trim());
+                        if (typeNamePrecision != null && typeNameScale != null) {
+                            precision = typeNamePrecision;
+                            scale = typeNameScale;
+                        }
                     }
                 }
 
-                int precision = typeHandle.columnSize()
-                        .orElse(typeNamePrecision.orElse(YDB_DEFAULT_DECIMAL_PRECISION));
-                int scale = typeHandle.decimalDigits()
-                        .orElse(typeNameScale.orElse(YDB_DEFAULT_DECIMAL_SCALE));
                 DecimalType decimalType = createDecimalType(precision, max(scale, 0));
                 ColumnMapping decimalMapping = decimalColumnMapping(decimalType);
                 yield Optional.of(ColumnMapping.mapping(

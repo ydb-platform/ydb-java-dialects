@@ -8,15 +8,12 @@ import com.google.inject.Singleton;
 import io.trino.plugin.base.mapping.IdentifierMapping;
 import io.trino.plugin.jdbc.BaseJdbcConfig;
 import io.trino.plugin.jdbc.ConnectionFactory;
-import io.trino.plugin.jdbc.DriverConnectionFactory;
 import io.trino.plugin.jdbc.ForBaseJdbc;
 import io.trino.plugin.jdbc.JdbcClient;
 import io.trino.plugin.jdbc.JdbcMetadataFactory;
 import io.trino.plugin.jdbc.QueryBuilder;
 import io.trino.plugin.jdbc.credential.CredentialProvider;
 import io.trino.plugin.jdbc.logging.RemoteQueryModifier;
-import tech.ydb.jdbc.YdbDriver;
-
 import static com.google.inject.multibindings.OptionalBinder.newOptionalBinder;
 
 public class TestingYdbJdbcModule implements Module {
@@ -50,10 +47,6 @@ public class TestingYdbJdbcModule implements Module {
     public static ConnectionFactory createConnectionFactory(
             BaseJdbcConfig config,
             CredentialProvider credentialProvider) {
-        return DriverConnectionFactory.builder(
-                        new YdbDriver(),
-                        config.getConnectionUrl(),
-                        credentialProvider)
-                .build();
+        return YdbClientModule.createConnectionFactory(config, credentialProvider);
     }
 }
