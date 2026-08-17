@@ -22,17 +22,12 @@ public class TestYdbConnectorSmokeTest extends BaseConnectorSmokeTest {
     @Override
     protected boolean hasBehavior(TestingConnectorBehavior connectorBehavior) {
         return switch (connectorBehavior) {
-            case SUPPORTS_MERGE,
-                 SUPPORTS_UPDATE,
-                 SUPPORTS_DELETE,
-                 SUPPORTS_CREATE_VIEW,
+            case SUPPORTS_CREATE_VIEW,
                  SUPPORTS_CREATE_SCHEMA,
                  SUPPORTS_RENAME_SCHEMA,
                  SUPPORTS_SET_COLUMN_TYPE,
-                 SUPPORTS_DROP_COLUMN,
                  SUPPORTS_ROW_TYPE,
                  SUPPORTS_RENAME_COLUMN,
-                 SUPPORTS_ROW_LEVEL_UPDATE,
                  SUPPORTS_TRUNCATE,
                  SUPPORTS_COMMENT_ON_COLUMN,
                  SUPPORTS_COMMENT_ON_TABLE,
@@ -49,23 +44,10 @@ public class TestYdbConnectorSmokeTest extends BaseConnectorSmokeTest {
                  SUPPORTS_DEFAULT_COLUMN_VALUE,
                  SUPPORTS_SET_DEFAULT_COLUMN_VALUE,
                  SUPPORTS_DROP_DEFAULT_COLUMN_VALUE,
-                 SUPPORTS_ADD_COLUMN_NOT_NULL_CONSTRAINT,
-                 SUPPORTS_DROP_NOT_NULL_CONSTRAINT -> false;
+                 SUPPORTS_ADD_COLUMN_NOT_NULL_CONSTRAINT -> false;
             case SUPPORTS_TOPN_PUSHDOWN_WITH_VARCHAR -> true;
             default -> super.hasBehavior(connectorBehavior);
         };
-    }
-
-    @Test
-    @Override
-    public void verifySupportsRowLevelUpdateDeclaration() {
-        // Planner fails with IllegalArgumentException before connector NOT_SUPPORTED path
-    }
-
-    @Test
-    @Override
-    public void testRowLevelUpdate() {
-        // Planner fails with IllegalArgumentException before connector NOT_SUPPORTED path
     }
 
     @Test

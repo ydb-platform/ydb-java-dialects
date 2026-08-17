@@ -17,6 +17,8 @@ import io.trino.plugin.jdbc.credential.CredentialProvider;
 import io.trino.plugin.jdbc.logging.RemoteQueryModifier;
 import tech.ydb.jdbc.YdbDriver;
 
+import java.util.Properties;
+
 import static com.google.inject.multibindings.OptionalBinder.newOptionalBinder;
 
 public class YdbClientModule implements Module {
@@ -28,6 +30,7 @@ public class YdbClientModule implements Module {
                 .to(YdbMetadataFactory.class)
                 .in(Scopes.SINGLETON);
 
+        binder.bind(YdbPageSinkProvider.class).in(Scopes.SINGLETON);
         binder.bind(YdbConnector.class).in(Scopes.SINGLETON);
     }
 
@@ -49,10 +52,14 @@ public class YdbClientModule implements Module {
     public static ConnectionFactory createConnectionFactory(
             BaseJdbcConfig config,
             CredentialProvider credentialProvider) {
+        Properties connectionProperties = new Properties();
+        // Avoid the YDB JDBC 2.3.18 shared-context close/register race under concurrent connections.
+        connectionProperties.setProperty("cacheConnectionsInDriver", "false");
         return DriverConnectionFactory.builder(
                         new YdbDriver(),
                         config.getConnectionUrl(),
                         credentialProvider)
+                .setConnectionProperties(connectionProperties)
                 .build();
     }
 }

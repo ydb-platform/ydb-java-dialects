@@ -9,6 +9,9 @@ import org.junit.jupiter.api.extension.RegisterExtension;
 import tech.ydb.test.junit5.YdbHelperExtension;
 
 import java.util.Optional;
+import java.util.OptionalInt;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 public class TestYdbConnectorTest extends BaseConnectorTest {
 
@@ -25,17 +28,12 @@ public class TestYdbConnectorTest extends BaseConnectorTest {
     @Override
     protected boolean hasBehavior(TestingConnectorBehavior connectorBehavior) {
         return switch (connectorBehavior) {
-            case SUPPORTS_MERGE,
-                 SUPPORTS_UPDATE,
-                 SUPPORTS_DELETE,
-                 SUPPORTS_CREATE_VIEW,
+            case SUPPORTS_CREATE_VIEW,
                  SUPPORTS_CREATE_SCHEMA,
                  SUPPORTS_RENAME_SCHEMA,
                  SUPPORTS_SET_COLUMN_TYPE,
-                 SUPPORTS_DROP_COLUMN,
                  SUPPORTS_ROW_TYPE,
                  SUPPORTS_RENAME_COLUMN,
-                 SUPPORTS_ROW_LEVEL_UPDATE,
                  SUPPORTS_TRUNCATE,
                  SUPPORTS_COMMENT_ON_COLUMN,
                  SUPPORTS_COMMENT_ON_TABLE,
@@ -52,35 +50,10 @@ public class TestYdbConnectorTest extends BaseConnectorTest {
                  SUPPORTS_DEFAULT_COLUMN_VALUE,
                  SUPPORTS_SET_DEFAULT_COLUMN_VALUE,
                  SUPPORTS_DROP_DEFAULT_COLUMN_VALUE,
-                 SUPPORTS_ADD_COLUMN_NOT_NULL_CONSTRAINT,
-                 SUPPORTS_DROP_NOT_NULL_CONSTRAINT -> false;
+                 SUPPORTS_ADD_COLUMN_NOT_NULL_CONSTRAINT -> false;
             case SUPPORTS_TOPN_PUSHDOWN_WITH_VARCHAR -> true;
             default -> super.hasBehavior(connectorBehavior);
         };
-    }
-
-    @Test
-    @Override
-    public void testCreateTableWithLongTableName() {
-        // YDB не поддерживает длинные названия таблиц
-    }
-
-    @Test
-    @Override
-    public void testRenameTableToLongTableName() {
-        // YDB не поддерживает длинные названия таблиц
-    }
-
-    @Test
-    @Override
-    public void testAlterTableAddLongColumnName() {
-        // YDB не поддерживает длинные названия колонок
-    }
-
-    @Test
-    @Override
-    public void testCreateTableWithLongColumnName() {
-        // YDB не поддерживает длинные названия колонок
     }
 
     @Test
@@ -111,12 +84,6 @@ public class TestYdbConnectorTest extends BaseConnectorTest {
     @Override
     public void testVarcharCastToDateInPredicate() {
         // YDB не поддерживает такой pushdown/cast
-    }
-
-    @Test
-    @Override
-    public void verifySupportsRowLevelUpdateDeclaration() {
-        // Planner fails with IllegalArgumentException before connector NOT_SUPPORTED path
     }
 
     @Test
@@ -169,4 +136,25 @@ public class TestYdbConnectorTest extends BaseConnectorTest {
         String schema = this.getSession().getSchema().orElseThrow();
         Assertions.assertThat(this.computeScalar("SHOW CREATE TABLE orders")).isEqualTo(String.format("CREATE TABLE %s.%s.orders (\n   orderkey bigint,\n   custkey bigint,\n   orderstatus varchar,\n   totalprice double,\n   orderdate date,\n   orderpriority varchar,\n   clerk varchar,\n   shippriority integer,\n   comment varchar\n)", catalog, schema));
     }
+
+    @Override
+    protected OptionalInt maxTableNameLength() {
+        return OptionalInt.of(255);
+    }
+
+    @Override
+    protected OptionalInt maxColumnNameLength() {
+        return OptionalInt.of(255);
+    }
+
+    @Override
+    protected void verifyTableNameLengthFailurePermissible(Throwable e) {
+        assertThat(e.getMessage()).contains("too long");
+    }
+
+    @Override
+    protected void verifyColumnNameLengthFailurePermissible(Throwable e) {
+        assertThat(e.getMessage()).contains("too long");
+    }
+
 }
