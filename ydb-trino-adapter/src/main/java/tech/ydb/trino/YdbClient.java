@@ -72,11 +72,13 @@ import java.util.OptionalInt;
 import java.util.OptionalLong;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.TreeSet;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import static com.google.common.base.Verify.verify;
 import static io.trino.plugin.jdbc.DefaultJdbcMetadata.MERGE_ROW_ID;
 import static io.trino.plugin.jdbc.JdbcErrorCode.JDBC_ERROR;
 import static io.trino.plugin.jdbc.PredicatePushdownController.DISABLE_PUSHDOWN;
@@ -316,7 +318,8 @@ public class YdbClient extends BaseJdbcClient {
         Map<String, Set<String>> valuesByComparisonKey = paths.stream()
                 .collect(Collectors.groupingBy(
                         YdbTablePath::comparisonKey,
-                        Collectors.mapping(YdbTablePath::value, Collectors.toSet())));
+                        TreeMap::new,
+                        Collectors.mapping(YdbTablePath::value, Collectors.toCollection(TreeSet::new))));
         valuesByComparisonKey.values().stream()
                 .filter(values -> values.size() > 1)
                 .findFirst()
@@ -606,13 +609,59 @@ public class YdbClient extends BaseJdbcClient {
     }
 
     @Override
+    public JdbcOutputTableHandle beginInsertTable(
+            ConnectorSession session,
+            JdbcTableHandle tableHandle,
+            List<JdbcColumnHandle> columns)
+    {
+        verify(tableHandle.getAuthorization().isEmpty(), "Unexpected authorization is required for table: %s", tableHandle);
+        RemoteTableName remoteTableName = tableHandle.asPlainTable().getRemoteTableName();
+        try (Connection connection = connectionFactory.openConnection(session)) {
+            verify(connection.getAutoCommit());
+            String catalogName = remoteTableName.getCatalogName().isPresent()
+                    ? remoteTableName.getCatalogName().orElseThrow()
+                    : connection.getCatalog();
+            return beginInsertTable(
+                    session,
+                    connection,
+                    getRemoteIdentifiers(connection),
+                    catalogName,
+                    remoteTableName.getSchemaName().orElse(null),
+                    remoteTableName.getTableName(),
+                    columns);
+        }
+        catch (SQLException e) {
+            throw new TrinoException(JDBC_ERROR, e);
+        }
+    }
+
+    @Override
     public void renameTable(ConnectorSession session, JdbcTableHandle handle, SchemaTableName newTableName) {
-        YdbTablePath.fromUserInput(newTableName.getTableName());
+        YdbTablePath destination = YdbTablePath.fromUserInput(newTableName.getTableName());
         SchemaTableName currentName = handle.asPlainTable().getSchemaTableName();
         if (!currentName.getSchemaName().equalsIgnoreCase(newTableName.getSchemaName())) {
             throw new TrinoException(NOT_SUPPORTED, "This connector does not support renaming tables across schemas");
         }
-        super.renameTable(session, handle, newTableName);
+
+        verify(handle.getAuthorization().isEmpty(), "Unexpected authorization is required for table: %s", handle);
+        RemoteTableName remoteTableName = handle.asPlainTable().getRemoteTableName();
+        try (Connection connection = connectionFactory.openConnection(session)) {
+            verify(connection.getAutoCommit());
+            String catalogName = remoteTableName.getCatalogName().isPresent()
+                    ? remoteTableName.getCatalogName().orElseThrow()
+                    : connection.getCatalog();
+            renameTable(
+                    session,
+                    connection,
+                    catalogName,
+                    remoteTableName.getSchemaName().orElse(null),
+                    remoteTableName.getTableName(),
+                    null,
+                    destination.value());
+        }
+        catch (SQLException e) {
+            throw new TrinoException(JDBC_ERROR, e);
+        }
     }
 
     @Override
