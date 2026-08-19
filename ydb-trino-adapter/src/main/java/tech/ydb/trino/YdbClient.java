@@ -626,7 +626,7 @@ public class YdbClient extends BaseJdbcClient {
                     connection,
                     getRemoteIdentifiers(connection),
                     catalogName,
-                    remoteTableName.getSchemaName().orElse(null),
+                    DEFAULT_SCHEMA,
                     remoteTableName.getTableName(),
                     columns);
         }

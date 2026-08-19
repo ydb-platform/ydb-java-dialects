@@ -6,10 +6,17 @@ import io.trino.testing.*;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
+import tech.ydb.scheme.SchemeClient;
 import tech.ydb.test.junit5.YdbHelperExtension;
 
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.List;
 import java.util.Optional;
 import java.util.OptionalInt;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -33,6 +40,124 @@ public class TestYdbConnectorTest extends BaseConnectorTest {
         assertThat(computeActual("SHOW TABLES FROM ydb.default").getOnlyColumnAsSet())
                 .contains("orders");
         assertQueryFails("SELECT * FROM ydb.missing.orders", ".*Schema 'missing' does not exist");
+    }
+
+    @Test
+    public void testNestedTablePath() {
+        String namespace = "namespace_" + uniqueSuffix();
+        String directory = namespace + "/eu";
+        String table = directory + "/orders";
+
+        createDirectory(directory);
+        try {
+            assertQuerySucceeds("CREATE TABLE \"" + table + "\" (id bigint NOT NULL)");
+            assertThat(computeActual("SHOW TABLES").getOnlyColumnAsSet()).contains(table);
+            assertQueryReturnsEmptyResult("SELECT id FROM \"" + table + "\"");
+            assertThat(computeScalar("SHOW CREATE TABLE \"" + table + "\"").toString()).contains(table);
+        }
+        finally {
+            assertQuerySucceeds("DROP TABLE IF EXISTS \"" + table + "\"");
+            removeDirectory(directory);
+            removeDirectory(namespace);
+        }
+    }
+
+    @Test
+    public void testInvalidTablePaths() {
+        for (String table : List.of("/orders", "a//orders", "a/../orders", ".sys/orders")) {
+            assertQueryFails("SELECT * FROM ydb.default.\"" + table + "\"", ".*Invalid YDB table path.*");
+        }
+    }
+
+    @Test
+    public void testCaseOnlyTablePathAmbiguity() throws SQLException {
+        String suffix = uniqueSuffix();
+        String firstDirectory = "Case_" + suffix;
+        String secondDirectory = "case_" + suffix;
+        String firstTable = firstDirectory + "/Orders";
+        String secondTable = secondDirectory + "/orders";
+        boolean firstTableCreated = false;
+        boolean secondTableCreated = false;
+
+        createDirectory(firstDirectory);
+        createDirectory(secondDirectory);
+        try {
+            createRawTable(firstTable);
+            firstTableCreated = true;
+            createRawTable(secondTable);
+            secondTableCreated = true;
+
+            assertQueryFails(
+                    "SELECT * FROM \"" + secondTable + "\"",
+                    ".*(?s)Ambiguous.*" + firstTable + ".*" + secondTable + ".*");
+        }
+        finally {
+            if (secondTableCreated) {
+                dropRawTable(secondTable);
+            }
+            if (firstTableCreated) {
+                dropRawTable(firstTable);
+            }
+            removeDirectory(secondDirectory);
+            removeDirectory(firstDirectory);
+        }
+    }
+
+    @Test
+    public void testUniqueCaseTableWriteLifecycle() throws SQLException {
+        String suffix = uniqueSuffix();
+        String remoteTable = "MixedCase_" + suffix;
+        String logicalTable = remoteTable.toLowerCase(java.util.Locale.ROOT);
+        String renamedTable = "renamed_" + suffix;
+        boolean tableCreated = false;
+        boolean tableRenamed = false;
+
+        try {
+            createRawTable(remoteTable);
+            tableCreated = true;
+
+            assertUpdate("INSERT INTO \"" + logicalTable + "\" VALUES (1)", 1);
+            assertQuerySucceeds("ALTER TABLE \"" + logicalTable + "\" RENAME TO \"" + renamedTable + "\"");
+            tableRenamed = true;
+
+            assertQuery("SELECT id FROM \"" + renamedTable + "\"", "VALUES CAST(1 AS BIGINT)");
+            assertThat(computeActual("SHOW TABLES").getOnlyColumnAsSet()).contains(renamedTable);
+        }
+        finally {
+            if (tableCreated) {
+                dropRawTable(tableRenamed ? renamedTable : remoteTable);
+            }
+        }
+    }
+
+    private static String uniqueSuffix() {
+        return UUID.randomUUID().toString().replace("-", "");
+    }
+
+    private static void createDirectory(String relativePath) {
+        try (SchemeClient client = SchemeClient.newClient(ydb.createTransport()).build()) {
+            client.makeDirectories(ydb.database() + "/" + relativePath).join().expectSuccess();
+        }
+    }
+
+    private static void removeDirectory(String relativePath) {
+        try (SchemeClient client = SchemeClient.newClient(ydb.createTransport()).build()) {
+            client.removeDirectory(ydb.database() + "/" + relativePath).join().expectSuccess();
+        }
+    }
+
+    private static void createRawTable(String remoteTable) throws SQLException {
+        try (Connection connection = DriverManager.getConnection(YdbQueryRunner.buildJdbcUrl(ydb));
+                Statement statement = connection.createStatement()) {
+            statement.execute("CREATE TABLE `" + remoteTable + "` (id Int64 NOT NULL, PRIMARY KEY (id))");
+        }
+    }
+
+    private static void dropRawTable(String remoteTable) throws SQLException {
+        try (Connection connection = DriverManager.getConnection(YdbQueryRunner.buildJdbcUrl(ydb));
+                Statement statement = connection.createStatement()) {
+            statement.execute("DROP TABLE `" + remoteTable + "`");
+        }
     }
 
     @Override
