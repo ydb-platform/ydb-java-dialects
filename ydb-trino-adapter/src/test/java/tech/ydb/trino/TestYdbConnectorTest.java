@@ -32,7 +32,7 @@ public class TestYdbConnectorTest extends BaseConnectorTest {
                 .doesNotContain("ydb");
         assertThat(computeActual("SHOW TABLES FROM ydb.default").getOnlyColumnAsSet())
                 .contains("orders");
-        assertQueryFails("SELECT * FROM ydb.missing.orders", "Schema missing not found");
+        assertQueryFails("SELECT * FROM ydb.missing.orders", ".*Schema 'missing' does not exist");
     }
 
     @Override
