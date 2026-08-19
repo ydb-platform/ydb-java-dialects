@@ -36,16 +36,26 @@ record YdbTablePath(String value)
 
     private static Optional<YdbTablePath> parse(String value, boolean userInput)
     {
+        if (value == null) {
+            throw invalidPath(value, validatePath(value), userInput);
+        }
+
+        String[] components = value.split("/", -1);
+        if (!userInput) {
+            for (String component : components) {
+                if (component.startsWith(".")) {
+                    return Optional.empty();
+                }
+            }
+        }
+
         String pathError = validatePath(value);
         if (pathError != null) {
             throw invalidPath(value, pathError, userInput);
         }
 
-        for (String component : value.split("/", -1)) {
+        for (String component : components) {
             if (component.startsWith(".")) {
-                if (!userInput) {
-                    return Optional.empty();
-                }
                 throw invalidPath(value, "components must not start with '.'", true);
             }
 

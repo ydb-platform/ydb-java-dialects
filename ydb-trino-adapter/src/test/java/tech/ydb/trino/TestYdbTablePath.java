@@ -50,6 +50,7 @@ class TestYdbTablePath
     void testRemoteMetadataPaths()
     {
         assertThat(YdbTablePath.fromRemoteMetadata(".sys/table")).isEmpty();
+        assertThat(YdbTablePath.fromRemoteMetadata(".sys/" + "a".repeat(251))).isEmpty();
 
         assertThatThrownBy(() -> YdbTablePath.fromRemoteMetadata("a/$/b"))
                 .isInstanceOf(TrinoException.class)
