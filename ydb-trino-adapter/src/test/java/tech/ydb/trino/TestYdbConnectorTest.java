@@ -25,6 +25,16 @@ public class TestYdbConnectorTest extends BaseConnectorTest {
                 .build();
     }
 
+    @Test
+    public void testDefaultSchemaContract() {
+        assertThat(computeActual("SHOW SCHEMAS FROM ydb").getOnlyColumnAsSet())
+                .contains("default")
+                .doesNotContain("ydb");
+        assertThat(computeActual("SHOW TABLES FROM ydb.default").getOnlyColumnAsSet())
+                .contains("orders");
+        assertQueryFails("SELECT * FROM ydb.missing.orders", "Schema missing not found");
+    }
+
     @Override
     protected boolean hasBehavior(TestingConnectorBehavior connectorBehavior) {
         return switch (connectorBehavior) {

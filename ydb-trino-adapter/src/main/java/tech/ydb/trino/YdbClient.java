@@ -55,7 +55,6 @@ import io.trino.spi.type.Type;
 import io.trino.spi.type.VarcharType;
 
 import jakarta.annotation.Nullable;
-import org.jspecify.annotations.NonNull;
 
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
@@ -106,6 +105,7 @@ import static io.trino.plugin.jdbc.StandardColumnMappings.tinyintWriteFunction;
 import static io.trino.plugin.jdbc.StandardColumnMappings.varcharColumnMapping;
 import static io.trino.plugin.jdbc.StandardColumnMappings.varcharReadFunction;
 import static io.trino.plugin.jdbc.StandardColumnMappings.varcharWriteFunction;
+import static io.trino.spi.StandardErrorCode.AMBIGUOUS_NAME;
 import static io.trino.spi.StandardErrorCode.NOT_SUPPORTED;
 import static io.trino.spi.type.BigintType.BIGINT;
 import static io.trino.spi.type.BooleanType.BOOLEAN;
@@ -124,7 +124,7 @@ import static java.lang.String.format;
 import static java.util.stream.Collectors.joining;
 
 public class YdbClient extends BaseJdbcClient {
-    private static final String YDB_SCHEMA = "ydb";
+    static final String DEFAULT_SCHEMA = "default";
     private static final int YDB_DEFAULT_DECIMAL_PRECISION = 22;
     private static final int YDB_DEFAULT_DECIMAL_SCALE = 9;
 
@@ -240,7 +240,7 @@ public class YdbClient extends BaseJdbcClient {
 
     @Override
     public Collection<String> listSchemas(Connection connection) {
-        return ImmutableSet.of(YDB_SCHEMA);
+        return ImmutableSet.of(DEFAULT_SCHEMA);
     }
 
     @Override
@@ -250,17 +250,19 @@ public class YdbClient extends BaseJdbcClient {
 
     @Override
     public List<SchemaTableName> getTableNames(ConnectorSession session, Optional<String> schema) {
+        if (schema.isPresent() && !DEFAULT_SCHEMA.equalsIgnoreCase(schema.get())) {
+            return ImmutableList.of();
+        }
+
         try (Connection connection = connectionFactory.openConnection(session)) {
-            try (ResultSet resultSet = getTables(connection, Optional.empty(), Optional.empty())) {
-                ImmutableList.Builder<@NonNull SchemaTableName> list = ImmutableList.builder();
-                while (resultSet.next()) {
-                    String tableName = resultSet.getString("TABLE_NAME");
-                    list.add(new SchemaTableName(YDB_SCHEMA, tableName));
-                }
-                return list.build();
-            }
+            List<YdbTablePath> paths = listRemoteTablePaths(connection);
+            throwIfAmbiguous(paths);
+            return paths.stream()
+                    .distinct()
+                    .map(path -> new SchemaTableName(DEFAULT_SCHEMA, path.value()))
+                    .collect(Collectors.toList());
         } catch (SQLException e) {
-            throw new TrinoException(JDBC_ERROR, e);
+            throw new TrinoException(JDBC_ERROR, "Failed to list YDB tables", e);
         }
     }
 
@@ -269,21 +271,58 @@ public class YdbClient extends BaseJdbcClient {
             ConnectorSession session,
             SchemaTableName schemaTableName
     ) {
-        try (Connection connection = connectionFactory.openConnection(session)) {
-            RemoteTableName remoteTableName = toRemoteTableName(schemaTableName);
-            try (ResultSet columns = getColumns(remoteTableName, connection.getMetaData())) {
-                if (!columns.next()) {
-                    return Optional.empty();
-                }
-            }
-            return Optional.of(new JdbcTableHandle(
-                    new SchemaTableName(YDB_SCHEMA, schemaTableName.getTableName()),
-                    remoteTableName,
-                    Optional.empty())
-            );
-        } catch (SQLException e) {
+        if (!DEFAULT_SCHEMA.equalsIgnoreCase(schemaTableName.getSchemaName())) {
             return Optional.empty();
         }
+
+        YdbTablePath requestedPath = YdbTablePath.fromUserInput(schemaTableName.getTableName());
+        try (Connection connection = connectionFactory.openConnection(session)) {
+            return resolveRemoteTablePath(connection, requestedPath)
+                    .map(remotePath -> new JdbcTableHandle(
+                            new SchemaTableName(DEFAULT_SCHEMA, schemaTableName.getTableName()),
+                            new RemoteTableName(Optional.empty(), Optional.empty(), remotePath.value()),
+                            Optional.empty()));
+        } catch (SQLException e) {
+            throw new TrinoException(JDBC_ERROR, "Failed to resolve YDB table " + schemaTableName, e);
+        }
+    }
+
+    private List<YdbTablePath> listRemoteTablePaths(Connection connection)
+            throws SQLException
+    {
+        ImmutableList.Builder<YdbTablePath> paths = ImmutableList.builder();
+        try (ResultSet resultSet = getTables(connection, Optional.empty(), Optional.empty())) {
+            while (resultSet.next()) {
+                YdbTablePath.fromRemoteMetadata(resultSet.getString("TABLE_NAME"))
+                        .ifPresent(paths::add);
+            }
+        }
+        return paths.build();
+    }
+
+    private Optional<YdbTablePath> resolveRemoteTablePath(Connection connection, YdbTablePath requestedPath)
+            throws SQLException
+    {
+        List<YdbTablePath> matches = listRemoteTablePaths(connection).stream()
+                .filter(path -> path.comparisonKey().equals(requestedPath.comparisonKey()))
+                .distinct()
+                .toList();
+        throwIfAmbiguous(matches);
+        return matches.stream().findFirst();
+    }
+
+    private static void throwIfAmbiguous(List<YdbTablePath> paths)
+    {
+        Map<String, Set<String>> valuesByComparisonKey = paths.stream()
+                .collect(Collectors.groupingBy(
+                        YdbTablePath::comparisonKey,
+                        Collectors.mapping(YdbTablePath::value, Collectors.toSet())));
+        valuesByComparisonKey.values().stream()
+                .filter(values -> values.size() > 1)
+                .findFirst()
+                .ifPresent(values -> {
+                    throw new TrinoException(AMBIGUOUS_NAME, "Ambiguous YDB table path: " + values);
+                });
     }
 
     @Override
@@ -494,13 +533,14 @@ public class YdbClient extends BaseJdbcClient {
     }
 
     private RemoteTableName toRemoteTableName(SchemaTableName schemaTableName) {
-        return new RemoteTableName(Optional.empty(), Optional.empty(), schemaTableName.getTableName());
+        String tableName = YdbTablePath.fromUserInput(schemaTableName.getTableName()).value();
+        return new RemoteTableName(Optional.empty(), Optional.empty(), tableName);
     }
 
     @Override
     protected String quoted(@Nullable String catalog, @Nullable String schema, String table) {
         // YDB doesn't use catalog & schema in table names, only the table path
-        return quoted(table);
+        return quoted(YdbTablePath.fromUserInput(table).value());
     }
 
     @Override
@@ -567,6 +607,7 @@ public class YdbClient extends BaseJdbcClient {
 
     @Override
     public void renameTable(ConnectorSession session, JdbcTableHandle handle, SchemaTableName newTableName) {
+        YdbTablePath.fromUserInput(newTableName.getTableName());
         SchemaTableName currentName = handle.asPlainTable().getSchemaTableName();
         if (!currentName.getSchemaName().equalsIgnoreCase(newTableName.getSchemaName())) {
             throw new TrinoException(NOT_SUPPORTED, "This connector does not support renaming tables across schemas");
@@ -648,7 +689,7 @@ public class YdbClient extends BaseJdbcClient {
         String tableName = remoteTableName.getTableName();
         String metadataSchemaName = remoteTableName.getSchemaName().orElse(null);
         SchemaTableName schemaTableName = new SchemaTableName(
-                remoteTableName.getSchemaName().orElse(YDB_SCHEMA),
+                remoteTableName.getSchemaName().orElse(DEFAULT_SCHEMA),
                 tableName);
         List<JdbcColumnHandle> columns = getColumnsForPrimaryKeyLookup(session, schemaTableName, remoteTableName);
         Map<String, JdbcColumnHandle> columnsByName = columns.stream()
