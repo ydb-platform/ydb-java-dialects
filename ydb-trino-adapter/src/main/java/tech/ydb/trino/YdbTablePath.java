@@ -62,6 +62,9 @@ record YdbTablePath(String value)
         if (value == null) {
             return "path must not be null";
         }
+        if (value.length() > MAX_COMPONENT_LENGTH) {
+            return "path must be at most " + MAX_COMPONENT_LENGTH + " characters";
+        }
         return null;
     }
 

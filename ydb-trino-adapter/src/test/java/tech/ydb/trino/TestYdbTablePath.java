@@ -39,6 +39,11 @@ class TestYdbTablePath
                 .isInstanceOf(TrinoException.class)
                 .extracting(exception -> ((TrinoException) exception).getErrorCode())
                 .isEqualTo(INVALID_ARGUMENTS.toErrorCode());
+
+        assertThatThrownBy(() -> YdbTablePath.fromUserInput("a".repeat(127) + "/" + "b".repeat(128)))
+                .isInstanceOf(TrinoException.class)
+                .extracting(exception -> ((TrinoException) exception).getErrorCode())
+                .isEqualTo(INVALID_ARGUMENTS.toErrorCode());
     }
 
     @Test
