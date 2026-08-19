@@ -43,22 +43,19 @@ public class TestYdbConnectorTest extends BaseConnectorTest {
     }
 
     @Test
-    public void testNestedTablePath() {
+    public void testNestedTablePath() throws Exception {
         String namespace = "namespace_" + uniqueSuffix();
         String directory = namespace + "/eu";
         String table = directory + "/orders";
 
         createDirectory(directory);
-        try {
+        try (AutoCloseable ignoredNamespace = () -> removeDirectory(namespace);
+                AutoCloseable ignoredDirectory = () -> removeDirectory(directory);
+                AutoCloseable ignoredTable = () -> assertQuerySucceeds("DROP TABLE IF EXISTS \"" + table + "\"")) {
             assertQuerySucceeds("CREATE TABLE \"" + table + "\" (id bigint NOT NULL)");
             assertThat(computeActual("SHOW TABLES").getOnlyColumnAsSet()).contains(table);
             assertQueryReturnsEmptyResult("SELECT id FROM \"" + table + "\"");
             assertThat(computeScalar("SHOW CREATE TABLE \"" + table + "\"").toString()).contains(table);
-        }
-        finally {
-            assertQuerySucceeds("DROP TABLE IF EXISTS \"" + table + "\"");
-            removeDirectory(directory);
-            removeDirectory(namespace);
         }
     }
 
@@ -70,63 +67,46 @@ public class TestYdbConnectorTest extends BaseConnectorTest {
     }
 
     @Test
-    public void testCaseOnlyTablePathAmbiguity() throws SQLException {
+    public void testCaseOnlyTablePathAmbiguity() throws Exception {
         String suffix = uniqueSuffix();
         String firstDirectory = "Case_" + suffix;
         String secondDirectory = "case_" + suffix;
         String firstTable = firstDirectory + "/Orders";
         String secondTable = secondDirectory + "/orders";
-        boolean firstTableCreated = false;
-        boolean secondTableCreated = false;
 
         createDirectory(firstDirectory);
-        createDirectory(secondDirectory);
-        try {
-            createRawTable(firstTable);
-            firstTableCreated = true;
-            createRawTable(secondTable);
-            secondTableCreated = true;
-
-            assertQueryFails(
-                    "SELECT * FROM \"" + secondTable + "\"",
-                    ".*(?s)Ambiguous.*" + firstTable + ".*" + secondTable + ".*");
-        }
-        finally {
-            if (secondTableCreated) {
-                dropRawTable(secondTable);
+        try (AutoCloseable ignoredFirstDirectory = () -> removeDirectory(firstDirectory)) {
+            createDirectory(secondDirectory);
+            try (AutoCloseable ignoredSecondDirectory = () -> removeDirectory(secondDirectory)) {
+                createRawTable(firstTable);
+                try (AutoCloseable ignoredFirstTable = () -> dropRawTable(firstTable)) {
+                    createRawTable(secondTable);
+                    try (AutoCloseable ignoredSecondTable = () -> dropRawTable(secondTable)) {
+                        assertQueryFails(
+                                "SELECT * FROM \"" + secondTable + "\"",
+                                ".*(?s)Ambiguous.*" + firstTable + ".*" + secondTable + ".*");
+                    }
+                }
             }
-            if (firstTableCreated) {
-                dropRawTable(firstTable);
-            }
-            removeDirectory(secondDirectory);
-            removeDirectory(firstDirectory);
         }
     }
 
     @Test
-    public void testUniqueCaseTableWriteLifecycle() throws SQLException {
+    public void testUniqueCaseTableWriteLifecycle() throws Exception {
         String suffix = uniqueSuffix();
         String remoteTable = "MixedCase_" + suffix;
         String logicalTable = remoteTable.toLowerCase(java.util.Locale.ROOT);
         String renamedTable = "renamed_" + suffix;
-        boolean tableCreated = false;
-        boolean tableRenamed = false;
 
-        try {
+        try (AutoCloseable ignoredOriginalTable = () -> assertQuerySucceeds("DROP TABLE IF EXISTS \"" + logicalTable + "\"");
+                AutoCloseable ignoredRenamedTable = () -> assertQuerySucceeds("DROP TABLE IF EXISTS \"" + renamedTable + "\"")) {
             createRawTable(remoteTable);
-            tableCreated = true;
 
             assertUpdate("INSERT INTO \"" + logicalTable + "\" VALUES (1)", 1);
             assertQuerySucceeds("ALTER TABLE \"" + logicalTable + "\" RENAME TO \"" + renamedTable + "\"");
-            tableRenamed = true;
 
             assertQuery("SELECT id FROM \"" + renamedTable + "\"", "VALUES CAST(1 AS BIGINT)");
             assertThat(computeActual("SHOW TABLES").getOnlyColumnAsSet()).contains(renamedTable);
-        }
-        finally {
-            if (tableCreated) {
-                dropRawTable(tableRenamed ? renamedTable : remoteTable);
-            }
         }
     }
 
