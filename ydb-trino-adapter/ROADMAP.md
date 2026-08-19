@@ -26,6 +26,86 @@ within the CI budget. An isolated local Colima run previously exceeded 11
 minutes, so MERGE scalability remains a production concern rather than a CI
 failure.
 
+## Approved namespace and catalog contract
+
+The public namespace model was agreed on 2026-08-19:
+
+- one Trino catalog is one configured YDB connector instance bound
+  to exactly one YDB database through its JDBC `connection-url` and credentials;
+- multiple YDB databases use multiple Trino catalog configurations; the
+  connector does not discover databases or publish catalogs dynamically;
+- the connector exposes exactly one virtual, non-droppable Trino schema named
+  `default`;
+- a Trino table name is the complete YDB object path relative to the configured
+  database root. Root table `orders` is `catalog.default.orders`; nested table
+  `sales/eu/orders` is `catalog.default."sales/eu/orders"`;
+- the configured database path is a connection and security boundary and never
+  becomes part of the Trino schema or table name.
+
+This keeps the native YDB path visible in SQL and avoids flattening directories
+into a list of artificial Trino schemas. Trino schemas are not hierarchical, so
+mapping `sales/eu` to a schema would still appear as one flat, quoted schema in
+SQL clients rather than as a directory tree.
+
+### Metadata and DDL behavior
+
+| Trino operation | Contract |
+| --- | --- |
+| `listSchemaNames()` | Return only `default` |
+| `listTables(Optional.empty())` | Return every accessible YDB table recursively, all in `default` |
+| `listTables(Optional.of("default"))` | Same table set as the unfiltered call |
+| `listTables()` for another schema | Return an empty list |
+| `getTableHandle(default, name)` | Resolve the validated full relative YDB path |
+| `getTableHandle()` for another schema | Return empty without querying an unrelated path |
+| `CREATE`, `DROP`, `RENAME SCHEMA` | `NOT_SUPPORTED`; `default` is virtual and cannot be changed |
+| `CREATE TABLE default."dir/table"` | Require the parent YDB directory to exist |
+| table rename | May move a table by changing its full relative path; target parent must exist |
+
+The connector must parse paths into components before producing YQL. It rejects
+absolute paths, empty components, leading/trailing or repeated `/`, `.` and
+`..`, dot-prefixed/system components, invalid YDB component names, and
+components longer than the YDB limit. The validated full path is quoted as one
+YQL identifier through the connector quoting helper. It is not assembled by
+call-site string concatenation.
+
+Trino 479 normalizes SQL identifiers to lowercase, including delimited
+identifiers. YDB paths are case-sensitive. A lowercase Trino name may resolve to
+one unique case-insensitive remote path; case-only collisions must fail with an
+explicit ambiguous-name error rather than selecting an arbitrary object.
+
+### Catalog provisioning and federation
+
+Static catalog property files are the production default. For example,
+`ydb_prod.properties` and `ydb_analytics.properties` contain separate YDB JDBC
+URLs and expose `ydb_prod.default` and `ydb_analytics.default`. Trino 479 dynamic
+catalog management can optionally create the same connector instances with
+`CREATE CATALOG`, but it is an experimental Trino deployment feature and not
+YDB database discovery by the connector. Sensitive catalog properties must not
+be placed directly in SQL because the complete statement is logged and visible
+in the Trino Web UI.
+
+Federated reads qualify each source by catalog. Cross-catalog joins run in
+Trino; join pushdown requires both tables to belong to the same catalog.
+Reading from multiple catalogs and writing to one is allowed when the target
+operation is supported, but there is no global snapshot or distributed commit
+across sources. Trino 479 rejects writes to more than one catalog in one
+transaction with `MULTI_CATALOG_WRITE_CONFLICT`.
+
+### First implementation slice
+
+1. Introduce one path parser/validator used by metadata and table operations.
+2. Change the synthetic schema from `ydb` to `default`.
+3. Make `listTables` and `getTableHandle` honor the schema filter and preserve
+   the complete relative YDB table path.
+4. Map only genuine remote not-found results to an absent table handle; preserve
+   other JDBC/YDB failures.
+5. Add focused tests for root and nested tables, an unknown schema, path
+   traversal, dot-prefixed paths, case-only ambiguity, and full-path quoting.
+
+This slice does not enable schema DDL capabilities or change capability flags.
+Catalog provisioning and cross-catalog federation tests follow as a separate
+integration slice.
+
 ## P0 — harden MERGE scalability and atomicity
 
 1. Replace row-by-row prepared-statement execution in `YdbMergeSink` with a
@@ -85,7 +165,8 @@ need this treatment. YDB `Date` starts at the Unix epoch; see
 
 ## Later capability work
 
-- schema-as-YDB-path design for CREATE/DROP/RENAME SCHEMA;
+- catalog provisioning and YDB-to-YDB federation coverage for the approved
+  single-`default`-schema namespace model;
 - List/Dict/Struct mappings for Trino ARRAY/MAP/ROW;
 - views, comments, rename column, and type changes after checking current YQL
   semantics;
