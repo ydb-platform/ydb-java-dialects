@@ -26,9 +26,9 @@ override and completes within the CI budget. An isolated local Colima run
 previously exceeded 11 minutes, so MERGE scalability remains a production
 concern rather than a CI failure.
 
-Fresh local JDK 25 namespace validation (2026-08-20) reported 324 discovered
-tests: 0 failures, 0 errors, and 84 skipped, leaving 240 executed tests passed.
-It included 5 `TestYdbTablePath` tests, 283 connector tests (80 skipped), and
+Fresh local JDK 25 namespace validation (2026-08-20) reported 327 discovered
+tests: 0 failures, 0 errors, and 84 skipped, leaving 243 executed tests passed.
+It included 5 `TestYdbTablePath` tests, 286 connector tests (80 skipped), and
 36 smoke tests (4 skipped); no other test classes ran.
 
 ## Approved namespace and catalog contract
@@ -69,9 +69,10 @@ SQL clients rather than as a directory tree.
 The connector must parse paths into components before producing YQL. It rejects
 absolute paths, empty components, leading/trailing or repeated `/`, `.` and
 `..`, dot-prefixed/system components, invalid YDB component names, and
-components longer than the YDB limit. The validated full path is quoted as one
-YQL identifier through the connector quoting helper. It is not assembled by
-call-site string concatenation.
+components longer than the 255-character YDB component limit. It does not impose
+an artificial 255-character limit on the complete relative path. The validated
+full path is quoted as one YQL identifier through the connector quoting helper.
+It is not assembled by call-site string concatenation.
 
 Trino 479 normalizes SQL identifiers to lowercase, including delimited
 identifiers. YDB paths are case-sensitive. A lowercase Trino name may resolve to
@@ -91,12 +92,17 @@ in the Trino Web UI.
 
 Federated reads qualify each source by catalog. Cross-catalog joins run in
 Trino; join pushdown requires both tables to belong to the same catalog.
-Single-statement read-many/write-one is the intended form when the target
-operation is supported, but there is no global snapshot or distributed commit
-across sources. Explicit transactions containing a YDB write are currently
-rejected because the connector supports autocommit-only writes; this happens
-before a multi-catalog write conflict could be reached. Federation remains an
-unverified future integration slice.
+Trino 479 permits one autocommit statement to read from several catalogs and
+write to one target catalog when the target operation is supported. This
+read-many/write-one YDB topology remains unverified and provides neither a
+cross-catalog snapshot nor a distributed commit.
+
+Cross-catalog reads may run in an explicit transaction. YDB is a
+single-statement-write connector: when YDB is the first or only write target,
+Trino rejects the write before connector mutation with `Catalog only supports
+writes using autocommit: <catalog>`. A read-only transaction or an earlier write
+to another catalog can instead surface the corresponding read-only or
+multi-catalog-write error.
 
 ### Implemented namespace slice (verified 2026-08-20)
 
@@ -110,10 +116,18 @@ This slice implements the following items:
    other JDBC/YDB failures.
 5. Added focused tests for root and nested tables, an unknown schema, path
    traversal, dot-prefixed paths, case-only ambiguity, and full-path quoting.
+6. Made relation-comment metadata and opt-in bulk column metadata honor the
+   virtual `default` schema, recursive paths, and case-only collision checks.
+   Comment writes remain unsupported, and bulk column metadata remains opt-in.
 
 This slice does not enable schema DDL capabilities or change capability flags.
 Catalog provisioning and cross-catalog federation remain a separate, unverified
 integration slice.
+
+The real-YDB `testNestedTablePathLongerThanSingleComponentLimit` passed in the
+final full suite. It covers a complete relative path longer than 255 characters
+whose components are each at most 255 characters, including listing, selection,
+rename, and cleanup.
 
 ## P0 — harden MERGE scalability and atomicity
 

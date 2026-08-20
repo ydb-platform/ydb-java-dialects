@@ -68,6 +68,10 @@ USE ydb_prod.default;
 SELECT * FROM "sales/eu/orders";
 ```
 
+Each YDB path component is limited to 255 characters. The connector does not
+apply that limit to the complete relative path, so a deeper path remains valid
+when every component is valid.
+
 Catalogs may be joined, but the join is executed by Trino rather than pushed
 down to YDB:
 
@@ -77,11 +81,17 @@ FROM ydb_prod.default."sales/eu/orders" p
 JOIN ydb_analytics.default.customer_segment a ON p.customer_id = a.customer_id;
 ```
 
-The intended future federation form is a single statement that reads from
-several catalogs and writes to one; it would have no distributed snapshot or
-distributed commit. Explicit transactions containing a YDB write are currently
-rejected because this connector supports autocommit-only writes. This connector
-slice has not integration-tested two-catalog federation.
+Trino 479 permits one autocommit statement to read from several catalogs and
+write to one target catalog. This YDB federation topology has not yet been
+integration-tested and does not provide a cross-catalog snapshot or distributed
+commit.
+
+Cross-catalog reads may also run in an explicit transaction. YDB is a
+single-statement-write connector: when YDB is the first or only write target,
+Trino rejects the write before connector mutation with `Catalog only supports
+writes using autocommit: <catalog>`. A read-only transaction or an earlier write
+to another catalog can instead produce the corresponding read-only or
+multi-catalog-write error.
 
 Trino 479 can alternatively enable the experimental deployment feature
 `catalog.management=dynamic` and create the same catalog instances with
