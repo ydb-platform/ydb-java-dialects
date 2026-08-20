@@ -11,7 +11,6 @@ import tech.ydb.test.integration.YdbEnvironment;
 import tech.ydb.test.integration.YdbHelper;
 import tech.ydb.test.integration.docker.DockerHelperFactory;
 import tech.ydb.test.integration.docker.YdbDockerContainer;
-import tech.ydb.test.integration.utils.PortsGenerator;
 
 import static io.trino.testing.TestingNames.randomNameSuffix;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -26,6 +25,7 @@ public class TestYdbCatalogFederation
 {
     private static final String PRIMARY_CATALOG = "ydb";
     private static final String SECONDARY_CATALOG = "ydb_analytics";
+    private static final int YDB_START_ATTEMPTS = 3;
 
     private YdbHelper primaryYdb;
     private YdbHelper secondaryYdb;
@@ -56,6 +56,12 @@ public class TestYdbCatalogFederation
         {
             return false;
         }
+
+        @Override
+        public boolean useDockerIsolation()
+        {
+            return false;
+        }
     }
 
     private static YdbHelper startLocalYdb()
@@ -64,14 +70,31 @@ public class TestYdbCatalogFederation
         assumeFalse(environment.disableIntegrationTests(), "YDB integration tests are disabled");
         assumeTrue(DockerClientFactory.instance().isDockerAvailable(), "Docker-backed YDB is unavailable");
 
-        YdbDockerContainer container = new YdbDockerContainer(environment, new PortsGenerator());
-        try {
-            return new DockerHelperFactory(environment, container).createHelper();
+        for (int attempt = 1; attempt <= YDB_START_ATTEMPTS; attempt++) {
+            YdbDockerContainer container = new YdbDockerContainer(environment, new NonEphemeralPortsGenerator());
+            try {
+                return new DockerHelperFactory(environment, container).createHelper();
+            }
+            catch (Exception | Error failure) {
+                closeSuppressing(failure, container);
+                if (attempt == YDB_START_ATTEMPTS || !isHostPortCollision(failure)) {
+                    throw failure;
+                }
+            }
         }
-        catch (Exception | Error failure) {
-            closeSuppressing(failure, container);
-            throw failure;
+        throw new AssertionError("unreachable");
+    }
+
+    private static boolean isHostPortCollision(Throwable failure)
+    {
+        for (Throwable cause = failure; cause != null; cause = cause.getCause()) {
+            String message = cause.getMessage();
+            if (message != null &&
+                    (message.contains("address already in use") || message.contains("port is already allocated"))) {
+                return true;
+            }
         }
+        return false;
     }
 
     @Override

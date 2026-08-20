@@ -26,9 +26,11 @@ override and completes within the CI budget. An isolated local Colima run
 previously exceeded 11 minutes, so MERGE scalability remains a production
 concern rather than a CI failure.
 
-The primary JDK 25 CI-equivalent full run (2026-08-20, `3a7ff2d`) reported
-333 tests: 0 failures, 0 errors, and 84 skipped, leaving 249 executed tests
-passed. It included Federation 6/0/0/0, Connector 286/80, Smoke 36/4, and
+GitHub Actions run
+[`32377210642`](https://github.com/ydb-platform/ydb-java-dialects/actions/runs/32377210642)
+on 2026-08-20 at `619b33d` reported 336 tests: 0 failures, 0 errors, and
+84 skipped, leaving 252 executed tests passed. It included Federation 6/0/0/0,
+the non-ephemeral port allocator 3/0/0/0, Connector 286/80, Smoke 36/4, and
 TablePath 5/0.
 
 ## Approved namespace and catalog contract
@@ -135,11 +137,15 @@ rename, and cleanup.
 
 ### Verified catalog federation (2026-08-20)
 
-The primary JDK 25 CI-equivalent full run at `3a7ff2d` verified the federation
-slice with six tests: five new public scenarios and the inherited naming
-convention. The fixture uses two independent Docker YDB instances, both with
-database `/local`, separate endpoints, and Trino catalogs `ydb` and
-`ydb_analytics`.
+The JDK 25 GitHub Actions run at `619b33d` verified the federation slice with
+six tests: five new public scenarios and the inherited naming convention. The
+fixture uses two independent Docker YDB instances, both with database `/local`,
+separate endpoints, and Trino catalogs `ydb` and `ydb_analytics`. It allocates
+fixed container ports outside the standard Linux and macOS ephemeral ranges,
+checks wildcard availability, and retries the complete container start at most
+three times on a Docker host-port collision. The YDB test-helper gRPC proxy is
+not used because its unshaded generated proto stubs are binary-incompatible
+with the same proto class names embedded in `ydb-jdbc-driver-shaded`.
 
 - catalog discovery, `default`/`USE` analysis, and explicit `Session` handling
   for unqualified access;
