@@ -26,7 +26,7 @@ override and completes within the CI budget. An isolated local Colima run
 previously exceeded 11 minutes, so MERGE scalability remains a production
 concern rather than a CI failure.
 
-The primary JDK 25 CI-equivalent full run (2026-08-20, `f2e42d9`) reported
+The primary JDK 25 CI-equivalent full run (2026-08-20, `3a7ff2d`) reported
 333 tests: 0 failures, 0 errors, and 84 skipped, leaving 249 executed tests
 passed. It included Federation 6/0/0/0, Connector 286/80, Smoke 36/4, and
 TablePath 5/0.
@@ -135,7 +135,7 @@ rename, and cleanup.
 
 ### Verified catalog federation (2026-08-20)
 
-The primary JDK 25 CI-equivalent full run at `f2e42d9` verified the federation
+The primary JDK 25 CI-equivalent full run at `3a7ff2d` verified the federation
 slice with six tests: five new public scenarios and the inherited naming
 convention. The fixture uses two independent Docker YDB instances, both with
 database `/local`, separate endpoints, and Trino catalogs `ydb` and
