@@ -9,8 +9,10 @@ import java.util.Set;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.relational.core.conversion.DbActionExecutionException;
 
 import tech.ydb.data.YdbBaseTest;
 import tech.ydb.data.books.entity.Author;
@@ -161,5 +163,16 @@ public class RepositoriesIntegrationTest extends YdbBaseTest {
 
         reviews = reviewRepository.findAll(PageRequest.of(2, 2)).getContent();
         Assertions.assertEquals(List.of(review5, review6), reviews);
+    }
+
+    @Test
+    public void dublicateKeyExceptionTest() {
+        Review copy = new Review(1, 1, "Reader", "Text", 100, Instant.parse("2024-03-19T21:00:00Z"));
+        Exception ex = Assertions.assertThrows(DbActionExecutionException.class, () -> reviewRepository.save(copy));
+        Assertions.assertEquals(
+                "Failed to execute InsertRoot{entity=NewReview[1], idValueSource=PROVIDED}",
+                ex.getMessage()
+        );
+        Assertions.assertTrue(ex.getCause() instanceof DuplicateKeyException);
     }
 }
