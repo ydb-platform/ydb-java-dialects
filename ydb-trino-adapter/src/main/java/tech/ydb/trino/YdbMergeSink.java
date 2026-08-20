@@ -162,7 +162,8 @@ public class YdbMergeSink implements ConnectorMergeSink {
                 }
                 catch (InterruptedException ie) {
                     Thread.currentThread().interrupt();
-                    throw new TrinoException(JDBC_ERROR, ie);
+                    e.addSuppressed(ie);
+                    throw new TrinoException(JDBC_ERROR, "Interrupted while waiting to retry YDB MERGE", e);
                 }
             }
         }

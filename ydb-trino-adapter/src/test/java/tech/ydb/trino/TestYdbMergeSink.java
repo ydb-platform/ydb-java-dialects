@@ -85,6 +85,36 @@ class TestYdbMergeSink {
     }
 
     @Test
+    void testInterruptedRetryPreservesSqlFailureAndCleanup() {
+        Calls calls = new Calls();
+        SQLException batchFailure = new RetryableSQLException();
+        JdbcClient jdbcClient = jdbcClient(
+                calls,
+                List.of(connection(statement(calls, batchFailure), calls, null)));
+
+        Thread.currentThread().interrupt();
+        try {
+            assertThatThrownBy(mergeSink(jdbcClient)::finish)
+                    .isInstanceOfSatisfying(TrinoException.class, exception -> {
+                        assertThat(exception).hasMessageContaining("Interrupted while waiting to retry");
+                        assertThat(exception.getCause()).isSameAs(batchFailure);
+                        assertThat(batchFailure.getSuppressed()).hasSize(1);
+                        assertThat(batchFailure.getSuppressed()[0]).isInstanceOf(InterruptedException.class);
+                    });
+            assertThat(Thread.currentThread().isInterrupted()).isTrue();
+        }
+        finally {
+            Thread.interrupted();
+        }
+
+        assertThat(calls.connections).hasValue(1);
+        assertThat(calls.batchExecutions).hasValue(1);
+        assertThat(calls.commits).hasValue(0);
+        assertThat(calls.rollbacks).hasValue(1);
+        assertThat(calls.closes).hasValue(1);
+    }
+
+    @Test
     void testSplitsBatchWithoutIntermediateCommit() {
         Calls calls = new Calls();
         PreparedStatement statement = statement(calls, null);

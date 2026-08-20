@@ -262,10 +262,15 @@ does not replace the inherited real-YDB MERGE suite or the full module suite.
   override it. This trades connection reuse for correctness and may increase
   connection latency/load. Re-evaluate the default after upgrading to a driver
   with a verified cache-lifecycle fix.
-- Do not replay buffered INSERT pages after `JdbcPageSink` may already have
-  committed an internal batch.
-- Add unit tests for status classification, interrupted backoff, rollback
-  failure suppression, connection cleanup, and a failure after commit.
+- The adapter adds no retry around Trino 479 `JdbcPageSink`. That sink commits
+  every full JDBC batch. The integration fixture explicitly enables
+  `insert.non-transactional-insert.enabled=true`, so a failed test INSERT may
+  leave already committed target rows; query/task retries remain disabled.
+  Production-default staging and finalization still require real-YDB
+  verification before making a transactional INSERT claim.
+- Focused unit tests now cover status classification, interrupted backoff while
+  preserving the final SQL failure as the cause, pre-commit connection cleanup,
+  and failure after commit. Rollback-failure suppression remains to be added.
 - Apply and verify the P0 memory/backpressure limits for buffered merge pages.
 
 ### Retry-classification slice validation (2026-08-20)
@@ -275,6 +280,14 @@ tests, 0 failures, 0 errors, and 0 skipped without initializing Docker. The
 slice verifies the complete pinned-SDK unconditional status set, nested-cause
 classification, and the existing fresh-connection MERGE lifecycle. It does not
 replace the real-YDB or full module suite.
+
+### Interrupted MERGE retry validation (2026-08-20)
+
+A focused JDK 25 run of `TestYdbMergeSink` reported 6 tests, 0 failures, 0
+errors, and 0 skipped without initializing Docker. The added case interrupts a
+retry backoff after a retryable batch failure and verifies the interrupt flag,
+the original SQL exception as the `TrinoException` cause, the interrupted
+sleep as suppressed evidence, and rollback/close cleanup.
 
 ## P2 — remove remaining test debt
 
