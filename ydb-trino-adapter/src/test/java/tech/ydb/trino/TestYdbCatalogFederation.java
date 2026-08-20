@@ -13,6 +13,7 @@ import tech.ydb.test.integration.YdbHelperFactory;
 import static io.trino.testing.TestingNames.randomNameSuffix;
 import static java.util.Objects.requireNonNull;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 import static org.junit.jupiter.api.parallel.ExecutionMode.SAME_THREAD;
 
@@ -178,6 +179,68 @@ public class TestYdbCatalogFederation
                             "FROM " + primaryTable + " p " +
                             "JOIN " + analyticsTable + " a ON p.id = a.id",
                     "VALUES (CAST(1 AS BIGINT), 'primary', 'analytics')");
+        }
+    }
+
+    @Test
+    public void testAutocommitReadManyWriteOne()
+            throws Exception
+    {
+        String primarySource = tableName(PRIMARY_CATALOG, "federation_primary_" + randomNameSuffix());
+        String analyticsSource = tableName(SECONDARY_CATALOG, "federation_analytics_" + randomNameSuffix());
+        String primaryTarget = tableName(PRIMARY_CATALOG, "federation_output_" + randomNameSuffix());
+        try (AutoCloseable ignoredPrimarySource = dropTableOnClose(primarySource);
+                AutoCloseable ignoredAnalyticsSource = dropTableOnClose(analyticsSource);
+                AutoCloseable ignoredPrimaryTarget = dropTableOnClose(primaryTarget)) {
+            createMarkerTable(primarySource, "primary");
+            createMarkerTable(analyticsSource, "analytics");
+            assertUpdate("CREATE TABLE " + primaryTarget + " (id bigint NOT NULL, marker varchar)");
+
+            assertUpdate(
+                    "INSERT INTO " + primaryTarget + " (id, marker) " +
+                            "SELECT p.id, p.marker || ':' || a.marker " +
+                            "FROM " + primarySource + " p " +
+                            "JOIN " + analyticsSource + " a ON p.id = a.id",
+                    1);
+            assertQuery("SELECT id, marker FROM " + primaryTarget, "VALUES (CAST(1 AS BIGINT), 'primary:analytics')");
+        }
+    }
+
+    @Test
+    public void testExplicitTransactionReadsAndRejectsYdbWrite()
+            throws Exception
+    {
+        String primarySource = tableName(PRIMARY_CATALOG, "federation_primary_" + randomNameSuffix());
+        String analyticsSource = tableName(SECONDARY_CATALOG, "federation_analytics_" + randomNameSuffix());
+        String analyticsTarget = tableName(SECONDARY_CATALOG, "federation_output_" + randomNameSuffix());
+        try (AutoCloseable ignoredPrimarySource = dropTableOnClose(primarySource);
+                AutoCloseable ignoredAnalyticsSource = dropTableOnClose(analyticsSource);
+                AutoCloseable ignoredAnalyticsTarget = dropTableOnClose(analyticsTarget)) {
+            createMarkerTable(primarySource, "primary");
+            createMarkerTable(analyticsSource, "analytics");
+            assertUpdate("CREATE TABLE " + analyticsTarget + " (id bigint NOT NULL, marker varchar)");
+
+            String crossCatalogJoin = "SELECT p.id, p.marker, a.marker " +
+                    "FROM " + primarySource + " p " +
+                    "JOIN " + analyticsSource + " a ON p.id = a.id";
+            Session transactionBase = Session.builder(getSession())
+                    .setCatalog(PRIMARY_CATALOG)
+                    .setSchema(YdbQueryRunner.DEFAULT_SCHEMA)
+                    .build();
+
+            assertThatThrownBy(() -> newTransaction().execute(transactionBase, transactionSession -> {
+                assertQuery(
+                        transactionSession,
+                        crossCatalogJoin,
+                        "VALUES (CAST(1 AS BIGINT), 'primary', 'analytics')");
+                assertUpdate(
+                        transactionSession,
+                        "INSERT INTO " + analyticsTarget + " (id, marker) VALUES (2, 'must-not-commit')",
+                        1);
+            }))
+                    .hasMessageMatching("Catalog only supports writes using autocommit: ydb_analytics");
+
+            assertQuery("SELECT count(*) FROM " + analyticsTarget, "VALUES CAST(0 AS BIGINT)");
         }
     }
 }
