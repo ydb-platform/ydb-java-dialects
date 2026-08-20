@@ -707,6 +707,54 @@ public class YdbClient extends BaseJdbcClient {
     }
 
     @Override
+    protected void copyTableSchema(
+            ConnectorSession session,
+            Connection connection,
+            String catalogName,
+            String schemaName,
+            String tableName,
+            String newTableName,
+            List<String> columnNames) {
+        RemoteTableName sourceTable = new RemoteTableName(Optional.empty(), Optional.empty(), tableName);
+        Map<String, JdbcColumnHandle> columnsByName = getColumns(
+                session,
+                new SchemaTableName(DEFAULT_SCHEMA, tableName),
+                sourceTable).stream()
+                .collect(Collectors.toMap(JdbcColumnHandle::getColumnName, Function.identity()));
+
+        String stagingKey = nonRepeatNames("_trino_staging_id", columnNames);
+        ImmutableList.Builder<String> columnDefinitions = ImmutableList.builder();
+        columnDefinitions.add(quoted(stagingKey) + " BigSerial");
+        for (String columnName : columnNames) {
+            JdbcColumnHandle column = Optional.ofNullable(columnsByName.get(columnName))
+                    .orElseThrow(() -> new TrinoException(
+                            JDBC_ERROR,
+                            "Cannot create YDB INSERT staging table: source column not found: " + columnName));
+            String remoteType = column.getJdbcTypeHandle().jdbcTypeName()
+                    .orElseThrow(() -> new TrinoException(
+                            JDBC_ERROR,
+                            "Cannot create YDB INSERT staging table: JDBC type name is missing for " + columnName));
+            columnDefinitions.add(format(
+                    "%s %s%s",
+                    quoted(columnName),
+                    remoteType,
+                    column.isNullable() ? "" : " NOT NULL"));
+        }
+
+        String sql = format(
+                "CREATE TABLE %s (%s, PRIMARY KEY (%s))",
+                quoted(newTableName),
+                String.join(", ", columnDefinitions.build()),
+                quoted(stagingKey));
+        try {
+            execute(session, connection, sql);
+        }
+        catch (SQLException e) {
+            throw new TrinoException(JDBC_ERROR, "Failed to create YDB INSERT staging table", e);
+        }
+    }
+
+    @Override
     public void renameTable(ConnectorSession session, JdbcTableHandle handle, SchemaTableName newTableName) {
         YdbTablePath destination = YdbTablePath.fromUserInput(newTableName.getTableName());
         SchemaTableName currentName = handle.asPlainTable().getSchemaTableName();

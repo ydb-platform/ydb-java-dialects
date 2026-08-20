@@ -204,6 +204,35 @@ public class TestYdbConnectorTest extends BaseConnectorTest {
     }
 
     @Test
+    public void testTransactionalInsertStagingDoesNotPartiallyMutateTarget() throws Exception {
+        String table = "transactional_insert_" + uniqueSuffix();
+        Session transactionalInsert = Session.builder(getSession())
+                .setCatalogSessionProperty("ydb", "non_transactional_insert", "false")
+                .setCatalogSessionProperty("ydb", "write_batch_size", "1")
+                .setCatalogSessionProperty("ydb", "write_parallelism", "1")
+                .build();
+
+        createRawTable(table);
+        try {
+            assertUpdate("INSERT INTO \"" + table + "\" VALUES (1)", 1);
+
+            assertQueryFails(
+                    transactionalInsert,
+                    "INSERT INTO \"" + table + "\" VALUES (2), (1)",
+                    "(?is).*constraint violation.*");
+            assertQuery("SELECT id FROM \"" + table + "\"", "VALUES CAST(1 AS BIGINT)");
+
+            assertUpdate(transactionalInsert, "INSERT INTO \"" + table + "\" VALUES (2), (3)", 2);
+            assertQuery(
+                    "SELECT id FROM \"" + table + "\" ORDER BY id",
+                    "VALUES CAST(1 AS BIGINT), CAST(2 AS BIGINT), CAST(3 AS BIGINT)");
+        }
+        finally {
+            dropRawTable(table);
+        }
+    }
+
+    @Test
     public void testMergeUsesCompleteCompositePrimaryKeyWithNonKeyFirstColumn() throws Exception {
         String table = "merge_composite_key_" + uniqueSuffix();
 

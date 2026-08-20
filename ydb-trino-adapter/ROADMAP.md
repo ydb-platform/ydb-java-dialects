@@ -266,8 +266,14 @@ does not replace the inherited real-YDB MERGE suite or the full module suite.
   every full JDBC batch. The integration fixture explicitly enables
   `insert.non-transactional-insert.enabled=true`, so a failed test INSERT may
   leave already committed target rows; query/task retries remain disabled.
-  Production-default staging and finalization still require real-YDB
-  verification before making a transactional INSERT claim.
+  Trino's default staging path previously generated `CREATE TABLE AS SELECT`,
+  which cannot create a row-oriented YDB table and omitted YDB's mandatory
+  primary key. The connector now creates a regular staging table with the
+  source columns' physical JDBC type names/nullability and a collision-safe
+  hidden `BigSerial` primary key. Trino still performs one final
+  `INSERT ... SELECT` into the target and drops the staging table. A real-YDB
+  atomicity test is present but has not run because local Colima is stopped;
+  no transactional INSERT support claim is made yet.
 - Focused unit tests now cover status classification, interrupted backoff while
   preserving the final SQL failure as the cause, pre-commit connection cleanup,
   and failure after commit. Rollback-failure suppression remains to be added.
@@ -288,6 +294,19 @@ errors, and 0 skipped without initializing Docker. The added case interrupts a
 retry backoff after a retryable batch failure and verifies the interrupt flag,
 the original SQL exception as the `TrinoException` cause, the interrupted
 sleep as suppressed evidence, and rollback/close cleanup.
+
+### Transactional INSERT staging slice (2026-08-20)
+
+Official YQL documents that a primary key is mandatory for YDB tables and that
+`CREATE TABLE AS SELECT` currently supports only column-oriented tables. Source
+inspection of Trino 479 confirmed that its generic staging path emits a CTAS
+without a primary key. A focused JDK 25 unit run of `TestYdbInsertStaging`
+reported 1 test, 0 failures, 0 errors, and 0 skipped without initializing
+Docker; it verifies full-path quoting, collision-safe staging-key generation,
+physical remote type preservation, nullability, and requested column order.
+`testTransactionalInsertStagingDoesNotPartiallyMutateTarget` compiles and is the
+pending real-YDB gate: with batch size one, a later duplicate-key failure must
+not leave an earlier row in the target, followed by a successful staged insert.
 
 ## P2 — remove remaining test debt
 
