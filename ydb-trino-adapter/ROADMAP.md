@@ -154,26 +154,69 @@ This verifies the stated connector behavior only. It does not provide a shared
 snapshot or distributed commit, and it makes no production configuration or
 capability declaration changes.
 
-## P0 — harden MERGE scalability and atomicity
+## P0 — validate the JDBC batch/key contract and bound MERGE resources
 
-1. Replace row-by-row prepared-statement execution in `YdbMergeSink` with a
-   set-based YQL path. Candidate primitives are
-   [`UPDATE ... ON`](https://ydb.tech/docs/en/yql/reference/syntax/update) and
-   [`AS_TABLE`](https://ydb.tech/docs/en/yql/reference/syntax/select/from_as_table),
-   using bounded batches of typed list-of-struct parameters.
-2. Preserve one logical MERGE transaction. Until a staging/finalize design is
-   implemented, keep one writer task and reject Trino query/task retries for a
-   direct-to-target merge.
-3. YQL `UPDATE` cannot change a primary-key value. Implement physical-key
-   changes as atomic delete+insert row changes, or reject that statement with a
-   documented `NOT_SUPPORTED` error. See the
+`YdbMergeSink` already calls JDBC `addBatch()` for DELETE, UPDATE, and INSERT.
+Source inspection of the pinned YDB JDBC 2.3.18 driver shows that, with its
+default prepare/auto-batch settings, each eligible non-empty `executeBatch()`
+is represented as one typed `List<Struct>` parameter and one set-based YQL
+request. The generated forms use
+[`UPDATE ... ON`](https://ydb.tech/docs/en/yql/reference/syntax/update),
+`DELETE ... ON`, or `INSERT ... SELECT` over
+[`AS_TABLE($batch)`](https://ydb.tech/docs/en/yql/reference/syntax/select/from_as_table).
+This is driver-owned batching; the connector must not duplicate that rewrite.
+This request cardinality is source-derived; the current connector tests do not
+instrument or count remote requests.
+
+The rewrite requires the simple SQL shape recognized by the driver's
+`YqlBatcher`, complete primary-key equality for UPDATE/DELETE,
+`disablePrepareDataQuery=false`, `disableAutoPreparedBatches=false`, and no
+query modifier that changes the recognized shape. In particular, the default
+blank `query.comment-format` preserves batching; a configured remote-query
+comment has not yet been verified.
+
+1. The focused MERGE contract test now uses a composite metadata primary key,
+   a non-key leading visible column, and a sibling row whose individual key
+   components collide with the UPDATE and DELETE targets. It verifies that
+   both operations address the complete physical key while
+   update/delete/insert branches coexist.
+2. Preserve the implemented transaction invariants: each attempt opens one
+   connection, sets `autoCommit=false`, executes all operation groups, and
+   commits once; write parallelism is limited to one and Trino query/task retry
+   modes are rejected. Each connector retry opens fresh transactional state.
+   Failure-after-commit behavior is not yet proven, so no at-most-once replay
+   claim is made without an operation-id or staging/finalize design.
+3. Direct UPDATE and MERGE now reject physical primary-key changes before
+   remote mutation with `NOT_SUPPORTED`. Atomic delete+insert remains a
+   possible future extension. See the
    [YQL UPDATE contract](https://ydb.tech/docs/en/yql/reference/syntax/update).
-4. Add focused tests for composite primary keys, a non-unique first visible
-   column, physical-key updates, rollback/close, and fresh-state retries.
+4. Define and test page/request memory limits. The connector retains all input
+   pages until `finish()`, then creates operation-specific pages while the
+   driver retains the corresponding row structs and list parameter. No current
+   bounded-memory or maximum-request-size claim is made.
+5. Extend rollback/close and fresh-state retry tests, including an uncertain
+   commit outcome that must not replay an already committed change.
 
-**Exit criterion:** retain the current green inherited `testMerge*` suite and
-add a bounded-memory benchmark that demonstrates acceptable production-scale
-runtime for the set-based implementation.
+**Exit criterion:** retain the green inherited `testMerge*` suite, cover the
+physical composite-key and rejection contracts, and demonstrate the chosen
+page/request limits with a bounded-memory production-scale benchmark. A safe
+staging/finalize or operation-id design is required before claiming replay-safe
+retries after uncertain commit outcomes.
+
+### Merge-key slice validation (2026-08-20)
+
+Before the composite-key fixture was strengthened with sibling rows, the two
+focused physical-key tests passed 2/2; four targeted inherited MERGE tests
+passed 4/4; the two affected smoke tests passed 2/2; and isolated
+`testMergeLarge` passed 1/1. The strengthened focused test still requires a
+fresh Docker-backed rerun.
+
+The first CI-equivalent full run reported 335 tests, 0 failures, 1 error, and
+84 skipped. The sole `testMergeLarge` error occurred during its prerequisite
+TPCH `INSERT ... SELECT`, before MERGE execution; its isolated rerun passed. A
+second clean full run did not complete because the Docker daemon became
+unresponsive and its YDB Testcontainer disappeared. Therefore this slice does
+not yet have a green full-suite result.
 
 ## P1 — retry and transaction hardening
 
@@ -195,8 +238,7 @@ runtime for the set-based implementation.
   committed an internal batch.
 - Add unit tests for status classification, interrupted backoff, rollback
   failure suppression, connection cleanup, and a failure after commit.
-- Define memory/backpressure limits for buffered merge pages; memory usage must
-  not remain unreported.
+- Apply and verify the P0 memory/backpressure limits for buffered merge pages.
 
 ## P2 — remove remaining test debt
 
