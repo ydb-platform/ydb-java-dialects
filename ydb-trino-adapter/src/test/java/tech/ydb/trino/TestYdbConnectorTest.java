@@ -19,6 +19,7 @@ import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.UUID;
 
+import static io.trino.spi.StandardErrorCode.NOT_SUPPORTED;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -202,6 +203,80 @@ public class TestYdbConnectorTest extends BaseConnectorTest {
         }
     }
 
+    @Test
+    public void testMergeUsesCompleteCompositePrimaryKeyWithNonKeyFirstColumn() throws Exception {
+        String table = "merge_composite_key_" + uniqueSuffix();
+
+        createRawCompositePrimaryKeyTable(table);
+        try {
+            assertUpdate("INSERT INTO \"" + table + "\" (bucket, account, region, note) VALUES " +
+                    "('shared', 1, 10, 'old'), " +
+                    "('shared', 2, 20, 'remove'), " +
+                    "('keep', 3, 30, 'stable')", 3);
+
+            assertUpdate("""
+                    MERGE INTO "%s" target
+                    USING (VALUES
+                        (BIGINT '1', BIGINT '10', 'updated', 'update'),
+                        (BIGINT '2', BIGINT '20', 'unused', 'delete'),
+                        (BIGINT '4', BIGINT '40', 'inserted', 'insert'))
+                        AS source(account, region, note, operation)
+                    ON target.account = source.account AND target.region = source.region
+                    WHEN MATCHED AND source.operation = 'delete' THEN DELETE
+                    WHEN MATCHED THEN UPDATE SET bucket = 'shared', note = source.note
+                    WHEN NOT MATCHED THEN INSERT (bucket, account, region, note)
+                        VALUES ('shared', source.account, source.region, source.note)
+                    """.formatted(table), 3);
+
+            assertQuery(
+                    "SELECT bucket, account, region, note FROM \"" + table + "\" ORDER BY account, region",
+                    "VALUES " +
+                            "('shared', CAST(1 AS BIGINT), CAST(10 AS BIGINT), 'updated'), " +
+                            "('keep', CAST(3 AS BIGINT), CAST(30 AS BIGINT), 'stable'), " +
+                            "('shared', CAST(4 AS BIGINT), CAST(40 AS BIGINT), 'inserted')");
+        } finally {
+            dropRawTable(table);
+        }
+    }
+
+    @Test
+    public void testPhysicalPrimaryKeyUpdatesAreRejectedWithoutMutation() throws Exception {
+        String table = "update_physical_key_" + uniqueSuffix();
+        String unchangedRows = "VALUES " +
+                "('shared', CAST(1 AS BIGINT), CAST(10 AS BIGINT), 'first'), " +
+                "('shared', CAST(2 AS BIGINT), CAST(20 AS BIGINT), 'second')";
+
+        createRawCompositePrimaryKeyTable(table);
+        try {
+            assertUpdate("INSERT INTO \"" + table + "\" (bucket, account, region, note) VALUES " +
+                    "('shared', 1, 10, 'first'), " +
+                    "('shared', 2, 20, 'second')", 2);
+
+            assertThat(query("UPDATE \"" + table + "\" SET account = 11 WHERE account = 1 AND region = 10"))
+                    .failure()
+                    .hasErrorCode(NOT_SUPPORTED)
+                    .hasMessageContaining("Cannot update YDB primary key column: account");
+            assertQuery(
+                    "SELECT bucket, account, region, note FROM \"" + table + "\" ORDER BY account, region",
+                    unchangedRows);
+
+            assertThat(query("""
+                    MERGE INTO "%s" target
+                    USING (VALUES (BIGINT '1', BIGINT '10')) AS source(account, region)
+                    ON target.account = source.account AND target.region = source.region
+                    WHEN MATCHED THEN UPDATE SET region = target.region + 10, account = target.account + 10
+                    """.formatted(table)))
+                    .failure()
+                    .hasErrorCode(NOT_SUPPORTED)
+                    .hasMessageContaining("Cannot update YDB primary key columns: account, region");
+            assertQuery(
+                    "SELECT bucket, account, region, note FROM \"" + table + "\" ORDER BY account, region",
+                    unchangedRows);
+        } finally {
+            dropRawTable(table);
+        }
+    }
+
     private static String uniqueSuffix() {
         return UUID.randomUUID().toString().replace("-", "");
     }
@@ -230,6 +305,15 @@ public class TestYdbConnectorTest extends BaseConnectorTest {
                 Statement statement = connection.createStatement()) {
             statement.execute("CREATE TABLE `" + remoteTable + "` " +
                     "(id Int64 NOT NULL, note Utf8, PRIMARY KEY (id))");
+        }
+    }
+
+    private static void createRawCompositePrimaryKeyTable(String remoteTable) throws SQLException {
+        try (Connection connection = DriverManager.getConnection(YdbQueryRunner.buildJdbcUrl(ydb));
+                Statement statement = connection.createStatement()) {
+            statement.execute("CREATE TABLE `" + remoteTable + "` " +
+                    "(bucket Utf8, account Int64 NOT NULL, region Int64 NOT NULL, note Utf8, " +
+                    "PRIMARY KEY (account, region))");
         }
     }
 
