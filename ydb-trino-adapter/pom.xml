@@ -19,29 +19,8 @@
         <trino.version>479</trino.version>
         <ydb.jdbc.version>2.3.18</ydb.jdbc.version>
         <ydb.sdk.version>2.3.13</ydb.sdk.version>
-        <grpc.version>1.76.0</grpc.version>
         <junit.version>5.10.1</junit.version>
     </properties>
-
-    <dependencyManagement>
-        <dependencies>
-            <dependency>
-                <groupId>io.grpc</groupId>
-                <artifactId>grpc-api</artifactId>
-                <version>${grpc.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.grpc</groupId>
-                <artifactId>grpc-core</artifactId>
-                <version>${grpc.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.grpc</groupId>
-                <artifactId>grpc-netty</artifactId>
-                <version>${grpc.version}</version>
-            </dependency>
-        </dependencies>
-    </dependencyManagement>
 
     <dependencies>
         <dependency>
@@ -108,16 +87,6 @@
                     <artifactId>log4j-slf4j-impl</artifactId>
                 </exclusion>
             </exclusions>
-        </dependency>
-        <dependency>
-            <groupId>io.grpc</groupId>
-            <artifactId>grpc-api</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>io.grpc</groupId>
-            <artifactId>grpc-core</artifactId>
-            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.assertj</groupId>
