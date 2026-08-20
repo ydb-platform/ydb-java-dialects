@@ -37,6 +37,11 @@ public class Review implements Persistable<Long> {
     }
 
     @Override
+    public String toString() {
+        return (isNew ? "New" : "") + "Review[" + id + "]";
+    }
+
+    @Override
     public Long getId() {
         return id;
     }
