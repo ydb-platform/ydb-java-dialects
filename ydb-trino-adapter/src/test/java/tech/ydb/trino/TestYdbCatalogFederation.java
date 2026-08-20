@@ -9,9 +9,8 @@ import org.junit.jupiter.api.parallel.Execution;
 import org.testcontainers.DockerClientFactory;
 import tech.ydb.test.integration.YdbEnvironment;
 import tech.ydb.test.integration.YdbHelper;
-import tech.ydb.test.integration.docker.DockerHelperFactory;
+import tech.ydb.test.integration.docker.ProxedDockerHelperFactory;
 import tech.ydb.test.integration.docker.YdbDockerContainer;
-import tech.ydb.test.integration.utils.PortsGenerator;
 
 import static io.trino.testing.TestingNames.randomNameSuffix;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -56,6 +55,12 @@ public class TestYdbCatalogFederation
         {
             return false;
         }
+
+        @Override
+        public boolean useDockerIsolation()
+        {
+            return true;
+        }
     }
 
     private static YdbHelper startLocalYdb()
@@ -64,9 +69,9 @@ public class TestYdbCatalogFederation
         assumeFalse(environment.disableIntegrationTests(), "YDB integration tests are disabled");
         assumeTrue(DockerClientFactory.instance().isDockerAvailable(), "Docker-backed YDB is unavailable");
 
-        YdbDockerContainer container = new YdbDockerContainer(environment, new PortsGenerator());
+        YdbDockerContainer container = new YdbDockerContainer(environment, null);
         try {
-            return new DockerHelperFactory(environment, container).createHelper();
+            return new ProxedDockerHelperFactory(environment, container).createHelper();
         }
         catch (Exception | Error failure) {
             closeSuppressing(failure, container);
