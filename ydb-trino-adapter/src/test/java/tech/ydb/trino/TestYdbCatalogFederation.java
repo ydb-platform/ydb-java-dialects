@@ -6,14 +6,17 @@ import io.trino.testing.DistributedQueryRunner;
 import io.trino.testing.QueryRunner;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.parallel.Execution;
+import org.testcontainers.DockerClientFactory;
 import tech.ydb.test.integration.YdbEnvironment;
 import tech.ydb.test.integration.YdbHelper;
-import tech.ydb.test.integration.YdbHelperFactory;
+import tech.ydb.test.integration.docker.DockerHelperFactory;
+import tech.ydb.test.integration.docker.YdbDockerContainer;
+import tech.ydb.test.integration.utils.PortsGenerator;
 
 import static io.trino.testing.TestingNames.randomNameSuffix;
-import static java.util.Objects.requireNonNull;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.jupiter.api.Assumptions.assumeFalse;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 import static org.junit.jupiter.api.parallel.ExecutionMode.SAME_THREAD;
 
@@ -57,9 +60,18 @@ public class TestYdbCatalogFederation
 
     private static YdbHelper startLocalYdb()
     {
-        YdbHelperFactory factory = YdbHelperFactory.createYdbHelper(new LocalDockerEnvironment());
-        assumeTrue(factory.isEnabled(), "Docker-backed YDB is unavailable");
-        return requireNonNull(factory.createHelper(), "YDB helper is disabled");
+        LocalDockerEnvironment environment = new LocalDockerEnvironment();
+        assumeFalse(environment.disableIntegrationTests(), "YDB integration tests are disabled");
+        assumeTrue(DockerClientFactory.instance().isDockerAvailable(), "Docker-backed YDB is unavailable");
+
+        YdbDockerContainer container = new YdbDockerContainer(environment, new PortsGenerator());
+        try {
+            return new DockerHelperFactory(environment, container).createHelper();
+        }
+        catch (Exception | Error failure) {
+            closeSuppressing(failure, container);
+            throw failure;
+        }
     }
 
     @Override

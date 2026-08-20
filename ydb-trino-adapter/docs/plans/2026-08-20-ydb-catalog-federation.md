@@ -8,7 +8,7 @@
 
 **Tech Stack:** Java 25, Trino 479 JDBC SPI and testing framework, YDB JDBC 2.3.18, YDB SDK/test helper 2.3.13, JUnit 5.10.1, AssertJ 3.25.3, Maven, Testcontainers 1.20.0, Docker/Colima.
 
-**Spec:** `ydb-trino-adapter/ROADMAP.md`, sections “Approved namespace and catalog contract” and “Catalog provisioning and federation”; this is a stacked follow-up to namespace PR #242.
+**Spec:** `ydb-trino-adapter/ROADMAP.md`, sections “Approved namespace and catalog contract”, “Catalog provisioning (approved operator guidance)”, and “Catalog federation”; this is a stacked follow-up to namespace PR #242.
 
 ## Global Constraints
 
