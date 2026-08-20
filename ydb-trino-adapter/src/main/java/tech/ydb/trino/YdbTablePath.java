@@ -73,7 +73,7 @@ record YdbTablePath(String value)
             return "path must not be null";
         }
         if (value.length() > MAX_COMPONENT_LENGTH) {
-            return "path must be at most " + MAX_COMPONENT_LENGTH + " characters";
+            return "path is too long; must be at most " + MAX_COMPONENT_LENGTH + " characters";
         }
         return null;
     }
@@ -84,7 +84,7 @@ record YdbTablePath(String value)
             return "components must not be empty";
         }
         if (component.length() > MAX_COMPONENT_LENGTH) {
-            return "components must be at most " + MAX_COMPONENT_LENGTH + " characters";
+            return "components are too long; must be at most " + MAX_COMPONENT_LENGTH + " characters";
         }
         if (!COMPONENT.matcher(component).matches()) {
             return "components may contain only letters, digits, '.', '_' and '-'";

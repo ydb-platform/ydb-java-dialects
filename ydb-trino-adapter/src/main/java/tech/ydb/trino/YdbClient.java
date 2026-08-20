@@ -276,6 +276,9 @@ public class YdbClient extends BaseJdbcClient {
         if (!DEFAULT_SCHEMA.equalsIgnoreCase(schemaTableName.getSchemaName())) {
             return Optional.empty();
         }
+        if (schemaTableName.getTableName().endsWith("$data")) {
+            return Optional.empty();
+        }
 
         YdbTablePath requestedPath = YdbTablePath.fromUserInput(schemaTableName.getTableName());
         try (Connection connection = connectionFactory.openConnection(session)) {

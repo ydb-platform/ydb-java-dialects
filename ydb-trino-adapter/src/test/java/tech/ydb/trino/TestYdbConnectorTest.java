@@ -19,6 +19,7 @@ import java.util.OptionalInt;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 public class TestYdbConnectorTest extends BaseConnectorTest {
 
@@ -260,6 +261,38 @@ public class TestYdbConnectorTest extends BaseConnectorTest {
     @Override
     protected OptionalInt maxColumnNameLength() {
         return OptionalInt.of(255);
+    }
+
+    @Test
+    @Override
+    public void testRenameTableToLongTableName() {
+        skipTestUnless(hasBehavior(TestingConnectorBehavior.SUPPORTS_RENAME_TABLE));
+
+        String sourceTableName = "test_rename_source_" + uniqueSuffix();
+        String baseTableName = "test_rename_target_" + uniqueSuffix();
+        int maxLength = maxTableRenameLength().orElseThrow();
+        String validTargetTableName = baseTableName + "z".repeat(maxLength - baseTableName.length());
+        String invalidTargetTableName = validTargetTableName + "z";
+
+        try {
+            assertUpdate("CREATE TABLE " + sourceTableName + " AS SELECT 123 x", 1);
+            assertUpdate("ALTER TABLE " + sourceTableName + " RENAME TO " + validTargetTableName);
+            assertThat(getQueryRunner().tableExists(getSession(), validTargetTableName)).isTrue();
+            assertQuery("SELECT x FROM " + validTargetTableName, "VALUES 123");
+            assertUpdate("DROP TABLE " + validTargetTableName);
+
+            assertUpdate("CREATE TABLE " + sourceTableName + " AS SELECT 123 x", 1);
+            assertThatThrownBy(() -> assertUpdate("ALTER TABLE " + sourceTableName + " RENAME TO " + invalidTargetTableName))
+                    .satisfies(this::verifyTableNameLengthFailurePermissible);
+            assertThat(getQueryRunner().tableExists(getSession(), sourceTableName)).isTrue();
+            assertQuery("SELECT x FROM " + sourceTableName, "VALUES 123");
+
+            // Trino 479 expects tableExists(invalidTarget) to be false, but this lookup returns INVALID_ARGUMENTS.
+            assertQueryFails("SELECT x FROM " + invalidTargetTableName, ".*Invalid YDB table path.*too long.*");
+        } finally {
+            assertQuerySucceeds("DROP TABLE IF EXISTS " + validTargetTableName);
+            assertQuerySucceeds("DROP TABLE IF EXISTS " + sourceTableName);
+        }
     }
 
     @Override
