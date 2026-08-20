@@ -190,8 +190,10 @@ comment has not yet been verified.
    connection, sets `autoCommit=false`, executes all operation groups, and
    commits once; write parallelism is limited to one and Trino query/task retry
    modes are rejected. Each connector retry opens fresh transactional state.
-   Failure-after-commit behavior is not yet proven, so no at-most-once replay
-   claim is made without an operation-id or staging/finalize design.
+   Once `Connection.commit()` has been invoked, the connector never replays the
+   attempt: a commit exception is reported as an unknown outcome after
+   best-effort rollback and close. Retrying an unknown outcome and returning a
+   definite result still requires an operation-id or staging/finalize design.
 3. Direct UPDATE and MERGE now reject physical primary-key changes before
    remote mutation with `NOT_SUPPORTED`. Atomic delete+insert remains a
    possible future extension. See the
@@ -200,8 +202,11 @@ comment has not yet been verified.
    pages until `finish()`, then creates operation-specific pages while the
    driver retains the corresponding row structs and list parameter. No current
    bounded-memory or maximum-request-size claim is made.
-5. Extend rollback/close and fresh-state retry tests, including an uncertain
-   commit outcome that must not replay an already committed change.
+5. In-memory lifecycle tests inject a retryable batch failure before commit and
+   verify replay on a fresh connection, then inject a retryable commit failure
+   and verify one connection, one commit invocation, no replay, rollback/close
+   cleanup, and preservation of the original exception. Extend rollback-failure
+   suppression coverage separately.
 
 **Exit criterion:** retain the green inherited `testMerge*` suite, cover the
 physical composite-key and rejection contracts, and demonstrate the chosen
