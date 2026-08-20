@@ -79,6 +79,21 @@ identifiers. YDB paths are case-sensitive. A lowercase Trino name may resolve to
 one unique case-insensitive remote path; case-only collisions must fail with an
 explicit ambiguous-name error rather than selecting an arbitrary object.
 
+### Catalog provisioning (approved operator guidance)
+
+Static catalog property files are the production default. For example,
+`ydb_prod.properties` and `ydb_analytics.properties` contain separate YDB JDBC
+URLs and expose `ydb_prod.default` and `ydb_analytics.default`. Trino 479 dynamic
+catalog management can optionally create the same connector instances with
+`CREATE CATALOG`, but it is an experimental Trino deployment feature and not
+YDB database discovery by the connector. Sensitive catalog properties must not
+be placed directly in SQL because the complete statement is logged and visible
+in the Trino Web UI.
+
+This is the approved deployment and operator contract. The verified federation
+slice below did not load production catalog property files or execute SQL
+`CREATE CATALOG`.
+
 ### Catalog federation
 
 Federated reads qualify each source by catalog. Cross-catalog joins run in
