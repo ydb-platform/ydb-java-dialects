@@ -198,15 +198,20 @@ comment has not yet been verified.
    remote mutation with `NOT_SUPPORTED`. Atomic delete+insert remains a
    possible future extension. See the
    [YQL UPDATE contract](https://ydb.tech/docs/en/yql/reference/syntax/update).
-4. Define and test page/request memory limits. The connector retains all input
-   pages until `finish()`, then creates operation-specific pages while the
-   driver retains the corresponding row structs and list parameter. No current
-   bounded-memory or maximum-request-size claim is made.
-5. In-memory lifecycle tests inject a retryable batch failure before commit and
-   verify replay on a fresh connection, then inject a retryable commit failure
-   and verify one connection, one commit invocation, no replay, rollback/close
-   cleanup, and preservation of the original exception. Extend rollback-failure
-   suppression coverage separately.
+4. MERGE now reuses Trino's validated `write_batch_size` session property and
+   executes each DELETE, UPDATE-case, and INSERT JDBC batch in row-bounded
+   chunks without intermediate commits. It scans the original pages by phase
+   instead of retaining operation-specific pages and position arrays, and
+   releases the original pages after the terminal outcome. The complete input
+   is still buffered through internal retries, and the row limit is not a byte
+   or serialized-request limit; no bounded-memory claim is made yet.
+5. In-memory lifecycle tests inject a retryable failure after one sub-batch and
+   verify complete replay on a fresh connection, then inject a retryable commit
+   failure and verify no replay, rollback/close cleanup, and preservation of
+   the original exception. Mixed-operation coverage verifies phase ordering,
+   composite row-id keys, original update-channel mapping, row-bounded chunks,
+   one final commit, and rejection of an unknown update case before remote
+   mutation. Extend rollback-failure suppression separately.
 
 **Exit criterion:** retain the green inherited `testMerge*` suite, cover the
 physical composite-key and rejection contracts, and demonstrate the chosen
@@ -224,6 +229,15 @@ port allocator 3/0. That run verified the physical-key rejection contract and
 the initial cross-sibling fixture. Final review added the complementary
 cross-sibling needed to catch either operation using either individual key;
 the required GitHub Actions check on PR #244 gates that final test-only change.
+
+### MERGE sub-batch slice validation (2026-08-20)
+
+A focused JDK 25 run of `TestYdbMergeSink` reported 5 tests, 0 failures,
+0 errors, and 0 skipped without initializing Docker. It covers the
+pre-commit fresh-transaction retry, ambiguous-commit no-replay boundary,
+`write_batch_size` chunking without intermediate commits, mixed-operation
+phase/key/channel mapping, and invalid-update-case preflight. This focused run
+does not replace the inherited real-YDB MERGE suite or the full module suite.
 
 ## P1 — retry and transaction hardening
 
