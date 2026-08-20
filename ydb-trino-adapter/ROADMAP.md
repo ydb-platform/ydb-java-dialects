@@ -19,12 +19,17 @@ have been verified locally against a real YDB test container:
 - retry classification through the YDB SDK status model, with fresh merge
   connections and rollback-before-close.
 
-GitHub Actions is green on PR #240: 314 tests run, 0 failed, 0 errors, 84
-skipped. This includes 36 smoke tests (4 skipped) and 278 connector tests (80
-skipped). The inherited `testMergeLarge` runs without an override and completes
-within the CI budget. An isolated local Colima run previously exceeded 11
-minutes, so MERGE scalability remains a production concern rather than a CI
-failure.
+GitHub Actions on PR #240 verified the DML baseline: 314 tests run, 0 failures,
+0 errors, and 84 skipped. This included 36 smoke tests (4 skipped) and 278
+connector tests (80 skipped). The inherited `testMergeLarge` runs without an
+override and completes within the CI budget. An isolated local Colima run
+previously exceeded 11 minutes, so MERGE scalability remains a production
+concern rather than a CI failure.
+
+Fresh local JDK 25 namespace validation (2026-08-20) reported 324 discovered
+tests: 0 failures, 0 errors, and 84 skipped, leaving 240 executed tests passed.
+It included 5 `TestYdbTablePath` tests, 283 connector tests (80 skipped), and
+36 smoke tests (4 skipped); no other test classes ran.
 
 ## Approved namespace and catalog contract
 
@@ -86,24 +91,28 @@ in the Trino Web UI.
 
 Federated reads qualify each source by catalog. Cross-catalog joins run in
 Trino; join pushdown requires both tables to belong to the same catalog.
-Reading from multiple catalogs and writing to one is allowed when the target
+Single-statement read-many/write-one is the intended form when the target
 operation is supported, but there is no global snapshot or distributed commit
-across sources. Trino 479 rejects writes to more than one catalog in one
-transaction with `MULTI_CATALOG_WRITE_CONFLICT`.
+across sources. Explicit transactions containing a YDB write are currently
+rejected because the connector supports autocommit-only writes; this happens
+before a multi-catalog write conflict could be reached. Federation remains an
+unverified future integration slice.
 
-### First implementation slice
+### Implemented namespace slice (verified 2026-08-20)
 
-1. Introduce one path parser/validator used by metadata and table operations.
-2. Change the synthetic schema from `ydb` to `default`.
-3. Make `listTables` and `getTableHandle` honor the schema filter and preserve
+This slice implements the following items:
+
+1. Introduced one path parser/validator used by metadata and table operations.
+2. Changed the synthetic schema from `ydb` to `default`.
+3. Made `listTables` and `getTableHandle` honor the schema filter and preserve
    the complete relative YDB table path.
-4. Map only genuine remote not-found results to an absent table handle; preserve
+4. Mapped only genuine remote not-found results to an absent table handle and preserved
    other JDBC/YDB failures.
-5. Add focused tests for root and nested tables, an unknown schema, path
+5. Added focused tests for root and nested tables, an unknown schema, path
    traversal, dot-prefixed paths, case-only ambiguity, and full-path quoting.
 
 This slice does not enable schema DDL capabilities or change capability flags.
-Catalog provisioning and cross-catalog federation tests follow as a separate
+Catalog provisioning and cross-catalog federation remain a separate, unverified
 integration slice.
 
 ## P0 — harden MERGE scalability and atomicity
