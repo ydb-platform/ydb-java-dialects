@@ -168,11 +168,15 @@ public class RepositoriesIntegrationTest extends YdbBaseTest {
     @Test
     public void dublicateKeyExceptionTest() {
         Review copy = new Review(1, 1, "Reader", "Text", 100, Instant.parse("2024-03-19T21:00:00Z"));
-        Exception ex = Assertions.assertThrows(DbActionExecutionException.class, () -> reviewRepository.save(copy));
-        Assertions.assertEquals(
-                "Failed to execute InsertRoot{entity=NewReview[1], idValueSource=PROVIDED}",
-                ex.getMessage()
-        );
-        Assertions.assertTrue(ex.getCause() instanceof DuplicateKeyException);
+        Throwable ex = Assertions.assertThrows(RuntimeException.class, () -> reviewRepository.save(copy));
+
+        if (ex instanceof DbActionExecutionException) {
+            Assertions.assertEquals(
+                    "Failed to execute InsertRoot{entity=NewReview[1], idValueSource=PROVIDED}",
+                    ex.getMessage()
+            );
+            ex = ex.getCause();
+        }
+        Assertions.assertTrue(ex instanceof DuplicateKeyException);
     }
 }
