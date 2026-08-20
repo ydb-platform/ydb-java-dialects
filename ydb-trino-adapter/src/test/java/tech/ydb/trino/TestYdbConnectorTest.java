@@ -212,8 +212,9 @@ public class TestYdbConnectorTest extends BaseConnectorTest {
             assertUpdate("INSERT INTO \"" + table + "\" (bucket, account, region, note) VALUES " +
                     "('shared', 1, 10, 'old'), " +
                     "('shared', 1, 20, 'sibling'), " +
+                    "('shared', 2, 10, 'cross-sibling'), " +
                     "('shared', 2, 20, 'remove'), " +
-                    "('keep', 3, 30, 'stable')", 4);
+                    "('keep', 3, 30, 'stable')", 5);
 
             assertUpdate("""
                     MERGE INTO "%s" target
@@ -234,6 +235,7 @@ public class TestYdbConnectorTest extends BaseConnectorTest {
                     "VALUES " +
                             "('shared', CAST(1 AS BIGINT), CAST(10 AS BIGINT), 'updated'), " +
                             "('shared', CAST(1 AS BIGINT), CAST(20 AS BIGINT), 'sibling'), " +
+                            "('shared', CAST(2 AS BIGINT), CAST(10 AS BIGINT), 'cross-sibling'), " +
                             "('keep', CAST(3 AS BIGINT), CAST(30 AS BIGINT), 'stable'), " +
                             "('shared', CAST(4 AS BIGINT), CAST(40 AS BIGINT), 'inserted')");
         } finally {

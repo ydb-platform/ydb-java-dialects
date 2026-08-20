@@ -182,9 +182,9 @@ blank `query.comment-format` preserves batching; a configured remote-query
 comment has not yet been verified.
 
 1. The focused MERGE contract test now uses a composite metadata primary key,
-   a non-key leading visible column, and a sibling row whose individual key
-   components collide with the UPDATE and DELETE targets. It verifies that
-   both operations address the complete physical key while
+   a non-key leading visible column, and two cross-sibling rows covering both
+   individual key components of the UPDATE and DELETE targets. It verifies
+   that both operations address the complete physical key while
    update/delete/insert branches coexist.
 2. Preserve the implemented transaction invariants: each attempt opens one
    connection, sets `autoCommit=false`, executes all operation groups, and
@@ -211,18 +211,14 @@ retries after uncertain commit outcomes.
 
 ### Merge-key slice validation (2026-08-20)
 
-Before the composite-key fixture was strengthened with sibling rows, the two
-focused physical-key tests passed 2/2; four targeted inherited MERGE tests
-passed 4/4; the two affected smoke tests passed 2/2; and isolated
-`testMergeLarge` passed 1/1. The strengthened focused test still requires a
-fresh Docker-backed rerun.
-
-The first CI-equivalent full run reported 335 tests, 0 failures, 1 error, and
-84 skipped. The sole `testMergeLarge` error occurred during its prerequisite
-TPCH `INSERT ... SELECT`, before MERGE execution; its isolated rerun passed. A
-second clean full run did not complete because the Docker daemon became
-unresponsive and its YDB Testcontainer disappeared. Therefore this slice does
-not yet have a green full-suite result.
+GitHub Actions run
+[`32378003537`](https://github.com/ydb-platform/ydb-java-dialects/actions/runs/32378003537)
+at `33bfb8f` reported 338 tests, 0 failures, 0 errors, and 84 skipped. It
+included Connector 288/80, Smoke 36/4, Federation 6/0, TablePath 5/0, and the
+port allocator 3/0. That run verified the physical-key rejection contract and
+the initial cross-sibling fixture. Final review added the complementary
+cross-sibling needed to catch either operation using either individual key;
+the required GitHub Actions check on PR #244 gates that final test-only change.
 
 ## P1 — retry and transaction hardening
 
