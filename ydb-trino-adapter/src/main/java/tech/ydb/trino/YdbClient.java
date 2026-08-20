@@ -879,6 +879,11 @@ public class YdbClient extends BaseJdbcClient {
         if (primaryKeys.isEmpty()) {
             throw new TrinoException(NOT_SUPPORTED, "The connector cannot perform MERGE on a table without a primary key");
         }
+        rejectPrimaryKeyUpdates(
+                primaryKeys,
+                updateColumnHandles.values().stream()
+                        .flatMap(Collection::stream)
+                        .map(JdbcColumnHandle.class::cast));
 
         SchemaTableName schemaTableName = handle.getRequiredNamedRelation().getSchemaTableName();
         RemoteTableName remoteTableName = handle.getRequiredNamedRelation().getRemoteTableName();
@@ -941,6 +946,16 @@ public class YdbClient extends BaseJdbcClient {
 
     @Override
     public OptionalLong update(ConnectorSession session, JdbcTableHandle handle) {
+        List<JdbcColumnHandle> primaryKeys = getPrimaryKeys(
+                session,
+                handle.getRequiredNamedRelation().getRemoteTableName());
+        if (primaryKeys.isEmpty()) {
+            throw new TrinoException(NOT_SUPPORTED, "YDB DML requires a table primary key");
+        }
+        rejectPrimaryKeyUpdates(
+                primaryKeys,
+                handle.getUpdateAssignments().stream().map(assignment -> assignment.column()));
+
         try (Connection connection = connectionFactory.openConnection(session)) {
             PreparedQuery preparedQuery = queryBuilder.prepareUpdateQuery(
                     this,
@@ -950,7 +965,7 @@ public class YdbClient extends BaseJdbcClient {
                     handle.getConstraint(),
                     getAdditionalPredicate(handle.getConstraintExpressions(), Optional.empty()),
                     handle.getUpdateAssignments());
-            return OptionalLong.of(executeReturningDml(session, connection, handle, preparedQuery));
+            return OptionalLong.of(executeReturningDml(session, connection, preparedQuery, primaryKeys));
         }
         catch (SQLException e) {
             throw new TrinoException(JDBC_ERROR, e);
@@ -968,6 +983,14 @@ public class YdbClient extends BaseJdbcClient {
         if (primaryKeys.isEmpty()) {
             throw new TrinoException(NOT_SUPPORTED, "YDB DML requires a table primary key");
         }
+        return executeReturningDml(session, connection, preparedQuery, primaryKeys);
+    }
+
+    private long executeReturningDml(
+            ConnectorSession session,
+            Connection connection,
+            PreparedQuery preparedQuery,
+            List<JdbcColumnHandle> primaryKeys) throws SQLException {
         PreparedQuery returningQuery = preparedQuery.transformQuery(
                 query -> query + " RETURNING " + quoted(primaryKeys.getFirst().getColumnName()));
 
@@ -979,6 +1002,26 @@ public class YdbClient extends BaseJdbcClient {
             }
         }
         return affectedRows;
+    }
+
+    private static void rejectPrimaryKeyUpdates(
+            List<JdbcColumnHandle> primaryKeys,
+            Stream<JdbcColumnHandle> updatedColumns) {
+        Set<String> updatedColumnNames = updatedColumns
+                .map(JdbcColumnHandle::getColumnName)
+                .collect(Collectors.toSet());
+        List<String> updatedPrimaryKeyNames = primaryKeys.stream()
+                .map(JdbcColumnHandle::getColumnName)
+                .filter(updatedColumnNames::contains)
+                .toList();
+        if (!updatedPrimaryKeyNames.isEmpty()) {
+            String columnLabel = updatedPrimaryKeyNames.size() == 1 ? "column" : "columns";
+            throw new TrinoException(
+                    NOT_SUPPORTED,
+                    "Cannot update YDB primary key %s: %s".formatted(
+                            columnLabel,
+                            String.join(", ", updatedPrimaryKeyNames)));
+        }
     }
 
     @Override
