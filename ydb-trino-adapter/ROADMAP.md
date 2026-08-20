@@ -26,10 +26,10 @@ override and completes within the CI budget. An isolated local Colima run
 previously exceeded 11 minutes, so MERGE scalability remains a production
 concern rather than a CI failure.
 
-Fresh local JDK 25 namespace validation (2026-08-20) reported 327 discovered
-tests: 0 failures, 0 errors, and 84 skipped, leaving 243 executed tests passed.
-It included 5 `TestYdbTablePath` tests, 286 connector tests (80 skipped), and
-36 smoke tests (4 skipped); no other test classes ran.
+The primary JDK 25 CI-equivalent full run (2026-08-20, `f2e42d9`) reported
+333 tests: 0 failures, 0 errors, and 84 skipped, leaving 249 executed tests
+passed. It included Federation 6/0/0/0, Connector 286/80, Smoke 36/4, and
+TablePath 5/0.
 
 ## Approved namespace and catalog contract
 
@@ -79,23 +79,14 @@ identifiers. YDB paths are case-sensitive. A lowercase Trino name may resolve to
 one unique case-insensitive remote path; case-only collisions must fail with an
 explicit ambiguous-name error rather than selecting an arbitrary object.
 
-### Catalog provisioning and federation
-
-Static catalog property files are the production default. For example,
-`ydb_prod.properties` and `ydb_analytics.properties` contain separate YDB JDBC
-URLs and expose `ydb_prod.default` and `ydb_analytics.default`. Trino 479 dynamic
-catalog management can optionally create the same connector instances with
-`CREATE CATALOG`, but it is an experimental Trino deployment feature and not
-YDB database discovery by the connector. Sensitive catalog properties must not
-be placed directly in SQL because the complete statement is logged and visible
-in the Trino Web UI.
+### Catalog federation
 
 Federated reads qualify each source by catalog. Cross-catalog joins run in
 Trino; join pushdown requires both tables to belong to the same catalog.
 Trino 479 permits one autocommit statement to read from several catalogs and
 write to one target catalog when the target operation is supported. This
-read-many/write-one YDB topology remains unverified and provides neither a
-cross-catalog snapshot nor a distributed commit.
+read-many/write-one YDB topology provides neither a cross-catalog snapshot nor
+a distributed commit.
 
 Cross-catalog reads may run in an explicit transaction. YDB is a
 single-statement-write connector: when YDB is the first or only write target,
@@ -121,13 +112,32 @@ This slice implements the following items:
    Comment writes remain unsupported, and bulk column metadata remains opt-in.
 
 This slice does not enable schema DDL capabilities or change capability flags.
-Catalog provisioning and cross-catalog federation remain a separate, unverified
-integration slice.
 
 The real-YDB `testNestedTablePathLongerThanSingleComponentLimit` passed in the
 final full suite. It covers a complete relative path longer than 255 characters
 whose components are each at most 255 characters, including listing, selection,
 rename, and cleanup.
+
+### Verified catalog federation (2026-08-20)
+
+The primary JDK 25 CI-equivalent full run at `f2e42d9` verified the federation
+slice with six tests: five new public scenarios and the inherited naming
+convention. The fixture uses two independent Docker YDB instances, both with
+database `/local`, separate endpoints, and Trino catalogs `ydb` and
+`ydb_analytics`.
+
+- catalog discovery, `default`/`USE` analysis, and explicit `Session` handling
+  for unqualified access;
+- same-name table isolation, a cross-catalog JOIN evaluated in Trino, and
+  explicit cross-catalog reads;
+- one autocommit statement that reads from both catalogs and writes to one;
+- rejection of the first and only YDB write in an explicit cross-catalog
+  transaction before connector mutation, with the exact error `Catalog only
+  supports writes using autocommit: ydb_analytics` and an empty target table.
+
+This verifies the stated connector behavior only. It does not provide a shared
+snapshot or distributed commit, and it makes no production configuration or
+capability declaration changes.
 
 ## P0 — harden MERGE scalability and atomicity
 
@@ -188,8 +198,6 @@ need this treatment. YDB `Date` starts at the Unix epoch; see
 
 ## Later capability work
 
-- catalog provisioning and YDB-to-YDB federation coverage for the approved
-  single-`default`-schema namespace model;
 - List/Dict/Struct mappings for Trino ARRAY/MAP/ROW;
 - views, comments, rename column, and type changes after checking current YQL
   semantics;
