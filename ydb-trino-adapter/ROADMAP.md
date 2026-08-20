@@ -241,11 +241,18 @@ does not replace the inherited real-YDB MERGE suite or the full module suite.
 
 ## P1 — retry and transaction hardening
 
-- Retry only statuses classified as unconditional by the pinned YDB SDK.
-  `TIMEOUT`, `UNDETERMINED`, transport failures, and other conditional statuses
-  are unsafe for non-idempotent writes unless an operation-id/staging design
-  proves replay safety. See
+- Connector-owned MERGE retries use `StatusCode.isRetryable(false)` from the
+  pinned SDK. A focused classification test freezes its current unconditional
+  set: `ABORTED`, `UNAVAILABLE`, `OVERLOADED`, `BAD_SESSION`, `SESSION_BUSY`,
+  and `CLIENT_RESOURCE_EXHAUSTED`. `TIMEOUT`, `UNDETERMINED`,
+  `SESSION_EXPIRED`, transport failures, and other conditional statuses are
+  not retried for non-idempotent writes. See
   [YDB SDK error handling](https://ydb.tech/docs/en/reference/ydb-sdk/error_handling).
+- Removed the generic `BaseJdbcClient.execute` retry wrapper. That hook receives
+  a caller-owned JDBC connection and cannot replace it, while `BAD_SESSION` and
+  `SESSION_BUSY` explicitly require a new session. DDL failures now surface to
+  Trino instead of replaying on the same connection; MERGE retains its separate
+  fresh-connection transaction retry.
 - Keep the JDBC `SessionPool.acquire` scheduler-rejection workaround limited to
   that provably pre-execution stack. Track it against the YDB JDBC driver and
   remove the connector workaround after upgrading to a fixed driver.
@@ -260,6 +267,14 @@ does not replace the inherited real-YDB MERGE suite or the full module suite.
 - Add unit tests for status classification, interrupted backoff, rollback
   failure suppression, connection cleanup, and a failure after commit.
 - Apply and verify the P0 memory/backpressure limits for buffered merge pages.
+
+### Retry-classification slice validation (2026-08-20)
+
+A focused JDK 25 run of `TestYdbRetryUtils` and `TestYdbMergeSink` reported 7
+tests, 0 failures, 0 errors, and 0 skipped without initializing Docker. The
+slice verifies the complete pinned-SDK unconditional status set, nested-cause
+classification, and the existing fresh-connection MERGE lifecycle. It does not
+replace the real-YDB or full module suite.
 
 ## P2 — remove remaining test debt
 

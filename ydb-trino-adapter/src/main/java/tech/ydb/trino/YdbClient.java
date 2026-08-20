@@ -623,11 +623,6 @@ public class YdbClient extends BaseJdbcClient {
     }
 
     @Override
-    protected void execute(ConnectorSession session, Connection connection, String query) throws SQLException {
-        YdbRetryUtils.withRetry(() -> super.execute(session, connection, query));
-    }
-
-    @Override
     public boolean supportsRetries() {
         // Disable Trino-retries to avoid temporary tables.
         return false;
