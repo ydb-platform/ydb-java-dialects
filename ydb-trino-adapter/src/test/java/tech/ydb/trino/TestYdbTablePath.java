@@ -33,7 +33,10 @@ class TestYdbTablePath
     @Test
     void testComponentLength()
     {
+        String nestedPath = "a".repeat(127) + "/" + "b".repeat(128);
+
         assertThat(YdbTablePath.fromUserInput("a".repeat(255)).value()).hasSize(255);
+        assertThat(YdbTablePath.fromUserInput(nestedPath).value()).isEqualTo(nestedPath);
 
         assertThatThrownBy(() -> YdbTablePath.fromUserInput("a".repeat(256)))
                 .isInstanceOf(TrinoException.class)
@@ -42,19 +45,17 @@ class TestYdbTablePath
 
         assertThatThrownBy(() -> YdbTablePath.fromUserInput("a".repeat(256)))
                 .hasMessageContaining("too long");
-
-        assertThatThrownBy(() -> YdbTablePath.fromUserInput("a".repeat(127) + "/" + "b".repeat(128)))
-                .isInstanceOf(TrinoException.class)
-                .extracting(exception -> ((TrinoException) exception).getErrorCode())
-                .isEqualTo(INVALID_ARGUMENTS.toErrorCode());
     }
 
     @Test
     void testDataSystemTableName()
     {
         assertThat(YdbTablePath.isDataSystemTableName("nation$data")).isTrue();
+        assertThat(YdbTablePath.isDataSystemTableName("a".repeat(255) + "$data")).isTrue();
+        assertThat(YdbTablePath.isDataSystemTableName(
+                "a".repeat(127) + "/" + "b".repeat(128) + "$data")).isTrue();
 
-        for (String path : new String[] {"$data", "a/$data", "a$bad$data", "a".repeat(251) + "$data"}) {
+        for (String path : new String[] {"$data", "a/$data", "a$bad$data", "a".repeat(256) + "$data"}) {
             assertThat(YdbTablePath.isDataSystemTableName(path)).isFalse();
             assertThatThrownBy(() -> YdbTablePath.fromUserInput(path))
                     .isInstanceOf(TrinoException.class)
@@ -66,10 +67,18 @@ class TestYdbTablePath
     @Test
     void testRemoteMetadataPaths()
     {
+        String nestedPath = "a".repeat(127) + "/" + "b".repeat(128);
+
         assertThat(YdbTablePath.fromRemoteMetadata(".sys/table")).isEmpty();
         assertThat(YdbTablePath.fromRemoteMetadata(".sys/" + "a".repeat(251))).isEmpty();
+        assertThat(YdbTablePath.fromRemoteMetadata(nestedPath)).contains(new YdbTablePath(nestedPath));
 
         assertThatThrownBy(() -> YdbTablePath.fromRemoteMetadata("a/$/b"))
+                .isInstanceOf(TrinoException.class)
+                .extracting(exception -> ((TrinoException) exception).getErrorCode())
+                .isEqualTo(JDBC_ERROR.toErrorCode());
+
+        assertThatThrownBy(() -> YdbTablePath.fromRemoteMetadata("a/" + "b".repeat(256)))
                 .isInstanceOf(TrinoException.class)
                 .extracting(exception -> ((TrinoException) exception).getErrorCode())
                 .isEqualTo(JDBC_ERROR.toErrorCode());

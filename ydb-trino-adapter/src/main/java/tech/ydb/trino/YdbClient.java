@@ -45,6 +45,8 @@ import io.trino.spi.connector.ColumnHandle;
 import io.trino.spi.connector.ColumnMetadata;
 import io.trino.spi.connector.ConnectorSession;
 import io.trino.spi.connector.ConnectorTableMetadata;
+import io.trino.spi.connector.RelationColumnsMetadata;
+import io.trino.spi.connector.RelationCommentMetadata;
 import io.trino.spi.connector.RetryMode;
 import io.trino.spi.connector.SchemaTableName;
 import io.trino.spi.connector.SortOrder;
@@ -63,6 +65,8 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Types;
 import java.util.Collection;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -123,6 +127,7 @@ import static io.trino.spi.type.VarcharType.createUnboundedVarcharType;
 import static io.trino.spi.type.VarcharType.createVarcharType;
 import static java.lang.Math.max;
 import static java.lang.String.format;
+import static java.sql.DatabaseMetaData.columnNoNulls;
 import static java.util.stream.Collectors.joining;
 
 public class YdbClient extends BaseJdbcClient {
@@ -265,6 +270,74 @@ public class YdbClient extends BaseJdbcClient {
                     .collect(Collectors.toList());
         } catch (SQLException e) {
             throw new TrinoException(JDBC_ERROR, "Failed to list YDB tables", e);
+        }
+    }
+
+    @Override
+    public List<RelationCommentMetadata> getAllTableComments(ConnectorSession session, Optional<String> schema) {
+        return getTableNames(session, schema).stream()
+                .map(table -> RelationCommentMetadata.forRelation(table, Optional.empty()))
+                .toList();
+    }
+
+    @Override
+    public Iterator<RelationColumnsMetadata> getAllTableColumns(ConnectorSession session, Optional<String> schema) {
+        if (schema.isPresent() && !DEFAULT_SCHEMA.equalsIgnoreCase(schema.get())) {
+            return ImmutableList.<RelationColumnsMetadata>of().iterator();
+        }
+
+        try (Connection connection = connectionFactory.openConnection(session)) {
+            List<YdbTablePath> paths = listRemoteTablePaths(connection);
+            throwIfAmbiguous(paths);
+
+            Map<String, ImmutableList.Builder<ColumnMetadata>> columnsByTable = new LinkedHashMap<>();
+            paths.stream()
+                    .distinct()
+                    .forEach(path -> columnsByTable.put(path.value(), ImmutableList.builder()));
+
+            DatabaseMetaData metadata = connection.getMetaData();
+            try (ResultSet resultSet = metadata.getColumns(connection.getCatalog(), null, null, null)) {
+                while (resultSet.next()) {
+                    ImmutableList.Builder<ColumnMetadata> columns = columnsByTable.get(resultSet.getString("TABLE_NAME"));
+                    if (columns == null) {
+                        continue;
+                    }
+
+                    String columnName = resultSet.getString("COLUMN_NAME");
+                    JdbcTypeHandle typeHandle = new JdbcTypeHandle(
+                            getInteger(resultSet, "DATA_TYPE").orElseThrow(() -> new IllegalStateException("DATA_TYPE is null")),
+                            Optional.ofNullable(resultSet.getString("TYPE_NAME")),
+                            getInteger(resultSet, "COLUMN_SIZE"),
+                            getInteger(resultSet, "DECIMAL_DIGITS"),
+                            Optional.empty(),
+                            Optional.empty());
+                    boolean nullable = resultSet.getInt("NULLABLE") != columnNoNulls;
+                    Optional<String> comment = Optional.ofNullable(resultSet.getString("REMARKS"))
+                            .filter(value -> !value.isEmpty());
+                    toColumnMapping(session, connection, typeHandle).ifPresent(mapping -> columns.add(
+                            JdbcColumnHandle.builder()
+                                    .setColumnName(columnName)
+                                    .setJdbcTypeHandle(typeHandle)
+                                    .setColumnType(mapping.getType())
+                                    .setNullable(nullable)
+                                    .setComment(comment)
+                                    .build()
+                                    .getColumnMetadata()));
+                }
+            }
+
+            ImmutableList.Builder<RelationColumnsMetadata> relations = ImmutableList.builder();
+            columnsByTable.forEach((table, columnsBuilder) -> {
+                List<ColumnMetadata> columns = columnsBuilder.build();
+                if (!columns.isEmpty()) {
+                    relations.add(RelationColumnsMetadata.forTable(
+                            new SchemaTableName(DEFAULT_SCHEMA, table),
+                            columns));
+                }
+            });
+            return relations.build().iterator();
+        } catch (SQLException e) {
+            throw new TrinoException(JDBC_ERROR, "Failed to list YDB table columns", e);
         }
     }
 

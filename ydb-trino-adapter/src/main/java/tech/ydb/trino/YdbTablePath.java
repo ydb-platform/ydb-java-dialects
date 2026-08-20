@@ -27,11 +27,15 @@ record YdbTablePath(String value)
 
     static boolean isDataSystemTableName(String value)
     {
-        if (value == null || value.length() > MAX_COMPONENT_LENGTH || !value.endsWith(DATA_SYSTEM_TABLE_SUFFIX)) {
+        if (value == null || !value.endsWith(DATA_SYSTEM_TABLE_SUFFIX)) {
+            return false;
+        }
+        String tablePath = value.substring(0, value.length() - DATA_SYSTEM_TABLE_SUFFIX.length());
+        if (tablePath.isEmpty()) {
             return false;
         }
         try {
-            fromUserInput(value.substring(0, value.length() - DATA_SYSTEM_TABLE_SUFFIX.length()));
+            fromUserInput(tablePath);
             return true;
         } catch (TrinoException e) {
             return false;
@@ -51,7 +55,7 @@ record YdbTablePath(String value)
     private static Optional<YdbTablePath> parse(String value, boolean userInput)
     {
         if (value == null) {
-            throw invalidPath(value, validatePath(value), userInput);
+            throw invalidPath(value, "path must not be null", userInput);
         }
 
         String[] components = value.split("/", -1);
@@ -61,11 +65,6 @@ record YdbTablePath(String value)
                     return Optional.empty();
                 }
             }
-        }
-
-        String pathError = validatePath(value);
-        if (pathError != null) {
-            throw invalidPath(value, pathError, userInput);
         }
 
         for (String component : components) {
@@ -79,17 +78,6 @@ record YdbTablePath(String value)
             }
         }
         return Optional.of(new YdbTablePath(value));
-    }
-
-    private static String validatePath(String value)
-    {
-        if (value == null) {
-            return "path must not be null";
-        }
-        if (value.length() > MAX_COMPONENT_LENGTH) {
-            return "path is too long; must be at most " + MAX_COMPONENT_LENGTH + " characters";
-        }
-        return null;
     }
 
     private static String validateComponent(String component)

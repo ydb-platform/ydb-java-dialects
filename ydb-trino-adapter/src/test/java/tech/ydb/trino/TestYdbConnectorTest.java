@@ -1,5 +1,6 @@
 package tech.ydb.trino;
 
+import io.trino.Session;
 import io.trino.spi.type.Type;
 import io.trino.spi.type.VarcharType;
 import io.trino.testing.*;
@@ -61,6 +62,85 @@ public class TestYdbConnectorTest extends BaseConnectorTest {
     }
 
     @Test
+    public void testNestedTablePathLongerThanSingleComponentLimit() throws Exception {
+        String suffix = uniqueSuffix();
+        String parent = "long_" + "a".repeat(130) + suffix;
+        String directory = parent + "/branch_" + "b".repeat(90);
+        String sourceTable = directory + "/source_" + suffix;
+        String renamedTable = directory + "/renamed_" + suffix;
+
+        assertThat(sourceTable.length()).isGreaterThan(255);
+        createDirectory(directory);
+        try (AutoCloseable ignoredParent = () -> removeDirectory(parent);
+                AutoCloseable ignoredDirectory = () -> removeDirectory(directory);
+                AutoCloseable ignoredSourceTable = () -> assertQuerySucceeds("DROP TABLE IF EXISTS \"" + sourceTable + "\"");
+                AutoCloseable ignoredRenamedTable = () -> assertQuerySucceeds("DROP TABLE IF EXISTS \"" + renamedTable + "\"")) {
+            assertQuerySucceeds("CREATE TABLE \"" + sourceTable + "\" (id bigint NOT NULL)");
+            assertThat(computeActual("SHOW TABLES").getOnlyColumnAsSet()).contains(sourceTable);
+            assertQueryReturnsEmptyResult("SELECT id FROM \"" + sourceTable + "\"");
+
+            assertQuerySucceeds("ALTER TABLE \"" + sourceTable + "\" RENAME TO \"" + renamedTable + "\"");
+            assertThat(computeActual("SHOW TABLES").getOnlyColumnAsSet())
+                    .contains(renamedTable)
+                    .doesNotContain(sourceTable);
+            assertQueryReturnsEmptyResult("SELECT id FROM \"" + renamedTable + "\"");
+        }
+    }
+
+    @Test
+    public void testDefaultSchemaRelationComments() throws Exception {
+        String namespace = "comments_" + uniqueSuffix();
+        String directory = namespace + "/eu";
+        String table = directory + "/orders";
+
+        createDirectory(directory);
+        try (AutoCloseable ignoredNamespace = () -> removeDirectory(namespace);
+                AutoCloseable ignoredDirectory = () -> removeDirectory(directory);
+                AutoCloseable ignoredTable = () -> assertQuerySucceeds("DROP TABLE IF EXISTS \"" + table + "\"")) {
+            assertQuerySucceeds("CREATE TABLE \"" + table + "\" (id bigint NOT NULL)");
+
+            assertThat(query(
+                    "SELECT schema_name, table_name, comment " +
+                            "FROM system.metadata.table_comments " +
+                            "WHERE catalog_name = 'ydb' AND schema_name = 'default'"))
+                    .skippingTypesCheck()
+                    .containsAll("VALUES ('default', '" + table + "', null)");
+            assertQueryReturnsEmptyResult(
+                    "SELECT table_name FROM system.metadata.table_comments " +
+                            "WHERE catalog_name = 'ydb' AND schema_name = 'missing'");
+        }
+    }
+
+    @Test
+    public void testDefaultSchemaBulkColumns() throws Exception {
+        String namespace = "columns_" + uniqueSuffix();
+        String directory = namespace + "/eu";
+        String table = directory + "/orders";
+        Session bulkSession = Session.builder(getSession())
+                .setCatalogSessionProperty("ydb", "bulk_list_columns", "true")
+                .build();
+
+        createDirectory(directory);
+        try (AutoCloseable ignoredNamespace = () -> removeDirectory(namespace);
+                AutoCloseable ignoredDirectory = () -> removeDirectory(directory);
+                AutoCloseable ignoredTable = () -> assertQuerySucceeds("DROP TABLE IF EXISTS \"" + table + "\"")) {
+            createRawMetadataTable(table);
+
+            assertQuery(
+                    bulkSession,
+                    "SELECT column_name, data_type, is_nullable " +
+                            "FROM information_schema.columns " +
+                            "WHERE table_schema = 'default' AND table_name = '" + table + "' " +
+                            "ORDER BY ordinal_position",
+                    "VALUES ('id', 'bigint', 'NO'), ('note', 'varchar', 'YES')");
+            assertQueryReturnsEmptyResult(
+                    bulkSession,
+                    "SELECT column_name FROM information_schema.columns " +
+                            "WHERE table_schema = 'missing' AND table_name = '" + table + "'");
+        }
+    }
+
+    @Test
     public void testInvalidTablePaths() {
         for (String table : List.of("/orders", "a//orders", "a/../orders", ".sys/orders")) {
             assertQueryFails("SELECT * FROM ydb.default.\"" + table + "\"", ".*Invalid YDB table path.*");
@@ -85,6 +165,17 @@ public class TestYdbConnectorTest extends BaseConnectorTest {
                     try (AutoCloseable ignoredSecondTable = () -> dropRawTable(secondTable)) {
                         assertQueryFails(
                                 "SELECT * FROM \"" + secondTable + "\"",
+                                ".*(?s)Ambiguous.*" + firstTable + ".*" + secondTable + ".*");
+                        Session bulkSession = Session.builder(getSession())
+                                .setCatalogSessionProperty("ydb", "bulk_list_columns", "true")
+                                .build();
+                        assertQueryFails(
+                                bulkSession,
+                                "SELECT table_name FROM information_schema.columns WHERE table_schema = 'default'",
+                                ".*(?s)Ambiguous.*" + firstTable + ".*" + secondTable + ".*");
+                        assertQueryFails(
+                                "SELECT table_name FROM system.metadata.table_comments " +
+                                        "WHERE catalog_name = 'ydb' AND schema_name = 'default'",
                                 ".*(?s)Ambiguous.*" + firstTable + ".*" + secondTable + ".*");
                     }
                 }
@@ -131,6 +222,14 @@ public class TestYdbConnectorTest extends BaseConnectorTest {
         try (Connection connection = DriverManager.getConnection(YdbQueryRunner.buildJdbcUrl(ydb));
                 Statement statement = connection.createStatement()) {
             statement.execute("CREATE TABLE `" + remoteTable + "` (id Int64 NOT NULL, PRIMARY KEY (id))");
+        }
+    }
+
+    private static void createRawMetadataTable(String remoteTable) throws SQLException {
+        try (Connection connection = DriverManager.getConnection(YdbQueryRunner.buildJdbcUrl(ydb));
+                Statement statement = connection.createStatement()) {
+            statement.execute("CREATE TABLE `" + remoteTable + "` " +
+                    "(id Int64 NOT NULL, note Utf8, PRIMARY KEY (id))");
         }
     }
 
