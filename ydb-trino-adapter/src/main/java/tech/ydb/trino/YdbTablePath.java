@@ -12,6 +12,7 @@ import static io.trino.spi.StandardErrorCode.INVALID_ARGUMENTS;
 record YdbTablePath(String value)
 {
     private static final int MAX_COMPONENT_LENGTH = 255;
+    private static final String DATA_SYSTEM_TABLE_SUFFIX = "$data";
     private static final Pattern COMPONENT = Pattern.compile("[A-Za-z0-9._-]+");
 
     static YdbTablePath fromUserInput(String value)
@@ -22,6 +23,19 @@ record YdbTablePath(String value)
     static Optional<YdbTablePath> fromRemoteMetadata(String value)
     {
         return parse(value, false);
+    }
+
+    static boolean isDataSystemTableName(String value)
+    {
+        if (value == null || value.length() > MAX_COMPONENT_LENGTH || !value.endsWith(DATA_SYSTEM_TABLE_SUFFIX)) {
+            return false;
+        }
+        try {
+            fromUserInput(value.substring(0, value.length() - DATA_SYSTEM_TABLE_SUFFIX.length()));
+            return true;
+        } catch (TrinoException e) {
+            return false;
+        }
     }
 
     String comparisonKey()

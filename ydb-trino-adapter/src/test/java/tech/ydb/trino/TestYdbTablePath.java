@@ -50,6 +50,20 @@ class TestYdbTablePath
     }
 
     @Test
+    void testDataSystemTableName()
+    {
+        assertThat(YdbTablePath.isDataSystemTableName("nation$data")).isTrue();
+
+        for (String path : new String[] {"$data", "a/$data", "a$bad$data", "a".repeat(251) + "$data"}) {
+            assertThat(YdbTablePath.isDataSystemTableName(path)).isFalse();
+            assertThatThrownBy(() -> YdbTablePath.fromUserInput(path))
+                    .isInstanceOf(TrinoException.class)
+                    .extracting(exception -> ((TrinoException) exception).getErrorCode())
+                    .isEqualTo(INVALID_ARGUMENTS.toErrorCode());
+        }
+    }
+
+    @Test
     void testRemoteMetadataPaths()
     {
         assertThat(YdbTablePath.fromRemoteMetadata(".sys/table")).isEmpty();

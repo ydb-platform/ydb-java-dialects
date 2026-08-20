@@ -276,7 +276,7 @@ public class YdbClient extends BaseJdbcClient {
         if (!DEFAULT_SCHEMA.equalsIgnoreCase(schemaTableName.getSchemaName())) {
             return Optional.empty();
         }
-        if (schemaTableName.getTableName().endsWith("$data")) {
+        if (YdbTablePath.isDataSystemTableName(schemaTableName.getTableName())) {
             return Optional.empty();
         }
 
