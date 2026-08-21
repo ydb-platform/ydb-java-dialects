@@ -19,7 +19,7 @@ import java.util.stream.Collectors;
 import static io.trino.testing.TestingSession.testSessionBuilder;
 
 public final class YdbQueryRunner {
-    public static final String TPCH_SCHEMA = "ydb";
+    public static final String DEFAULT_SCHEMA = YdbClient.DEFAULT_SCHEMA;
     public static final String YDB_HIDDEN_PK_COLUMN = TestingYdbJdbcClient.YDB_HIDDEN_PK_COLUMN;
 
     private YdbQueryRunner() {}
@@ -32,7 +32,7 @@ public final class YdbQueryRunner {
                 .addConnectorProperty("connection-url", jdbcUrl);
     }
 
-    private static String buildJdbcUrl(YdbHelperExtension ydb) {
+    static String buildJdbcUrl(YdbHelperExtension ydb) {
         StringBuilder url = new StringBuilder("jdbc:ydb:");
         url.append(ydb.useTls() ? "grpcs://" : "grpc://");
         url.append(ydb.endpoint());
@@ -51,7 +51,7 @@ public final class YdbQueryRunner {
         private Builder() {
             super(testSessionBuilder()
                     .setCatalog("ydb")
-                    .setSchema(TPCH_SCHEMA)
+                    .setSchema(DEFAULT_SCHEMA)
                     .build());
         }
 
