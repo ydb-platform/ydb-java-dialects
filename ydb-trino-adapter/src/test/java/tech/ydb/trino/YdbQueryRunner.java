@@ -9,7 +9,7 @@ import io.trino.testing.QueryRunner;
 import io.trino.tpch.TpchColumn;
 import io.trino.tpch.TpchTable;
 import org.intellij.lang.annotations.Language;
-import tech.ydb.test.junit5.YdbHelperExtension;
+import tech.ydb.test.integration.YdbHelper;
 
 import java.util.HashMap;
 import java.util.List;
@@ -24,15 +24,19 @@ public final class YdbQueryRunner {
 
     private YdbQueryRunner() {}
 
-    public static Builder builder(YdbHelperExtension ydb) {
-        String jdbcUrl = buildJdbcUrl(ydb);
-        return new Builder()
-                // Avoid temporary-table CTAS during INSERT; YDB does not support CREATE TABLE AS SELECT.
-                .addConnectorProperty("insert.non-transactional-insert.enabled", "true")
-                .addConnectorProperty("connection-url", jdbcUrl);
+    public static Builder builder(YdbHelper ydb) {
+        Builder builder = new Builder();
+        connectorProperties(ydb).forEach(builder::addConnectorProperty);
+        return builder;
     }
 
-    static String buildJdbcUrl(YdbHelperExtension ydb) {
+    static Map<String, String> connectorProperties(YdbHelper ydb) {
+        return ImmutableMap.of(
+                "insert.non-transactional-insert.enabled", "true",
+                "connection-url", buildJdbcUrl(ydb));
+    }
+
+    static String buildJdbcUrl(YdbHelper ydb) {
         StringBuilder url = new StringBuilder("jdbc:ydb:");
         url.append(ydb.useTls() ? "grpcs://" : "grpc://");
         url.append(ydb.endpoint());
