@@ -222,13 +222,12 @@ retries after uncertain commit outcomes.
 ### Merge-key slice validation (2026-08-20)
 
 GitHub Actions run
-[`32378003537`](https://github.com/ydb-platform/ydb-java-dialects/actions/runs/32378003537)
-at `33bfb8f` reported 338 tests, 0 failures, 0 errors, and 84 skipped. It
+[`32380080735`](https://github.com/ydb-platform/ydb-java-dialects/actions/runs/32380080735)
+at `f798b6a` reported 338 tests, 0 failures, 0 errors, and 84 skipped. It
 included Connector 288/80, Smoke 36/4, Federation 6/0, TablePath 5/0, and the
-port allocator 3/0. That run verified the physical-key rejection contract and
-the initial cross-sibling fixture. Final review added the complementary
-cross-sibling needed to catch either operation using either individual key;
-the required GitHub Actions check on PR #244 gates that final test-only change.
+port allocator 3/0. This final run includes both cross-sibling composite-key
+cases and verifies that neither operation can accidentally use only one key
+component.
 
 ### MERGE sub-batch slice validation (2026-08-20)
 
@@ -307,6 +306,16 @@ physical remote type preservation, nullability, and requested column order.
 `testTransactionalInsertStagingDoesNotPartiallyMutateTarget` compiles and is the
 pending real-YDB gate: with batch size one, a later duplicate-key failure must
 not leave an earlier row in the target, followed by a successful staged insert.
+
+### Clean integration snapshot validation (2026-08-21)
+
+The review branches were reconstructed from current `main` as one local
+integration branch without the three internal `docs/plans` artifacts. JDK 25
+compile succeeded. One focused run of `TestYdbTablePath`,
+`TestNonEphemeralPortsGenerator`, `TestYdbMergeSink`, `TestYdbRetryUtils`, and
+`TestYdbInsertStaging` reported 17 tests, 0 failures, 0 errors, and 0 skipped.
+These tests did not initialize Docker. The real-YDB transactional INSERT gate
+and complete module suite remain pending.
 
 ## P2 — remove remaining test debt
 
