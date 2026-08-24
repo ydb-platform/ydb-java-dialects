@@ -59,6 +59,41 @@ is the working local single-database example mounted by
 production, create `ydb_prod.properties` and a separate analytics catalog file
 using the secret references above.
 
+## Extended temporal types
+
+The connector enables the YDB JDBC 2.3.18 option
+`forceSignedDatetimes=true` for every connection. This makes the driver's wide
+temporal bindings available by default. Do not override this option to `false`
+in `connection-url`; URL options take precedence over the connection properties
+supplied by the connector.
+
+New Trino `date` columns are created as YDB `Date32`, and new Trino
+`timestamp(6)` columns are created as `Timestamp64`. Existing YDB temporal
+columns remain readable: `Date` and `Date32` map to Trino `date`, `Datetime` and
+`Datetime64` map to `timestamp(0)`, and `Timestamp` and `Timestamp64` map to
+`timestamp(6)`. The signed types preserve values before 1970; `Timestamp64`
+preserves microseconds. Predicates outside the physical YDB type's range remain
+in Trino instead of being bound to JDBC.
+
+The option is defined by the pinned driver in
+[`YdbOperationProperties`](https://github.com/ydb-platform/ydb-jdbc-driver/blob/v2.3.18/jdbc/src/main/java/tech/ydb/jdbc/settings/YdbOperationProperties.java#L60-L62).
+The YDB type name is `Timestamp64` (not `Timestampt64`); see the
+[primitive type reference](https://ydb.tech/docs/en/yql/reference/types/primitive).
+
+Atomic MERGE buffers input so a safe pre-commit retry can replay the complete
+operation while preserving the global delete/update/insert phase order. Each
+MERGE sink is limited to 64 MB of retained input by default. Operators may tune
+the finite limit per catalog:
+
+```properties
+merge.max-buffer-size=128MB
+```
+
+If the limit is exceeded, the connector fails the MERGE before opening its YDB
+connection or mutating the target. Trino 479's `ConnectorMergeSink` input method
+does not expose asynchronous backpressure, so this is a fail-fast bound rather
+than spill-to-disk.
+
 A table name is the complete YDB path relative to that catalog's configured
 database root. Select the only schema, then quote a nested path as one Trino
 identifier:
@@ -68,9 +103,12 @@ USE ydb_prod.default;
 SELECT * FROM "sales/eu/orders";
 ```
 
-Each YDB path component is limited to 255 characters. The connector does not
-apply that limit to the complete relative path, so a deeper path remains valid
-when every component is valid.
+Each YDB path component is limited to 255 characters, and a relative object
+path may contain at most 32 components. The connector does not apply the
+component-length limit to the complete relative path, so a deeper path remains
+valid within that hierarchy limit when every component is valid.
+See YDB's [database object naming rules](https://ydb.tech/docs/en/concepts/datamodel/cluster-namespace)
+and [database limits](https://ydb.tech/docs/en/concepts/limits-ydb).
 
 Catalogs may be joined, but the join is executed by Trino rather than pushed
 down to YDB:
@@ -82,9 +120,9 @@ JOIN ydb_analytics.default.customer_segment a ON p.customer_id = a.customer_id;
 ```
 
 Trino 479 permits one autocommit statement to read from several catalogs and
-write to one target catalog. This YDB federation topology has not yet been
-integration-tested and does not provide a cross-catalog snapshot or distributed
-commit.
+write to one target catalog. The integration fixture covers this topology with
+two independent YDB instances. It does not provide a cross-catalog snapshot or
+distributed commit.
 
 Cross-catalog reads may also run in an explicit transaction. YDB is a
 single-statement-write connector: when YDB is the first or only write target,

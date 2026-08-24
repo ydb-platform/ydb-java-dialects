@@ -19,7 +19,8 @@ import io.trino.spi.connector.ConnectorTransactionHandle;
 public record YdbPageSinkProvider(
         JdbcClient jdbcClient,
         RemoteQueryModifier remoteQueryModifier,
-        QueryBuilder queryBuilder
+        QueryBuilder queryBuilder,
+        YdbConfig config
 ) implements ConnectorPageSinkProvider {
     @Inject
     public YdbPageSinkProvider {
@@ -69,6 +70,7 @@ public record YdbPageSinkProvider(
                 jdbcClient,
                 pageSinkId,
                 remoteQueryModifier,
-                queryBuilder);
+                queryBuilder,
+                config.getMergeMaxBufferSize().toBytes());
     }
 }

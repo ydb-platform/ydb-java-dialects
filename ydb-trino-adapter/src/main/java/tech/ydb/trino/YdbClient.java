@@ -24,7 +24,10 @@ import io.trino.plugin.jdbc.JdbcOutputTableHandle;
 import io.trino.plugin.jdbc.JdbcSortItem;
 import io.trino.plugin.jdbc.JdbcTableHandle;
 import io.trino.plugin.jdbc.JdbcTypeHandle;
+import io.trino.plugin.jdbc.LongReadFunction;
+import io.trino.plugin.jdbc.LongWriteFunction;
 import io.trino.plugin.jdbc.PreparedQuery;
+import io.trino.plugin.jdbc.PredicatePushdownController;
 import io.trino.plugin.jdbc.QueryBuilder;
 import io.trino.plugin.jdbc.RemoteTableName;
 import io.trino.plugin.jdbc.WriteMapping;
@@ -43,6 +46,7 @@ import io.trino.spi.TrinoException;
 import io.trino.spi.connector.AggregateFunction;
 import io.trino.spi.connector.ColumnHandle;
 import io.trino.spi.connector.ColumnMetadata;
+import io.trino.spi.connector.ColumnPosition;
 import io.trino.spi.connector.ConnectorSession;
 import io.trino.spi.connector.ConnectorTableMetadata;
 import io.trino.spi.connector.RelationColumnsMetadata;
@@ -51,8 +55,8 @@ import io.trino.spi.connector.RetryMode;
 import io.trino.spi.connector.SchemaTableName;
 import io.trino.spi.connector.SortOrder;
 import io.trino.spi.expression.ConnectorExpression;
-import io.trino.spi.type.CharType;
 import io.trino.spi.type.DecimalType;
+import io.trino.spi.type.TimestampType;
 import io.trino.spi.type.Type;
 import io.trino.spi.type.VarcharType;
 
@@ -64,6 +68,8 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Types;
+import java.time.Instant;
+import java.time.LocalDate;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
@@ -90,8 +96,6 @@ import static io.trino.plugin.jdbc.PredicatePushdownController.FULL_PUSHDOWN;
 import static io.trino.plugin.jdbc.StandardColumnMappings.bigintColumnMapping;
 import static io.trino.plugin.jdbc.StandardColumnMappings.bigintWriteFunction;
 import static io.trino.plugin.jdbc.StandardColumnMappings.booleanColumnMapping;
-import static io.trino.plugin.jdbc.StandardColumnMappings.charWriteFunction;
-import static io.trino.plugin.jdbc.StandardColumnMappings.dateWriteFunctionUsingLocalDate;
 import static io.trino.plugin.jdbc.StandardColumnMappings.dateReadFunctionUsingLocalDate;
 import static io.trino.plugin.jdbc.StandardColumnMappings.decimalColumnMapping;
 import static io.trino.plugin.jdbc.StandardColumnMappings.doubleColumnMapping;
@@ -104,9 +108,8 @@ import static io.trino.plugin.jdbc.StandardColumnMappings.realWriteFunction;
 import static io.trino.plugin.jdbc.StandardColumnMappings.shortDecimalWriteFunction;
 import static io.trino.plugin.jdbc.StandardColumnMappings.smallintColumnMapping;
 import static io.trino.plugin.jdbc.StandardColumnMappings.smallintWriteFunction;
-import static io.trino.plugin.jdbc.StandardColumnMappings.timestampColumnMapping;
+import static io.trino.plugin.jdbc.StandardColumnMappings.fromTrinoTimestamp;
 import static io.trino.plugin.jdbc.StandardColumnMappings.timestampReadFunction;
-import static io.trino.plugin.jdbc.StandardColumnMappings.timestampWriteFunction;
 import static io.trino.plugin.jdbc.StandardColumnMappings.tinyintWriteFunction;
 import static io.trino.plugin.jdbc.StandardColumnMappings.varcharColumnMapping;
 import static io.trino.plugin.jdbc.StandardColumnMappings.varcharReadFunction;
@@ -122,18 +125,58 @@ import static io.trino.spi.type.IntegerType.INTEGER;
 import static io.trino.spi.type.RealType.REAL;
 import static io.trino.spi.type.SmallintType.SMALLINT;
 import static io.trino.spi.type.TimestampType.TIMESTAMP_MICROS;
+import static io.trino.spi.type.TimestampType.createTimestampType;
 import static io.trino.spi.type.TinyintType.TINYINT;
 import static io.trino.spi.type.VarcharType.createUnboundedVarcharType;
 import static io.trino.spi.type.VarcharType.createVarcharType;
 import static java.lang.Math.max;
 import static java.lang.String.format;
 import static java.sql.DatabaseMetaData.columnNoNulls;
+import static java.time.ZoneOffset.UTC;
 import static java.util.stream.Collectors.joining;
+import static tech.ydb.jdbc.YdbConst.SQL_KIND_PRIMITIVE;
 
 public class YdbClient extends BaseJdbcClient {
     static final String DEFAULT_SCHEMA = "default";
     private static final int YDB_DEFAULT_DECIMAL_PRECISION = 22;
     private static final int YDB_DEFAULT_DECIMAL_SCALE = 9;
+    private static final int YDB_DATE_TYPE = SQL_KIND_PRIMITIVE + 16;
+    private static final int YDB_DATETIME_TYPE = SQL_KIND_PRIMITIVE + 17;
+    private static final int YDB_TIMESTAMP_TYPE = SQL_KIND_PRIMITIVE + 18;
+    private static final int YDB_DATE32_TYPE = SQL_KIND_PRIMITIVE + 25;
+    private static final int YDB_DATETIME64_TYPE = SQL_KIND_PRIMITIVE + 26;
+    private static final int YDB_TIMESTAMP64_TYPE = SQL_KIND_PRIMITIVE + 27;
+    private static final TimestampType TIMESTAMP_SECONDS = createTimestampType(0);
+    private static final long YDB_DATE_MIN_EPOCH_DAY = LocalDate.of(1970, 1, 1).toEpochDay();
+    private static final long YDB_DATE_MAX_EPOCH_DAY_EXCLUSIVE = LocalDate.of(2106, 1, 1).toEpochDay();
+    private static final long YDB_SIGNED_DATE_MIN_EPOCH_DAY = LocalDate.of(-144168, 1, 1).toEpochDay();
+    private static final long YDB_SIGNED_DATE_MAX_EPOCH_DAY_EXCLUSIVE = LocalDate.of(148108, 1, 1).toEpochDay();
+    private static final long YDB_TIMESTAMP_MIN_EPOCH_MICRO = 0;
+    private static final long YDB_TIMESTAMP_MAX_EPOCH_MICRO_EXCLUSIVE = 4_291_747_200_000_000L;
+    private static final long YDB_SIGNED_TIMESTAMP_MIN_EPOCH_MICRO = -4_611_669_897_600_000_000L;
+    private static final long YDB_SIGNED_TIMESTAMP_MAX_EPOCH_MICRO_EXCLUSIVE = 4_611_669_811_199_999_999L;
+    private static final PredicatePushdownController YDB_DATE_PUSHDOWN = rangePushdown(
+            YDB_DATE_MIN_EPOCH_DAY,
+            YDB_DATE_MAX_EPOCH_DAY_EXCLUSIVE);
+    private static final PredicatePushdownController YDB_SIGNED_DATE_PUSHDOWN = rangePushdown(
+            YDB_SIGNED_DATE_MIN_EPOCH_DAY,
+            YDB_SIGNED_DATE_MAX_EPOCH_DAY_EXCLUSIVE);
+    private static final PredicatePushdownController YDB_TIMESTAMP_PUSHDOWN = rangePushdown(
+            YDB_TIMESTAMP_MIN_EPOCH_MICRO,
+            YDB_TIMESTAMP_MAX_EPOCH_MICRO_EXCLUSIVE);
+    private static final PredicatePushdownController YDB_SIGNED_TIMESTAMP_PUSHDOWN = rangePushdown(
+            YDB_SIGNED_TIMESTAMP_MIN_EPOCH_MICRO,
+            YDB_SIGNED_TIMESTAMP_MAX_EPOCH_MICRO_EXCLUSIVE);
+
+    private static PredicatePushdownController rangePushdown(long minimum, long maximumExclusive) {
+        return (session, domain) -> {
+            boolean hasUnsupportedBound = domain.getValues().getRanges().getOrderedRanges().stream()
+                    .flatMap(range -> Stream.concat(range.getLowValue().stream(), range.getHighValue().stream()))
+                    .map(Long.class::cast)
+                    .anyMatch(value -> value < minimum || value >= maximumExclusive);
+            return (hasUnsupportedBound ? DISABLE_PUSHDOWN : FULL_PUSHDOWN).apply(session, domain);
+        };
+    }
 
     private final ConnectorExpressionRewriter<ParameterizedExpression> connectorExpressionRewriter;
     private final AggregateFunctionRewriter<JdbcExpression, ParameterizedExpression> aggregateFunctionRewriter;
@@ -473,8 +516,8 @@ public class YdbClient extends BaseJdbcClient {
                         : typeHandle.columnSize().orElse(VarcharType.MAX_LENGTH);
                 yield Optional.of(varcharColumnMapping(length));
             }
-            case Types.DATE -> Optional.of(dateColumnMapping());
-            case Types.TIMESTAMP -> Optional.of(timestampColumnMapping());
+            case Types.DATE -> Optional.of(dateColumnMapping(typeHandle.jdbcTypeName().orElse("Date")));
+            case Types.TIMESTAMP -> Optional.of(timestampColumnMapping(typeHandle.jdbcTypeName().orElse("Timestamp")));
             default -> Optional.empty();
         };
 
@@ -505,18 +548,60 @@ public class YdbClient extends BaseJdbcClient {
                 FULL_PUSHDOWN);
     }
 
-    private static ColumnMapping dateColumnMapping() {
+    static ColumnMapping dateColumnMapping(String typeName) {
+        boolean signed = typeName.equalsIgnoreCase("Date32");
+        int jdbcType = signed ? YDB_DATE32_TYPE : YDB_DATE_TYPE;
         return ColumnMapping.longMapping(
                 DATE,
                 dateReadFunctionUsingLocalDate(),
-                dateWriteFunctionUsingLocalDate());
+                dateWriteFunction(jdbcType),
+                signed ? YDB_SIGNED_DATE_PUSHDOWN : YDB_DATE_PUSHDOWN);
     }
 
-    private static ColumnMapping timestampColumnMapping() {
+    private static LongWriteFunction dateWriteFunction(int jdbcType) {
+        return LongWriteFunction.of(jdbcType, (statement, index, value) ->
+                statement.setObject(index, LocalDate.ofEpochDay(value), jdbcType));
+    }
+
+    static ColumnMapping timestampColumnMapping(String typeName) {
+        return switch (typeName.toLowerCase(Locale.ENGLISH)) {
+            case "datetime" -> datetimeColumnMapping(YDB_DATETIME_TYPE, YDB_TIMESTAMP_PUSHDOWN);
+            case "datetime64" -> datetimeColumnMapping(YDB_DATETIME64_TYPE, YDB_SIGNED_TIMESTAMP_PUSHDOWN);
+            case "timestamp64" -> timestampColumnMapping(YDB_TIMESTAMP64_TYPE, YDB_SIGNED_TIMESTAMP_PUSHDOWN);
+            default -> timestampColumnMapping(YDB_TIMESTAMP_TYPE, YDB_TIMESTAMP_PUSHDOWN);
+        };
+    }
+
+    private static ColumnMapping datetimeColumnMapping(
+            int jdbcType,
+            PredicatePushdownController predicatePushdownController) {
+        return ColumnMapping.longMapping(
+                TIMESTAMP_SECONDS,
+                timestampReadFunction(TIMESTAMP_SECONDS),
+                LongWriteFunction.of(jdbcType, (statement, index, value) ->
+                        statement.setObject(index, fromTrinoTimestamp(value), jdbcType)),
+                predicatePushdownController);
+    }
+
+    private static ColumnMapping timestampColumnMapping(
+            int jdbcType,
+            PredicatePushdownController predicatePushdownController) {
+        LongReadFunction readFunction = (resultSet, columnIndex) -> {
+            Instant value = resultSet.getObject(columnIndex, Instant.class);
+            return Math.addExact(
+                    Math.multiplyExact(value.getEpochSecond(), 1_000_000),
+                    value.getNano() / 1_000);
+        };
         return ColumnMapping.longMapping(
                 TIMESTAMP_MICROS,
-                timestampReadFunction(TIMESTAMP_MICROS),
-                timestampWriteFunction(TIMESTAMP_MICROS));
+                readFunction,
+                timestampWriteFunction(jdbcType),
+                predicatePushdownController);
+    }
+
+    private static LongWriteFunction timestampWriteFunction(int jdbcType) {
+        return LongWriteFunction.of(jdbcType, (statement, index, value) ->
+                statement.setObject(index, fromTrinoTimestamp(value).toInstant(UTC), jdbcType));
     }
 
     @Override
@@ -551,14 +636,11 @@ public class YdbClient extends BaseJdbcClient {
         if (type instanceof VarcharType) {
             return WriteMapping.sliceMapping("Text", varcharWriteFunction());
         }
-        if (type instanceof CharType) {
-            return WriteMapping.sliceMapping("Text", charWriteFunction());
-        }
         if (type == DATE) {
-            return WriteMapping.longMapping("Date", dateWriteFunctionUsingLocalDate());
+            return WriteMapping.longMapping("Date32", dateWriteFunction(YDB_DATE32_TYPE));
         }
         if (type == TIMESTAMP_MICROS) {
-            return WriteMapping.longMapping("Timestamp", timestampWriteFunction(TIMESTAMP_MICROS));
+            return WriteMapping.longMapping("Timestamp64", timestampWriteFunction(YDB_TIMESTAMP64_TYPE));
         }
 
         throw new TrinoException(NOT_SUPPORTED, "Unsupported column type: " + type);
@@ -839,6 +921,36 @@ public class YdbClient extends BaseJdbcClient {
                 quoted(table),
                 getColumnDefinitionSql(session, column, remoteColumnName));
         execute(session, connection, sql);
+    }
+
+    @Override
+    public void addColumn(
+            ConnectorSession session,
+            JdbcTableHandle handle,
+            ColumnMetadata column,
+            ColumnPosition position
+    ) {
+        int maxAttempts = 10;
+        for (int attempt = 0; attempt < maxAttempts; attempt++) {
+            try {
+                super.addColumn(session, handle, column, position);
+                return;
+            }
+            catch (RuntimeException e) {
+                if (!YdbRetryUtils.isRetryable(e) || attempt == maxAttempts - 1) {
+                    throw e;
+                }
+
+                try {
+                    Thread.sleep(YdbRetryUtils.calculateBackoff(attempt));
+                }
+                catch (InterruptedException interrupted) {
+                    Thread.currentThread().interrupt();
+                    e.addSuppressed(interrupted);
+                    throw new TrinoException(JDBC_ERROR, "Interrupted while waiting to retry YDB ADD COLUMN", e);
+                }
+            }
+        }
     }
 
     @Override

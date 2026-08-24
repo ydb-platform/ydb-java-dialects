@@ -35,6 +35,7 @@ import java.util.Optional;
 import java.util.TreeMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import static io.trino.spi.StandardErrorCode.EXCEEDED_LOCAL_MEMORY_LIMIT;
 import static io.trino.spi.connector.ConnectorMergeSink.DELETE_OPERATION_NUMBER;
 import static io.trino.spi.connector.ConnectorMergeSink.INSERT_OPERATION_NUMBER;
 import static io.trino.spi.connector.ConnectorMergeSink.UPDATE_OPERATION_NUMBER;
@@ -111,6 +112,73 @@ class TestYdbMergeSink {
         assertThat(calls.batchExecutions).hasValue(1);
         assertThat(calls.commits).hasValue(0);
         assertThat(calls.rollbacks).hasValue(1);
+        assertThat(calls.closes).hasValue(1);
+    }
+
+    @Test
+    void testCleanupFailuresAreSuppressed() {
+        Calls calls = new Calls();
+        SQLException batchFailure = new SQLException("batch failed");
+        SQLException rollbackFailure = new SQLException("rollback failed");
+        SQLException closeFailure = new SQLException("close failed");
+        JdbcClient jdbcClient = jdbcClient(
+                calls,
+                List.of(connection(
+                        statement(calls, batchFailure),
+                        calls,
+                        null,
+                        rollbackFailure,
+                        closeFailure)));
+
+        assertThatThrownBy(mergeSink(jdbcClient)::finish)
+                .isInstanceOfSatisfying(TrinoException.class, exception -> {
+                    assertThat(exception.getCause()).isSameAs(batchFailure);
+                    assertThat(batchFailure.getSuppressed()).containsExactly(rollbackFailure, closeFailure);
+                });
+        assertThat(calls.rollbacks).hasValue(1);
+        assertThat(calls.closes).hasValue(1);
+    }
+
+    @Test
+    void testSetAutoCommitFailurePreservesCloseFailure() {
+        Calls calls = new Calls();
+        SQLException autoCommitFailure = new SQLException("setAutoCommit failed");
+        SQLException closeFailure = new SQLException("close failed");
+        Connection connection = proxy(Connection.class, (_, method, _) -> switch (method.getName()) {
+            case "setAutoCommit" -> throw autoCommitFailure;
+            case "close" -> {
+                calls.closes.incrementAndGet();
+                throw closeFailure;
+            }
+            default -> null;
+        });
+
+        assertThatThrownBy(mergeSink(jdbcClient(calls, List.of(connection)))::finish)
+                .isInstanceOfSatisfying(TrinoException.class, exception -> {
+                    assertThat(exception.getCause()).isSameAs(autoCommitFailure);
+                    assertThat(autoCommitFailure.getSuppressed()).containsExactly(closeFailure);
+                });
+        assertThat(calls.connections).hasValue(1);
+        assertThat(calls.rollbacks).hasValue(0);
+        assertThat(calls.closes).hasValue(1);
+    }
+
+    @Test
+    void testCloseFailureAfterCommitPreservesCommittedOutcome() {
+        Calls calls = new Calls();
+        SQLException closeFailure = new SQLException("close failed");
+        JdbcClient jdbcClient = jdbcClient(
+                calls,
+                List.of(connection(statement(calls, null), calls, null, null, closeFailure)));
+
+        assertThatThrownBy(mergeSink(jdbcClient)::finish)
+                .isInstanceOfSatisfying(TrinoException.class, exception -> {
+                    assertThat(exception).hasMessageContaining("committed, but closing its connection failed");
+                    assertThat(exception.getCause()).isSameAs(closeFailure);
+                });
+        assertThat(calls.connections).hasValue(1);
+        assertThat(calls.commits).hasValue(1);
+        assertThat(calls.rollbacks).hasValue(0);
         assertThat(calls.closes).hasValue(1);
     }
 
@@ -204,6 +272,35 @@ class TestYdbMergeSink {
         assertThat(closes).hasValue(1);
     }
 
+    @Test
+    void testRejectsInputBeyondBufferLimitBeforeMutation() {
+        Calls calls = new Calls();
+        ConnectorSession session = proxy(ConnectorSession.class, (_, method, _) ->
+                method.getName().equals("getProperty") ? 1000 : null);
+        Page page = insertPage(42);
+        YdbMergeSink sink = new YdbMergeSink(
+                null,
+                session,
+                mergeHandle(),
+                jdbcClient(calls, List.of()),
+                () -> 1,
+                RemoteQueryModifier.NONE,
+                null,
+                page.getRetainedSizeInBytes());
+
+        sink.storeMergedRows(page);
+        assertThatThrownBy(() -> sink.storeMergedRows(page))
+                .isInstanceOfSatisfying(TrinoException.class, exception -> {
+                    assertThat(exception.getErrorCode()).isEqualTo(EXCEEDED_LOCAL_MEMORY_LIMIT.toErrorCode());
+                    assertThat(exception).hasMessageContaining("merge.max-buffer-size");
+                });
+        assertThat(sink).extracting("bufferedPages").satisfies(value -> assertThat((List<?>) value).isEmpty());
+        assertThat(sink).extracting("bufferedBytes").isEqualTo(0L);
+        assertThatThrownBy(() -> sink.storeMergedRows(page)).isInstanceOf(IllegalStateException.class);
+        assertThatThrownBy(sink::finish).isInstanceOf(IllegalStateException.class);
+        assertThat(calls.connections).hasValue(0);
+    }
+
     private static YdbMergeSink mergeSink(JdbcClient jdbcClient) {
         return mergeSink(jdbcClient, 1000, insertPage(42));
     }
@@ -230,7 +327,8 @@ class TestYdbMergeSink {
                 jdbcClient,
                 () -> 1,
                 RemoteQueryModifier.NONE,
-                null);
+                null,
+                Long.MAX_VALUE);
         for (Page page : pages) {
             sink.storeMergedRows(page);
         }
@@ -270,6 +368,15 @@ class TestYdbMergeSink {
     }
 
     private static Connection connection(PreparedStatement statement, Calls calls, SQLException commitFailure) {
+        return connection(statement, calls, commitFailure, null, null);
+    }
+
+    private static Connection connection(
+            PreparedStatement statement,
+            Calls calls,
+            SQLException commitFailure,
+            SQLException rollbackFailure,
+            SQLException closeFailure) {
         return proxy(Connection.class, (_, method, _) -> switch (method.getName()) {
             case "setAutoCommit" -> null;
             case "prepareStatement" -> statement;
@@ -282,10 +389,16 @@ class TestYdbMergeSink {
             }
             case "rollback" -> {
                 calls.rollbacks.incrementAndGet();
+                if (rollbackFailure != null) {
+                    throw rollbackFailure;
+                }
                 yield null;
             }
             case "close" -> {
                 calls.closes.incrementAndGet();
+                if (closeFailure != null) {
+                    throw closeFailure;
+                }
                 yield null;
             }
             default -> null;

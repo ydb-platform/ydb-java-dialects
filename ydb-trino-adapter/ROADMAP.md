@@ -33,6 +33,37 @@ on 2026-08-20 at `619b33d` reported 336 tests: 0 failures, 0 errors, and
 the non-ephemeral port allocator 3/0/0/0, Connector 286/80, Smoke 36/4, and
 TablePath 5/0.
 
+## Extended temporal contract
+
+The pinned YDB JDBC driver is 2.3.18. Its extended temporal mode is controlled
+by `forceSignedDatetimes`, declared by
+[`YdbOperationProperties.FORCE_NEW_DATETYPES`](https://github.com/ydb-platform/ydb-jdbc-driver/blob/v2.3.18/jdbc/src/main/java/tech/ydb/jdbc/settings/YdbOperationProperties.java#L60-L62),
+and defaults to `false` in the driver. The connector now supplies
+`forceSignedDatetimes=true` by default. An explicit value in the JDBC URL still
+wins over supplied connection properties and must not be set to `false` for
+this connector contract.
+
+- new Trino `date` writes and DDL use YDB `Date32`;
+- new Trino `timestamp(6)` writes and DDL use YDB `Timestamp64`;
+- existing `Date`/`Date32`, `Datetime`/`Datetime64`, and
+  `Timestamp`/`Timestamp64` columns map respectively to Trino `date`,
+  `timestamp(0)`, and `timestamp(6)`;
+- `Timestamp64` is read and written through JDBC `Instant` at UTC, avoiding the
+  driver's JVM-default-zone `LocalDateTime` conversion and preserving
+  microseconds;
+- predicate pushdown is limited to the range of the physical YDB temporal type,
+  so an out-of-range Trino constant is evaluated by Trino instead of being
+  bound to JDBC.
+
+The type name is `Timestamp64`, not `Timestampt64`. The contract and ranges
+come from the [YDB primitive type reference](https://ydb.tech/docs/en/yql/reference/types/primitive).
+The driver flag and signed mappings were introduced in
+[`ydb-jdbc-driver` PR #116](https://github.com/ydb-platform/ydb-jdbc-driver/pull/116).
+Focused unit coverage has 7 tests, and two real-YDB integration tests cover
+pre-1970 values, nulls, second-versus-microsecond precision, legacy and wide
+types in the same table, predicate binding, and the physical types created by
+Trino.
+
 ## Approved namespace and catalog contract
 
 The public namespace model was agreed on 2026-08-19:
@@ -71,10 +102,13 @@ SQL clients rather than as a directory tree.
 The connector must parse paths into components before producing YQL. It rejects
 absolute paths, empty components, leading/trailing or repeated `/`, `.` and
 `..`, dot-prefixed/system components, invalid YDB component names, and
-components longer than the 255-character YDB component limit. It does not impose
-an artificial 255-character limit on the complete relative path. The validated
-full path is quoted as one YQL identifier through the connector quoting helper.
-It is not assembled by call-site string concatenation.
+components longer than the 255-character YDB component limit. It also rejects
+paths deeper than YDB's 32-component database limit. It does not impose an
+artificial 255-character limit on the complete relative path. The validated full
+path is quoted as one YQL identifier through the connector quoting helper. It is
+not assembled by call-site string concatenation. These limits follow YDB's
+[database object naming rules](https://ydb.tech/docs/en/concepts/datamodel/cluster-namespace)
+and [database limits](https://ydb.tech/docs/en/concepts/limits-ydb).
 
 Trino 479 normalizes SQL identifiers to lowercase, including delimited
 identifiers. YDB paths are case-sensitive. A lowercase Trino name may resolve to
@@ -178,8 +212,10 @@ The rewrite requires the simple SQL shape recognized by the driver's
 `YqlBatcher`, complete primary-key equality for UPDATE/DELETE,
 `disablePrepareDataQuery=false`, `disableAutoPreparedBatches=false`, and no
 query modifier that changes the recognized shape. In particular, the default
-blank `query.comment-format` preserves batching; a configured remote-query
-comment has not yet been verified.
+blank `query.comment-format` preserves batching. A pinned-driver parser test
+also verifies that Trino's trailing block-comment shape preserves automatic
+batch recognition for the connector's DELETE, UPDATE, and INSERT SQL. This does
+not instrument or count real remote requests.
 
 1. The focused MERGE contract test now uses a composite metadata primary key,
    a non-key leading visible column, and two cross-sibling rows covering both
@@ -203,15 +239,22 @@ comment has not yet been verified.
    chunks without intermediate commits. It scans the original pages by phase
    instead of retaining operation-specific pages and position arrays, and
    releases the original pages after the terminal outcome. The complete input
-   is still buffered through internal retries, and the row limit is not a byte
-   or serialized-request limit; no bounded-memory claim is made yet.
+   remains buffered through internal retries, but retained input is now bounded
+   to 64 MB per sink by default through the configurable
+   `merge.max-buffer-size`. Exceeding the limit fails before a connection is
+   opened or YDB is mutated. `ConnectorMergeSink.storeMergedRows` returns
+   `void`, so this is a fail-fast bound rather than asynchronous backpressure or
+   spill-to-disk. The JDBC row limit is still not a byte or serialized-request
+   limit.
 5. In-memory lifecycle tests inject a retryable failure after one sub-batch and
    verify complete replay on a fresh connection, then inject a retryable commit
    failure and verify no replay, rollback/close cleanup, and preservation of
    the original exception. Mixed-operation coverage verifies phase ordering,
    composite row-id keys, original update-channel mapping, row-bounded chunks,
-   one final commit, and rejection of an unknown update case before remote
-   mutation. Extend rollback-failure suppression separately.
+   one final commit, rejection of an unknown update case before remote mutation,
+   the retained-memory boundary before remote mutation, successful-commit close
+   failure handling, and suppression of rollback/close failures without
+   replacing the original SQL failure.
 
 **Exit criterion:** retain the green inherited `testMerge*` suite, cover the
 physical composite-key and rejection contracts, and demonstrate the chosen
@@ -271,12 +314,15 @@ does not replace the inherited real-YDB MERGE suite or the full module suite.
   source columns' physical JDBC type names/nullability and a collision-safe
   hidden `BigSerial` primary key. Trino still performs one final
   `INSERT ... SELECT` into the target and drops the staging table. A real-YDB
-  atomicity test is present but has not run because local Colima is stopped;
-  no transactional INSERT support claim is made yet.
+  atomicity test verifies that a duplicate-key failure in a staged insert does
+  not partially mutate the target and that a following valid staged insert
+  succeeds.
 - Focused unit tests now cover status classification, interrupted backoff while
   preserving the final SQL failure as the cause, pre-commit connection cleanup,
-  and failure after commit. Rollback-failure suppression remains to be added.
-- Apply and verify the P0 memory/backpressure limits for buffered merge pages.
+  failure after commit, and suppression of rollback/close failures without
+  replacing the original SQL failure.
+- Exercise and tune the MERGE memory limit with a production-scale workload;
+  the unit boundary is covered, but spill-to-disk is not implemented.
 
 ### Retry-classification slice validation (2026-08-20)
 
@@ -304,8 +350,9 @@ reported 1 test, 0 failures, 0 errors, and 0 skipped without initializing
 Docker; it verifies full-path quoting, collision-safe staging-key generation,
 physical remote type preservation, nullability, and requested column order.
 `testTransactionalInsertStagingDoesNotPartiallyMutateTarget` compiles and is the
-pending real-YDB gate: with batch size one, a later duplicate-key failure must
-not leave an earlier row in the target, followed by a successful staged insert.
+real-YDB gate: with batch size one, a later duplicate-key failure does not leave
+an earlier row in the target, followed by a successful staged insert. The gate
+passed as part of the complete local suite on 2026-08-24.
 
 ### Clean integration snapshot validation (2026-08-21)
 
@@ -315,7 +362,26 @@ compile succeeded. One focused run of `TestYdbTablePath`,
 `TestNonEphemeralPortsGenerator`, `TestYdbMergeSink`, `TestYdbRetryUtils`, and
 `TestYdbInsertStaging` reported 17 tests, 0 failures, 0 errors, and 0 skipped.
 These tests did not initialize Docker. The real-YDB transactional INSERT gate
-and complete module suite remain pending.
+and complete module suite were still pending at that snapshot.
+
+### Local readiness audit validation (2026-08-21)
+
+A fresh JDK 25 no-Docker run after the readiness fixes reported 24 tests,
+0 failures, 0 errors, and 0 skipped. It includes 10 MERGE lifecycle/resource
+tests, six path tests, three port-allocation tests, two retry-classification
+tests, and one test each for INSERT staging, date predicate control, and pinned
+JDBC auto-batch parsing. The real-YDB focused gates and complete module suite
+were still pending at that audit snapshot.
+
+### Complete local validation (2026-08-24)
+
+A JDK 25 `clean test` run with Testcontainers and Colima reported 364 tests,
+0 failures, 0 errors, and 84 skipped, leaving 280 passed. It included Connector
+291/80, Smoke 36/4, Federation 6/0, ColumnMappings 8/0, MergeSink 10/0,
+TablePath 6/0, NonEphemeralPorts 3/0, RetryUtils 2/0, and one test each for
+INSERT staging and pinned JDBC batching. This is a local compatibility result
+for the unpinned YDB test-helper image that resolved on that run; it is not an
+image-version compatibility baseline.
 
 ## P2 — remove remaining test debt
 
@@ -326,16 +392,33 @@ unsupported behavior, record:
 2. an authoritative documentation link or tracked upstream issue;
 3. a focused negative test that proves the connector fails clearly.
 
-The existing negative-date, CHAR, cast-pushdown, and default-column overrides
-need this treatment. YDB `Date` starts at the Unix epoch; see
-[primitive types](https://ydb.tech/docs/en/yql/reference/types/primitive).
+The former false negative-date declaration has been removed: Trino-created
+columns use `Date32`, while legacy YDB `Date` predicates outside 1970-01-01
+through 2105-12-31 remain in Trino. CHAR is rejected with the focused inherited
+contract (`Unsupported column type: char(3)`) because YDB has no fixed-width
+string primitive and mapping it to `Text` would lose Trino padding semantics.
+A YDB-native fixture replaces the former empty default-column INSERT override.
+
+### Capability audit (Trino 479)
+
+| Behavior group | Declaration and verified reason |
+| --- | --- |
+| schema DDL and cross-schema rename | false: `default` is a virtual, fixed root schema; focused namespace and federation tests cover the boundary |
+| TRUNCATE | false by the target connector contract; the inherited unsupported branch verifies `NOT_SUPPORTED` |
+| ARRAY, MAP, ROW | false: YDB container types cannot be table column types; inherited unsupported data-mapping branches cover writes ([YDB containers](https://ydb.tech/docs/en/yql/reference/types/containers)) |
+| column/table comments and add-column comments | false: the YDB table DDL used by the connector has no Trino comment contract; inherited negative branches verify clear rejection |
+| add-column position, rename column, set column type | false: current YDB column DDL documents add, option changes, and drop, but no `FIRST`/`AFTER`, rename-column, or type-change form ([changing columns](https://ydb.tech/docs/en/yql/reference/syntax/alter_table/columns)) |
+| views and materialized views | false: although current YDB has `CREATE VIEW`, it requires YDB-specific definition/security handling that the connector does not model; no view SPI implementation is present ([CREATE VIEW](https://ydb.tech/docs/en/yql/reference/syntax/create-view)) |
+| default column values | false: Trino 479 exposes one catalog capability across CREATE, ADD, INSERT, MERGE, SET, and DROP. A seven-test real-YDB audit produced 1 pass, 3 failures, and 3 errors: YDB rejects `DEFAULT NULL`, MERGE staging does not preserve omitted defaults, and Base JDBC implements neither SET nor DROP. The inherited `testCreateTableWithDefaultColumn` negative branch and the positive YDB-native insert fixture define the current boundary. YDB itself supports literal defaults on row tables ([CREATE TABLE](https://ydb.tech/docs/en/yql/reference/syntax/create_table)) |
+| add NOT NULL column | false: real YDB rejects adding a non-null column without a default even to an empty table, while the inherited Trino contract requires that statement; the connector rejects it before remote mutation |
 
 ## Later capability work
 
 - List/Dict/Struct mappings for Trino ARRAY/MAP/ROW;
 - views, comments, rename column, and type changes after checking current YQL
   semantics;
-- transactional INSERT/staging instead of direct non-transactional writes.
+- preserve omitted defaults through INSERT/MERGE staging before advertising
+  Trino's coarse `DEFAULT_COLUMN_VALUE` capability.
 
 ## Validation ladder
 

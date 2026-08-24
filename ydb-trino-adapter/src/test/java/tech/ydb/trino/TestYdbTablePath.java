@@ -48,6 +48,25 @@ class TestYdbTablePath
     }
 
     @Test
+    void testPathDepth()
+    {
+        String maximumDepthPath = "a/".repeat(31) + "a";
+        String excessiveDepthPath = maximumDepthPath + "/a";
+
+        assertThat(YdbTablePath.fromUserInput(maximumDepthPath).value()).isEqualTo(maximumDepthPath);
+        assertThatThrownBy(() -> YdbTablePath.fromUserInput(excessiveDepthPath))
+                .isInstanceOf(TrinoException.class)
+                .hasMessageContaining("too deep")
+                .extracting(exception -> ((TrinoException) exception).getErrorCode())
+                .isEqualTo(INVALID_ARGUMENTS.toErrorCode());
+
+        assertThatThrownBy(() -> YdbTablePath.fromRemoteMetadata(excessiveDepthPath))
+                .isInstanceOf(TrinoException.class)
+                .extracting(exception -> ((TrinoException) exception).getErrorCode())
+                .isEqualTo(JDBC_ERROR.toErrorCode());
+    }
+
+    @Test
     void testDataSystemTableName()
     {
         assertThat(YdbTablePath.isDataSystemTableName("nation$data")).isTrue();

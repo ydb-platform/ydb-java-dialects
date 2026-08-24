@@ -38,9 +38,11 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.RejectedExecutionException;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.collect.ImmutableSet.toImmutableSet;
 import static io.trino.plugin.jdbc.JdbcErrorCode.JDBC_ERROR;
 import static io.trino.plugin.jdbc.JdbcWriteSessionProperties.getWriteBatchSize;
+import static io.trino.spi.StandardErrorCode.EXCEEDED_LOCAL_MEMORY_LIMIT;
 import static io.trino.spi.type.IntegerType.INTEGER;
 import static io.trino.spi.type.TinyintType.TINYINT;
 import static java.util.concurrent.CompletableFuture.completedFuture;
@@ -59,8 +61,10 @@ public class YdbMergeSink implements ConnectorMergeSink {
     private final ConnectorPageSinkId pageSinkId;
     private final RemoteQueryModifier remoteQueryModifier;
     private final int maxBatchSize;
+    private final long maxBufferedBytes;
 
     private final List<Page> bufferedPages = new ArrayList<>();
+    private long bufferedBytes;
     private boolean finished = false;
 
     public YdbMergeSink(
@@ -70,14 +74,17 @@ public class YdbMergeSink implements ConnectorMergeSink {
             JdbcClient jdbcClient,
             ConnectorPageSinkId pageSinkId,
             RemoteQueryModifier remoteQueryModifier,
-            @SuppressWarnings("unused") QueryBuilder queryBuilder
+            @SuppressWarnings("unused") QueryBuilder queryBuilder,
+            long maxBufferedBytes
     ) {
+        checkArgument(maxBufferedBytes > 0, "maxBufferedBytes must be greater than zero");
         this.session = session;
         this.mergeHandle = (JdbcMergeTableHandle) mergeTableHandle;
         this.jdbcClient = jdbcClient;
         this.pageSinkId = pageSinkId;
         this.remoteQueryModifier = remoteQueryModifier;
         this.maxBatchSize = getWriteBatchSize(session);
+        this.maxBufferedBytes = maxBufferedBytes;
     }
 
     @Override
@@ -85,17 +92,29 @@ public class YdbMergeSink implements ConnectorMergeSink {
         if (finished) {
             throw new IllegalStateException();
         }
+        long retainedBytes = page.getRetainedSizeInBytes();
+        if (retainedBytes > maxBufferedBytes - bufferedBytes) {
+            finished = true;
+            clearBufferedPages();
+            throw new TrinoException(
+                    EXCEEDED_LOCAL_MEMORY_LIMIT,
+                    "YDB MERGE buffered input exceeds merge.max-buffer-size of " + maxBufferedBytes + " bytes");
+        }
         bufferedPages.add(page);
+        bufferedBytes += retainedBytes;
     }
 
     @Override
     public CompletableFuture<Collection<Slice>> finish() {
+        if (finished) {
+            throw new IllegalStateException();
+        }
         finished = true;
         try {
             return finishWithRetry();
         }
         finally {
-            bufferedPages.clear();
+            clearBufferedPages();
         }
     }
 
@@ -113,8 +132,9 @@ public class YdbMergeSink implements ConnectorMergeSink {
                 commitAttempted = true;
                 connection.commit();
                 committed = true;
-                connection.close();
+                Connection committedConnection = connection;
                 connection = null;
+                committedConnection.close();
 
                 Slice value = Slices.allocate(Long.BYTES);
                 value.setLong(0, pageSinkId.getId());
@@ -508,6 +528,11 @@ public class YdbMergeSink implements ConnectorMergeSink {
     @Override
     public void abort() {
         finished = true;
+        clearBufferedPages();
+    }
+
+    private void clearBufferedPages() {
         bufferedPages.clear();
+        bufferedBytes = 0;
     }
 }

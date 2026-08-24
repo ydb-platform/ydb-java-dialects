@@ -14,7 +14,9 @@ import io.trino.plugin.jdbc.JdbcMetadataFactory;
 import io.trino.plugin.jdbc.QueryBuilder;
 import io.trino.plugin.jdbc.credential.CredentialProvider;
 import io.trino.plugin.jdbc.logging.RemoteQueryModifier;
+
 import static com.google.inject.multibindings.OptionalBinder.newOptionalBinder;
+import static io.airlift.configuration.ConfigBinder.configBinder;
 
 public class TestingYdbJdbcModule implements Module {
 
@@ -27,6 +29,7 @@ public class TestingYdbJdbcModule implements Module {
 
         binder.bind(YdbPageSinkProvider.class).in(Scopes.SINGLETON);
         binder.bind(YdbConnector.class).in(Scopes.SINGLETON);
+        configBinder(binder).bindConfig(YdbConfig.class);
     }
 
     @Provides

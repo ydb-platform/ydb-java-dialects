@@ -6,7 +6,10 @@ import io.trino.plugin.base.session.SessionPropertiesProvider;
 import io.trino.plugin.jdbc.JdbcConnector;
 import io.trino.plugin.jdbc.JdbcTransactionManager;
 import io.trino.plugin.jdbc.TablePropertiesProvider;
-import io.trino.spi.connector.*;
+import io.trino.spi.connector.ConnectorAccessControl;
+import io.trino.spi.connector.ConnectorCapabilities;
+import io.trino.spi.connector.ConnectorPageSourceProvider;
+import io.trino.spi.connector.ConnectorSplitManager;
 import io.trino.spi.function.table.ConnectorTableFunction;
 import io.trino.spi.procedure.Procedure;
 
@@ -16,7 +19,6 @@ import java.util.Set;
 import static com.google.common.collect.Sets.immutableEnumSet;
 import static io.trino.spi.connector.ConnectorCapabilities.NOT_NULL_COLUMN_CONSTRAINT;
 
-@SuppressWarnings("all")
 public class YdbConnector extends JdbcConnector {
     @Inject
     public YdbConnector(

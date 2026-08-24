@@ -3,7 +3,11 @@ package tech.ydb.trino;
 import io.trino.Session;
 import io.trino.spi.type.Type;
 import io.trino.spi.type.VarcharType;
-import io.trino.testing.*;
+import io.trino.testing.BaseConnectorTest;
+import io.trino.testing.MaterializedResult;
+import io.trino.testing.QueryRunner;
+import io.trino.testing.TestingConnectorBehavior;
+import io.trino.testing.sql.TestTable;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
@@ -12,9 +16,12 @@ import tech.ydb.test.junit5.YdbHelperExtension;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.UUID;
@@ -219,7 +226,7 @@ public class TestYdbConnectorTest extends BaseConnectorTest {
             assertQueryFails(
                     transactionalInsert,
                     "INSERT INTO \"" + table + "\" VALUES (2), (1)",
-                    "(?is).*constraint violation.*");
+                    "(?is).*PRECONDITION_FAILED.*conflict with existing key.*");
             assertQuery("SELECT id FROM \"" + table + "\"", "VALUES CAST(1 AS BIGINT)");
 
             assertUpdate(transactionalInsert, "INSERT INTO \"" + table + "\" VALUES (2), (3)", 2);
@@ -310,6 +317,63 @@ public class TestYdbConnectorTest extends BaseConnectorTest {
         }
     }
 
+    @Test
+    public void testExtendedTemporalTypesPreserveRangeAndPrecision() throws Exception {
+        String table = "extended_temporal_" + uniqueSuffix();
+        executeRaw("CREATE TABLE `" + table + "` (" +
+                "id Int64 NOT NULL, wide_date Date32, wide_datetime Datetime64, wide_timestamp Timestamp64, " +
+                "legacy_date Date, legacy_datetime Datetime, legacy_timestamp Timestamp, PRIMARY KEY (id))");
+        try {
+            assertUpdate("INSERT INTO \"" + table + "\" VALUES " +
+                    "(1, DATE '1969-12-31', TIMESTAMP '1969-12-31 23:59:58', " +
+                    "TIMESTAMP '1969-12-31 23:59:58.123456', NULL, NULL, NULL), " +
+                    "(2, DATE '2001-02-03', TIMESTAMP '2001-02-03 04:05:06', " +
+                    "TIMESTAMP '2001-02-03 04:05:06.654321', DATE '2001-02-03', " +
+                    "TIMESTAMP '2001-02-03 04:05:06', TIMESTAMP '2001-02-03 04:05:06.654321'), " +
+                    "(3, NULL, NULL, NULL, NULL, NULL, NULL)", 3);
+
+            assertQuery(
+                    "SELECT * FROM \"" + table + "\" ORDER BY id",
+                    "VALUES " +
+                            "(CAST(1 AS BIGINT), DATE '1969-12-31', CAST(TIMESTAMP '1969-12-31 23:59:58' AS TIMESTAMP(0)), " +
+                            "TIMESTAMP '1969-12-31 23:59:58.123456', NULL, NULL, NULL), " +
+                            "(CAST(2 AS BIGINT), DATE '2001-02-03', CAST(TIMESTAMP '2001-02-03 04:05:06' AS TIMESTAMP(0)), " +
+                            "TIMESTAMP '2001-02-03 04:05:06.654321', DATE '2001-02-03', " +
+                            "CAST(TIMESTAMP '2001-02-03 04:05:06' AS TIMESTAMP(0)), " +
+                            "TIMESTAMP '2001-02-03 04:05:06.654321'), " +
+                            "(CAST(3 AS BIGINT), NULL, NULL, NULL, NULL, NULL, NULL)");
+            assertQuery(
+                    "SELECT id FROM \"" + table + "\" " +
+                            "WHERE wide_date = DATE '1969-12-31' " +
+                            "AND wide_datetime = TIMESTAMP '1969-12-31 23:59:58' " +
+                            "AND wide_timestamp = TIMESTAMP '1969-12-31 23:59:58.123456'",
+                    "VALUES CAST(1 AS BIGINT)");
+        }
+        finally {
+            dropRawTable(table);
+        }
+    }
+
+    @Test
+    public void testCreatedTemporalColumnsUseWideYdbTypes() throws Exception {
+        String table = "created_temporal_" + uniqueSuffix();
+        try {
+            assertUpdate("CREATE TABLE \"" + table + "\" AS SELECT " +
+                    "DATE '1969-12-31' AS wide_date, " +
+                    "TIMESTAMP '1969-12-31 23:59:58.123456' AS wide_timestamp", 1);
+
+            assertThat(rawColumnTypes(table))
+                    .containsEntry("wide_date", "Date32")
+                    .containsEntry("wide_timestamp", "Timestamp64");
+            assertQuery(
+                    "SELECT wide_date, wide_timestamp FROM \"" + table + "\"",
+                    "VALUES (DATE '1969-12-31', TIMESTAMP '1969-12-31 23:59:58.123456')");
+        }
+        finally {
+            assertQuerySucceeds("DROP TABLE IF EXISTS \"" + table + "\"");
+        }
+    }
+
     private static String uniqueSuffix() {
         return UUID.randomUUID().toString().replace("-", "");
     }
@@ -357,6 +421,28 @@ public class TestYdbConnectorTest extends BaseConnectorTest {
         }
     }
 
+    private static void executeRaw(String sql) {
+        try (Connection connection = DriverManager.getConnection(YdbQueryRunner.buildJdbcUrl(ydb));
+                Statement statement = connection.createStatement()) {
+            statement.execute(sql);
+        } catch (SQLException e) {
+            throw new RuntimeException("Failed to execute YDB test DDL", e);
+        }
+    }
+
+    private static Map<String, String> rawColumnTypes(String table) throws SQLException {
+        Map<String, String> types = new LinkedHashMap<>();
+        try (Connection connection = DriverManager.getConnection(YdbQueryRunner.buildJdbcUrl(ydb));
+                ResultSet columns = connection.getMetaData().getColumns(connection.getCatalog(), null, null, null)) {
+            while (columns.next()) {
+                if (columns.getString("TABLE_NAME").equals(table)) {
+                    types.put(columns.getString("COLUMN_NAME"), columns.getString("TYPE_NAME"));
+                }
+            }
+        }
+        return types;
+    }
+
     @Override
     protected boolean hasBehavior(TestingConnectorBehavior connectorBehavior) {
         return switch (connectorBehavior) {
@@ -390,38 +476,24 @@ public class TestYdbConnectorTest extends BaseConnectorTest {
 
     @Test
     @Override
-    public void testInsertNegativeDate() {
-        // YDB не поддерживает, negative daysSinceEpoch
-    }
-
-    @Test
-    @Override
-    public void testDateYearOfEraPredicate() {
-        // YDB не поддерживает, negative daysSinceEpoch
-    }
-
-    @Test
-    @Override
-    public void testCreateTableAsSelectNegativeDate() {
-        // YDB не поддерживает, negative daysSinceEpoch
-    }
-
-    @Test
-    @Override
     public void testCharVarcharComparison() {
-        // CHAR хранится как String без паддинга
+        // YDB has no fixed-width string primitive. Mapping CHAR to Text loses its width in JDBC metadata
+        // and violates Trino padding/coercion semantics: https://ydb.tech/docs/en/yql/reference/types/primitive
+        assertThatThrownBy(super::testCharVarcharComparison)
+                .hasMessage("Unsupported column type: char(3)");
     }
 
-    @Test
     @Override
-    public void testVarcharCastToDateInPredicate() {
-        // YDB не поддерживает такой pushdown/cast
-    }
-
-    @Test
-    @Override
-    public void testInsertForDefaultColumn() {
-        // Requires createTableWithDefaultColumns() which is connector-specific and not supported yet
+    protected TestTable createTableWithDefaultColumns() {
+        return new TestTable(
+                TestYdbConnectorTest::executeRaw,
+                "test_insert_default_",
+                "(col_required Int64 NOT NULL, " +
+                        "col_nullable Int64, " +
+                        "col_default Int64 DEFAULT 43, " +
+                        "col_nonnull_default Int64 NOT NULL DEFAULT 42, " +
+                        "col_required2 Int64 NOT NULL, " +
+                        "PRIMARY KEY (col_required))");
     }
 
     @Override
@@ -441,7 +513,9 @@ public class TestYdbConnectorTest extends BaseConnectorTest {
 
     @Override
     protected Optional<DataMappingTestSetup> filterDataMappingSmokeTestData(BaseConnectorTest.DataMappingTestSetup dataMappingTestSetup) {
-        if (dataMappingTestSetup.getTrinoTypeName().equals("date")) {
+        if (dataMappingTestSetup.getTrinoTypeName().equals("char(3)")) {
+            return Optional.of(dataMappingTestSetup.asUnsupported());
+        } else if (dataMappingTestSetup.getTrinoTypeName().equals("date")) {
             return Optional.of(new DataMappingTestSetup(
                     dataMappingTestSetup.getTrinoTypeName(),
                     "DATE '2006-06-06'",
@@ -450,6 +524,14 @@ public class TestYdbConnectorTest extends BaseConnectorTest {
         } else if (dataMappingTestSetup.getTrinoTypeName().startsWith("time") || dataMappingTestSetup.getTrinoTypeName().equals("varbinary")) {
             // Нет time и varbinary в YQL
             return Optional.empty();
+        }
+        return Optional.of(dataMappingTestSetup);
+    }
+
+    @Override
+    protected Optional<DataMappingTestSetup> filterCaseSensitiveDataMappingTestData(DataMappingTestSetup dataMappingTestSetup) {
+        if (dataMappingTestSetup.getTrinoTypeName().equals("char(1)")) {
+            return Optional.of(dataMappingTestSetup.asUnsupported());
         }
         return Optional.of(dataMappingTestSetup);
     }

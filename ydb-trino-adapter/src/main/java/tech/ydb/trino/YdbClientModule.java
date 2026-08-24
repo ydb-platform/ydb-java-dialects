@@ -20,6 +20,7 @@ import tech.ydb.jdbc.YdbDriver;
 import java.util.Properties;
 
 import static com.google.inject.multibindings.OptionalBinder.newOptionalBinder;
+import static io.airlift.configuration.ConfigBinder.configBinder;
 
 public class YdbClientModule implements Module {
 
@@ -32,6 +33,7 @@ public class YdbClientModule implements Module {
 
         binder.bind(YdbPageSinkProvider.class).in(Scopes.SINGLETON);
         binder.bind(YdbConnector.class).in(Scopes.SINGLETON);
+        configBinder(binder).bindConfig(YdbConfig.class);
     }
 
     @Provides
@@ -55,6 +57,7 @@ public class YdbClientModule implements Module {
         Properties connectionProperties = new Properties();
         // Avoid the YDB JDBC 2.3.18 shared-context close/register race under concurrent connections.
         connectionProperties.setProperty("cacheConnectionsInDriver", "false");
+        connectionProperties.setProperty("forceSignedDatetimes", "true");
         return DriverConnectionFactory.builder(
                         new YdbDriver(),
                         config.getConnectionUrl(),

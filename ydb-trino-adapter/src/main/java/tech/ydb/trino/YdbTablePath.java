@@ -12,6 +12,7 @@ import static io.trino.spi.StandardErrorCode.INVALID_ARGUMENTS;
 record YdbTablePath(String value)
 {
     private static final int MAX_COMPONENT_LENGTH = 255;
+    private static final int MAX_PATH_DEPTH = 32;
     private static final String DATA_SYSTEM_TABLE_SUFFIX = "$data";
     private static final Pattern COMPONENT = Pattern.compile("[A-Za-z0-9._-]+");
 
@@ -65,6 +66,9 @@ record YdbTablePath(String value)
                     return Optional.empty();
                 }
             }
+        }
+        if (components.length > MAX_PATH_DEPTH) {
+            throw invalidPath(value, "paths are too deep; must contain at most " + MAX_PATH_DEPTH + " components", userInput);
         }
 
         for (String component : components) {
