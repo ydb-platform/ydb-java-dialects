@@ -6,16 +6,13 @@ import io.trino.testing.BaseConnectorTest;
 import io.trino.testing.MaterializedResult;
 import io.trino.testing.QueryRunner;
 import io.trino.testing.TestingConnectorBehavior;
+import io.trino.testing.sql.JdbcSqlExecutor;
 import io.trino.testing.sql.TestTable;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import tech.ydb.test.junit5.YdbHelperExtension;
 
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.SQLException;
-import java.sql.Statement;
 import java.util.Optional;
 import java.util.OptionalInt;
 
@@ -97,7 +94,7 @@ public class TestYdbConnectorTest extends BaseConnectorTest {
     @Override
     protected TestTable createTableWithDefaultColumns() {
         return new TestTable(
-                TestYdbConnectorTest::executeRaw,
+                new JdbcSqlExecutor(YdbQueryRunner.buildJdbcUrl(ydb)),
                 "test_insert_default_",
                 "(col_required Int64 NOT NULL, " +
                         "col_nullable Int64, " +
@@ -105,15 +102,6 @@ public class TestYdbConnectorTest extends BaseConnectorTest {
                         "col_nonnull_default Int64 NOT NULL DEFAULT 42, " +
                         "col_required2 Int64 NOT NULL, " +
                         "PRIMARY KEY (col_required))");
-    }
-
-    private static void executeRaw(String sql) {
-        try (Connection connection = DriverManager.getConnection(YdbQueryRunner.buildJdbcUrl(ydb));
-                Statement statement = connection.createStatement()) {
-            statement.execute(sql);
-        } catch (SQLException e) {
-            throw new RuntimeException("Failed to execute YDB test DDL", e);
-        }
     }
 
     @Override
