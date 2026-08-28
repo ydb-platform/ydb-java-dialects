@@ -17,6 +17,7 @@ import java.util.Optional;
 import java.util.OptionalInt;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 public class TestYdbConnectorTest extends BaseConnectorTest {
 
@@ -82,7 +83,10 @@ public class TestYdbConnectorTest extends BaseConnectorTest {
     @Test
     @Override
     public void testCharVarcharComparison() {
-        // CHAR хранится как String без паддинга
+        // YDB has no fixed-width string primitive. Mapping CHAR to Text loses its width in JDBC metadata
+        // and violates Trino padding/coercion semantics: https://ydb.tech/docs/en/yql/reference/types/primitive
+        assertThatThrownBy(super::testCharVarcharComparison)
+                .hasMessage("Unsupported column type: char(3)");
     }
 
     @Test
@@ -121,7 +125,9 @@ public class TestYdbConnectorTest extends BaseConnectorTest {
 
     @Override
     protected Optional<DataMappingTestSetup> filterDataMappingSmokeTestData(BaseConnectorTest.DataMappingTestSetup dataMappingTestSetup) {
-        if (dataMappingTestSetup.getTrinoTypeName().equals("date")) {
+        if (dataMappingTestSetup.getTrinoTypeName().equals("char(3)")) {
+            return Optional.of(dataMappingTestSetup.asUnsupported());
+        } else if (dataMappingTestSetup.getTrinoTypeName().equals("date")) {
             return Optional.of(new DataMappingTestSetup(
                     dataMappingTestSetup.getTrinoTypeName(),
                     "DATE '2006-06-06'",
@@ -130,6 +136,14 @@ public class TestYdbConnectorTest extends BaseConnectorTest {
         } else if (dataMappingTestSetup.getTrinoTypeName().startsWith("time") || dataMappingTestSetup.getTrinoTypeName().equals("varbinary")) {
             // Нет time и varbinary в YQL
             return Optional.empty();
+        }
+        return Optional.of(dataMappingTestSetup);
+    }
+
+    @Override
+    protected Optional<DataMappingTestSetup> filterCaseSensitiveDataMappingTestData(DataMappingTestSetup dataMappingTestSetup) {
+        if (dataMappingTestSetup.getTrinoTypeName().equals("char(1)")) {
+            return Optional.of(dataMappingTestSetup.asUnsupported());
         }
         return Optional.of(dataMappingTestSetup);
     }

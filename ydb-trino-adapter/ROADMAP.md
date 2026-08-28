@@ -79,9 +79,12 @@ unsupported behavior, record:
 2. an authoritative documentation link or tracked upstream issue;
 3. a focused negative test that proves the connector fails clearly.
 
-The existing negative-date, CHAR, and cast-pushdown overrides need this
-treatment. YDB `Date` starts at the Unix epoch; see
+The existing negative-date and cast-pushdown overrides need this treatment.
+YDB `Date` starts at the Unix epoch; see
 [primitive types](https://ydb.tech/docs/en/yql/reference/types/primitive).
+CHAR is rejected with the focused inherited contract
+(`Unsupported column type: char(3)`) because YDB has no fixed-width string
+primitive and mapping it to `Text` would lose Trino padding semantics.
 
 The former empty default-column INSERT override has been replaced with a
 YDB-native row-table fixture. The inherited `testInsertForDefaultColumn` now
