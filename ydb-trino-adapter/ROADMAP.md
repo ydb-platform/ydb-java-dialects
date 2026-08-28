@@ -70,6 +70,15 @@ runtime for the set-based implementation.
 - Define memory/backpressure limits for buffered merge pages; memory usage must
   not remain unreported.
 
+Concurrent `ALTER TABLE ... ADD COLUMN` statements on one table can be rejected
+by YDB with `OVERLOADED` (400060) and the specific issue `path is under
+operation` in `EPathStateAlter`. The inherited Trino test permits only this
+exact connector-specific conflict and still verifies every successfully added
+column. This contract does not add an `ADD COLUMN` retry; the existing generic
+`YdbClient.execute` retry masks the failure while it remains, so removing that
+same-connection retry is a dependency for exercising this boundary. See
+the [YDB status-code contract](https://ydb.tech/docs/en/reference/ydb-sdk/ydb-status-codes).
+
 ## P2 — remove remaining test debt
 
 Audit every inherited-test override and every `hasBehavior` exception. For each
@@ -85,6 +94,16 @@ YDB `Date` starts at the Unix epoch; see
 CHAR is rejected with the focused inherited contract
 (`Unsupported column type: char(3)`) because YDB has no fixed-width string
 primitive and mapping it to `Text` would lose Trino padding semantics.
+
+Nullable `ADD COLUMN` remains supported. The separate
+`SUPPORTS_ADD_COLUMN_NOT_NULL_CONSTRAINT` capability remains false because the
+connector explicitly rejects `ADD COLUMN ... NOT NULL`; Trino's inherited
+`testAddNotNullColumnToEmptyTable` verifies that rejection. Current YQL syntax
+documents `NOT NULL`, but the capability must not be enabled until the YDB
+image used by the test suite passes Trino's complete empty-table,
+non-empty-table, and nullability-metadata contract. Column defaults remain a
+separate capability. See YDB
+[`ALTER TABLE ... ADD COLUMN`](https://ydb.tech/docs/en/yql/reference/syntax/alter_table/columns).
 
 The former empty default-column INSERT override has been replaced with a
 YDB-native row-table fixture. The inherited `testInsertForDefaultColumn` now
