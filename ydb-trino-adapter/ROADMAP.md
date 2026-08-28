@@ -79,9 +79,19 @@ unsupported behavior, record:
 2. an authoritative documentation link or tracked upstream issue;
 3. a focused negative test that proves the connector fails clearly.
 
-The existing negative-date, CHAR, cast-pushdown, and default-column overrides
-need this treatment. YDB `Date` starts at the Unix epoch; see
+The existing negative-date, CHAR, and cast-pushdown overrides need this
+treatment. YDB `Date` starts at the Unix epoch; see
 [primitive types](https://ydb.tech/docs/en/yql/reference/types/primitive).
+
+The former empty default-column INSERT override has been replaced with a
+YDB-native row-table fixture. The inherited `testInsertForDefaultColumn` now
+verifies omitted literal defaults, explicit values and nulls, and reordered
+insert columns. YDB supports literal defaults on row-oriented tables, but the
+Trino 479 `SUPPORTS_DEFAULT_COLUMN_VALUE` behavior remains false because its
+group also advertises CREATE, ADD, NOT NULL/default, and MERGE contracts that
+the connector does not fully implement. SET and DROP have child capabilities
+that inherit from this behavior and also remain false. See YDB
+[`CREATE TABLE`](https://ydb.tech/docs/en/yql/reference/syntax/create_table).
 
 ## Later capability work
 
@@ -89,7 +99,8 @@ need this treatment. YDB `Date` starts at the Unix epoch; see
 - List/Dict/Struct mappings for Trino ARRAY/MAP/ROW;
 - views, comments, rename column, and type changes after checking current YQL
   semantics;
-- transactional INSERT/staging instead of direct non-transactional writes.
+- transactional INSERT/staging instead of direct non-transactional writes;
+- complete the Trino 479 default-column behavior group before advertising it.
 
 ## Validation ladder
 
