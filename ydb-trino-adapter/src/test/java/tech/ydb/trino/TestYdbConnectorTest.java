@@ -2,7 +2,12 @@ package tech.ydb.trino;
 
 import io.trino.spi.type.Type;
 import io.trino.spi.type.VarcharType;
-import io.trino.testing.*;
+import io.trino.testing.BaseConnectorTest;
+import io.trino.testing.MaterializedResult;
+import io.trino.testing.QueryRunner;
+import io.trino.testing.TestingConnectorBehavior;
+import io.trino.testing.sql.JdbcSqlExecutor;
+import io.trino.testing.sql.TestTable;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
@@ -86,10 +91,17 @@ public class TestYdbConnectorTest extends BaseConnectorTest {
         // YDB не поддерживает такой pushdown/cast
     }
 
-    @Test
     @Override
-    public void testInsertForDefaultColumn() {
-        // Requires createTableWithDefaultColumns() which is connector-specific and not supported yet
+    protected TestTable createTableWithDefaultColumns() {
+        return new TestTable(
+                new JdbcSqlExecutor(YdbQueryRunner.buildJdbcUrl(ydb)),
+                "test_insert_default_",
+                "(col_required Int64 NOT NULL, " +
+                        "col_nullable Int64, " +
+                        "col_default Int64 DEFAULT 43, " +
+                        "col_nonnull_default Int64 NOT NULL DEFAULT 42, " +
+                        "col_required2 Int64 NOT NULL, " +
+                        "PRIMARY KEY (col_required))");
     }
 
     @Override

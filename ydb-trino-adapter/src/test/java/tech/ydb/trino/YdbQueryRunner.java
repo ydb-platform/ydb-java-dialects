@@ -32,7 +32,7 @@ public final class YdbQueryRunner {
                 .addConnectorProperty("connection-url", jdbcUrl);
     }
 
-    private static String buildJdbcUrl(YdbHelperExtension ydb) {
+    static String buildJdbcUrl(YdbHelperExtension ydb) {
         StringBuilder url = new StringBuilder("jdbc:ydb:");
         url.append(ydb.useTls() ? "grpcs://" : "grpc://");
         url.append(ydb.endpoint());
