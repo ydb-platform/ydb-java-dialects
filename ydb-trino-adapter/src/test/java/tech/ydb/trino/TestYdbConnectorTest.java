@@ -32,6 +32,16 @@ public class TestYdbConnectorTest extends BaseConnectorTest {
     }
 
     @Override
+    protected void verifyConcurrentAddColumnFailurePermissible(Exception exception) {
+        // YDB serializes overlapping scheme operations on one table and reports the conflict as retryable OVERLOADED:
+        // https://ydb.tech/docs/en/reference/ydb-sdk/ydb-status-codes
+        assertThat(exception)
+                .hasMessageContaining("Status{code = OVERLOADED(code=400060)")
+                .hasMessageContaining("error: path is under operation")
+                .hasMessageContaining("state: EPathStateAlter");
+    }
+
+    @Override
     protected boolean hasBehavior(TestingConnectorBehavior connectorBehavior) {
         return switch (connectorBehavior) {
             case SUPPORTS_CREATE_VIEW,
