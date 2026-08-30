@@ -32,6 +32,13 @@ public final class YdbQueryRunner {
                 .addConnectorProperty("connection-url", jdbcUrl);
     }
 
+    public static Builder builder() {
+        String jdbcUrl = "jdbc:ydb:grpc://localhost:2136/local?useQueryService=true&sessionPoolMaxSize=10";
+        return new Builder()
+                .addConnectorProperty("insert.non-transactional-insert.enabled", "true")
+                .addConnectorProperty("connection-url", jdbcUrl);
+    }
+
     static String buildJdbcUrl(YdbHelperExtension ydb) {
         StringBuilder url = new StringBuilder("jdbc:ydb:");
         url.append(ydb.useTls() ? "grpcs://" : "grpc://");

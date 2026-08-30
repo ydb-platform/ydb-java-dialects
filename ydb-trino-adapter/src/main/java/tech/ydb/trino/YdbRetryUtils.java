@@ -10,7 +10,7 @@ import static io.trino.plugin.jdbc.JdbcErrorCode.JDBC_ERROR;
 
 public final class YdbRetryUtils {
     private static final int MAX_RETRIES = 10;
-    private static final long BASE_DELAY_MS = 20;
+    private static final long BASE_DELAY_MS = 5;
     private static final long MAX_DELAY_MS = 1000;
 
     private YdbRetryUtils() {

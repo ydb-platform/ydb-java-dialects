@@ -44,6 +44,11 @@
             <artifactId>ydb-jdbc-driver-shaded</artifactId>
             <version>${ydb.jdbc.version}</version>
         </dependency>
+        <dependency>
+            <groupId>com.zaxxer</groupId>
+            <artifactId>HikariCP</artifactId>
+            <version>5.0.1</version>
+        </dependency>
 
         <dependency>
             <groupId>io.trino</groupId>
