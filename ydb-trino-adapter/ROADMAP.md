@@ -74,9 +74,9 @@ Concurrent `ALTER TABLE ... ADD COLUMN` statements on one table can be rejected
 by YDB with `OVERLOADED` (400060) and the specific issue `path is under
 operation` in `EPathStateAlter`. The inherited Trino test permits only this
 exact connector-specific conflict and still verifies every successfully added
-column. This contract does not add an `ADD COLUMN` retry; the existing generic
-`YdbClient.execute` retry masks the failure while it remains, so removing that
-same-connection retry is a dependency for exercising this boundary. See
+column. This contract does not add an `ADD COLUMN` retry. The connector uses
+Trino's one-shot `BaseJdbcClient` statement execution for DDL, so a transient
+failure cannot replay a non-idempotent statement on the same connection. See
 the [YDB status-code contract](https://ydb.tech/docs/en/reference/ydb-sdk/ydb-status-codes).
 
 ## P2 — remove remaining test debt
