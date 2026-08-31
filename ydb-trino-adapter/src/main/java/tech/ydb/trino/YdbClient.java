@@ -499,11 +499,6 @@ public class YdbClient extends BaseJdbcClient {
     }
 
     @Override
-    protected void execute(ConnectorSession session, Connection connection, String query) throws SQLException {
-        YdbRetryUtils.withRetry(() -> super.execute(session, connection, query));
-    }
-
-    @Override
     public boolean supportsRetries() {
         // Disable Trino-retries to avoid temporary tables.
         return false;
@@ -525,34 +520,8 @@ public class YdbClient extends BaseJdbcClient {
     }
 
     @Override
-    public void dropColumn(ConnectorSession session, JdbcTableHandle handle, JdbcColumnHandle column) {
-        try (Connection connection = connectionFactory.openConnection(session)) {
-            String sql = format(
-                    "ALTER TABLE %s DROP COLUMN %s",
-                    quoted(handle.asPlainTable().getRemoteTableName().getTableName()),
-                    quoted(column.getColumnMetadata().getName()));
-            execute(session, connection, sql);
-        } catch (SQLException e) {
-            throw new TrinoException(JDBC_ERROR, e);
-        }
-    }
-
-    @Override
     public void setColumnType(ConnectorSession session, JdbcTableHandle handle, JdbcColumnHandle column, Type type) {
         throw new TrinoException(NOT_SUPPORTED, "This connector does not support setting column types");
-    }
-
-    @Override
-    public void dropNotNullConstraint(ConnectorSession session, JdbcTableHandle handle, JdbcColumnHandle column) {
-        try (Connection connection = connectionFactory.openConnection(session)) {
-            String sql = format(
-                    "ALTER TABLE %s ALTER COLUMN %s DROP NOT NULL",
-                    quoted(handle.asPlainTable().getRemoteTableName().getTableName()),
-                    quoted(column.getColumnMetadata().getName()));
-            execute(session, connection, sql);
-        } catch (SQLException e) {
-            throw new TrinoException(JDBC_ERROR, e);
-        }
     }
 
     @Override
@@ -567,23 +536,6 @@ public class YdbClient extends BaseJdbcClient {
             throw new TrinoException(NOT_SUPPORTED, "This connector does not support renaming tables across schemas");
         }
         super.renameTable(session, handle, newTableName);
-    }
-
-    @Override
-    protected void renameTable(
-            ConnectorSession session,
-            Connection connection,
-            String catalogName,
-            String remoteSchemaName,
-            String remoteTableName,
-            String newRemoteSchemaName,
-            String newRemoteTableName
-    ) throws SQLException {
-        // YDB rename is table-path only; ignore catalog/schema in the SQL.
-        execute(session, connection, format(
-                "ALTER TABLE %s RENAME TO %s",
-                quoted(remoteTableName),
-                quoted(newRemoteTableName)));
     }
 
     @Override
@@ -618,13 +570,7 @@ public class YdbClient extends BaseJdbcClient {
         if (!column.isNullable()) {
             throw new TrinoException(NOT_SUPPORTED, "This connector does not support adding not null columns");
         }
-        String columnName = column.getName();
-        String remoteColumnName = getIdentifierMapping().toRemoteColumnName(getRemoteIdentifiers(connection), columnName);
-        String sql = format(
-                "ALTER TABLE %s ADD %s",
-                quoted(table),
-                getColumnDefinitionSql(session, column, remoteColumnName));
-        execute(session, connection, sql);
+        super.addColumn(session, connection, table, column);
     }
 
     @Override
