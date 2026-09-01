@@ -1,11 +1,59 @@
 # YDB Trino Adapter — roadmap
 
-This roadmap tracks the connector against Trino 479
+This roadmap tracks the connector against Trino 483
 `BaseConnectorTest`/`BaseConnectorSmokeTest`. A green test is meaningful only
 when it exercises the advertised behavior. Empty overrides and false capability
 flags are test debt, not support.
 
-## Current DML status
+## Trino 483 dependency migration
+
+Trino 483 is the latest stable release published by both the
+[official Trino releases](https://github.com/trinodb/trino/releases/tag/483)
+and [Maven Central](https://repo.maven.apache.org/maven2/io/trino/trino-spi/maven-metadata.xml).
+It requires 64-bit Java 25, with a minimum patch level of 25.0.1; the module and
+CI continue to use Java 25.
+
+The 479-to-483 source migration consists of the following upstream contract
+changes:
+
+- `ColumnMetadata.getComment()` now returns `Optional<String>`;
+- JDBC merge rollback registration now accepts `Consumer<Runnable>`;
+- JDBC create-table rollback registration uses the same callback shape, and
+  destination-table cleanup is now separate from temporary-table cleanup; the
+  adapter inherits both implementations;
+- page-sink provider methods now receive optional table credentials, which are
+  intentionally unused because YDB writes remain authenticated through their
+  JDBC connection;
+- `MODULO_FUNCTION_NAME` replaces the deprecated
+  `MODULUS_FUNCTION_NAME` connector-expression constant.
+
+The SPI also removed the deprecated session-taking `Type.getObject` overload
+and `Type.appendTo`; the adapter already uses the retained
+`Type.getObject(Block, int)` method.
+
+`QueryBuilder` is source-identical between 479 and 483, and the relevant
+`JdbcPageSink`/`JdbcMergeSink` constructors are unchanged. The
+`TestingConnectorBehavior` enum has no additions, removals, renamed values, or
+default changes. The active inherited-test delta adds
+`testVarcharEqualityPushdownIgnoresTrailingSpaces`; it must pass against YDB
+before this upgrade can be declared green. The new materialized-view `WHEN
+STALE` tests remain skipped by the existing unsupported materialized-view
+capability. Trino 483 removes the inherited `testDropTableIfExists`,
+`testMaterializedViewWhenStale`, `testShowCreateInformationSchema`,
+`testShowCreateInformationSchemaTable`, `testShowInformationSchemaTables`, and
+`testSymbolAliasing` methods, plus the duplicate smoke-test information-schema
+method.
+
+Validation completed in this checkout with Temurin 25.0.2:
+
+- clean test compilation: 16 production sources and 5 test sources compiled;
+- package with tests skipped: successful;
+- dependency audit: every Trino release-coupled artifact resolves to 483;
+- Docker-backed tests: 0 completed. The existing Colima default profile is
+  broken, so focused and full-suite counts are not yet available and no upgrade
+  PR may be created.
+
+## Pre-upgrade DML baseline (Trino 479)
 
 PR #240 adds DELETE, UPDATE, row-level UPDATE, and MERGE. The following pieces
 have been verified locally against a real YDB test container:
@@ -109,7 +157,7 @@ The former empty default-column INSERT override has been replaced with a
 YDB-native row-table fixture. The inherited `testInsertForDefaultColumn` now
 verifies omitted literal defaults, explicit values and nulls, and reordered
 insert columns. YDB supports literal defaults on row-oriented tables, but the
-Trino 479 `SUPPORTS_DEFAULT_COLUMN_VALUE` behavior remains false because its
+Trino 483 `SUPPORTS_DEFAULT_COLUMN_VALUE` behavior remains false because its
 group also advertises CREATE, ADD, NOT NULL/default, and MERGE contracts that
 the connector does not fully implement. SET and DROP have child capabilities
 that inherit from this behavior and also remain false. See YDB
@@ -122,12 +170,12 @@ that inherit from this behavior and also remain false. See YDB
 - views, comments, rename column, and type changes after checking current YQL
   semantics;
 - transactional INSERT/staging instead of direct non-transactional writes;
-- complete the Trino 479 default-column behavior group before advertising it.
+- complete the Trino 483 default-column behavior group before advertising it.
 
 ## Validation ladder
 
-Use JDK 25 and the Docker/Testcontainers environment documented in the root
-`AGENTS.md`:
+Use JDK 25 at patch level 25.0.1 or newer and the Docker/Testcontainers
+environment documented in the root `AGENTS.md`:
 
 ```bash
 mvn -f ydb-trino-adapter/pom.xml -DskipTests compile
