@@ -5,7 +5,6 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.primitives.Ints;
 import com.google.inject.Inject;
-import io.opentelemetry.api.internal.StringUtils;
 import io.trino.plugin.base.aggregation.AggregateFunctionRewriter;
 import io.trino.plugin.base.aggregation.AggregateFunctionRule;
 import io.trino.plugin.base.expression.ConnectorExpressionRewriter;
@@ -73,6 +72,7 @@ import java.util.OptionalLong;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.function.BiFunction;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -541,7 +541,7 @@ public class YdbClient extends BaseJdbcClient {
     @Override
     protected String getColumnDefinitionSql(ConnectorSession session, ColumnMetadata column, String columnName) {
         // YDB restriction, does not support column comments.
-        if (!StringUtils.isNullOrEmpty(column.getComment())) {
+        if (column.getComment().filter(comment -> !comment.isEmpty()).isPresent()) {
             throw new TrinoException(NOT_SUPPORTED, "This connector does not support creating tables with column comment");
         }
 
@@ -643,7 +643,7 @@ public class YdbClient extends BaseJdbcClient {
             ConnectorSession session,
             JdbcTableHandle handle,
             Map<Integer, Collection<ColumnHandle>> updateColumnHandles,
-            List<Runnable> rollbackActions,
+            Consumer<Runnable> rollbackActionCollector,
             RetryMode retryMode
     ) {
         if (retryMode != RetryMode.NO_RETRIES) {

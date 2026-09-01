@@ -14,7 +14,10 @@ import io.trino.spi.connector.ConnectorPageSink;
 import io.trino.spi.connector.ConnectorPageSinkId;
 import io.trino.spi.connector.ConnectorPageSinkProvider;
 import io.trino.spi.connector.ConnectorSession;
+import io.trino.spi.connector.ConnectorTableCredentials;
 import io.trino.spi.connector.ConnectorTransactionHandle;
+
+import java.util.Optional;
 
 public record YdbPageSinkProvider(
         JdbcClient jdbcClient,
@@ -31,6 +34,7 @@ public record YdbPageSinkProvider(
             ConnectorTransactionHandle transactionHandle,
             ConnectorSession session,
             ConnectorOutputTableHandle tableHandle,
+            Optional<ConnectorTableCredentials> tableCredentials,
             ConnectorPageSinkId pageSinkId) {
         return new JdbcPageSink(
                 session,
@@ -46,6 +50,7 @@ public record YdbPageSinkProvider(
             ConnectorTransactionHandle transactionHandle,
             ConnectorSession session,
             ConnectorInsertTableHandle tableHandle,
+            Optional<ConnectorTableCredentials> tableCredentials,
             ConnectorPageSinkId pageSinkId) {
         return new JdbcPageSink(
                 session,
@@ -61,6 +66,7 @@ public record YdbPageSinkProvider(
             ConnectorTransactionHandle transactionHandle,
             ConnectorSession session,
             ConnectorMergeTableHandle mergeHandle,
+            Optional<ConnectorTableCredentials> tableCredentials,
             ConnectorPageSinkId pageSinkId) {
         return new YdbMergeSink(
                 transactionHandle,

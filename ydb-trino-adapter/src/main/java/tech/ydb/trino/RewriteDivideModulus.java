@@ -12,7 +12,7 @@ import static io.trino.plugin.base.expression.ConnectorExpressionPatterns.argume
 import static io.trino.plugin.base.expression.ConnectorExpressionPatterns.call;
 import static io.trino.plugin.base.expression.ConnectorExpressionPatterns.functionName;
 import static io.trino.spi.expression.StandardFunctions.DIVIDE_FUNCTION_NAME;
-import static io.trino.spi.expression.StandardFunctions.MODULUS_FUNCTION_NAME;
+import static io.trino.spi.expression.StandardFunctions.MODULO_FUNCTION_NAME;
 import static java.lang.String.format;
 
 /**
@@ -27,7 +27,7 @@ public class RewriteDivideModulus implements ConnectorExpressionRule<Call, Param
 
     public RewriteDivideModulus() {
         this.PATTERN = call()
-                .with(functionName().matching(name -> name.equals(DIVIDE_FUNCTION_NAME) || name.equals(MODULUS_FUNCTION_NAME)))
+                .with(functionName().matching(name -> name.equals(DIVIDE_FUNCTION_NAME) || name.equals(MODULO_FUNCTION_NAME)))
                 .with(argumentCount().matching(count -> count == 2))
                 .matching((Call call, RewriteContext<ParameterizedExpression> _) ->
                         call.getArguments().stream().noneMatch(arg -> arg instanceof Call));
@@ -55,7 +55,7 @@ public class RewriteDivideModulus implements ConnectorExpressionRule<Call, Param
         if (functionName.equals(DIVIDE_FUNCTION_NAME)) {
             return "/";
         }
-        if (functionName.equals(MODULUS_FUNCTION_NAME)) {
+        if (functionName.equals(MODULO_FUNCTION_NAME)) {
             return "%";
         }
         return null;
