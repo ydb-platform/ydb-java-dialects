@@ -1,6 +1,5 @@
 package tech.ydb.trino;
 
-import io.trino.Session;
 import io.trino.spi.type.Type;
 import io.trino.spi.type.VarcharType;
 import io.trino.testing.BaseConnectorTest;
@@ -53,78 +52,22 @@ public class TestYdbConnectorTest extends BaseConnectorTest {
     }
 
     @Test
-    public void testNestedTablePath() throws Exception {
-        String namespace = "namespace_" + uniqueSuffix();
-        String directory = namespace + "/eu";
+    public void testNestedTableMetadata() throws Exception {
+        String directory = "namespace_" + uniqueSuffix();
         String table = directory + "/orders";
-
         createDirectory(directory);
-        try (AutoCloseable ignoredNamespace = () -> removeDirectory(namespace);
-                AutoCloseable ignoredDirectory = () -> removeDirectory(directory);
+        try (AutoCloseable ignoredDirectory = () -> removeDirectory(directory);
                 AutoCloseable ignoredTable = () -> assertQuerySucceeds("DROP TABLE IF EXISTS \"" + table + "\"")) {
-            assertQuerySucceeds("CREATE TABLE \"" + table + "\" (id bigint NOT NULL)");
+            createRawMetadataTable(table);
             assertThat(computeActual("SHOW TABLES").getOnlyColumnAsSet()).contains(table);
             assertQueryReturnsEmptyResult("SELECT id FROM \"" + table + "\"");
             assertThat(computeScalar("SHOW CREATE TABLE \"" + table + "\"").toString()).contains(table);
-        }
-    }
-
-    @Test
-    public void testDefaultSchemaRelationComments() throws Exception {
-        String namespace = "comments_" + uniqueSuffix();
-        String directory = namespace + "/eu";
-        String table = directory + "/orders";
-
-        createDirectory(directory);
-        try (AutoCloseable ignoredNamespace = () -> removeDirectory(namespace);
-                AutoCloseable ignoredDirectory = () -> removeDirectory(directory);
-                AutoCloseable ignoredTable = () -> assertQuerySucceeds("DROP TABLE IF EXISTS \"" + table + "\"")) {
-            assertQuerySucceeds("CREATE TABLE \"" + table + "\" (id bigint NOT NULL)");
-
-            assertThat(query(
-                    "SELECT schema_name, table_name, comment " +
-                            "FROM system.metadata.table_comments " +
-                            "WHERE catalog_name = 'ydb' AND schema_name = 'default'"))
-                    .skippingTypesCheck()
-                    .containsAll("VALUES ('default', '" + table + "', null)");
-            assertQueryReturnsEmptyResult(
-                    "SELECT table_name FROM system.metadata.table_comments " +
-                            "WHERE catalog_name = 'ydb' AND schema_name = 'missing'");
-        }
-    }
-
-    @Test
-    public void testDefaultSchemaBulkColumns() throws Exception {
-        String namespace = "columns_" + uniqueSuffix();
-        String directory = namespace + "/eu";
-        String table = directory + "/orders";
-        Session bulkSession = Session.builder(getSession())
-                .setCatalogSessionProperty("ydb", "bulk_list_columns", "true")
-                .build();
-
-        createDirectory(directory);
-        try (AutoCloseable ignoredNamespace = () -> removeDirectory(namespace);
-                AutoCloseable ignoredDirectory = () -> removeDirectory(directory);
-                AutoCloseable ignoredTable = () -> assertQuerySucceeds("DROP TABLE IF EXISTS \"" + table + "\"")) {
-            createRawMetadataTable(table);
-
-            assertQuery(
-                    bulkSession,
-                    "SELECT column_name, data_type, is_nullable " +
-                            "FROM information_schema.columns " +
-                            "WHERE table_schema = 'default' AND table_name = '" + table + "' " +
-                            "ORDER BY ordinal_position",
+            assertQuery("SELECT column_name, data_type, is_nullable FROM information_schema.columns " +
+                    "WHERE table_schema = 'default' AND table_name = '" + table + "' ORDER BY ordinal_position",
                     "VALUES ('id', 'bigint', 'NO'), ('note', 'varchar', 'YES')");
-            assertThat(query(bulkSession,
-                    "SELECT table_name, column_name, data_type, is_nullable, ordinal_position " +
-                            "FROM information_schema.columns WHERE table_schema = 'default'"))
-                    .skippingTypesCheck()
-                    .containsAll("VALUES ('" + table + "', 'id', 'bigint', 'NO', BIGINT '1'), " +
-                            "('" + table + "', 'note', 'varchar', 'YES', BIGINT '2')");
-            assertQueryReturnsEmptyResult(
-                    bulkSession,
-                    "SELECT column_name FROM information_schema.columns " +
-                            "WHERE table_schema = 'missing' AND table_name = '" + table + "'");
+            assertThat(query("SELECT schema_name, table_name FROM system.metadata.table_comments " +
+                    "WHERE catalog_name = 'ydb' AND schema_name = 'default'"))
+                    .skippingTypesCheck().containsAll("VALUES ('default', '" + table + "')");
         }
     }
 
@@ -133,13 +76,10 @@ public class TestYdbConnectorTest extends BaseConnectorTest {
         String source = "test_invalid_paths_" + uniqueSuffix();
         assertUpdate("CREATE TABLE " + source + " (id bigint NOT NULL)");
         try (AutoCloseable ignoredSource = () -> assertQuerySucceeds("DROP TABLE IF EXISTS " + source)) {
-            for (String table : List.of("/orders", "a//orders", "a/../orders")) {
+            for (String table : List.of("/orders", "a//orders", "a/./orders", "a/../orders")) {
                 String quotedTable = Pattern.quote(table);
-                // A structurally invalid name addresses no YDB object: lookups see no table, and
-                // DROP TABLE IF EXISTS is a no-op instead of a path error.
                 assertQueryFails("SELECT * FROM ydb.default.\"" + table + "\"", ".*Table 'ydb.default.\"" + quotedTable + "\"' does not exist");
                 assertQuerySucceeds("DROP TABLE IF EXISTS ydb.default.\"" + table + "\"");
-                // Creating or renaming to such a name is rejected before any YQL is generated.
                 assertQueryFails("CREATE TABLE ydb.default.\"" + table + "\" AS SELECT CAST(1 AS BIGINT) id", ".*Invalid YDB table path.*");
                 assertQueryFails("CREATE TABLE ydb.default.\"" + table + "\" (id bigint NOT NULL)", ".*Invalid YDB table path '" + quotedTable + "'.*");
                 assertQueryFails("ALTER TABLE " + source + " RENAME TO ydb.default.\"" + table + "\"", ".*Invalid YDB table path '" + quotedTable + "'.*");
@@ -150,37 +90,18 @@ public class TestYdbConnectorTest extends BaseConnectorTest {
 
     @Test
     public void testCaseOnlyTablePathAmbiguity() throws Exception {
-        String suffix = uniqueSuffix();
-        String firstDirectory = "Case_" + suffix;
-        String secondDirectory = "case_" + suffix;
-        String firstTable = firstDirectory + "/Orders";
-        String secondTable = secondDirectory + "/orders";
-
-        createDirectory(firstDirectory);
-        try (AutoCloseable ignoredFirstDirectory = () -> removeDirectory(firstDirectory)) {
-            createDirectory(secondDirectory);
-            try (AutoCloseable ignoredSecondDirectory = () -> removeDirectory(secondDirectory)) {
-                createRawTable(firstTable);
-                try (AutoCloseable ignoredFirstTable = () -> dropRawTable(firstTable)) {
-                    createRawTable(secondTable);
-                    try (AutoCloseable ignoredSecondTable = () -> dropRawTable(secondTable)) {
-                        assertQueryFails(
-                                "SELECT * FROM \"" + secondTable + "\"",
-                                ".*(?s)Ambiguous.*" + firstTable + ".*" + secondTable + ".*");
-                        Session bulkSession = Session.builder(getSession())
-                                .setCatalogSessionProperty("ydb", "bulk_list_columns", "true")
-                                .build();
-                        assertQueryFails(
-                                bulkSession,
-                                "SELECT table_name FROM information_schema.columns WHERE table_schema = 'default'",
-                                ".*(?s)Ambiguous.*" + firstTable + ".*" + secondTable + ".*");
-                        assertQueryFails(
-                                "SELECT table_name FROM system.metadata.table_comments " +
-                                        "WHERE catalog_name = 'ydb' AND schema_name = 'default'",
-                                ".*(?s)Ambiguous.*" + firstTable + ".*" + secondTable + ".*");
-                    }
-                }
-            }
+        String directory = "ambiguity_" + uniqueSuffix();
+        String first = directory + "/Orders";
+        String second = directory + "/orders";
+        createDirectory(directory);
+        try (AutoCloseable ignoredDirectory = () -> removeDirectory(directory);
+                AutoCloseable ignoredFirst = () -> dropRawTable(first);
+                AutoCloseable ignoredSecond = () -> dropRawTable(second)) {
+            createRawTable(first);
+            createRawTable(second);
+            assertQueryFails("SELECT * FROM \"" + second + "\"", "(?s).*Ambiguous.*Orders.*orders.*");
+            assertQueryFails("SELECT table_name FROM system.metadata.table_comments " +
+                    "WHERE catalog_name = 'ydb' AND schema_name = 'default'", "(?s).*Ambiguous.*Orders.*orders.*");
         }
     }
 

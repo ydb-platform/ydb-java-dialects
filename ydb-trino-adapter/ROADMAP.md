@@ -7,8 +7,9 @@ flags are test debt, not support.
 
 ## Trino 483 dependency migration
 
-The module targets [Trino 483](https://github.com/trinodb/trino/releases/tag/483),
-published on [Maven Central](https://repo.maven.apache.org/maven2/io/trino/trino-spi/483/).
+Trino 483 is the latest stable release published by both the
+[official Trino releases](https://github.com/trinodb/trino/releases/tag/483)
+and [Maven Central](https://repo.maven.apache.org/maven2/io/trino/trino-spi/maven-metadata.xml).
 It requires 64-bit Java 25, with a minimum patch level of 25.0.1; the module and
 CI continue to use Java 25.
 
@@ -43,10 +44,14 @@ capability. Trino 483 removes the inherited `testDropTableIfExists`,
 `testSymbolAliasing` methods, plus the duplicate smoke-test information-schema
 method.
 
-The upgrade was merged as PR #252 (`ddd8133`). GitHub Actions on that PR ran
-the complete Docker-backed suite: 305 tests, 0 failures, 0 errors, 85 skipped
-(220 passed), `BUILD SUCCESS`. Every Trino release-coupled artifact resolves to
-483. That run is the post-upgrade CI baseline for later scoped PRs.
+Validation completed in this checkout with Temurin 25.0.2:
+
+- clean test compilation: 16 production sources and 5 test sources compiled;
+- package with tests skipped: successful;
+- dependency audit: every Trino release-coupled artifact resolves to 483;
+- Docker-backed tests: 0 completed. The existing Colima default profile is
+  broken, so focused and full-suite counts are not yet available and no upgrade
+  PR may be created.
 
 ## Pre-upgrade DML baseline (Trino 479)
 
@@ -62,101 +67,22 @@ have been verified locally against a real YDB test container:
 - retry classification through the YDB SDK status model, with fresh merge
   connections and rollback-before-close.
 
-GitHub Actions on PR #240 verified the DML baseline: 314 tests run, 0 failures,
-0 errors, and 84 skipped. This included 36 smoke tests (4 skipped) and 278
-connector tests (80 skipped). The inherited `testMergeLarge` runs without an
-override and completes within the CI budget. An isolated local Colima run
-previously exceeded 11 minutes, so MERGE scalability remains a production
-concern rather than a CI failure.
+GitHub Actions is green on PR #240: 314 tests run, 0 failed, 0 errors, 84
+skipped. This includes 36 smoke tests (4 skipped) and 278 connector tests (80
+skipped). The inherited `testMergeLarge` runs without an override and completes
+within the CI budget. An isolated local Colima run previously exceeded 11
+minutes, so MERGE scalability remains a production concern rather than a CI
+failure.
 
-## Approved namespace and catalog contract
+## Namespace
 
-The approved public namespace model is:
+One catalog uses one static YDB database and the virtual `default` schema;
+directories remain part of table names. See [README.md](README.md#ydb-catalogs-and-table-paths).
+Schema DDL and dynamic database discovery are outside this model.
 
-- one Trino catalog is one configured YDB connector instance bound
-  to exactly one YDB database through its JDBC `connection-url` and credentials;
-- multiple YDB databases use multiple Trino catalog configurations; the
-  connector does not discover databases or publish catalogs dynamically;
-- the connector exposes exactly one virtual, non-droppable Trino schema named
-  `default`;
-- a Trino table name is the complete YDB object path relative to the configured
-  database root. Root table `orders` is `catalog.default.orders`; nested table
-  `sales/eu/orders` is `catalog.default."sales/eu/orders"`;
-- the configured database path is a connection and security boundary and never
-  becomes part of the Trino schema or table name.
-
-This keeps the native YDB path visible in SQL and avoids flattening directories
-into a list of artificial Trino schemas. Trino schemas are not hierarchical, so
-mapping `sales/eu` to a schema would still appear as one flat, quoted schema in
-SQL clients rather than as a directory tree.
-
-### Metadata and DDL behavior
-
-| Trino operation | Contract |
-| --- | --- |
-| `listSchemaNames()` | Return only `default` |
-| `listTables(Optional.empty())` | Return visible YDB tables recursively, all in `default` |
-| `listTables(Optional.of("default"))` | Same table set as the unfiltered call |
-| `listTables()` for another schema | Return an empty list |
-| `getTableHandle(default, name)` | Resolve the validated full relative YDB path |
-| `getTableHandle()` for another schema | Return empty without querying an unrelated path |
-| `CREATE`, `DROP`, `RENAME SCHEMA` | `NOT_SUPPORTED`; `default` is virtual and cannot be changed |
-| `CREATE TABLE default."dir/table"` | Require the parent YDB directory to exist |
-| table rename | May move a table by changing its full relative path; target parent must exist |
-
-The connector accepts relative paths without empty, `.` or `..` components
-and quotes the full path as one YQL identifier. YDB validates component names,
-lengths and depth. Dot-prefixed tables reported by JDBC remain visible.
-
-Trino 483 lowercases identifiers; YDB paths are case-sensitive. The connector
-resolves unique case-insensitive matches and preserves remote spelling for
-reads, writes and DDL. Ambiguous matches fail explicitly. CREATE/CTAS/RENAME
-also resolve existing parent directories, including empty directories, through
-the JDBC-owned SchemeClient. Directories remain parts of table names.
-
-Invalid relative paths resolve to no table during lookup and fail with
-`INVALID_ARGUMENTS` during CREATE/CTAS/RENAME. Other lookup names, including
-Trino's `"<table>$data"` probe, are matched against JDBC metadata normally.
-JDBC errors propagate instead of being treated as missing tables.
-
-`usePrefixPath` is rejected because it changes the configured database root.
-Trino 483 suppresses remote metadata errors for exact-name
-`information_schema.columns` lookups; broad bulk listing and direct access
-still report case collisions. Metadata resolution does not lock concurrent
-external namespace changes.
-
-### Implemented namespace slice
-
-This slice implements the following items:
-
-1. Added relative-path checks for lookup and table operations.
-2. Changed the synthetic schema from `ydb` to `default`.
-3. Made `listTables` and `getTableHandle` honor the schema filter and preserve
-   the complete relative YDB table path.
-4. Mapped only genuine remote not-found results and structurally invalid
-   lookup names to an absent table handle and preserved other JDBC/YDB
-   failures.
-5. Added focused tests for root and nested tables, an unknown schema, path
-   traversal, dot-prefixed paths, the `$data` probe, case-only ambiguity,
-   mixed-case write/rename lifecycle, and full-path quoting.
-6. Made relation-comment metadata and opt-in bulk column metadata honor the
-   virtual `default` schema, recursive paths, and case-only collision checks.
-   Comment writes remain unsupported, and bulk column metadata remains opt-in.
-
-This slice does not enable schema DDL capabilities or change capability flags.
-Catalog provisioning and cross-catalog federation remain a separate, unverified
-integration slice.
-
-## P0 — production CREATE/CTAS primary-key definition
-
-Production `YdbClient.createTableSqls` still delegates to generic JDBC SQL,
-which does not declare a YDB primary key. The inherited test fixture injects a
-hidden key through `TestingYdbJdbcClient`. Consequently, its green CREATE/CTAS
-cases verify namespace and framework behavior with that fixture, not a complete
-production table-definition contract. Define an explicit production key model
-and verify it through the production client in a separate feature before
-claiming production CREATE/CTAS support. YDB requires a non-empty
-[primary key](https://ydb.tech/docs/en/yql/reference/syntax/create_table).
+Production CREATE/CTAS primary-key definitions remain separate work: the
+inherited test client supplies a hidden key, so its green DDL tests only verify
+namespace behavior with that fixture.
 
 ## P0 — harden MERGE scalability and atomicity
 
