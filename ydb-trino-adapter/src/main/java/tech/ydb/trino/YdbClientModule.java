@@ -16,6 +16,9 @@ import io.trino.plugin.jdbc.QueryBuilder;
 import io.trino.plugin.jdbc.credential.CredentialProvider;
 import io.trino.plugin.jdbc.logging.RemoteQueryModifier;
 import tech.ydb.jdbc.YdbDriver;
+import tech.ydb.jdbc.settings.YdbConfig;
+
+import java.sql.SQLException;
 
 import java.util.Properties;
 
@@ -51,10 +54,13 @@ public class YdbClientModule implements Module {
     @ForBaseJdbc
     public static ConnectionFactory createConnectionFactory(
             BaseJdbcConfig config,
-            CredentialProvider credentialProvider) {
+            CredentialProvider credentialProvider) throws SQLException {
         Properties connectionProperties = new Properties();
         // Avoid the YDB JDBC 2.3.18 shared-context close/register race under concurrent connections.
         connectionProperties.setProperty("cacheConnectionsInDriver", "false");
+        if (YdbConfig.from(config.getConnectionUrl(), connectionProperties).hasPrefixPath()) {
+            throw new IllegalArgumentException("YDB usePrefixPath is unsupported: table paths must be relative to the configured database root");
+        }
         return DriverConnectionFactory.builder(
                         new YdbDriver(),
                         config.getConnectionUrl(),

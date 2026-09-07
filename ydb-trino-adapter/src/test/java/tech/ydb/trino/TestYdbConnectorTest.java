@@ -1,5 +1,6 @@
 package tech.ydb.trino;
 
+import io.trino.Session;
 import io.trino.spi.type.Type;
 import io.trino.spi.type.VarcharType;
 import io.trino.testing.BaseConnectorTest;
@@ -11,10 +12,20 @@ import io.trino.testing.sql.TestTable;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
+import tech.ydb.scheme.SchemeClient;
 import tech.ydb.test.junit5.YdbHelperExtension;
 
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
 import java.util.OptionalInt;
+import java.util.UUID;
+import java.util.regex.Pattern;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -29,6 +40,321 @@ public class TestYdbConnectorTest extends BaseConnectorTest {
         return YdbQueryRunner.builder(ydb)
                 .setInitialTables(REQUIRED_TPCH_TABLES)
                 .build();
+    }
+
+    @Test
+    public void testDefaultSchemaContract() {
+        assertThat(computeActual("SHOW SCHEMAS FROM ydb").getOnlyColumnAsSet())
+                .contains("default")
+                .doesNotContain("ydb");
+        assertThat(computeActual("SHOW TABLES FROM ydb.default").getOnlyColumnAsSet())
+                .contains("orders");
+        assertQueryFails("SELECT * FROM ydb.missing.orders", ".*Schema 'missing' does not exist");
+    }
+
+    @Test
+    public void testNestedTablePath() throws Exception {
+        String namespace = "namespace_" + uniqueSuffix();
+        String directory = namespace + "/eu";
+        String table = directory + "/orders";
+
+        createDirectory(directory);
+        try (AutoCloseable ignoredNamespace = () -> removeDirectory(namespace);
+                AutoCloseable ignoredDirectory = () -> removeDirectory(directory);
+                AutoCloseable ignoredTable = () -> assertQuerySucceeds("DROP TABLE IF EXISTS \"" + table + "\"")) {
+            assertQuerySucceeds("CREATE TABLE \"" + table + "\" (id bigint NOT NULL)");
+            assertThat(computeActual("SHOW TABLES").getOnlyColumnAsSet()).contains(table);
+            assertQueryReturnsEmptyResult("SELECT id FROM \"" + table + "\"");
+            assertThat(computeScalar("SHOW CREATE TABLE \"" + table + "\"").toString()).contains(table);
+        }
+    }
+
+    @Test
+    public void testNestedTablePathLongerThanSingleComponentLimit() throws Exception {
+        String suffix = uniqueSuffix();
+        String parent = "long_" + "a".repeat(130) + suffix;
+        String directory = parent + "/branch_" + "b".repeat(90);
+        String sourceTable = directory + "/source_" + suffix;
+        String renamedTable = directory + "/renamed_" + suffix;
+
+        assertThat(sourceTable.length()).isGreaterThan(255);
+        createDirectory(directory);
+        try (AutoCloseable ignoredParent = () -> removeDirectory(parent);
+                AutoCloseable ignoredDirectory = () -> removeDirectory(directory);
+                AutoCloseable ignoredSourceTable = () -> assertQuerySucceeds("DROP TABLE IF EXISTS \"" + sourceTable + "\"");
+                AutoCloseable ignoredRenamedTable = () -> assertQuerySucceeds("DROP TABLE IF EXISTS \"" + renamedTable + "\"")) {
+            assertQuerySucceeds("CREATE TABLE \"" + sourceTable + "\" (id bigint NOT NULL)");
+            assertThat(computeActual("SHOW TABLES").getOnlyColumnAsSet()).contains(sourceTable);
+            assertQueryReturnsEmptyResult("SELECT id FROM \"" + sourceTable + "\"");
+
+            assertQuerySucceeds("ALTER TABLE \"" + sourceTable + "\" RENAME TO \"" + renamedTable + "\"");
+            assertThat(computeActual("SHOW TABLES").getOnlyColumnAsSet())
+                    .contains(renamedTable)
+                    .doesNotContain(sourceTable);
+            assertQueryReturnsEmptyResult("SELECT id FROM \"" + renamedTable + "\"");
+        }
+    }
+
+    @Test
+    public void testDefaultSchemaRelationComments() throws Exception {
+        String namespace = "comments_" + uniqueSuffix();
+        String directory = namespace + "/eu";
+        String table = directory + "/orders";
+
+        createDirectory(directory);
+        try (AutoCloseable ignoredNamespace = () -> removeDirectory(namespace);
+                AutoCloseable ignoredDirectory = () -> removeDirectory(directory);
+                AutoCloseable ignoredTable = () -> assertQuerySucceeds("DROP TABLE IF EXISTS \"" + table + "\"")) {
+            assertQuerySucceeds("CREATE TABLE \"" + table + "\" (id bigint NOT NULL)");
+
+            assertThat(query(
+                    "SELECT schema_name, table_name, comment " +
+                            "FROM system.metadata.table_comments " +
+                            "WHERE catalog_name = 'ydb' AND schema_name = 'default'"))
+                    .skippingTypesCheck()
+                    .containsAll("VALUES ('default', '" + table + "', null)");
+            assertQueryReturnsEmptyResult(
+                    "SELECT table_name FROM system.metadata.table_comments " +
+                            "WHERE catalog_name = 'ydb' AND schema_name = 'missing'");
+        }
+    }
+
+    @Test
+    public void testDefaultSchemaBulkColumns() throws Exception {
+        String namespace = "columns_" + uniqueSuffix();
+        String directory = namespace + "/eu";
+        String table = directory + "/orders";
+        Session bulkSession = Session.builder(getSession())
+                .setCatalogSessionProperty("ydb", "bulk_list_columns", "true")
+                .build();
+
+        createDirectory(directory);
+        try (AutoCloseable ignoredNamespace = () -> removeDirectory(namespace);
+                AutoCloseable ignoredDirectory = () -> removeDirectory(directory);
+                AutoCloseable ignoredTable = () -> assertQuerySucceeds("DROP TABLE IF EXISTS \"" + table + "\"")) {
+            createRawMetadataTable(table);
+
+            assertQuery(
+                    bulkSession,
+                    "SELECT column_name, data_type, is_nullable " +
+                            "FROM information_schema.columns " +
+                            "WHERE table_schema = 'default' AND table_name = '" + table + "' " +
+                            "ORDER BY ordinal_position",
+                    "VALUES ('id', 'bigint', 'NO'), ('note', 'varchar', 'YES')");
+            assertThat(query(bulkSession,
+                    "SELECT table_name, column_name, data_type, is_nullable, ordinal_position " +
+                            "FROM information_schema.columns WHERE table_schema = 'default'"))
+                    .skippingTypesCheck()
+                    .containsAll("VALUES ('" + table + "', 'id', 'bigint', 'NO', BIGINT '1'), " +
+                            "('" + table + "', 'note', 'varchar', 'YES', BIGINT '2')");
+            assertQueryReturnsEmptyResult(
+                    bulkSession,
+                    "SELECT column_name FROM information_schema.columns " +
+                            "WHERE table_schema = 'missing' AND table_name = '" + table + "'");
+        }
+    }
+
+    @Test
+    public void testInvalidTablePaths() throws Exception {
+        String source = "test_invalid_paths_" + uniqueSuffix();
+        assertUpdate("CREATE TABLE " + source + " (id bigint NOT NULL)");
+        try (AutoCloseable ignoredSource = () -> assertQuerySucceeds("DROP TABLE IF EXISTS " + source)) {
+            for (String table : List.of("/orders", "a//orders", "a/../orders", ".sys/orders", "orders$data")) {
+                String quotedTable = Pattern.quote(table);
+                // A structurally invalid name addresses no YDB object: lookups see no table, and
+                // DROP TABLE IF EXISTS is a no-op instead of a path error.
+                assertQueryFails("SELECT * FROM ydb.default.\"" + table + "\"", ".*Table 'ydb.default.\"" + quotedTable + "\"' does not exist");
+                assertQuerySucceeds("DROP TABLE IF EXISTS ydb.default.\"" + table + "\"");
+                // Creating or renaming to such a name is rejected before any YQL is generated.
+                assertQueryFails("CREATE TABLE ydb.default.\"" + table + "\" AS SELECT CAST(1 AS BIGINT) id", ".*Invalid YDB table path.*");
+                assertQueryFails("CREATE TABLE ydb.default.\"" + table + "\" (id bigint NOT NULL)", ".*Invalid YDB table path '" + quotedTable + "'.*");
+                assertQueryFails("ALTER TABLE " + source + " RENAME TO ydb.default.\"" + table + "\"", ".*Invalid YDB table path '" + quotedTable + "'.*");
+            }
+            assertThat(computeActual("SHOW TABLES").getOnlyColumnAsSet()).contains(source);
+        }
+    }
+
+    @Test
+    public void testCaseOnlyTablePathAmbiguity() throws Exception {
+        String suffix = uniqueSuffix();
+        String firstDirectory = "Case_" + suffix;
+        String secondDirectory = "case_" + suffix;
+        String firstTable = firstDirectory + "/Orders";
+        String secondTable = secondDirectory + "/orders";
+
+        createDirectory(firstDirectory);
+        try (AutoCloseable ignoredFirstDirectory = () -> removeDirectory(firstDirectory)) {
+            createDirectory(secondDirectory);
+            try (AutoCloseable ignoredSecondDirectory = () -> removeDirectory(secondDirectory)) {
+                createRawTable(firstTable);
+                try (AutoCloseable ignoredFirstTable = () -> dropRawTable(firstTable)) {
+                    createRawTable(secondTable);
+                    try (AutoCloseable ignoredSecondTable = () -> dropRawTable(secondTable)) {
+                        assertQueryFails(
+                                "SELECT * FROM \"" + secondTable + "\"",
+                                ".*(?s)Ambiguous.*" + firstTable + ".*" + secondTable + ".*");
+                        Session bulkSession = Session.builder(getSession())
+                                .setCatalogSessionProperty("ydb", "bulk_list_columns", "true")
+                                .build();
+                        assertQueryFails(
+                                bulkSession,
+                                "SELECT table_name FROM information_schema.columns WHERE table_schema = 'default'",
+                                ".*(?s)Ambiguous.*" + firstTable + ".*" + secondTable + ".*");
+                        assertQueryFails(
+                                "SELECT table_name FROM system.metadata.table_comments " +
+                                        "WHERE catalog_name = 'ydb' AND schema_name = 'default'",
+                                ".*(?s)Ambiguous.*" + firstTable + ".*" + secondTable + ".*");
+                    }
+                }
+            }
+        }
+    }
+
+    @Test
+    public void testUniqueCaseTableWriteLifecycle() throws Exception {
+        String suffix = uniqueSuffix();
+        String remoteTable = "MixedCase_" + suffix;
+        String logicalTable = remoteTable.toLowerCase(Locale.ROOT);
+        String renamedTable = "renamed_" + suffix;
+
+        try (AutoCloseable ignoredOriginalTable = () -> assertQuerySucceeds("DROP TABLE IF EXISTS \"" + logicalTable + "\"");
+                AutoCloseable ignoredRenamedTable = () -> assertQuerySucceeds("DROP TABLE IF EXISTS \"" + renamedTable + "\"")) {
+            createRawTable(remoteTable);
+
+            assertUpdate("INSERT INTO \"" + logicalTable + "\" VALUES (1)", 1);
+            assertQuerySucceeds("ALTER TABLE \"" + logicalTable + "\" RENAME TO \"" + renamedTable + "\"");
+
+            assertQuery("SELECT id FROM \"" + renamedTable + "\"", "VALUES CAST(1 AS BIGINT)");
+            assertThat(computeActual("SHOW TABLES").getOnlyColumnAsSet()).contains(renamedTable);
+        }
+    }
+
+    @Test
+    public void testMixedCaseDirectoryLifecycle() throws Exception {
+        String directory = "Sales_" + uniqueSuffix();
+        String logicalDirectory = directory.toLowerCase(Locale.ROOT);
+        createDirectory(directory);
+        try (AutoCloseable ignoredDirectory = () -> removeDirectory(directory);
+                AutoCloseable ignoredTable = () -> assertQuerySucceeds("DROP TABLE IF EXISTS \"" + logicalDirectory + "/orders\"");
+                AutoCloseable ignoredRenamed = () -> assertQuerySucceeds("DROP TABLE IF EXISTS \"" + logicalDirectory + "/renamed\"")) {
+            assertUpdate("CREATE TABLE \"" + logicalDirectory + "/orders\" AS SELECT CAST(1 AS BIGINT) id", 1);
+            assertUpdate("INSERT INTO \"" + logicalDirectory + "/orders\" VALUES 2", 1);
+            assertQuerySucceeds("ALTER TABLE \"" + logicalDirectory + "/orders\" RENAME TO \"" + logicalDirectory + "/renamed\"");
+            assertQuery("SELECT id FROM \"" + logicalDirectory + "/renamed\"", "VALUES CAST(1 AS BIGINT), CAST(2 AS BIGINT)");
+            assertUpdate("CREATE TABLE \"" + logicalDirectory + "/orders\" (id bigint NOT NULL)");
+            try (Connection connection = DriverManager.getConnection(YdbQueryRunner.buildJdbcUrl(ydb));
+                    ResultSet tables = connection.getMetaData().getTables(null, null, directory + "/orders", null)) {
+                assertThat(tables.next()).isTrue();
+                assertThat(tables.getString("TABLE_NAME")).isEqualTo(directory + "/orders");
+            }
+        }
+    }
+
+    @Test
+    public void testDirectoryDestinationConflicts() throws Exception {
+        String directory = "Conflict_" + uniqueSuffix();
+        String logical = directory.toLowerCase(Locale.ROOT);
+        String source = "source_" + uniqueSuffix();
+        createDirectory(directory);
+        try (AutoCloseable ignoredDirectory = () -> removeDirectory(directory);
+                AutoCloseable ignoredSource = () -> assertQuerySucceeds("DROP TABLE IF EXISTS " + source)) {
+            assertUpdate("CREATE TABLE " + source + " AS SELECT CAST(7 AS BIGINT) id", 1);
+            assertQueryFails("CREATE TABLE \"" + logical + "\" (id bigint)", ".*YDB object already exists.*");
+            assertQueryFails("ALTER TABLE " + source + " RENAME TO \"" + logical + "\"", ".*YDB object already exists.*");
+            assertQueryFails("CREATE TABLE \"" + source + "/child\" (id bigint)", ".*YDB parent directory does not exist.*");
+            assertQueryFails("CREATE TABLE \"missing_" + uniqueSuffix() + "/child\" (id bigint)", ".*YDB parent directory does not exist.*");
+            assertQuery("SELECT id FROM " + source, "VALUES CAST(7 AS BIGINT)");
+        }
+    }
+
+    @Test
+    public void testCaseOnlyParentAmbiguity() throws Exception {
+        String directory = "Parent_" + uniqueSuffix();
+        String other = directory.toLowerCase(Locale.ROOT);
+        createDirectory(directory);
+        try (AutoCloseable ignoredDirectory = () -> removeDirectory(directory)) {
+            createDirectory(other);
+            try (AutoCloseable ignoredOther = () -> removeDirectory(other)) {
+                assertQueryFails("CREATE TABLE \"" + other + "/orders\" (id bigint)", ".*Ambiguous YDB path component.*");
+                assertQueryFails("CREATE TABLE \"" + other + "/orders\" AS SELECT 1 id", ".*Ambiguous YDB path component.*");
+            }
+        }
+    }
+
+    @Test
+    public void testHiddenTableNamespacePolicy() throws Exception {
+        String table = ".hidden_" + uniqueSuffix();
+        createRawTable(table);
+        try (AutoCloseable ignoredTable = () -> dropRawTable(table)) {
+            assertThat(computeActual("SHOW TABLES").getOnlyColumnAsSet()).doesNotContain(table);
+            assertQueryFails("SELECT * FROM \"" + table + "\"", ".*does not exist");
+            assertQuerySucceeds("DROP TABLE IF EXISTS \"" + table + "\"");
+            try (Connection connection = DriverManager.getConnection(YdbQueryRunner.buildJdbcUrl(ydb));
+                    ResultSet tables = connection.getMetaData().getTables(null, null, table, null)) {
+                assertThat(tables.next()).isTrue();
+            }
+        }
+    }
+
+    @Test
+    public void testMaximumRelativePathDepth() throws Exception {
+        String root = "depth_" + uniqueSuffix();
+        String directory = root + "/d".repeat(29);
+        String table = directory + "/orders";
+        createDirectory(directory);
+        try {
+            try (AutoCloseable ignoredTable = () -> assertQuerySucceeds("DROP TABLE IF EXISTS \"" + table + "\"")) {
+                assertUpdate("CREATE TABLE \"" + table + "\" (id bigint NOT NULL)");
+                assertQueryReturnsEmptyResult("SELECT id FROM \"" + table + "\"");
+                createDirectory(directory + "/d");
+                try (AutoCloseable ignoredDeepDirectory = () -> removeDirectory(directory + "/d")) {
+                    assertQueryFails("CREATE TABLE \"" + directory + "/d/too_deep\" (id bigint)", "(?s).*paths depth limit exceeded.*");
+                }
+            }
+        }
+        finally {
+            for (int depth = 29; depth >= 0; depth--) {
+                removeDirectory(root + "/d".repeat(depth));
+            }
+        }
+    }
+
+    private static String uniqueSuffix() {
+        return UUID.randomUUID().toString().replace("-", "");
+    }
+
+    private static void createDirectory(String relativePath) {
+        try (SchemeClient client = SchemeClient.newClient(ydb.createTransport()).build()) {
+            client.makeDirectories(ydb.database() + "/" + relativePath).join().expectSuccess();
+        }
+    }
+
+    private static void removeDirectory(String relativePath) {
+        try (SchemeClient client = SchemeClient.newClient(ydb.createTransport()).build()) {
+            client.removeDirectory(ydb.database() + "/" + relativePath).join().expectSuccess();
+        }
+    }
+
+    private static void createRawTable(String remoteTable) throws SQLException {
+        try (Connection connection = DriverManager.getConnection(YdbQueryRunner.buildJdbcUrl(ydb));
+                Statement statement = connection.createStatement()) {
+            statement.execute("CREATE TABLE `" + remoteTable + "` (id Int64 NOT NULL, PRIMARY KEY (id))");
+        }
+    }
+
+    private static void createRawMetadataTable(String remoteTable) throws SQLException {
+        try (Connection connection = DriverManager.getConnection(YdbQueryRunner.buildJdbcUrl(ydb));
+                Statement statement = connection.createStatement()) {
+            statement.execute("CREATE TABLE `" + remoteTable + "` " +
+                    "(id Int64 NOT NULL, note Utf8, PRIMARY KEY (id))");
+        }
+    }
+
+    private static void dropRawTable(String remoteTable) throws SQLException {
+        try (Connection connection = DriverManager.getConnection(YdbQueryRunner.buildJdbcUrl(ydb));
+                Statement statement = connection.createStatement()) {
+            statement.execute("DROP TABLE `" + remoteTable + "`");
+        }
     }
 
     @Override

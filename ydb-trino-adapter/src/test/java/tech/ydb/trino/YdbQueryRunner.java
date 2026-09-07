@@ -19,7 +19,7 @@ import java.util.stream.Collectors;
 import static io.trino.testing.TestingSession.testSessionBuilder;
 
 public final class YdbQueryRunner {
-    public static final String TPCH_SCHEMA = "ydb";
+    public static final String DEFAULT_SCHEMA = YdbClient.DEFAULT_SCHEMA;
     public static final String YDB_HIDDEN_PK_COLUMN = TestingYdbJdbcClient.YDB_HIDDEN_PK_COLUMN;
 
     private YdbQueryRunner() {}
@@ -51,7 +51,7 @@ public final class YdbQueryRunner {
         private Builder() {
             super(testSessionBuilder()
                     .setCatalog("ydb")
-                    .setSchema(TPCH_SCHEMA)
+                    .setSchema(DEFAULT_SCHEMA)
                     .build());
         }
 
