@@ -77,27 +77,16 @@ USE ydb_prod.default;
 SELECT * FROM "sales/eu/orders";
 ```
 
-Each YDB path component is limited to 255 characters. YDB also enforces its
-configured path-depth limit (32 by default), counting the database path: with
-`/local`, 31 relative components fit the default limit. The connector rejects
-relative paths exceeding 32 components and does not apply the 255-character
-component limit to the complete relative path. See YDB's
-[database object naming rules](https://ydb.tech/docs/en/concepts/datamodel/cluster-namespace)
-and [database limits](https://ydb.tech/docs/en/concepts/limits-ydb).
+The connector rejects absolute paths and empty, `.` or `..` components.
+Lookups of these paths return no table; CREATE, CTAS and RENAME reject them
+before creating an object. YDB validates component names, lengths and path-depth
+limits. Dot-prefixed tables are exposed like other tables reported by JDBC.
+See YDB's [namespace rules](https://ydb.tech/docs/en/concepts/datamodel/cluster-namespace).
 
-Trino lowercases identifiers while YDB paths are case-sensitive. A name resolves
-to the one remote path that matches it case-insensitively; if two YDB objects
-differ only by case, the connector fails with an explicit ambiguous-name error
-instead of picking one. Reading or dropping a name outside the exposed namespace
-(absolute path, empty or `.`-prefixed component, `..`) reports that the table
-does not exist; creating or renaming to such a name fails with an
-`Invalid YDB table path` error before any YQL is generated.
-
-Dot-prefixed tables and directories are hidden by connector policy, including
-ordinary dot-prefixed tables that YDB itself permits. CREATE, CTAS and RENAME
-resolve each existing parent directory case-insensitively and retain its remote
-spelling. Missing parents, non-directory parents and case-only directory
-collisions fail explicitly; the connector does not create directories.
+Trino lowercases identifiers while YDB paths are case-sensitive. Names resolve
+case-insensitively to one remote path; case-only collisions fail explicitly.
+CREATE, CTAS and RENAME preserve the spelling of existing parent directories.
+The connector does not create directories or expose them as schemas.
 
 The JDBC `usePrefixPath` option is rejected because it changes metadata and YQL
 resolution away from the configured database root. The JDBC driver's effective

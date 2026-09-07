@@ -354,8 +354,6 @@ public class YdbClient extends BaseJdbcClient {
         if (!DEFAULT_SCHEMA.equalsIgnoreCase(schemaTableName.getSchemaName())) {
             return Optional.empty();
         }
-        // Names outside the exposed namespace, including Trino's "table$data" probe, have no handle.
-        // Names that will create or rename an object are validated strictly in quoted()/renameTable().
         Optional<YdbTablePath> requestedPath = YdbTablePath.lookup(schemaTableName.getTableName());
         if (requestedPath.isEmpty()) {
             return Optional.empty();
@@ -378,8 +376,7 @@ public class YdbClient extends BaseJdbcClient {
         ImmutableList.Builder<YdbTablePath> paths = ImmutableList.builder();
         try (ResultSet resultSet = getTables(connection, Optional.empty(), Optional.empty())) {
             while (resultSet.next()) {
-                YdbTablePath.fromRemoteMetadata(resultSet.getString("TABLE_NAME"))
-                        .ifPresent(paths::add);
+                paths.add(new YdbTablePath(resultSet.getString("TABLE_NAME")));
             }
         }
         return paths.build();
@@ -616,6 +613,11 @@ public class YdbClient extends BaseJdbcClient {
     }
 
     @Override
+    public String quoted(String name) {
+        return "`" + name.replace("\\", "\\\\").replace("`", "\\`") + "`";
+    }
+
+    @Override
     protected String quoted(@Nullable String catalog, @Nullable String schema, String table) {
         // YDB doesn't use catalog & schema in table names, only the table path
         return quoted(YdbTablePath.fromUserInput(table).value());
@@ -668,7 +670,7 @@ public class YdbClient extends BaseJdbcClient {
         String destination = resolveDestinationPath(connection, remoteTable);
         String target = remoteTargetTableName.equals(remoteTable)
                 ? destination
-                : resolveDestinationPath(connection, remoteTargetTableName);
+                : remoteTargetTableName;
         return super.createTable(session, connection, tableMetadata, remoteIdentifiers,
                 catalog, remoteSchema, destination, target, pageSinkIdColumn);
     }
@@ -747,7 +749,6 @@ public class YdbClient extends BaseJdbcClient {
 
     @Override
     public void renameTable(ConnectorSession session, JdbcTableHandle handle, SchemaTableName newTableName) {
-        YdbTablePath destination = YdbTablePath.fromUserInput(newTableName.getTableName());
         SchemaTableName currentName = handle.asPlainTable().getSchemaTableName();
         if (!currentName.getSchemaName().equalsIgnoreCase(newTableName.getSchemaName())) {
             throw new TrinoException(NOT_SUPPORTED, "This connector does not support renaming tables across schemas");
@@ -767,7 +768,7 @@ public class YdbClient extends BaseJdbcClient {
                     remoteTableName.getSchemaName().orElse(null),
                     remoteTableName.getTableName(),
                     null,
-                    destination.value());
+                    newTableName.getTableName());
         }
         catch (SQLException e) {
             throw new TrinoException(JDBC_ERROR, e);

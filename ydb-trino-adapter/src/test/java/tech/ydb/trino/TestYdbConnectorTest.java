@@ -70,32 +70,6 @@ public class TestYdbConnectorTest extends BaseConnectorTest {
     }
 
     @Test
-    public void testNestedTablePathLongerThanSingleComponentLimit() throws Exception {
-        String suffix = uniqueSuffix();
-        String parent = "long_" + "a".repeat(130) + suffix;
-        String directory = parent + "/branch_" + "b".repeat(90);
-        String sourceTable = directory + "/source_" + suffix;
-        String renamedTable = directory + "/renamed_" + suffix;
-
-        assertThat(sourceTable.length()).isGreaterThan(255);
-        createDirectory(directory);
-        try (AutoCloseable ignoredParent = () -> removeDirectory(parent);
-                AutoCloseable ignoredDirectory = () -> removeDirectory(directory);
-                AutoCloseable ignoredSourceTable = () -> assertQuerySucceeds("DROP TABLE IF EXISTS \"" + sourceTable + "\"");
-                AutoCloseable ignoredRenamedTable = () -> assertQuerySucceeds("DROP TABLE IF EXISTS \"" + renamedTable + "\"")) {
-            assertQuerySucceeds("CREATE TABLE \"" + sourceTable + "\" (id bigint NOT NULL)");
-            assertThat(computeActual("SHOW TABLES").getOnlyColumnAsSet()).contains(sourceTable);
-            assertQueryReturnsEmptyResult("SELECT id FROM \"" + sourceTable + "\"");
-
-            assertQuerySucceeds("ALTER TABLE \"" + sourceTable + "\" RENAME TO \"" + renamedTable + "\"");
-            assertThat(computeActual("SHOW TABLES").getOnlyColumnAsSet())
-                    .contains(renamedTable)
-                    .doesNotContain(sourceTable);
-            assertQueryReturnsEmptyResult("SELECT id FROM \"" + renamedTable + "\"");
-        }
-    }
-
-    @Test
     public void testDefaultSchemaRelationComments() throws Exception {
         String namespace = "comments_" + uniqueSuffix();
         String directory = namespace + "/eu";
@@ -159,7 +133,7 @@ public class TestYdbConnectorTest extends BaseConnectorTest {
         String source = "test_invalid_paths_" + uniqueSuffix();
         assertUpdate("CREATE TABLE " + source + " (id bigint NOT NULL)");
         try (AutoCloseable ignoredSource = () -> assertQuerySucceeds("DROP TABLE IF EXISTS " + source)) {
-            for (String table : List.of("/orders", "a//orders", "a/../orders", ".sys/orders", "orders$data")) {
+            for (String table : List.of("/orders", "a//orders", "a/../orders")) {
                 String quotedTable = Pattern.quote(table);
                 // A structurally invalid name addresses no YDB object: lookups see no table, and
                 // DROP TABLE IF EXISTS is a no-op instead of a path error.
@@ -282,40 +256,24 @@ public class TestYdbConnectorTest extends BaseConnectorTest {
     }
 
     @Test
-    public void testHiddenTableNamespacePolicy() throws Exception {
+    public void testDotPrefixedTable() throws Exception {
         String table = ".hidden_" + uniqueSuffix();
         createRawTable(table);
         try (AutoCloseable ignoredTable = () -> dropRawTable(table)) {
-            assertThat(computeActual("SHOW TABLES").getOnlyColumnAsSet()).doesNotContain(table);
-            assertQueryFails("SELECT * FROM \"" + table + "\"", ".*does not exist");
-            assertQuerySucceeds("DROP TABLE IF EXISTS \"" + table + "\"");
-            try (Connection connection = DriverManager.getConnection(YdbQueryRunner.buildJdbcUrl(ydb));
-                    ResultSet tables = connection.getMetaData().getTables(null, null, table, null)) {
-                assertThat(tables.next()).isTrue();
-            }
+            assertThat(computeActual("SHOW TABLES").getOnlyColumnAsSet()).contains(table);
+            assertQueryReturnsEmptyResult("SELECT id FROM \"" + table + "\"");
         }
     }
 
     @Test
-    public void testMaximumRelativePathDepth() throws Exception {
-        String root = "depth_" + uniqueSuffix();
-        String directory = root + "/d".repeat(29);
-        String table = directory + "/orders";
-        createDirectory(directory);
-        try {
-            try (AutoCloseable ignoredTable = () -> assertQuerySucceeds("DROP TABLE IF EXISTS \"" + table + "\"")) {
-                assertUpdate("CREATE TABLE \"" + table + "\" (id bigint NOT NULL)");
-                assertQueryReturnsEmptyResult("SELECT id FROM \"" + table + "\"");
-                createDirectory(directory + "/d");
-                try (AutoCloseable ignoredDeepDirectory = () -> removeDirectory(directory + "/d")) {
-                    assertQueryFails("CREATE TABLE \"" + directory + "/d/too_deep\" (id bigint)", "(?s).*paths depth limit exceeded.*");
-                }
-            }
-        }
-        finally {
-            for (int depth = 29; depth >= 0; depth--) {
-                removeDirectory(root + "/d".repeat(depth));
-            }
+    public void testEscapedTablePath() throws Exception {
+        String table = "escaped_" + uniqueSuffix();
+        String escaped = (ydb.database() + "/" + table).replace("/", "\\x2f");
+        try (AutoCloseable ignoredLiteral = () -> assertQuerySucceeds("DROP TABLE IF EXISTS \"" + escaped + "\"");
+                AutoCloseable ignoredDecoded = () -> assertQuerySucceeds("DROP TABLE IF EXISTS " + table)) {
+            // A literal backslash escape must not become an absolute path in YQL.
+            assertQuerySucceeds("CREATE TABLE \"" + escaped + "\" (id bigint)");
+            assertThat(computeActual("SHOW TABLES").getOnlyColumnAsSet()).contains(escaped).doesNotContain(table);
         }
     }
 

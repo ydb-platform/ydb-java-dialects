@@ -104,58 +104,32 @@ SQL clients rather than as a directory tree.
 | `CREATE TABLE default."dir/table"` | Require the parent YDB directory to exist |
 | table rename | May move a table by changing its full relative path; target parent must exist |
 
-The connector must parse paths into components before producing YQL. It rejects
-absolute paths, empty components, leading/trailing or repeated `/`, `.` and
-`..`, dot-prefixed/system components, invalid YDB component names, and
-components longer than 255 characters, and relative paths deeper than 32
-components. The server also enforces its total path-depth limit, including the
-database path (`/local` plus 31 relative components reaches the default 32). It does not impose an artificial
-255-character limit on the complete relative path. The validated full path is
-quoted as one YQL identifier through the connector quoting helper. See YDB's
-[database object naming rules](https://ydb.tech/docs/en/concepts/datamodel/cluster-namespace)
-and [database limits](https://ydb.tech/docs/en/concepts/limits-ydb).
-It is not assembled by call-site string concatenation.
+The connector accepts relative paths without empty, `.` or `..` components
+and quotes the full path as one YQL identifier. YDB validates component names,
+lengths and depth. Dot-prefixed tables reported by JDBC remain visible.
 
-Trino 483 normalizes SQL identifiers to lowercase, including delimited
-identifiers. YDB paths are case-sensitive. A lowercase Trino name may resolve to
-one unique case-insensitive remote path; case-only collisions must fail with an
-explicit ambiguous-name error rather than selecting an arbitrary object. Every
-write and DDL statement on a resolved handle uses the remote spelling, not the
-lowercase Trino name, so `INSERT`, `RENAME`, and `DROP` reach the object that
-was resolved.
+Trino 483 lowercases identifiers; YDB paths are case-sensitive. The connector
+resolves unique case-insensitive matches and preserves remote spelling for
+reads, writes and DDL. Ambiguous matches fail explicitly. CREATE/CTAS/RENAME
+also resolve existing parent directories, including empty directories, through
+the JDBC-owned SchemeClient. Directories remain parts of table names.
 
-Invalid names are handled by the direction of the operation:
+Invalid relative paths resolve to no table during lookup and fail with
+`INVALID_ARGUMENTS` during CREATE/CTAS/RENAME. Other lookup names, including
+Trino's `"<table>$data"` probe, are matched against JDBC metadata normally.
+JDBC errors propagate instead of being treated as missing tables.
 
-- a lookup (`SELECT`, `DROP TABLE IF EXISTS`, `information_schema`, Trino's
-  own `"<table>$data"` system-table probe) of a name outside the exposed namespace
-  resolves to no table.
-  Trino then reports the standard "does not exist" error and the inherited
-  `testNoDataSystemTable`/`testRenameTableToLongTableName` contracts hold
-  without overrides;
-- creating or renaming to an invalid name fails with `INVALID_ARGUMENTS` and
-  an actionable `Invalid YDB table path` reason before any YQL is generated;
-- a malformed path reported by JDBC metadata is a driver/server inconsistency
-  and fails with `JDBC_ERROR`; dot-prefixed remote paths are hidden.
-
-Resolution lists visible remote paths recursively and matches them
-case-insensitively. The pinned JDBC driver's `getTables` already walks the
-database recursively before filtering names. CREATE/CTAS/RENAME additionally
-list each parent directory to preserve remote case, including empty directories,
-and reject ambiguous, missing or non-directory parents. The JDBC context owns
-the SchemeClient used for this read-only resolution.
-
-Dot-prefixed paths are excluded by connector policy, not because YDB forbids
-every dot-prefixed leaf. `usePrefixPath` is rejected because it would change
-the configured database-root contract. Trino 483 suppresses remote metadata
-errors for exact-name `information_schema.columns` lookups; broad bulk listing
-and direct access still report case collisions. Concurrent external namespace
-changes are not locked by this connector's metadata checks.
+`usePrefixPath` is rejected because it changes the configured database root.
+Trino 483 suppresses remote metadata errors for exact-name
+`information_schema.columns` lookups; broad bulk listing and direct access
+still report case collisions. Metadata resolution does not lock concurrent
+external namespace changes.
 
 ### Implemented namespace slice
 
 This slice implements the following items:
 
-1. Introduced one path parser/validator used by metadata and table operations.
+1. Added relative-path checks for lookup and table operations.
 2. Changed the synthetic schema from `ydb` to `default`.
 3. Made `listTables` and `getTableHandle` honor the schema filter and preserve
    the complete relative YDB table path.
@@ -172,25 +146,6 @@ This slice implements the following items:
 This slice does not enable schema DDL capabilities or change capability flags.
 Catalog provisioning and cross-catalog federation remain a separate, unverified
 integration slice.
-
-`testNestedTablePathLongerThanSingleComponentLimit` covers a complete relative
-path longer than 255 characters whose components are each at most 255
-characters, including listing, selection, rename, and cleanup.
-
-### Namespace validation (2026-09-07)
-
-Fresh validation of this isolated namespace branch used Temurin 25.0.2 and
-Colima's default Docker socket, without a YDB image override:
-
-- `mvn -f ydb-trino-adapter/pom.xml -DskipTests compile`: success;
-- `TestYdbTablePath` and `TestYdbNamespaceConfig`: 8 passed, no failures/errors/skips;
-- CI-equivalent `mvn --batch-mode --update-snapshots -f ydb-trino-adapter/pom.xml clean test`:
-  326 tests, **241 passed, 0 failures, 0 errors, 85 skipped**, `BUILD SUCCESS`;
-- connector class: 283 tests / 202 passed / 81 skipped;
-- smoke class: 35 tests / 31 passed / 4 skipped.
-
-These are local results; the historical PR #252 CI numbers above remain separate.
-No capability flags or inherited test overrides were added by this feature.
 
 ## P0 — production CREATE/CTAS primary-key definition
 
