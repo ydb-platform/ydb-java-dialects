@@ -3,7 +3,6 @@ package tech.ydb.trino;
 import com.google.common.collect.ImmutableMap;
 import io.trino.plugin.base.mapping.DefaultIdentifierMapping;
 import io.trino.plugin.jdbc.BaseJdbcConfig;
-import io.trino.plugin.jdbc.DefaultQueryBuilder;
 import io.trino.plugin.jdbc.JdbcColumnHandle;
 import io.trino.plugin.jdbc.JdbcJoinCondition;
 import io.trino.plugin.jdbc.JdbcTypeHandle;
@@ -40,7 +39,7 @@ import static io.trino.testing.connector.TestingConnectorSession.SESSION;
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class TestYdbJoinPushdown {
-    private final DefaultQueryBuilder queryBuilder = new DefaultQueryBuilder(NONE);
+    private final YdbQueryBuilder queryBuilder = new YdbQueryBuilder(NONE);
     private final YdbClient client = new YdbClient(
             new BaseJdbcConfig(),
             _ -> { throw new AssertionError("Rejected JOIN must not open a connection"); },
@@ -97,6 +96,31 @@ public class TestYdbJoinPushdown {
     }
 
     @Test
+    public void testFloatingPointJoinKeyNormalization() {
+        for (Type type : List.of(REAL, DOUBLE)) {
+            JdbcColumnHandle key = column("join key", type);
+            String sqlType = type.equals(REAL) ? "Float" : "Double";
+            assertThat(queryBuilder.formatJoinCondition(client, "l", "r", new JdbcJoinCondition(key, EQUAL, key)))
+                    .isEqualTo("NANVL(IF(COALESCE(l.`join key` = 0, false), CAST(0 AS " + sqlType +
+                            "), l.`join key`), CAST(NULL AS " + sqlType + ")) = " +
+                            "NANVL(IF(COALESCE(r.`join key` = 0, false), CAST(0 AS " + sqlType +
+                            "), r.`join key`), CAST(NULL AS " + sqlType + "))");
+        }
+    }
+
+    @Test
+    public void testUnsignedJoinKeyInterpretation() {
+        JdbcColumnHandle unsigned = bigintColumn(Optional.of("uInT64"));
+        JdbcColumnHandle signed = column("key", BIGINT);
+        assertThat(queryBuilder.formatJoinCondition(client, "l", "r", new JdbcJoinCondition(unsigned, EQUAL, signed)))
+                .isEqualTo("BITCAST(l.`key` AS Int64) = r.`key`");
+        assertThat(queryBuilder.formatJoinCondition(client, "l", "r", new JdbcJoinCondition(signed, EQUAL, unsigned)))
+                .isEqualTo("l.`key` = BITCAST(r.`key` AS Int64)");
+        assertThat(queryBuilder.formatJoinCondition(client, "l", "r", new JdbcJoinCondition(unsigned, EQUAL, unsigned)))
+                .isEqualTo("BITCAST(l.`key` AS Int64) = BITCAST(r.`key` AS Int64)");
+    }
+
+    @Test
     public void testNativeAndSyntheticEqualityAccepted() {
         for (Type type : List.of(BOOLEAN, TINYINT, SMALLINT, INTEGER, BIGINT, REAL, DOUBLE,
                 createDecimalType(22, 9), VARCHAR, DATE, TIMESTAMP_MICROS)) {
@@ -119,9 +143,9 @@ public class TestYdbJoinPushdown {
             assertThat(client.isSupportedJoinCondition(SESSION, new JdbcJoinCondition(unsigned, EQUAL, unsigned)))
                     .as("%s", name).isTrue();
             assertThat(client.isSupportedJoinCondition(SESSION, new JdbcJoinCondition(signed, EQUAL, unsigned)))
-                    .as("Int64 = %s", name).isEqualTo(!name.equals("Uint64"));
+                    .as("Int64 = %s", name).isTrue();
             assertThat(client.isSupportedJoinCondition(SESSION, new JdbcJoinCondition(unsigned, EQUAL, signed)))
-                    .as("%s = Int64", name).isEqualTo(!name.equals("Uint64"));
+                    .as("%s = Int64", name).isTrue();
         }
     }
 
@@ -172,13 +196,9 @@ public class TestYdbJoinPushdown {
     public void testUnsupportedLegacyJoinRejectedWithoutConnection() {
         JdbcColumnHandle key = column("key", BIGINT);
         PreparedQuery source = new PreparedQuery("SELECT `key` FROM `table`", List.of());
-        for (JdbcJoinCondition condition : List.of(
-                new JdbcJoinCondition(key, LESS_THAN, key),
-                new JdbcJoinCondition(key, EQUAL, bigintColumn(Optional.of("Uint64"))))) {
-            assertThat(client.legacyImplementJoin(
-                    SESSION, INNER, source, source, List.of(condition),
-                    Map.of(key, "right_key"), Map.of(key, "left_key"), null)).isEmpty();
-        }
+        assertThat(client.legacyImplementJoin(
+                SESSION, INNER, source, source, List.of(new JdbcJoinCondition(key, LESS_THAN, key)),
+                Map.of(key, "right_key"), Map.of(key, "left_key"), null)).isEmpty();
     }
 
     private static JdbcColumnHandle column(String name, Type type) {

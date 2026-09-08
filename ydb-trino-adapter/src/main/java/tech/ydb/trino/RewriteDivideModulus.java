@@ -42,6 +42,7 @@ public class RewriteDivideModulus implements ConnectorExpressionRule<Call, Param
     @Override
     public Optional<ParameterizedExpression> rewrite(Call call, Captures captures, RewriteContext<ParameterizedExpression> context) {
         String operator = getOperator(call.getFunctionName());
+        boolean integer = Set.of("tinyint", "smallint", "integer", "bigint").contains(call.getType().getDisplayName());
         return RewriteUtils.rewriteBinaryExpression(
                 call,
                 context,
@@ -50,7 +51,7 @@ public class RewriteDivideModulus implements ConnectorExpressionRule<Call, Param
                         rightConstant.getValue() instanceof Number number &&
                         number.longValue() != 0 &&
                         !(call.getFunctionName().equals(DIVIDE_FUNCTION_NAME) && number.longValue() == -1 &&
-                                Set.of("tinyint", "smallint", "integer", "bigint").contains(call.getType().getDisplayName())),
+                                integer),
                 (left, right) -> format("(%s) %s (%s)", left, operator, right)
         );
     }

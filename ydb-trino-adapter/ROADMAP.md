@@ -8,7 +8,8 @@ flags are test debt, not support.
 ## JOIN pushdown
 
 The JOIN implementation uses Trino 483's structured `JdbcJoinCondition` API
-and `DefaultQueryBuilder`. It accepts equality between supported scalar keys
+and a small `DefaultQueryBuilder` extension for JOIN key normalization. It accepts
+equality between supported scalar keys
 for INNER/LEFT/RIGHT/FULL joins, including conjunctions and nested joins.
 Keys may come from pushed projections or aggregates. Supported mappings include
 signed integers, unsigned integers, Float/Double, finite Decimal, Bool,
@@ -16,10 +17,11 @@ Utf8/Text, dates and timestamps. Widening integer casts and checked integer
 arithmetic preserve Trino's value and overflow semantics.
 
 Raw String/Bytes keys mapped to varchar remain local because JDBC can replace
-invalid UTF-8 while YDB compares the original bytes. Mixed Uint64/signed keys
-remain local because JDBC exposes Uint64 through signed getLong; same-Uint64
-joins are supported. Forced varchar mappings and unsupported YQL ON operators
-also remain local. The catalog remains one configured database with the
+invalid UTF-8 while YDB compares the original bytes. Their decoded filter domains
+also stay in Trino. Uint64 keys and expressions use the signed value exposed by
+JDBC getLong; native Uint64 filter bounds stay local. Floating JOIN keys normalize
+signed zero and turn NaN into a nonmatching NULL. Forced varchar mappings and
+unsupported YQL ON operators remain local. The catalog remains one configured database with the
 `default` schema.
 JOIN pushdown is enabled by default and can be disabled with
 `join-pushdown.enabled=false` or the `join_pushdown_enabled` session property.
@@ -44,7 +46,7 @@ joins, native scalar types, computed and aggregate keys, widening casts,
 arithmetic overflow, floating-point special values, mapping/coercion fallback
 and cross-catalog joins.
 
-Local validation on JDK 25.0.2: compile passed; 14 unit tests passed, 0 failures,
+Local validation on JDK 25.0.2: compile passed; 18 unit tests passed, 0 failures,
 0 errors, 0 skipped. Docker-backed checks run in
 [PR #250 CI](https://github.com/ydb-platform/ydb-java-dialects/pull/250/checks)
 because the local Colima Docker socket is unavailable. CI uses JDK 25 and

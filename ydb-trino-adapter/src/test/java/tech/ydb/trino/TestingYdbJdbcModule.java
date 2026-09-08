@@ -20,6 +20,11 @@ public class TestingYdbJdbcModule implements Module {
 
     @Override
     public void configure(Binder binder) {
+        newOptionalBinder(binder, QueryBuilder.class)
+                .setBinding()
+                .to(YdbQueryBuilder.class)
+                .in(Scopes.SINGLETON);
+
         newOptionalBinder(binder, JdbcMetadataFactory.class)
                 .setBinding()
                 .to(YdbMetadataFactory.class)

@@ -276,8 +276,9 @@ public class TestYdbConnectorTest extends BaseConnectorTest {
                         "date_key date, timestamp_key timestamp(6))",
                 List.of(
                         "1, true, -128, -32768, -2147483648, 1.5, 1.5, 1.50, 'Aλ', DATE '2026-01-01', TIMESTAMP '2026-01-01 01:02:03.123456'",
-                        "2, false, 127, 32767, 2147483647, 2.5, 2.5, -2.50, 'aλ ', DATE '2026-01-02', TIMESTAMP '2026-01-01 01:02:03.123457'",
-                        "3, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL"))) {
+                        "2, false, 127, 32767, 2147483647, 2.5, 2.5, -2.50, 'aλ ', DATE '2026-01-02', TIMESTAMP '2026-01-01 01:02:03.123457'"))) {
+            new JdbcSqlExecutor(YdbQueryRunner.buildJdbcUrl(ydb))
+                    .execute("UPSERT INTO " + table.getName() + " (id) VALUES (3)");
             for (String join : List.of("JOIN", "LEFT JOIN", "RIGHT JOIN", "FULL JOIN")) {
                 for (String key : List.of("bool_key", "tiny_key", "small_key", "int_key", "real_key", "double_key",
                         "decimal_key", "text_key", "date_key", "timestamp_key")) {
@@ -377,11 +378,33 @@ public class TestYdbConnectorTest extends BaseConnectorTest {
                         .matches("VALUES (BIGINT '1', BIGINT '1'), (BIGINT '2', BIGINT '2')")
                         .isFullyPushedDown();
             }
-            // JDBC exposes Uint64's high-bit values as negative BIGINTs; mixed native equality differs.
+            // Normalize Uint64 to the signed value returned by JDBC before comparing it with Int64.
             assertThat(query("SELECT l.id, r.id FROM " + table.getName() + " l JOIN " + table.getName() +
                     " r ON l.u64 = r.signed_key"))
                     .matches("VALUES (BIGINT '1', BIGINT '1'), (BIGINT '2', BIGINT '2')")
-                    .joinIsNotFullyPushedDown();
+                    .isFullyPushedDown();
+        }
+    }
+
+    @Test
+    public void testYdbJoinUnsignedArithmetic() {
+        JdbcSqlExecutor remote = new JdbcSqlExecutor(YdbQueryRunner.buildJdbcUrl(ydb));
+        try (TestTable table = new TestTable(remote, "join_unsigned_arithmetic",
+                "(id Int64 NOT NULL, k Uint64, PRIMARY KEY(id))")) {
+            remote.execute("UPSERT INTO " + table.getName() + " (id, k) VALUES " +
+                    "(1, 18446744073709551615ul), (2, 9223372036854775808ul), (3, 1), (4, NULL)");
+            assertThat(query("SELECT id, k + 1 FROM " + table.getName()))
+                    .matches("VALUES (BIGINT '1', BIGINT '0'), (BIGINT '2', BIGINT '-9223372036854775807'), " +
+                            "(BIGINT '3', BIGINT '2'), (BIGINT '4', CAST(NULL AS bigint))")
+                    .isFullyPushedDown();
+            for (String join : List.of("JOIN", "LEFT JOIN", "RIGHT JOIN", "FULL JOIN")) {
+                for (String expression : List.of("%s + 1", "%s / 2", "%s %% 2")) {
+                    assertThat(query("SELECT l.id, r.id FROM " + table.getName() + " l " + join +
+                            " " + table.getName() + " r ON " + expression.formatted("l.k") +
+                            " = " + expression.formatted("r.k")))
+                            .isFullyPushedDown();
+                }
+            }
         }
     }
 

@@ -37,7 +37,11 @@ import io.trino.plugin.jdbc.aggregation.ImplementMinMax;
 import io.trino.plugin.jdbc.aggregation.ImplementSum;
 import io.trino.plugin.jdbc.expression.JdbcConnectorExpressionRewriterBuilder;
 import io.trino.plugin.jdbc.expression.ParameterizedExpression;
+import io.trino.plugin.jdbc.expression.RewriteAnd;
+import io.trino.plugin.jdbc.expression.RewriteExactNumericConstant;
 import io.trino.plugin.jdbc.expression.RewriteIn;
+import io.trino.plugin.jdbc.expression.RewriteOr;
+import io.trino.plugin.jdbc.expression.RewriteVarcharConstant;
 import io.trino.plugin.jdbc.logging.RemoteQueryModifier;
 import io.trino.spi.TrinoException;
 import io.trino.spi.connector.AggregateFunction;
@@ -152,7 +156,11 @@ public class YdbClient extends BaseJdbcClient {
         );
 
         JdbcConnectorExpressionRewriterBuilder expressionBuilder = JdbcConnectorExpressionRewriterBuilder.newBuilder()
-                .addStandardRules(this::quoted)
+                .add(new RewriteYdbVariable(this::quoted, this::hasSupportedValueMapping))
+                .add(new RewriteVarcharConstant())
+                .add(new RewriteExactNumericConstant())
+                .add(new RewriteAnd())
+                .add(new RewriteOr())
                 .add(new RewriteIn())
                 .add(new RewriteDivideModulus())
                 .add(new RewriteNullIf())
@@ -214,14 +222,11 @@ public class YdbClient extends BaseJdbcClient {
         JdbcColumnHandle left = condition.getLeftColumn();
         JdbcColumnHandle right = condition.getRightColumn();
         return condition.getOperator() == EQUAL
-                && isSupportedJoinKey(left)
-                && isSupportedJoinKey(right)
-                // JDBC reads Uint64 through signed getLong; mixed signed equality would change its meaning.
-                && (left.getJdbcTypeHandle().jdbcTypeName().filter("Uint64"::equalsIgnoreCase).isPresent()
-                    == right.getJdbcTypeHandle().jdbcTypeName().filter("Uint64"::equalsIgnoreCase).isPresent());
+                && hasSupportedValueMapping(left)
+                && hasSupportedValueMapping(right);
     }
 
-    private boolean isSupportedJoinKey(JdbcColumnHandle column) {
+    private boolean hasSupportedValueMapping(JdbcColumnHandle column) {
         JdbcTypeHandle type = column.getJdbcTypeHandle();
         if (getForcedMappingToVarchar(type).isPresent()) {
             return false;
@@ -345,7 +350,14 @@ public class YdbClient extends BaseJdbcClient {
                 || jdbcTypeName.equals("string")
                 || jdbcTypeName.equals("utf8")
                 || jdbcTypeName.equals("text")) {
-            return Optional.of(unboundedVarcharColumnMapping());
+            return Optional.of(unboundedVarcharColumnMapping(jdbcTypeName.equals("utf8") || jdbcTypeName.equals("text")));
+        }
+
+        if (jdbcTypeName.equals("uint64")) {
+            ColumnMapping integerMapping = bigintColumnMapping();
+            // Signed JDBC values cannot be sent back as native Uint64 filter bounds.
+            return Optional.of(ColumnMapping.mapping(
+                    BIGINT, integerMapping.getReadFunction(), integerMapping.getWriteFunction(), DISABLE_PUSHDOWN));
         }
 
         Optional<ColumnMapping> columnMapping = switch (typeHandle.jdbcType()) {
@@ -408,13 +420,13 @@ public class YdbClient extends BaseJdbcClient {
         return mapToUnboundedVarchar(typeHandle);
     }
 
-    private static ColumnMapping unboundedVarcharColumnMapping() {
+    private static ColumnMapping unboundedVarcharColumnMapping(boolean predicatePushdown) {
         VarcharType varcharType = createUnboundedVarcharType();
         return ColumnMapping.sliceMapping(
                 varcharType,
                 varcharReadFunction(varcharType),
                 varcharWriteFunction(),
-                FULL_PUSHDOWN);
+                predicatePushdown ? FULL_PUSHDOWN : DISABLE_PUSHDOWN);
     }
 
     private static ColumnMapping varcharColumnMapping(int varcharLength) {
