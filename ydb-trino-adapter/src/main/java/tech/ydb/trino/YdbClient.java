@@ -473,11 +473,6 @@ public class YdbClient extends BaseJdbcClient {
     }
 
     @Override
-    public String quoted(String name) {
-        return "`" + name.replace("\\", "\\\\").replace("`", "\\`") + "`";
-    }
-
-    @Override
     protected String quoted(@Nullable String catalog, @Nullable String schema, String table) {
         // YDB doesn't use catalog & schema in table names, only the table path
         return quoted(table);
