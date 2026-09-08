@@ -249,16 +249,23 @@ public class TestYdbConnectorTest extends BaseConnectorTest {
         Session session = joinPushdownEnabled(getSession());
         try (TestTable left = newTrinoTable("join_param_l", "(id bigint, k bigint)", List.of("11, 2", "12, 4"));
                 TestTable right = newTrinoTable("join_param_r", "(id bigint, k bigint)", List.of("31, 2", "32, 12"))) {
-            String joined = "SELECT l.id left_id, r.id right_id FROM " +
-                    "(SELECT * FROM " + left.getName() + " WHERE id > 10 AND id < 12) l JOIN " +
-                    "(SELECT * FROM " + right.getName() + " WHERE id = 31) r ON l.k = r.k";
-            assertThat(query(session, joined))
-                    .matches("VALUES (BIGINT '11', BIGINT '31')")
-                    .isFullyPushedDown();
-            assertThat(query(session, "SELECT j.left_id, r.k FROM (" + joined + ") j JOIN " +
-                    right.getName() + " r ON j.right_id = r.id"))
-                    .matches("VALUES (BIGINT '11', BIGINT '2')")
-                    .isFullyPushedDown();
+            for (String predicate : List.of("id = 31", "id > 30")) {
+                String joined = "SELECT l.id left_id, r.id right_id FROM " +
+                        "(SELECT * FROM " + left.getName() + " WHERE id > 10 AND id < 12) l JOIN " +
+                        "(SELECT * FROM " + right.getName() + " WHERE " + predicate + ") r ON l.k = r.k";
+                assertThat(query(session, joined))
+                        .matches("VALUES (BIGINT '11', BIGINT '31')")
+                        .isFullyPushedDown();
+                var nested = assertThat(query(session, "SELECT j.left_id, r.k FROM (" + joined + ") j JOIN " +
+                        right.getName() + " r ON j.right_id = r.id"))
+                        .matches("VALUES (BIGINT '11', BIGINT '2')");
+                if (predicate.equals("id = 31")) {
+                    // Constant propagation removes the outer equi-condition, leaving a CROSS JOIN in Trino.
+                    nested.joinIsNotFullyPushedDown();
+                } else {
+                    nested.isFullyPushedDown();
+                }
+            }
         }
     }
 

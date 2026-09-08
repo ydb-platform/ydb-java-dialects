@@ -31,9 +31,10 @@ reference. Additional cases cover NULLs, duplicates, source parameters, nested
 joins, type/coercion fallback and cross-catalog joins.
 
 Local validation on JDK 25.0.2: compile passed; 7 unit tests passed, 0 failures,
-0 errors, 0 skipped. The focused integration run stopped during fixture
-initialization because the Colima Docker socket is unavailable: 0 completed
-JOIN tests, 1 setup error. Runtime and full-module validation remain pending.
+0 errors, 0 skipped. Docker-backed checks run in
+[PR #250 CI](https://github.com/ydb-platform/ydb-java-dialects/pull/250/checks)
+because the local Colima Docker socket is unavailable. CI uses JDK 25 and
+`mvn --batch-mode --update-snapshots clean test` for the full adapter module.
 
 ## Trino 483 dependency migration
 
