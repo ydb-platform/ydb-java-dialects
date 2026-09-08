@@ -53,7 +53,6 @@ import io.trino.spi.type.Type;
 import io.trino.spi.type.VarcharType;
 
 import jakarta.annotation.Nullable;
-import org.jspecify.annotations.NonNull;
 
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
@@ -122,7 +121,7 @@ import static java.lang.String.format;
 import static java.util.stream.Collectors.joining;
 
 public class YdbClient extends BaseJdbcClient {
-    private static final String YDB_SCHEMA = "ydb";
+    static final String DEFAULT_SCHEMA = "default";
     private static final int YDB_DEFAULT_DECIMAL_PRECISION = 22;
     private static final int YDB_DEFAULT_DECIMAL_SCALE = 9;
 
@@ -238,7 +237,7 @@ public class YdbClient extends BaseJdbcClient {
 
     @Override
     public Collection<String> listSchemas(Connection connection) {
-        return ImmutableSet.of(YDB_SCHEMA);
+        return ImmutableSet.of(DEFAULT_SCHEMA);
     }
 
     @Override
@@ -247,41 +246,26 @@ public class YdbClient extends BaseJdbcClient {
     }
 
     @Override
-    public List<SchemaTableName> getTableNames(ConnectorSession session, Optional<String> schema) {
-        try (Connection connection = connectionFactory.openConnection(session)) {
-            try (ResultSet resultSet = getTables(connection, Optional.empty(), Optional.empty())) {
-                ImmutableList.Builder<@NonNull SchemaTableName> list = ImmutableList.builder();
-                while (resultSet.next()) {
-                    String tableName = resultSet.getString("TABLE_NAME");
-                    list.add(new SchemaTableName(YDB_SCHEMA, tableName));
-                }
-                return list.build();
-            }
-        } catch (SQLException e) {
-            throw new TrinoException(JDBC_ERROR, e);
-        }
+    public ResultSet getTables(Connection connection, Optional<String> remoteSchemaName, Optional<String> remoteTableName)
+            throws SQLException {
+        // default is a Trino schema; YDB JDBC has no physical schema with that name.
+        return super.getTables(connection,
+                remoteSchemaName.filter(schema -> !DEFAULT_SCHEMA.equalsIgnoreCase(schema)), remoteTableName);
     }
 
     @Override
-    public Optional<JdbcTableHandle> getTableHandle(
-            ConnectorSession session,
-            SchemaTableName schemaTableName
-    ) {
-        try (Connection connection = connectionFactory.openConnection(session)) {
-            RemoteTableName remoteTableName = toRemoteTableName(schemaTableName);
-            try (ResultSet columns = getColumns(remoteTableName, connection.getMetaData())) {
-                if (!columns.next()) {
-                    return Optional.empty();
-                }
-            }
-            return Optional.of(new JdbcTableHandle(
-                    new SchemaTableName(YDB_SCHEMA, schemaTableName.getTableName()),
-                    remoteTableName,
-                    Optional.empty())
-            );
-        } catch (SQLException e) {
-            return Optional.empty();
-        }
+    protected boolean filterRemoteSchema(String schemaName) {
+        return DEFAULT_SCHEMA.equalsIgnoreCase(schemaName);
+    }
+
+    @Override
+    public Optional<JdbcTableHandle> getTableHandle(ConnectorSession session, SchemaTableName table) {
+        return filterRemoteSchema(table.getSchemaName()) ? super.getTableHandle(session, table) : Optional.empty();
+    }
+
+    @Override
+    protected String getTableRemoteSchemaName(ResultSet resultSet) {
+        return DEFAULT_SCHEMA;
     }
 
     @Override
@@ -488,10 +472,6 @@ public class YdbClient extends BaseJdbcClient {
         return true;
     }
 
-    private RemoteTableName toRemoteTableName(SchemaTableName schemaTableName) {
-        return new RemoteTableName(Optional.empty(), Optional.empty(), schemaTableName.getTableName());
-    }
-
     @Override
     protected String quoted(@Nullable String catalog, @Nullable String schema, String table) {
         // YDB doesn't use catalog & schema in table names, only the table path
@@ -589,7 +569,7 @@ public class YdbClient extends BaseJdbcClient {
         String tableName = remoteTableName.getTableName();
         String metadataSchemaName = remoteTableName.getSchemaName().orElse(null);
         SchemaTableName schemaTableName = new SchemaTableName(
-                remoteTableName.getSchemaName().orElse(YDB_SCHEMA),
+                remoteTableName.getSchemaName().orElse(DEFAULT_SCHEMA),
                 tableName);
         List<JdbcColumnHandle> columns = getColumnsForPrimaryKeyLookup(session, schemaTableName, remoteTableName);
         Map<String, JdbcColumnHandle> columnsByName = columns.stream()

@@ -31,6 +31,17 @@ public class TestYdbConnectorTest extends BaseConnectorTest {
                 .build();
     }
 
+    @Test
+    public void testDefaultSchema() {
+        assertThat(computeActual("SHOW CATALOGS").getOnlyColumnAsSet()).contains("local");
+        assertThat(computeActual("SHOW SCHEMAS FROM local").getOnlyColumnAsSet())
+                .containsExactlyInAnyOrder("default", "information_schema");
+        assertThat(computeActual("SHOW TABLES FROM local.default").getOnlyColumnAsSet()).contains("orders");
+        assertQuerySucceeds("SELECT orderkey FROM local.default.orders LIMIT 1");
+        assertQueryFails("SELECT * FROM local.missing.orders", ".*Schema 'missing' does not exist");
+        assertQueryFails("SELECT * FROM local.\"%\".orders", ".*Schema '%' does not exist");
+    }
+
     @Override
     protected void verifyConcurrentAddColumnFailurePermissible(Exception exception) {
         // YDB serializes overlapping scheme operations on one table and reports the conflict as retryable OVERLOADED:

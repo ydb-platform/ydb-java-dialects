@@ -19,7 +19,7 @@ import java.util.stream.Collectors;
 import static io.trino.testing.TestingSession.testSessionBuilder;
 
 public final class YdbQueryRunner {
-    public static final String TPCH_SCHEMA = "ydb";
+    public static final String DEFAULT_SCHEMA = YdbClient.DEFAULT_SCHEMA;
     public static final String YDB_HIDDEN_PK_COLUMN = TestingYdbJdbcClient.YDB_HIDDEN_PK_COLUMN;
 
     private YdbQueryRunner() {}
@@ -50,8 +50,8 @@ public final class YdbQueryRunner {
 
         private Builder() {
             super(testSessionBuilder()
-                    .setCatalog("ydb")
-                    .setSchema(TPCH_SCHEMA)
+                    .setCatalog("local")
+                    .setSchema(DEFAULT_SCHEMA)
                     .build());
         }
 
@@ -73,7 +73,7 @@ public final class YdbQueryRunner {
                 queryRunner.createCatalog("tpch", "tpch");
 
                 queryRunner.installPlugin(new YdbPlugin(new TestingYdbJdbcModule()));
-                queryRunner.createCatalog("ydb", "ydb", ImmutableMap.copyOf(connectorProperties));
+                queryRunner.createCatalog("local", "ydb", ImmutableMap.copyOf(connectorProperties));
 
                 for (TpchTable<?> table : initialTables) {
                     dropTable(queryRunner, table);

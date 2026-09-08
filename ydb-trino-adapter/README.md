@@ -31,3 +31,16 @@ docker-compose up -d
 
 docker exec -it ydb-trino trino
 ```
+
+## Каталог и схема
+
+Имя каталога задаёт файл конфигурации Trino. В примере
+[`local.properties`](examples/trino/etc/catalog/local.properties) каталог `local`
+подключён к базе YDB `/local`. Для другой базы создайте отдельный файл каталога
+с её JDBC URL. Внутри каталога адаптер показывает схему `default`:
+
+```sql
+SELECT * FROM local.default.orders;
+```
+
+Прежние обращения `catalog.ydb.table` нужно заменить на `catalog.default.table`.

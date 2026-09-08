@@ -165,7 +165,7 @@ that inherit from this behavior and also remain false. See YDB
 
 ## Later capability work
 
-- schema-as-YDB-path design for CREATE/DROP/RENAME SCHEMA;
+- one configured YDB database per Trino catalog, with the virtual `default` schema; schema DDL remains unsupported;
 - List/Dict/Struct mappings for Trino ARRAY/MAP/ROW;
 - views, comments, rename column, and type changes after checking current YQL
   semantics;
