@@ -50,7 +50,7 @@ public final class YdbQueryRunner {
 
         private Builder() {
             super(testSessionBuilder()
-                    .setCatalog("ydb")
+                    .setCatalog("local")
                     .setSchema(DEFAULT_SCHEMA)
                     .build());
         }
@@ -73,7 +73,7 @@ public final class YdbQueryRunner {
                 queryRunner.createCatalog("tpch", "tpch");
 
                 queryRunner.installPlugin(new YdbPlugin(new TestingYdbJdbcModule()));
-                queryRunner.createCatalog("ydb", "ydb", ImmutableMap.copyOf(connectorProperties));
+                queryRunner.createCatalog("local", "ydb", ImmutableMap.copyOf(connectorProperties));
 
                 for (TpchTable<?> table : initialTables) {
                     dropTable(queryRunner, table);

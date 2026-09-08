@@ -14,8 +14,6 @@ import io.trino.plugin.jdbc.JdbcMetadataFactory;
 import io.trino.plugin.jdbc.QueryBuilder;
 import io.trino.plugin.jdbc.credential.CredentialProvider;
 import io.trino.plugin.jdbc.logging.RemoteQueryModifier;
-import java.sql.SQLException;
-
 import static com.google.inject.multibindings.OptionalBinder.newOptionalBinder;
 
 public class TestingYdbJdbcModule implements Module {
@@ -48,7 +46,7 @@ public class TestingYdbJdbcModule implements Module {
     @ForBaseJdbc
     public static ConnectionFactory createConnectionFactory(
             BaseJdbcConfig config,
-            CredentialProvider credentialProvider) throws SQLException {
+            CredentialProvider credentialProvider) {
         return YdbClientModule.createConnectionFactory(config, credentialProvider);
     }
 }

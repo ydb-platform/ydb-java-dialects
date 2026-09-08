@@ -32,26 +32,15 @@ docker-compose up -d
 docker exec -it ydb-trino trino
 ```
 
-## YDB catalogs and table paths
+## Каталог и схема
 
-Each catalog connects to one configured YDB database and exposes the virtual
-`default` schema. Migrate existing `catalog.ydb.table` references to
-`catalog.default.table`. Use separate catalog configurations for other databases.
-Directories remain part of the table name:
+Имя каталога задаёт файл конфигурации Trino. В примере
+[`local.properties`](examples/trino/etc/catalog/local.properties) каталог `local`
+подключён к базе YDB `/local`. Для другой базы создайте отдельный файл каталога
+с её JDBC URL. Внутри каталога адаптер показывает схему `default`:
 
 ```sql
-SELECT * FROM ydb.default."sales/eu/orders";
+SELECT * FROM local.default.orders;
 ```
 
-Paths are relative to the configured database. Absolute paths, empty components,
-`.` and `..` are rejected; YDB enforces naming and size limits. JDBC `usePrefixPath`
-is unsupported because it changes that root. See [YDB namespace rules](https://ydb.tech/docs/en/concepts/datamodel/cluster-namespace).
-
-Trino lowercases identifiers. The connector preserves the spelling of unique
-case-insensitive matches and rejects ambiguity. CREATE/CTAS/RENAME resolve
-existing parent directories; the connector neither creates directories nor
-exposes them as schemas. Metadata resolution does not lock external renames.
-
-Trino 483 may suppress remote errors in exact-name `information_schema.columns`
-lookups; direct table access reports ambiguous names. Optional bulk column
-listing remains unsupported.
+Прежние обращения `catalog.ydb.table` нужно заменить на `catalog.default.table`.

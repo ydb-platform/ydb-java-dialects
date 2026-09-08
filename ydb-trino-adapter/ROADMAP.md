@@ -74,16 +74,6 @@ within the CI budget. An isolated local Colima run previously exceeded 11
 minutes, so MERGE scalability remains a production concern rather than a CI
 failure.
 
-## Namespace
-
-One catalog uses one static YDB database and the virtual `default` schema;
-directories remain part of table names. See [README.md](README.md#ydb-catalogs-and-table-paths).
-Schema DDL and dynamic database discovery are outside this model.
-
-Production CREATE/CTAS primary-key definitions remain separate work: the
-inherited test client supplies a hidden key, so its green DDL tests only verify
-namespace behavior with that fixture.
-
 ## P0 — harden MERGE scalability and atomicity
 
 1. Replace row-by-row prepared-statement execution in `YdbMergeSink` with a
@@ -175,6 +165,7 @@ that inherit from this behavior and also remain false. See YDB
 
 ## Later capability work
 
+- one configured YDB database per Trino catalog, with the virtual `default` schema; schema DDL remains unsupported;
 - List/Dict/Struct mappings for Trino ARRAY/MAP/ROW;
 - views, comments, rename column, and type changes after checking current YQL
   semantics;
