@@ -1,11 +1,89 @@
 # YDB Trino Adapter — roadmap
 
-This roadmap tracks the connector against Trino 479
+This roadmap tracks the connector against Trino 483
 `BaseConnectorTest`/`BaseConnectorSmokeTest`. A green test is meaningful only
 when it exercises the advertised behavior. Empty overrides and false capability
 flags are test debt, not support.
 
-## Current DML status
+## JOIN pushdown
+
+The JOIN implementation uses Trino 483's structured `JdbcJoinCondition` API
+and `DefaultQueryBuilder`. It accepts equality between physical `Int64` keys
+for INNER/LEFT/RIGHT/FULL joins, including conjunctions and nested joins.
+Synthetic expression/aggregate keys and other types/operators fall back to
+Trino. The catalog remains one configured database with the `default` schema.
+JOIN pushdown is opt-in through `join-pushdown.enabled=true`.
+
+The structured API is deprecated upstream but still used by
+[MySQL](https://github.com/trinodb/trino/blob/483/plugin/trino-mysql/src/main/java/io/trino/plugin/mysql/MySqlClient.java)
+and [PostgreSQL](https://github.com/trinodb/trino/blob/483/plugin/trino-postgresql/src/main/java/io/trino/plugin/postgresql/PostgreSqlClient.java).
+The expression-based API loses source ownership and does not qualify ON
+operands, so explicitly enabling it leaves JOIN evaluation in Trino.
+Revisit this choice when upgrading Trino.
+
+The six JOIN regression methods from Trino 483 `BaseJdbcConnectorTest` are
+included in the existing connector suite. Its static one-sided outer JOIN
+expectation and combined arithmetic/JOIN flag cannot express the
+[YQL ON contract](https://ydb.tech/docs/en/yql/reference/syntax/select/join);
+the adapted cases verify both results and a retained Trino JoinNode. Supported
+cases verify the TableScan plan and results with pushdown disabled as a
+reference. Additional cases cover NULLs, duplicates, source parameters, nested
+joins, type/coercion fallback and cross-catalog joins.
+
+Local validation on JDK 25.0.2: compile passed; 7 unit tests passed, 0 failures,
+0 errors, 0 skipped. The focused integration run stopped during fixture
+initialization because the Colima Docker socket is unavailable: 0 completed
+JOIN tests, 1 setup error. Runtime and full-module validation remain pending.
+
+## Trino 483 dependency migration
+
+Trino 483 is the latest stable release published by both the
+[official Trino releases](https://github.com/trinodb/trino/releases/tag/483)
+and [Maven Central](https://repo.maven.apache.org/maven2/io/trino/trino-spi/maven-metadata.xml).
+It requires 64-bit Java 25, with a minimum patch level of 25.0.1; the module and
+CI continue to use Java 25.
+
+The 479-to-483 source migration consists of the following upstream contract
+changes:
+
+- `ColumnMetadata.getComment()` now returns `Optional<String>`;
+- JDBC merge rollback registration now accepts `Consumer<Runnable>`;
+- JDBC create-table rollback registration uses the same callback shape, and
+  destination-table cleanup is now separate from temporary-table cleanup; the
+  adapter inherits both implementations;
+- page-sink provider methods now receive optional table credentials, which are
+  intentionally unused because YDB writes remain authenticated through their
+  JDBC connection;
+- `MODULO_FUNCTION_NAME` replaces the deprecated
+  `MODULUS_FUNCTION_NAME` connector-expression constant.
+
+The SPI also removed the deprecated session-taking `Type.getObject` overload
+and `Type.appendTo`; the adapter already uses the retained
+`Type.getObject(Block, int)` method.
+
+`QueryBuilder` is source-identical between 479 and 483, and the relevant
+`JdbcPageSink`/`JdbcMergeSink` constructors are unchanged. The
+`TestingConnectorBehavior` enum has no additions, removals, renamed values, or
+default changes. The active inherited-test delta adds
+`testVarcharEqualityPushdownIgnoresTrailingSpaces`; it must pass against YDB
+before this upgrade can be declared green. The new materialized-view `WHEN
+STALE` tests remain skipped by the existing unsupported materialized-view
+capability. Trino 483 removes the inherited `testDropTableIfExists`,
+`testMaterializedViewWhenStale`, `testShowCreateInformationSchema`,
+`testShowCreateInformationSchemaTable`, `testShowInformationSchemaTables`, and
+`testSymbolAliasing` methods, plus the duplicate smoke-test information-schema
+method.
+
+Validation completed in this checkout with Temurin 25.0.2:
+
+- clean test compilation: 16 production sources and 5 test sources compiled;
+- package with tests skipped: successful;
+- dependency audit: every Trino release-coupled artifact resolves to 483;
+- Docker-backed tests: 0 completed. The existing Colima default profile is
+  broken, so focused and full-suite counts are not yet available and no upgrade
+  PR may be created.
+
+## Pre-upgrade DML baseline (Trino 479)
 
 PR #240 adds DELETE, UPDATE, row-level UPDATE, and MERGE. The following pieces
 have been verified locally against a real YDB test container:
@@ -74,9 +152,9 @@ Concurrent `ALTER TABLE ... ADD COLUMN` statements on one table can be rejected
 by YDB with `OVERLOADED` (400060) and the specific issue `path is under
 operation` in `EPathStateAlter`. The inherited Trino test permits only this
 exact connector-specific conflict and still verifies every successfully added
-column. This contract does not add an `ADD COLUMN` retry; the existing generic
-`YdbClient.execute` retry masks the failure while it remains, so removing that
-same-connection retry is a dependency for exercising this boundary. See
+column. This contract does not add an `ADD COLUMN` retry. The connector uses
+Trino's one-shot `BaseJdbcClient` statement execution for DDL, so a transient
+failure cannot replay a non-idempotent statement on the same connection. See
 the [YDB status-code contract](https://ydb.tech/docs/en/reference/ydb-sdk/ydb-status-codes).
 
 ## P2 — remove remaining test debt
@@ -109,7 +187,7 @@ The former empty default-column INSERT override has been replaced with a
 YDB-native row-table fixture. The inherited `testInsertForDefaultColumn` now
 verifies omitted literal defaults, explicit values and nulls, and reordered
 insert columns. YDB supports literal defaults on row-oriented tables, but the
-Trino 479 `SUPPORTS_DEFAULT_COLUMN_VALUE` behavior remains false because its
+Trino 483 `SUPPORTS_DEFAULT_COLUMN_VALUE` behavior remains false because its
 group also advertises CREATE, ADD, NOT NULL/default, and MERGE contracts that
 the connector does not fully implement. SET and DROP have child capabilities
 that inherit from this behavior and also remain false. See YDB
@@ -117,17 +195,17 @@ that inherit from this behavior and also remain false. See YDB
 
 ## Later capability work
 
-- schema-as-YDB-path design for CREATE/DROP/RENAME SCHEMA;
+- one configured YDB database per Trino catalog, with the virtual `default` schema; schema DDL remains unsupported;
 - List/Dict/Struct mappings for Trino ARRAY/MAP/ROW;
 - views, comments, rename column, and type changes after checking current YQL
   semantics;
 - transactional INSERT/staging instead of direct non-transactional writes;
-- complete the Trino 479 default-column behavior group before advertising it.
+- complete the Trino 483 default-column behavior group before advertising it.
 
 ## Validation ladder
 
-Use JDK 25 and the Docker/Testcontainers environment documented in the root
-`AGENTS.md`:
+Use JDK 25 at patch level 25.0.1 or newer and the Docker/Testcontainers
+environment documented in the root `AGENTS.md`:
 
 ```bash
 mvn -f ydb-trino-adapter/pom.xml -DskipTests compile

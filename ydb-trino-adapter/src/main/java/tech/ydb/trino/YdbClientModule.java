@@ -8,12 +8,14 @@ import com.google.inject.Singleton;
 import io.trino.plugin.base.mapping.IdentifierMapping;
 import io.trino.plugin.jdbc.BaseJdbcConfig;
 import io.trino.plugin.jdbc.ConnectionFactory;
+import io.trino.plugin.jdbc.DriverConnectionFactory;
 import io.trino.plugin.jdbc.ForBaseJdbc;
 import io.trino.plugin.jdbc.JdbcClient;
 import io.trino.plugin.jdbc.JdbcMetadataFactory;
 import io.trino.plugin.jdbc.QueryBuilder;
 import io.trino.plugin.jdbc.credential.CredentialProvider;
 import io.trino.plugin.jdbc.logging.RemoteQueryModifier;
+import tech.ydb.jdbc.YdbDriver;
 
 import java.util.Properties;
 
@@ -26,11 +28,6 @@ public class YdbClientModule implements Module {
         newOptionalBinder(binder, JdbcMetadataFactory.class)
                 .setBinding()
                 .to(YdbMetadataFactory.class)
-                .in(Scopes.SINGLETON);
-
-        newOptionalBinder(binder, QueryBuilder.class)
-                .setBinding()
-                .to(YdbQueryBuilder.class)
                 .in(Scopes.SINGLETON);
 
         binder.bind(YdbPageSinkProvider.class).in(Scopes.SINGLETON);
@@ -54,11 +51,15 @@ public class YdbClientModule implements Module {
     @ForBaseJdbc
     public static ConnectionFactory createConnectionFactory(
             BaseJdbcConfig config,
-            CredentialProvider credentialProvider
-    ) {
+            CredentialProvider credentialProvider) {
         Properties connectionProperties = new Properties();
         // Avoid the YDB JDBC 2.3.18 shared-context close/register race under concurrent connections.
         connectionProperties.setProperty("cacheConnectionsInDriver", "false");
-        return new YdbHikariConnectionFactory(config.getConnectionUrl(), connectionProperties);
+        return DriverConnectionFactory.builder(
+                        new YdbDriver(),
+                        config.getConnectionUrl(),
+                        credentialProvider)
+                .setConnectionProperties(connectionProperties)
+                .build();
     }
 }

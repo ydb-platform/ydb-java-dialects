@@ -19,7 +19,7 @@ import java.util.stream.Collectors;
 import static io.trino.testing.TestingSession.testSessionBuilder;
 
 public final class YdbQueryRunner {
-    public static final String TPCH_SCHEMA = "ydb";
+    public static final String DEFAULT_SCHEMA = YdbClient.DEFAULT_SCHEMA;
     public static final String YDB_HIDDEN_PK_COLUMN = TestingYdbJdbcClient.YDB_HIDDEN_PK_COLUMN;
 
     private YdbQueryRunner() {}
@@ -28,13 +28,6 @@ public final class YdbQueryRunner {
         String jdbcUrl = buildJdbcUrl(ydb);
         return new Builder()
                 // Avoid temporary-table CTAS during INSERT; YDB does not support CREATE TABLE AS SELECT.
-                .addConnectorProperty("insert.non-transactional-insert.enabled", "true")
-                .addConnectorProperty("connection-url", jdbcUrl);
-    }
-
-    public static Builder builder() {
-        String jdbcUrl = "jdbc:ydb:grpc://localhost:2136/local?useQueryService=true&sessionPoolMaxSize=10";
-        return new Builder()
                 .addConnectorProperty("insert.non-transactional-insert.enabled", "true")
                 .addConnectorProperty("connection-url", jdbcUrl);
     }
@@ -57,8 +50,8 @@ public final class YdbQueryRunner {
 
         private Builder() {
             super(testSessionBuilder()
-                    .setCatalog("ydb")
-                    .setSchema(TPCH_SCHEMA)
+                    .setCatalog("local")
+                    .setSchema(DEFAULT_SCHEMA)
                     .build());
         }
 
@@ -80,7 +73,7 @@ public final class YdbQueryRunner {
                 queryRunner.createCatalog("tpch", "tpch");
 
                 queryRunner.installPlugin(new YdbPlugin(new TestingYdbJdbcModule()));
-                queryRunner.createCatalog("ydb", "ydb", ImmutableMap.copyOf(connectorProperties));
+                queryRunner.createCatalog("local", "ydb", ImmutableMap.copyOf(connectorProperties));
 
                 for (TpchTable<?> table : initialTables) {
                     dropTable(queryRunner, table);

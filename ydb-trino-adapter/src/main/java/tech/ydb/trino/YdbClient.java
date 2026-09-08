@@ -5,7 +5,6 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.primitives.Ints;
 import com.google.inject.Inject;
-import io.opentelemetry.api.internal.StringUtils;
 import io.trino.plugin.base.aggregation.AggregateFunctionRewriter;
 import io.trino.plugin.base.aggregation.AggregateFunctionRule;
 import io.trino.plugin.base.expression.ConnectorExpressionRewriter;
@@ -19,6 +18,7 @@ import io.trino.plugin.jdbc.ColumnMapping;
 import io.trino.plugin.jdbc.ConnectionFactory;
 import io.trino.plugin.jdbc.JdbcColumnHandle;
 import io.trino.plugin.jdbc.JdbcExpression;
+import io.trino.plugin.jdbc.JdbcJoinCondition;
 import io.trino.plugin.jdbc.JdbcMergeTableHandle;
 import io.trino.plugin.jdbc.JdbcOutputTableHandle;
 import io.trino.plugin.jdbc.JdbcSortItem;
@@ -45,6 +45,8 @@ import io.trino.spi.connector.ColumnHandle;
 import io.trino.spi.connector.ColumnMetadata;
 import io.trino.spi.connector.ConnectorSession;
 import io.trino.spi.connector.ConnectorTableMetadata;
+import io.trino.spi.connector.JoinStatistics;
+import io.trino.spi.connector.JoinType;
 import io.trino.spi.connector.RetryMode;
 import io.trino.spi.connector.SchemaTableName;
 import io.trino.spi.connector.SortOrder;
@@ -54,7 +56,6 @@ import io.trino.spi.type.Type;
 import io.trino.spi.type.VarcharType;
 
 import jakarta.annotation.Nullable;
-import org.jspecify.annotations.NonNull;
 
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
@@ -73,6 +74,7 @@ import java.util.OptionalLong;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.function.BiFunction;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -105,6 +107,7 @@ import static io.trino.plugin.jdbc.StandardColumnMappings.varcharColumnMapping;
 import static io.trino.plugin.jdbc.StandardColumnMappings.varcharReadFunction;
 import static io.trino.plugin.jdbc.StandardColumnMappings.varcharWriteFunction;
 import static io.trino.spi.StandardErrorCode.NOT_SUPPORTED;
+import static io.trino.spi.connector.JoinCondition.Operator.EQUAL;
 import static io.trino.spi.type.BigintType.BIGINT;
 import static io.trino.spi.type.BooleanType.BOOLEAN;
 import static io.trino.spi.type.DateType.DATE;
@@ -122,7 +125,7 @@ import static java.lang.String.format;
 import static java.util.stream.Collectors.joining;
 
 public class YdbClient extends BaseJdbcClient {
-    private static final String YDB_SCHEMA = "ydb";
+    static final String DEFAULT_SCHEMA = "default";
     private static final int YDB_DEFAULT_DECIMAL_PRECISION = 22;
     private static final int YDB_DEFAULT_DECIMAL_SCALE = 9;
 
@@ -194,6 +197,36 @@ public class YdbClient extends BaseJdbcClient {
     }
 
     @Override
+    protected boolean isSupportedJoinCondition(ConnectorSession session, JdbcJoinCondition condition) {
+        // YQL ON accepts equality between the two sources, combined with AND:
+        // https://ydb.tech/docs/en/yql/reference/syntax/select/join
+        return condition.getOperator() == EQUAL
+                && isInt64JoinKey(condition.getLeftColumn())
+                && isInt64JoinKey(condition.getRightColumn());
+    }
+
+    private static boolean isInt64JoinKey(JdbcColumnHandle column) {
+        return BIGINT.equals(column.getColumnType())
+                // Trino marks computed projections and aggregates with a synthetic comment.
+                && column.getComment().isEmpty()
+                && column.getJdbcTypeHandle().jdbcTypeName().filter("Int64"::equalsIgnoreCase).isPresent();
+    }
+
+    @Override
+    public Optional<PreparedQuery> implementJoin(
+            ConnectorSession session,
+            JoinType joinType,
+            PreparedQuery leftSource,
+            Map<JdbcColumnHandle, String> leftProjections,
+            PreparedQuery rightSource,
+            Map<JdbcColumnHandle, String> rightProjections,
+            List<ParameterizedExpression> joinConditions,
+            JoinStatistics statistics) {
+        // Only the structured legacy path preserves source ownership for YQL ON operands.
+        return Optional.empty();
+    }
+
+    @Override
     public Optional<JdbcExpression> implementAggregation(
             ConnectorSession session,
             AggregateFunction aggregate,
@@ -238,7 +271,7 @@ public class YdbClient extends BaseJdbcClient {
 
     @Override
     public Collection<String> listSchemas(Connection connection) {
-        return ImmutableSet.of(YDB_SCHEMA);
+        return ImmutableSet.of(DEFAULT_SCHEMA);
     }
 
     @Override
@@ -247,41 +280,26 @@ public class YdbClient extends BaseJdbcClient {
     }
 
     @Override
-    public List<SchemaTableName> getTableNames(ConnectorSession session, Optional<String> schema) {
-        try (Connection connection = connectionFactory.openConnection(session)) {
-            try (ResultSet resultSet = getTables(connection, Optional.empty(), Optional.empty())) {
-                ImmutableList.Builder<@NonNull SchemaTableName> list = ImmutableList.builder();
-                while (resultSet.next()) {
-                    String tableName = resultSet.getString("TABLE_NAME");
-                    list.add(new SchemaTableName(YDB_SCHEMA, tableName));
-                }
-                return list.build();
-            }
-        } catch (SQLException e) {
-            throw new TrinoException(JDBC_ERROR, e);
-        }
+    public ResultSet getTables(Connection connection, Optional<String> remoteSchemaName, Optional<String> remoteTableName)
+            throws SQLException {
+        // default is a Trino schema; YDB JDBC has no physical schema with that name.
+        return super.getTables(connection,
+                remoteSchemaName.filter(schema -> !DEFAULT_SCHEMA.equalsIgnoreCase(schema)), remoteTableName);
     }
 
     @Override
-    public Optional<JdbcTableHandle> getTableHandle(
-            ConnectorSession session,
-            SchemaTableName schemaTableName
-    ) {
-        try (Connection connection = connectionFactory.openConnection(session)) {
-            RemoteTableName remoteTableName = toRemoteTableName(schemaTableName);
-            try (ResultSet columns = getColumns(remoteTableName, connection.getMetaData())) {
-                if (!columns.next()) {
-                    return Optional.empty();
-                }
-            }
-            return Optional.of(new JdbcTableHandle(
-                    new SchemaTableName(YDB_SCHEMA, schemaTableName.getTableName()),
-                    remoteTableName,
-                    Optional.empty())
-            );
-        } catch (SQLException e) {
-            return Optional.empty();
-        }
+    protected boolean filterRemoteSchema(String schemaName) {
+        return DEFAULT_SCHEMA.equalsIgnoreCase(schemaName);
+    }
+
+    @Override
+    public Optional<JdbcTableHandle> getTableHandle(ConnectorSession session, SchemaTableName table) {
+        return filterRemoteSchema(table.getSchemaName()) ? super.getTableHandle(session, table) : Optional.empty();
+    }
+
+    @Override
+    protected String getTableRemoteSchemaName(ResultSet resultSet) {
+        return DEFAULT_SCHEMA;
     }
 
     @Override
@@ -488,19 +506,10 @@ public class YdbClient extends BaseJdbcClient {
         return true;
     }
 
-    private RemoteTableName toRemoteTableName(SchemaTableName schemaTableName) {
-        return new RemoteTableName(Optional.empty(), Optional.empty(), schemaTableName.getTableName());
-    }
-
     @Override
     protected String quoted(@Nullable String catalog, @Nullable String schema, String table) {
         // YDB doesn't use catalog & schema in table names, only the table path
         return quoted(table);
-    }
-
-    @Override
-    protected void execute(ConnectorSession session, Connection connection, String query) throws SQLException {
-        YdbRetryUtils.withRetry(() -> super.execute(session, connection, query));
     }
 
     @Override
@@ -525,34 +534,8 @@ public class YdbClient extends BaseJdbcClient {
     }
 
     @Override
-    public void dropColumn(ConnectorSession session, JdbcTableHandle handle, JdbcColumnHandle column) {
-        try (Connection connection = connectionFactory.openConnection(session)) {
-            String sql = format(
-                    "ALTER TABLE %s DROP COLUMN %s",
-                    quoted(handle.asPlainTable().getRemoteTableName().getTableName()),
-                    quoted(column.getColumnMetadata().getName()));
-            execute(session, connection, sql);
-        } catch (SQLException e) {
-            throw new TrinoException(JDBC_ERROR, e);
-        }
-    }
-
-    @Override
     public void setColumnType(ConnectorSession session, JdbcTableHandle handle, JdbcColumnHandle column, Type type) {
         throw new TrinoException(NOT_SUPPORTED, "This connector does not support setting column types");
-    }
-
-    @Override
-    public void dropNotNullConstraint(ConnectorSession session, JdbcTableHandle handle, JdbcColumnHandle column) {
-        try (Connection connection = connectionFactory.openConnection(session)) {
-            String sql = format(
-                    "ALTER TABLE %s ALTER COLUMN %s DROP NOT NULL",
-                    quoted(handle.asPlainTable().getRemoteTableName().getTableName()),
-                    quoted(column.getColumnMetadata().getName()));
-            execute(session, connection, sql);
-        } catch (SQLException e) {
-            throw new TrinoException(JDBC_ERROR, e);
-        }
     }
 
     @Override
@@ -570,26 +553,9 @@ public class YdbClient extends BaseJdbcClient {
     }
 
     @Override
-    protected void renameTable(
-            ConnectorSession session,
-            Connection connection,
-            String catalogName,
-            String remoteSchemaName,
-            String remoteTableName,
-            String newRemoteSchemaName,
-            String newRemoteTableName
-    ) throws SQLException {
-        // YDB rename is table-path only; ignore catalog/schema in the SQL.
-        execute(session, connection, format(
-                "ALTER TABLE %s RENAME TO %s",
-                quoted(remoteTableName),
-                quoted(newRemoteTableName)));
-    }
-
-    @Override
     protected String getColumnDefinitionSql(ConnectorSession session, ColumnMetadata column, String columnName) {
         // YDB restriction, does not support column comments.
-        if (!StringUtils.isNullOrEmpty(column.getComment())) {
+        if (column.getComment().filter(comment -> !comment.isEmpty()).isPresent()) {
             throw new TrinoException(NOT_SUPPORTED, "This connector does not support creating tables with column comment");
         }
 
@@ -618,13 +584,7 @@ public class YdbClient extends BaseJdbcClient {
         if (!column.isNullable()) {
             throw new TrinoException(NOT_SUPPORTED, "This connector does not support adding not null columns");
         }
-        String columnName = column.getName();
-        String remoteColumnName = getIdentifierMapping().toRemoteColumnName(getRemoteIdentifiers(connection), columnName);
-        String sql = format(
-                "ALTER TABLE %s ADD %s",
-                quoted(table),
-                getColumnDefinitionSql(session, column, remoteColumnName));
-        execute(session, connection, sql);
+        super.addColumn(session, connection, table, column);
     }
 
     @Override
@@ -643,7 +603,7 @@ public class YdbClient extends BaseJdbcClient {
         String tableName = remoteTableName.getTableName();
         String metadataSchemaName = remoteTableName.getSchemaName().orElse(null);
         SchemaTableName schemaTableName = new SchemaTableName(
-                remoteTableName.getSchemaName().orElse(YDB_SCHEMA),
+                remoteTableName.getSchemaName().orElse(DEFAULT_SCHEMA),
                 tableName);
         List<JdbcColumnHandle> columns = getColumnsForPrimaryKeyLookup(session, schemaTableName, remoteTableName);
         Map<String, JdbcColumnHandle> columnsByName = columns.stream()
@@ -697,7 +657,7 @@ public class YdbClient extends BaseJdbcClient {
             ConnectorSession session,
             JdbcTableHandle handle,
             Map<Integer, Collection<ColumnHandle>> updateColumnHandles,
-            List<Runnable> rollbackActions,
+            Consumer<Runnable> rollbackActionCollector,
             RetryMode retryMode
     ) {
         if (retryMode != RetryMode.NO_RETRIES) {

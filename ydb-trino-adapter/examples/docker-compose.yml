@@ -2,7 +2,7 @@ version: "3.9"
 
 services:
   trino:
-    image: trinodb/trino:479
+    image: trinodb/trino:483
     container_name: ydb-trino-trino
     ports:
       - "8080:8080"
