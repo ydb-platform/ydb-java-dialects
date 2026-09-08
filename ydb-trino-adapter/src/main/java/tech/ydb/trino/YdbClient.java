@@ -151,35 +151,46 @@ public class YdbClient extends BaseJdbcClient {
                 true
         );
 
-        this.connectorExpressionRewriter = JdbcConnectorExpressionRewriterBuilder.newBuilder()
+        JdbcConnectorExpressionRewriterBuilder expressionBuilder = JdbcConnectorExpressionRewriterBuilder.newBuilder()
                 .addStandardRules(this::quoted)
                 .add(new RewriteIn())
                 .add(new RewriteDivideModulus())
                 .add(new RewriteNullIf())
-                .withTypeClass("integer_type", ImmutableSet.of("tinyint", "smallint", "integer", "bigint"))
                 .withTypeClass("numeric_type", ImmutableSet.of("tinyint", "smallint", "integer", "bigint", "decimal", "real", "double"))
                 .withTypeClass("comparable_type", ImmutableSet.of(
                         "tinyint", "smallint", "integer", "bigint", "decimal", "real", "double", "varchar", "char", "date", "timestamp"))
                 .map("$equal(left, right)").to("left = right")
                 .map("$not_equal(left, right)").to("left <> right")
-                .map("$add(left: integer_type, right: integer_type)").to("left + right")
-                .map("$subtract(left: integer_type, right: integer_type)").to("left - right")
-                .map("$multiply(left: integer_type, right: integer_type)").to("left * right")
-                .map("$negate(value: integer_type)").to("-value")
                 .map("$less_than(left: comparable_type, right: comparable_type)").to("left < right")
                 .map("$less_than_or_equal(left: comparable_type, right: comparable_type)").to("left <= right")
                 .map("$greater_than(left: comparable_type, right: comparable_type)").to("left > right")
                 .map("$greater_than_or_equal(left: comparable_type, right: comparable_type)").to("left >= right")
                 .map("$is_null(value)").to("value IS NULL")
                 .map("$not($is_null(value))").to("value IS NOT NULL")
-                .map("$concat(left: varchar, right: varchar)").to("left || right")
-                .build();
+                .map("$concat(left: varchar, right: varchar)").to("left || right");
+
+        // YQL integer arithmetic wraps on overflow; Trino must fail, including for computed JOIN keys.
+        // Decimal intermediates preserve integer results and CAST/Unwrap rejects values outside the target range.
+        for (Type type : List.of(TINYINT, SMALLINT, INTEGER, BIGINT)) {
+            String sqlType = YdbTypeUtils.toTypeHandle(type).orElseThrow().jdbcTypeName().orElseThrow();
+            for (Map.Entry<String, String> operation : Map.of("$add", "+", "$subtract", "-", "$multiply", "*").entrySet()) {
+                expressionBuilder.map(operation.getKey() + "(left: " + type + ", right: " + type + ")")
+                        .to("IF(left IS NULL OR right IS NULL, NULL, Unwrap(CAST(" +
+                                "CAST(left AS Decimal(35,0)) " + operation.getValue() + " CAST(right AS Decimal(35,0)) " +
+                                "AS " + sqlType + "), 'integer overflow'))");
+            }
+            expressionBuilder.map("$negate(value: " + type + ")")
+                    .to("IF(value IS NULL, NULL, Unwrap(CAST(-CAST(value AS Decimal(35,0)) " +
+                            "AS " + sqlType + "), 'integer overflow'))");
+        }
+        this.connectorExpressionRewriter = expressionBuilder.build();
 
         this.projectFunctionRewriter = new ProjectFunctionRewriter<>(
                 this.connectorExpressionRewriter,
                 ImmutableSet.<ProjectFunctionRule<JdbcExpression, ParameterizedExpression>>builder()
                         .add(new RewriteUnaryStringOperations())
                         .add(new RewriteStringPosition())
+                        .add(new RewriteCast())
                         .build());
 
         JdbcTypeHandle bigintTypeHandle = YdbTypeUtils.toTypeHandle(BIGINT).orElseThrow();
@@ -200,16 +211,29 @@ public class YdbClient extends BaseJdbcClient {
     protected boolean isSupportedJoinCondition(ConnectorSession session, JdbcJoinCondition condition) {
         // YQL ON accepts equality between the two sources, combined with AND:
         // https://ydb.tech/docs/en/yql/reference/syntax/select/join
+        JdbcColumnHandle left = condition.getLeftColumn();
+        JdbcColumnHandle right = condition.getRightColumn();
         return condition.getOperator() == EQUAL
-                && isInt64JoinKey(condition.getLeftColumn())
-                && isInt64JoinKey(condition.getRightColumn());
+                && isSupportedJoinKey(left)
+                && isSupportedJoinKey(right)
+                // JDBC reads Uint64 through signed getLong; mixed signed equality would change its meaning.
+                && (left.getJdbcTypeHandle().jdbcTypeName().filter("Uint64"::equalsIgnoreCase).isPresent()
+                    == right.getJdbcTypeHandle().jdbcTypeName().filter("Uint64"::equalsIgnoreCase).isPresent());
     }
 
-    private static boolean isInt64JoinKey(JdbcColumnHandle column) {
-        return BIGINT.equals(column.getColumnType())
-                // Trino marks computed projections and aggregates with a synthetic comment.
-                && column.getComment().isEmpty()
-                && column.getJdbcTypeHandle().jdbcTypeName().filter("Int64"::equalsIgnoreCase).isPresent();
+    private boolean isSupportedJoinKey(JdbcColumnHandle column) {
+        JdbcTypeHandle type = column.getJdbcTypeHandle();
+        if (getForcedMappingToVarchar(type).isPresent()) {
+            return false;
+        }
+        String name = type.jdbcTypeName().orElse("").toLowerCase(Locale.ROOT);
+        return switch (name) {
+            case "bool", "int8", "int16", "int32", "int64", "uint8", "uint16", "uint32", "uint64",
+                    "float", "double", "utf8", "text", "date", "date32", "datetime", "datetime64",
+                    "timestamp", "timestamp64", "decimal" -> true;
+            // String/Bytes are decoded lossily as varchar by JDBC; comparing their raw bytes is unsafe.
+            default -> name.startsWith("decimal(");
+        };
     }
 
     @Override
@@ -222,7 +246,8 @@ public class YdbClient extends BaseJdbcClient {
             Map<JdbcColumnHandle, String> rightProjections,
             List<ParameterizedExpression> joinConditions,
             JoinStatistics statistics) {
-        // Only the structured legacy path preserves source ownership for YQL ON operands.
+        // Computed equality keys use legacyImplementJoin after projection pushdown.
+        // This API has lost source ownership, which YQL requires for qualified ON operands.
         return Optional.empty();
     }
 

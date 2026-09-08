@@ -7,6 +7,7 @@ import io.trino.plugin.jdbc.expression.ParameterizedExpression;
 import io.trino.spi.expression.Call;
 
 import java.util.Optional;
+import java.util.Set;
 
 import static io.trino.plugin.base.expression.ConnectorExpressionPatterns.argumentCount;
 import static io.trino.plugin.base.expression.ConnectorExpressionPatterns.call;
@@ -45,8 +46,11 @@ public class RewriteDivideModulus implements ConnectorExpressionRule<Call, Param
                 call,
                 context,
                 () -> call.getArguments().get(1) instanceof io.trino.spi.expression.Constant rightConstant &&
+                        rightConstant.getType().equals(call.getType()) &&
                         rightConstant.getValue() instanceof Number number &&
-                        number.longValue() != 0,
+                        number.longValue() != 0 &&
+                        !(call.getFunctionName().equals(DIVIDE_FUNCTION_NAME) && number.longValue() == -1 &&
+                                Set.of("tinyint", "smallint", "integer", "bigint").contains(call.getType().getDisplayName())),
                 (left, right) -> format("(%s) %s (%s)", left, operator, right)
         );
     }

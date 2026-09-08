@@ -19,6 +19,7 @@ import org.junit.jupiter.api.extension.RegisterExtension;
 import tech.ydb.test.junit5.YdbHelperExtension;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.OptionalInt;
 
@@ -87,10 +88,10 @@ public class TestYdbConnectorTest extends BaseConnectorTest {
                  SUPPORTS_DROP_DEFAULT_COLUMN_VALUE,
                  SUPPORTS_ADD_COLUMN_NOT_NULL_CONSTRAINT,
                  SUPPORTS_JOIN_PUSHDOWN_WITH_DISTINCT_FROM,
-                 SUPPORTS_JOIN_PUSHDOWN_WITH_VARCHAR_EQUALITY,
                  SUPPORTS_JOIN_PUSHDOWN_WITH_VARCHAR_INEQUALITY -> false;
             case SUPPORTS_TOPN_PUSHDOWN_WITH_VARCHAR,
                  SUPPORTS_JOIN_PUSHDOWN,
+                 SUPPORTS_JOIN_PUSHDOWN_WITH_VARCHAR_EQUALITY,
                  SUPPORTS_JOIN_PUSHDOWN_WITH_FULL_JOIN -> true;
             default -> super.hasBehavior(connectorBehavior);
         };
@@ -123,12 +124,15 @@ public class TestYdbConnectorTest extends BaseConnectorTest {
                 for (String sql : List.of(
                         "SELECT r.name, n.name FROM nation n %s region r ON n.regionkey = r.regionkey",
                         "SELECT r.name, n.name FROM nation n %s region r ON n.nationkey = r.regionkey",
+                        "SELECT n.name, r.name FROM nation n %s region r ON n.regionkey + 1 = r.regionkey",
                         "SELECT r.name, n.name FROM nation n %s region r USING (regionkey)",
                         "SELECT n.name, c.name FROM nation n %s customer c ON n.nationkey = c.nationkey AND n.regionkey = c.custkey",
                         "SELECT c.name, n.name FROM (SELECT * FROM customer WHERE acctbal > 8000) c %s nation n ON c.custkey = n.nationkey",
                         "SELECT c.name, n.name FROM (SELECT * FROM customer WHERE address = 'TcGe5gaZNgVePxU5kRrvXBfkasDTea') c %s nation n ON c.custkey = n.nationkey",
                         "SELECT c.name, n.name FROM (SELECT * FROM customer WHERE address < 'TcGe5gaZNgVePxU5kRrvXBfkasDTea') c %s nation n ON c.custkey = n.nationkey",
                         "SELECT * FROM (SELECT regionkey rk, count(nationkey) c FROM nation GROUP BY regionkey) n %s region r ON n.rk = r.regionkey",
+                        "SELECT * FROM (SELECT regionkey, count(*) c FROM nation GROUP BY regionkey) n %s region r ON n.c = r.regionkey",
+                        "SELECT n.name, n2.regionkey FROM nation n %s nation n2 ON n.name = n2.name",
                         "SELECT * FROM (SELECT nationkey FROM nation LIMIT 30) n %s region r ON n.nationkey = r.regionkey",
                         "SELECT * FROM (SELECT nationkey FROM nation ORDER BY regionkey LIMIT 5) n %s region r ON n.nationkey = r.regionkey",
                         "SELECT count(*) FROM nation n %s region r ON n.regionkey = r.regionkey")) {
@@ -138,28 +142,29 @@ public class TestYdbConnectorTest extends BaseConnectorTest {
                 for (String sql : List.of(
                         "SELECT n.name FROM nation n %s orders o ON DATE '2025-03-19' = o.orderdate",
                         "SELECT n.name FROM nation n %s region r ON n.regionkey = 1",
-                        "SELECT n.name, r.name FROM nation n %s region r ON n.nationkey = n.regionkey",
-                        "SELECT n.name, r.name FROM nation n %s region r ON n.regionkey + 1 = r.regionkey",
-                        "SELECT n.name, n2.regionkey FROM nation n %s nation n2 ON n.name = n2.name",
-                        "SELECT * FROM (SELECT regionkey, count(*) c FROM nation GROUP BY regionkey) n %s region r ON n.c = r.regionkey")) {
+                        "SELECT n.name, r.name FROM nation n %s region r ON n.nationkey = n.regionkey")) {
                     assertThat(query(session, sql.formatted(join))).joinIsNotFullyPushedDown();
                 }
 
-                for (String operator : List.of("=", "<>", "<", "<=", ">", ">=", "IS DISTINCT FROM", "IS NOT DISTINCT FROM")) {
+                assertThat(query(session, "SELECT n.name, nl.name FROM nation n " + join + " " + lowercaseNation.getName() +
+                        " nl ON n.name = nl.name"))
+                        .isFullyPushedDown();
+                assertThat(query(session, "SELECT n.name, nl.name FROM nation n " + join + " " + lowercaseNation.getName() +
+                        " nl ON n.regionkey = nl.regionkey AND n.name = nl.name"))
+                        .isFullyPushedDown();
+                for (String operator : List.of("<>", "<", "<=", ">", ">=", "IS DISTINCT FROM", "IS NOT DISTINCT FROM")) {
                     assertThat(query(session, "SELECT n.name, nl.name FROM nation n " + join + " " + lowercaseNation.getName() +
                             " nl ON n.name " + operator + " nl.name"))
                             .joinIsNotFullyPushedDown();
                     assertThat(query(session, "SELECT n.name, nl.name FROM nation n " + join + " " + lowercaseNation.getName() +
                             " nl ON n.regionkey = nl.regionkey AND n.name " + operator + " nl.name"))
                             .joinIsNotFullyPushedDown();
-                    if (!operator.equals("=")) {
-                        assertThat(query(session, "SELECT r.name, n.name FROM nation n " + join +
-                                " region r ON n.regionkey " + operator + " r.regionkey"))
-                                .joinIsNotFullyPushedDown();
-                        assertThat(query(session, "SELECT n.name, c.name FROM nation n " + join +
-                                " customer c ON n.nationkey = c.nationkey AND n.regionkey " + operator + " c.custkey"))
-                                .joinIsNotFullyPushedDown();
-                    }
+                    assertThat(query(session, "SELECT r.name, n.name FROM nation n " + join +
+                            " region r ON n.regionkey " + operator + " r.regionkey"))
+                            .joinIsNotFullyPushedDown();
+                    assertThat(query(session, "SELECT n.name, c.name FROM nation n " + join +
+                            " customer c ON n.nationkey = c.nationkey AND n.regionkey " + operator + " c.custkey"))
+                            .joinIsNotFullyPushedDown();
                 }
             }
         }
@@ -264,19 +269,133 @@ public class TestYdbConnectorTest extends BaseConnectorTest {
     }
 
     @Test
-    public void testYdbJoinTypeAndExpressionFallback() {
-        Session session = getSession();
+    public void testYdbJoinScalarTypesAndProjections() {
         try (TestTable table = newTrinoTable("join_types",
-                "(id bigint, small_key integer, float_key double, decimal_key decimal(10, 2), text_key varchar, date_key date)",
-                List.of("1, 1, 1.5, 1.50, 'A', DATE '2026-01-01'", "2, 2, 2.5, 2.50, 'a ', DATE '2026-01-02'"))) {
-            for (String condition : List.of(
-                    "l.small_key = r.small_key", "l.float_key = r.float_key", "l.decimal_key = r.decimal_key",
-                    "l.text_key = r.text_key", "l.date_key = r.date_key", "l.id = r.small_key",
-                    "l.id + 1 = r.id", "l.id = r.id OR l.id = r.id + 1")) {
-                assertThat(query(session, "SELECT l.id, r.id FROM " + table.getName() +
-                        " l LEFT JOIN " + table.getName() + " r ON " + condition))
-                        .joinIsNotFullyPushedDown();
+                "(id bigint, bool_key boolean, tiny_key tinyint, small_key smallint, int_key integer, " +
+                        "real_key real, double_key double, decimal_key decimal(10, 2), text_key varchar, " +
+                        "date_key date, timestamp_key timestamp(6))",
+                List.of(
+                        "1, true, -128, -32768, -2147483648, 1.5, 1.5, 1.50, 'Aλ', DATE '2026-01-01', TIMESTAMP '2026-01-01 01:02:03.123456'",
+                        "2, false, 127, 32767, 2147483647, 2.5, 2.5, -2.50, 'aλ ', DATE '2026-01-02', TIMESTAMP '2026-01-01 01:02:03.123457'",
+                        "3, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL"))) {
+            for (String join : List.of("JOIN", "LEFT JOIN", "RIGHT JOIN", "FULL JOIN")) {
+                for (String key : List.of("bool_key", "tiny_key", "small_key", "int_key", "real_key", "double_key",
+                        "decimal_key", "text_key", "date_key", "timestamp_key")) {
+                    assertThat(query("SELECT l.id, r.id FROM " + table.getName() + " l " + join +
+                            " " + table.getName() + " r ON l." + key + " = r." + key))
+                            .isFullyPushedDown();
+                }
+                assertThat(query("SELECT l.id, r.id FROM (SELECT id, text_key || 'suffix' k FROM " + table.getName() +
+                        ") l " + join + " (SELECT id, text_key || 'suffix' k FROM " + table.getName() + ") r ON l.k = r.k"))
+                        .isFullyPushedDown();
             }
+            assertThat(query("SELECT l.id, r.id FROM " + table.getName() + " l LEFT JOIN " + table.getName() +
+                    " r ON l.id = r.id OR l.id = r.id + 1"))
+                    .joinIsNotFullyPushedDown();
+        }
+    }
+
+    @Test
+    public void testYdbJoinFloatingPointSpecialValues() {
+        try (TestTable table = newTrinoTable("join_floating",
+                "(id bigint, real_key real, double_key double)", List.of(
+                        "1, REAL '0.0', DOUBLE '0.0'",
+                        "2, REAL '-0.0', DOUBLE '-0.0'",
+                        "3, REAL 'NaN', DOUBLE 'NaN'",
+                        "4, REAL 'Infinity', DOUBLE 'Infinity'",
+                        "5, REAL '-Infinity', DOUBLE '-Infinity'",
+                        "6, NULL, NULL"))) {
+            for (String key : List.of("real_key", "double_key")) {
+                for (String join : List.of("JOIN", "LEFT JOIN", "RIGHT JOIN", "FULL JOIN")) {
+                    assertThat(query("SELECT l.id, r.id FROM " + table.getName() + " l " + join +
+                            " " + table.getName() + " r ON l." + key + " = r." + key))
+                            .isFullyPushedDown();
+                }
+                assertThat(query("SELECT l.id, r.id FROM " + table.getName() + " l JOIN " + table.getName() +
+                        " r ON l." + key + " = r." + key))
+                        .matches("VALUES (BIGINT '1', BIGINT '1'), (BIGINT '1', BIGINT '2'), " +
+                                "(BIGINT '2', BIGINT '1'), (BIGINT '2', BIGINT '2'), " +
+                                "(BIGINT '4', BIGINT '4'), (BIGINT '5', BIGINT '5')")
+                        .isFullyPushedDown();
+            }
+        }
+    }
+
+    @Test
+    public void testYdbJoinIntegerArithmeticAndWideningCasts() {
+        try (TestTable table = newTrinoTable("join_arithmetic", "(id bigint, k bigint, s smallint, i integer)", List.of(
+                "1, -2, -32768, -2147483648", "2, -1, -1, -1", "3, 0, 0, 0",
+                "4, 1, 1, 1", "5, 2, 32767, 2147483647", "6, NULL, NULL, NULL"))) {
+            for (String join : List.of("JOIN", "LEFT JOIN", "RIGHT JOIN", "FULL JOIN")) {
+                for (String condition : List.of(
+                        "l.k + 1 = r.k", "l.k - 1 = r.k", "l.k * 2 = r.k", "-l.k = r.k",
+                        "CAST(l.s AS integer) = r.i", "CAST(l.s AS bigint) = r.k", "CAST(l.i AS bigint) = r.k",
+                        "CAST(l.i AS bigint) = CAST(r.i AS bigint)", "CAST(l.s AS integer) = CAST(r.s AS integer)")) {
+                    assertThat(query("SELECT l.id, r.id FROM " + table.getName() + " l " + join +
+                            " " + table.getName() + " r ON " + condition))
+                            .isFullyPushedDown();
+                }
+            }
+            assertThat(query("SELECT l.id, r.id FROM " + table.getName() + " l LEFT JOIN " + table.getName() +
+                    " r ON CAST(l.k AS smallint) = CAST(r.k AS smallint)"))
+                    .joinIsNotFullyPushedDown();
+        }
+    }
+
+    @Test
+    public void testYdbJoinIntegerArithmeticOverflow() {
+        Session withoutPushdown = Session.builder(getSession())
+                .setSystemProperty("allow_pushdown_into_connectors", "false")
+                .build();
+        for (var test : Map.of(
+                "%s + 1", "1, 9223372036854775807, -9223372036854775808",
+                "%s - 1", "1, -9223372036854775808, 9223372036854775807",
+                "-%s", "1, -9223372036854775808, -9223372036854775808",
+                "%1$s * %1$s", "1, 9223372036854775807, 1").entrySet()) {
+            try (TestTable table = newTrinoTable("join_overflow", "(id bigint, k bigint, wrapped bigint)", List.of(test.getValue()))) {
+                for (Session session : List.of(getSession(), withoutPushdown)) {
+                    assertThat(query(session, "SELECT " + test.getKey().formatted("k") + " FROM " + table.getName()))
+                            .failure().hasMessageMatching("(?is).*overflow.*");
+                    assertThat(query(session, "SELECT l.id, r.id FROM " + table.getName() + " l JOIN " + table.getName() +
+                            " r ON " + test.getKey().formatted("l.k") + " = r.wrapped"))
+                            .failure().hasMessageMatching("(?is).*overflow.*");
+                }
+            }
+        }
+    }
+
+    @Test
+    public void testYdbJoinUnsignedKeys() {
+        JdbcSqlExecutor remote = new JdbcSqlExecutor(YdbQueryRunner.buildJdbcUrl(ydb));
+        try (TestTable table = new TestTable(remote, "join_unsigned",
+                "(id Int64 NOT NULL, u8 Uint8, u16 Uint16, u32 Uint32, u64 Uint64, signed_key Int64, PRIMARY KEY(id))")) {
+            remote.execute("UPSERT INTO " + table.getName() + " (id, u8, u16, u32, u64, signed_key) VALUES " +
+                    "(1, 255, 65535, 4294967295ul, 18446744073709551615ul, -1), (2, 0, 0, 0, 1, 1)");
+            for (String key : List.of("u8", "u16", "u32", "u64")) {
+                assertThat(query("SELECT l.id, r.id FROM " + table.getName() + " l JOIN " + table.getName() +
+                        " r ON l." + key + " = r." + key))
+                        .matches("VALUES (BIGINT '1', BIGINT '1'), (BIGINT '2', BIGINT '2')")
+                        .isFullyPushedDown();
+            }
+            // JDBC exposes Uint64's high-bit values as negative BIGINTs; mixed native equality differs.
+            assertThat(query("SELECT l.id, r.id FROM " + table.getName() + " l JOIN " + table.getName() +
+                    " r ON l.u64 = r.signed_key"))
+                    .matches("VALUES (BIGINT '1', BIGINT '1'), (BIGINT '2', BIGINT '2')")
+                    .joinIsNotFullyPushedDown();
+        }
+    }
+
+    @Test
+    public void testYdbJoinBinaryStringFallback() {
+        JdbcSqlExecutor remote = new JdbcSqlExecutor(YdbQueryRunner.buildJdbcUrl(ydb));
+        try (TestTable table = new TestTable(remote, "join_bytes",
+                "(id Int64 NOT NULL, k String, PRIMARY KEY(id))")) {
+            remote.execute("UPSERT INTO " + table.getName() + " (id, k) VALUES (1, \"\\x80\"), (2, \"\\x81\")");
+            // Both invalid UTF-8 bytes decode to the same Java replacement character through JDBC getString.
+            assertThat(query("SELECT l.id, r.id FROM " + table.getName() + " l JOIN " + table.getName() + " r ON l.k = r.k"))
+                    .matches("VALUES (BIGINT '1', BIGINT '1'), (BIGINT '1', BIGINT '2'), " +
+                            "(BIGINT '2', BIGINT '1'), (BIGINT '2', BIGINT '2')")
+                    .joinIsNotFullyPushedDown();
         }
     }
 

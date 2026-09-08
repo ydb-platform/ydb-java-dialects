@@ -19,14 +19,22 @@ import java.sql.Types;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 import static io.trino.plugin.jdbc.logging.RemoteQueryModifier.NONE;
 import static io.trino.spi.connector.JoinCondition.Operator.EQUAL;
 import static io.trino.spi.connector.JoinCondition.Operator.LESS_THAN;
 import static io.trino.spi.connector.JoinType.INNER;
 import static io.trino.spi.type.BigintType.BIGINT;
+import static io.trino.spi.type.BooleanType.BOOLEAN;
+import static io.trino.spi.type.DateType.DATE;
+import static io.trino.spi.type.DecimalType.createDecimalType;
 import static io.trino.spi.type.DoubleType.DOUBLE;
 import static io.trino.spi.type.IntegerType.INTEGER;
+import static io.trino.spi.type.RealType.REAL;
+import static io.trino.spi.type.SmallintType.SMALLINT;
+import static io.trino.spi.type.TimestampType.TIMESTAMP_MICROS;
+import static io.trino.spi.type.TinyintType.TINYINT;
 import static io.trino.spi.type.VarcharType.VARCHAR;
 import static io.trino.testing.connector.TestingConnectorSession.SESSION;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -89,12 +97,32 @@ public class TestYdbJoinPushdown {
     }
 
     @Test
-    public void testInt64EqualityAccepted() {
-        JdbcColumnHandle key = column("key", BIGINT);
-        JdbcColumnHandle nonNullable = JdbcColumnHandle.builderFrom(key).setNullable(false).build();
-        assertThat(client.isSupportedJoinCondition(SESSION, new JdbcJoinCondition(key, EQUAL, nonNullable))).isTrue();
+    public void testNativeAndSyntheticEqualityAccepted() {
+        for (Type type : List.of(BOOLEAN, TINYINT, SMALLINT, INTEGER, BIGINT, REAL, DOUBLE,
+                createDecimalType(22, 9), VARCHAR, DATE, TIMESTAMP_MICROS)) {
+            JdbcColumnHandle key = column("key", type);
+            JdbcColumnHandle computed = JdbcColumnHandle.builderFrom(key)
+                    .setNullable(false).setComment(Optional.of("synthetic")).build();
+            assertThat(client.isSupportedJoinCondition(SESSION, new JdbcJoinCondition(key, EQUAL, computed)))
+                    .as("%s", type).isTrue();
+        }
         assertThat(client.isSupportedJoinCondition(SESSION,
-                new JdbcJoinCondition(key, EQUAL, bigintColumn(Optional.of("iNt64"))))).isTrue();
+                new JdbcJoinCondition(column("key", BIGINT), EQUAL, bigintColumn(Optional.of("iNt64")))))
+                .isTrue();
+    }
+
+    @Test
+    public void testUnsignedEquality() {
+        JdbcColumnHandle signed = column("key", BIGINT);
+        for (String name : List.of("Uint8", "Uint16", "Uint32", "Uint64")) {
+            JdbcColumnHandle unsigned = bigintColumn(Optional.of(name));
+            assertThat(client.isSupportedJoinCondition(SESSION, new JdbcJoinCondition(unsigned, EQUAL, unsigned)))
+                    .as("%s", name).isTrue();
+            assertThat(client.isSupportedJoinCondition(SESSION, new JdbcJoinCondition(signed, EQUAL, unsigned)))
+                    .as("Int64 = %s", name).isEqualTo(!name.equals("Uint64"));
+            assertThat(client.isSupportedJoinCondition(SESSION, new JdbcJoinCondition(unsigned, EQUAL, signed)))
+                    .as("%s = Int64", name).isEqualTo(!name.equals("Uint64"));
+        }
     }
 
     @Test
@@ -107,18 +135,28 @@ public class TestYdbJoinPushdown {
     }
 
     @Test
-    public void testOtherTypesAndSyntheticKeysRejected() {
+    public void testLossyAndUnknownMappingsRejected() {
         JdbcColumnHandle key = column("key", BIGINT);
-        for (JdbcColumnHandle unsupported : List.of(
-                column("key", INTEGER), column("key", DOUBLE), column("key", VARCHAR),
-                bigintColumn(Optional.of("Uint32")), bigintColumn(Optional.of("Uint64")),
-                bigintColumn(Optional.empty()),
-                JdbcColumnHandle.builderFrom(key).setComment(Optional.of("synthetic")).build())) {
+        for (String name : List.of("String", "Bytes", "Json", "JsonDocument", "Yson", "")) {
+            JdbcColumnHandle unsupported = new JdbcColumnHandle("key",
+                    new JdbcTypeHandle(Types.VARCHAR, Optional.of(name), Optional.empty(), Optional.empty(),
+                            Optional.empty(), Optional.empty()), VARCHAR);
             assertThat(client.isSupportedJoinCondition(SESSION, new JdbcJoinCondition(key, EQUAL, unsupported)))
-                    .as("right key %s", unsupported).isFalse();
+                    .as("right key %s", name).isFalse();
             assertThat(client.isSupportedJoinCondition(SESSION, new JdbcJoinCondition(unsupported, EQUAL, key)))
-                    .as("left key %s", unsupported).isFalse();
+                    .as("left key %s", name).isFalse();
         }
+        JdbcColumnHandle unknown = bigintColumn(Optional.empty());
+        assertThat(client.isSupportedJoinCondition(SESSION, new JdbcJoinCondition(unknown, EQUAL, unknown))).isFalse();
+    }
+
+    @Test
+    public void testForcedVarcharMappingRejected() {
+        YdbClient forced = new YdbClient(new BaseJdbcConfig().setJdbcTypesMappedToVarchar(Set.of("Int64")),
+                _ -> { throw new AssertionError("Rejected JOIN must not open a connection"); },
+                queryBuilder, new DefaultIdentifierMapping(), NONE);
+        JdbcColumnHandle key = column("key", BIGINT);
+        assertThat(forced.isSupportedJoinCondition(SESSION, new JdbcJoinCondition(key, EQUAL, key))).isFalse();
     }
 
     @Test

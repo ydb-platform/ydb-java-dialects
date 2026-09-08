@@ -8,18 +8,29 @@ flags are test debt, not support.
 ## JOIN pushdown
 
 The JOIN implementation uses Trino 483's structured `JdbcJoinCondition` API
-and `DefaultQueryBuilder`. It accepts equality between physical `Int64` keys
+and `DefaultQueryBuilder`. It accepts equality between supported scalar keys
 for INNER/LEFT/RIGHT/FULL joins, including conjunctions and nested joins.
-Synthetic expression/aggregate keys and other types/operators fall back to
-Trino. The catalog remains one configured database with the `default` schema.
+Keys may come from pushed projections or aggregates. Supported mappings include
+signed integers, unsigned integers, Float/Double, finite Decimal, Bool,
+Utf8/Text, dates and timestamps. Widening integer casts and checked integer
+arithmetic preserve Trino's value and overflow semantics.
+
+Raw String/Bytes keys mapped to varchar remain local because JDBC can replace
+invalid UTF-8 while YDB compares the original bytes. Mixed Uint64/signed keys
+remain local because JDBC exposes Uint64 through signed getLong; same-Uint64
+joins are supported. Forced varchar mappings and unsupported YQL ON operators
+also remain local. The catalog remains one configured database with the
+`default` schema.
 JOIN pushdown is enabled by default and can be disabled with
 `join-pushdown.enabled=false` or the `join_pushdown_enabled` session property.
 
 The structured API is deprecated upstream but still used by
 [MySQL](https://github.com/trinodb/trino/blob/483/plugin/trino-mysql/src/main/java/io/trino/plugin/mysql/MySqlClient.java)
 and [PostgreSQL](https://github.com/trinodb/trino/blob/483/plugin/trino-postgresql/src/main/java/io/trino/plugin/postgresql/PostgreSqlClient.java).
-The expression-based API loses source ownership and does not qualify ON
-operands, so explicitly enabling it leaves JOIN evaluation in Trino.
+Trino extracts equi-join expressions into source projections, so they work
+through the structured API. The alternative expression-based JOIN API loses
+source ownership and does not qualify ON operands; explicitly enabling it
+leaves JOIN evaluation in Trino.
 Revisit this choice when upgrading Trino.
 
 The six JOIN regression methods from Trino 483 `BaseJdbcConnectorTest` are
@@ -29,9 +40,11 @@ expectation and combined arithmetic/JOIN flag cannot express the
 the adapted cases verify both results and a retained Trino JoinNode. Supported
 cases verify the TableScan plan and results with pushdown disabled as a
 reference. Additional cases cover NULLs, duplicates, source parameters, nested
-joins, type/coercion fallback and cross-catalog joins.
+joins, native scalar types, computed and aggregate keys, widening casts,
+arithmetic overflow, floating-point special values, mapping/coercion fallback
+and cross-catalog joins.
 
-Local validation on JDK 25.0.2: compile passed; 7 unit tests passed, 0 failures,
+Local validation on JDK 25.0.2: compile passed; 14 unit tests passed, 0 failures,
 0 errors, 0 skipped. Docker-backed checks run in
 [PR #250 CI](https://github.com/ydb-platform/ydb-java-dialects/pull/250/checks)
 because the local Colima Docker socket is unavailable. CI uses JDK 25 and
