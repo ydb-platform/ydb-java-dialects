@@ -123,7 +123,7 @@ public class TestYdbExpressionRewrites {
         JdbcTableHandle table = new JdbcTableHandle(new SchemaTableName("default", "table"),
                 new RemoteTableName(Optional.empty(), Optional.empty(), "table"), Optional.empty());
         Variable key = new Variable("key", VARCHAR);
-        Call concat = new Call(VARCHAR, new FunctionName("$concat"), List.of(key, key));
+        Call concat = new Call(VARCHAR, new FunctionName("concat"), List.of(key, key));
         Call equal = new Call(BOOLEAN, EQUAL_OPERATOR_FUNCTION_NAME, List.of(key, key));
         for (String type : List.of("String", "Bytes", "Utf8")) {
             JdbcColumnHandle column = new JdbcColumnHandle("key", new JdbcTypeHandle(Types.VARCHAR,

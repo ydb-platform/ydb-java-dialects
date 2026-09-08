@@ -175,7 +175,7 @@ public class YdbClient extends BaseJdbcClient {
                 .map("$greater_than_or_equal(left: comparable_type, right: comparable_type)").to("left >= right")
                 .map("$is_null(value)").to("value IS NULL")
                 .map("$not($is_null(value))").to("value IS NOT NULL")
-                .map("$concat(left: varchar, right: varchar)").to("left || right");
+                .map("concat(left: varchar, right: varchar)").to("left || right");
 
         // YQL integer arithmetic wraps on overflow; Trino must fail, including for computed JOIN keys.
         // Decimal intermediates preserve integer results and CAST/Unwrap rejects values outside the target range.
