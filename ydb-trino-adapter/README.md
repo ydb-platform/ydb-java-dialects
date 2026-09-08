@@ -47,16 +47,16 @@ SELECT * FROM local.default.orders;
 
 ## JOIN pushdown
 
-JOIN pushdown включается отдельно для каталога:
+JOIN pushdown включён по умолчанию. Чтобы отключить его для каталога:
 
 ```properties
-join-pushdown.enabled=true
+join-pushdown.enabled=false
 ```
 
 Или для сессии Trino:
 
 ```sql
-SET SESSION local.join_pushdown_enabled = true;
+SET SESSION local.join_pushdown_enabled = false;
 ```
 
 Адаптер передаёт в YDB `INNER`, `LEFT`, `RIGHT` и `FULL JOIN`, когда условия

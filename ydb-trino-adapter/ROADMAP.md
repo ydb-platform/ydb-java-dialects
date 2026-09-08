@@ -12,7 +12,8 @@ and `DefaultQueryBuilder`. It accepts equality between physical `Int64` keys
 for INNER/LEFT/RIGHT/FULL joins, including conjunctions and nested joins.
 Synthetic expression/aggregate keys and other types/operators fall back to
 Trino. The catalog remains one configured database with the `default` schema.
-JOIN pushdown is opt-in through `join-pushdown.enabled=true`.
+JOIN pushdown is enabled by default and can be disabled with
+`join-pushdown.enabled=false` or the `join_pushdown_enabled` session property.
 
 The structured API is deprecated upstream but still used by
 [MySQL](https://github.com/trinodb/trino/blob/483/plugin/trino-mysql/src/main/java/io/trino/plugin/mysql/MySqlClient.java)

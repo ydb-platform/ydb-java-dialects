@@ -24,7 +24,9 @@ public record YdbPlugin(Module module) implements Plugin {
                 () -> combine(
                         new CredentialProviderModule(),
                         binder -> configBinder(binder).bindConfigDefaults(
-                                JdbcMetadataConfig.class, config -> config.setComplexJoinPushdownEnabled(false)),
+                                JdbcMetadataConfig.class, config -> config
+                                        .setJoinPushdownEnabled(true)
+                                        .setComplexJoinPushdownEnabled(false)),
                         module
                 )
         ));

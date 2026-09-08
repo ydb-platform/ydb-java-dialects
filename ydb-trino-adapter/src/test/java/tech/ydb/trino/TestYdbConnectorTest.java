@@ -96,12 +96,6 @@ public class TestYdbConnectorTest extends BaseConnectorTest {
         };
     }
 
-    private Session joinPushdownEnabled(Session session) {
-        return Session.builder(session)
-                .setCatalogSessionProperty(session.getCatalog().orElseThrow(), "join_pushdown_enabled", "true")
-                .build();
-    }
-
     // JOIN contracts from Trino 483, kept here without enabling unrelated JDBC fixture tests:
     // https://github.com/trinodb/trino/blob/483/plugin/trino-base-jdbc/src/test/java/io/trino/plugin/jdbc/BaseJdbcConnectorTest.java
     @Test
@@ -120,7 +114,7 @@ public class TestYdbConnectorTest extends BaseConnectorTest {
         // https://ydb.tech/docs/en/yql/reference/syntax/select/join
         // Trino 483 hard-codes the opposite expectation in static expectJoinPushdownOnEmptyProjection:
         // https://github.com/trinodb/trino/blob/483/plugin/trino-base-jdbc/src/test/java/io/trino/plugin/jdbc/BaseJdbcConnectorTest.java#L1391-L1394
-        Session session = Session.builder(joinPushdownEnabled(getSession()))
+        Session session = Session.builder(getSession())
                 .setSystemProperty("enable_dynamic_filtering", "false")
                 .build();
         try (TestTable lowercaseNation = newTrinoTable(
@@ -179,7 +173,7 @@ public class TestYdbConnectorTest extends BaseConnectorTest {
         // Arithmetic predicates are supported individually, but this condition mixes both JOIN sources:
         // https://ydb.tech/docs/en/yql/reference/syntax/select/join
         for (boolean complex : List.of(false, true)) {
-            Session session = Session.builder(joinPushdownEnabled(getSession()))
+            Session session = Session.builder(getSession())
                     .setCatalogSessionProperty(getSession().getCatalog().orElseThrow(), "complex_join_pushdown_enabled", Boolean.toString(complex))
                     .build();
             assertThat(query(session, "SELECT n.name, o.orderstatus FROM nation n JOIN orders o " +
@@ -195,7 +189,7 @@ public class TestYdbConnectorTest extends BaseConnectorTest {
     @Test
     public void testLimitPushdownWithDistinctAndJoin() {
         assertThat(query("SELECT DISTINCT regionkey FROM nation LIMIT 5")).isFullyPushedDown();
-        assertThat(query(joinPushdownEnabled(getSession()),
+        assertThat(query(getSession(),
                 "SELECT n.name, r.name FROM nation n LEFT JOIN region r USING (regionkey) LIMIT 30"))
                 .isFullyPushedDown();
     }
@@ -219,7 +213,7 @@ public class TestYdbConnectorTest extends BaseConnectorTest {
         String column = "col" + "z".repeat(maxColumnNameLength().orElseThrow() - 3);
         try (TestTable left = newTrinoTable("test_long_id_l", "(" + column + " BIGINT)", List.of("1"));
                 TestTable right = newTrinoTable("test_long_id_r", "(" + column + " BIGINT)", List.of("1", "2"))) {
-            assertThat(query(joinPushdownEnabled(getSession()),
+            assertThat(query(getSession(),
                     "SELECT l.%1$s, r.%1$s FROM %2$s l JOIN %3$s r ON l.%1$s = r.%1$s"
                             .formatted(column, left.getName(), right.getName())))
                     .isFullyPushedDown();
@@ -228,7 +222,7 @@ public class TestYdbConnectorTest extends BaseConnectorTest {
 
     @Test
     public void testYdbJoinNullsAndDuplicates() {
-        Session session = joinPushdownEnabled(getSession());
+        Session session = getSession();
         try (TestTable left = newTrinoTable("join_null_l", "(id bigint, k bigint)",
                 List.of("1, 10", "2, 10", "3, NULL", "4, -9223372036854775808", "5, 20"));
                 TestTable right = newTrinoTable("join_null_r", "(id bigint, k bigint)",
@@ -246,7 +240,7 @@ public class TestYdbConnectorTest extends BaseConnectorTest {
 
     @Test
     public void testYdbJoinParametersAndNestedJoin() {
-        Session session = joinPushdownEnabled(getSession());
+        Session session = getSession();
         try (TestTable left = newTrinoTable("join_param_l", "(id bigint, k bigint)", List.of("11, 2", "12, 4"));
                 TestTable right = newTrinoTable("join_param_r", "(id bigint, k bigint)", List.of("31, 2", "32, 12"))) {
             for (String predicate : List.of("id = 31", "id > 30")) {
@@ -271,7 +265,7 @@ public class TestYdbConnectorTest extends BaseConnectorTest {
 
     @Test
     public void testYdbJoinTypeAndExpressionFallback() {
-        Session session = joinPushdownEnabled(getSession());
+        Session session = getSession();
         try (TestTable table = newTrinoTable("join_types",
                 "(id bigint, small_key integer, float_key double, decimal_key decimal(10, 2), text_key varchar, date_key date)",
                 List.of("1, 1, 1.5, 1.50, 'A', DATE '2026-01-01'", "2, 2, 2.5, 2.50, 'a ', DATE '2026-01-02'"))) {
@@ -288,7 +282,7 @@ public class TestYdbConnectorTest extends BaseConnectorTest {
 
     @Test
     public void testYdbJoinAcrossCatalogs() {
-        assertThat(query(joinPushdownEnabled(getSession()),
+        assertThat(query(getSession(),
                 "SELECT count(*) FROM nation n JOIN tpch.tiny.region r ON n.regionkey = r.regionkey"))
                 .matches("VALUES BIGINT '25'")
                 .joinIsNotFullyPushedDown();
