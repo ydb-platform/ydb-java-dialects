@@ -18,11 +18,17 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import tech.ydb.test.junit5.YdbHelperExtension;
 
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.OptionalInt;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static io.trino.sql.planner.assertions.PlanMatchPattern.anyTree;
 import static io.trino.sql.planner.assertions.PlanMatchPattern.node;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -458,13 +464,35 @@ public class TestYdbConnectorTest extends BaseConnectorTest {
     }
 
     @Test
+    public void testYdbLiteralAndParameterTypes() throws SQLException {
+        try (Connection connection = DriverManager.getConnection(YdbQueryRunner.buildJdbcUrl(ydb));
+                PreparedStatement statement = connection.prepareStatement(
+                        "SELECT 'λ' AS binary_literal, 'λ'u AS text_literal, ? AS text_parameter, ? AS binary_parameter")) {
+            statement.setString(1, "λ");
+            statement.setBytes(2, new byte[] {0, (byte) 0x80, (byte) 0xFF});
+            try (ResultSet result = statement.executeQuery()) {
+                assertThat(result.next()).isTrue();
+                assertThat(result.getMetaData().getColumnTypeName(1)).isIn("String", "Bytes");
+                assertThat(result.getMetaData().getColumnTypeName(2)).isIn("Utf8", "Text");
+                assertThat(result.getMetaData().getColumnTypeName(3)).isIn("Utf8", "Text");
+                assertThat(result.getMetaData().getColumnTypeName(4)).isIn("String", "Bytes");
+                assertThat(result.getBytes(1)).isEqualTo("λ".getBytes(UTF_8));
+                assertThat(result.getString(2)).isEqualTo("λ");
+                assertThat(result.getString(3)).isEqualTo("λ");
+                assertThat(result.getBytes(4)).containsExactly(0, (byte) 0x80, (byte) 0xFF);
+                assertThat(result.next()).isFalse();
+            }
+        }
+    }
+
+    @Test
     public void testYdbNativeTextRemainsVarchar() {
         JdbcSqlExecutor remote = new JdbcSqlExecutor(YdbQueryRunner.buildJdbcUrl(ydb));
         for (String type : List.of("Utf8", "Text")) {
             try (TestTable table = new TestTable(remote, "join_text",
                     "(id Int64 NOT NULL, k " + type + ", PRIMARY KEY(id))")) {
                 remote.execute("UPSERT INTO " + table.getName() + " (id, k) VALUES " +
-                        "(1, Utf8('λ')), (2, Utf8('�')), (3, NULL)");
+                        "(1, 'λ'u), (2, '�'u), (3, NULL)");
                 assertThat(query("SELECT id, k FROM " + table.getName()))
                         .matches("VALUES (BIGINT '1', VARCHAR 'λ'), (BIGINT '2', VARCHAR '�'), " +
                                 "(BIGINT '3', CAST(NULL AS varchar))");
