@@ -1,5 +1,6 @@
 package tech.ydb.trino;
 
+import io.airlift.slice.Slice;
 import io.trino.plugin.base.mapping.DefaultIdentifierMapping;
 import io.trino.plugin.jdbc.BaseJdbcConfig;
 import io.trino.plugin.jdbc.DefaultQueryBuilder;
@@ -8,6 +9,8 @@ import io.trino.plugin.jdbc.JdbcTableHandle;
 import io.trino.plugin.jdbc.JdbcTypeHandle;
 import io.trino.plugin.jdbc.QueryParameter;
 import io.trino.plugin.jdbc.RemoteTableName;
+import io.trino.plugin.jdbc.SliceReadFunction;
+import io.trino.plugin.jdbc.SliceWriteFunction;
 import io.trino.spi.connector.SchemaTableName;
 import io.trino.spi.expression.Call;
 import io.trino.spi.expression.Constant;
@@ -16,11 +19,18 @@ import io.trino.spi.expression.Variable;
 import io.trino.spi.type.Type;
 import org.junit.jupiter.api.Test;
 
+import java.lang.reflect.Proxy;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.sql.Types;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+import static io.airlift.slice.Slices.wrappedBuffer;
+import static io.trino.plugin.jdbc.PredicatePushdownController.FULL_PUSHDOWN;
 import static io.trino.plugin.jdbc.logging.RemoteQueryModifier.NONE;
 import static io.trino.spi.expression.StandardFunctions.ADD_FUNCTION_NAME;
 import static io.trino.spi.expression.StandardFunctions.CAST_FUNCTION_NAME;
@@ -36,6 +46,7 @@ import static io.trino.spi.type.DoubleType.DOUBLE;
 import static io.trino.spi.type.IntegerType.INTEGER;
 import static io.trino.spi.type.SmallintType.SMALLINT;
 import static io.trino.spi.type.TinyintType.TINYINT;
+import static io.trino.spi.type.VarbinaryType.VARBINARY;
 import static io.trino.spi.type.VarcharType.VARCHAR;
 import static io.trino.testing.connector.TestingConnectorSession.SESSION;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -132,6 +143,81 @@ public class TestYdbExpressionRewrites {
                     .as("%s concat", type).isEqualTo(type.equals("Utf8"));
             assertThat(client.convertPredicate(SESSION, equal, Map.of("key", column)).isPresent())
                     .as("%s equality", type).isEqualTo(type.equals("Utf8"));
+        }
+    }
+
+    @Test
+    public void testBinaryExpressionsPreserveParameters() {
+        var nullValue = client.convertPredicate(SESSION, new Constant(null, VARBINARY), Map.of()).orElseThrow();
+        assertThat(nullValue.expression()).isEqualTo("?");
+        assertThat(nullValue.parameters()).containsExactly(new QueryParameter(VARBINARY, Optional.empty()));
+        JdbcTableHandle table = new JdbcTableHandle(new SchemaTableName("default", "table"),
+                new RemoteTableName(Optional.empty(), Optional.empty(), "table"), Optional.empty());
+        Variable key = new Variable("key", VARBINARY);
+        for (String name : List.of("String", "Bytes")) {
+            JdbcColumnHandle column = new JdbcColumnHandle("binary key", new JdbcTypeHandle(Types.BINARY,
+                    Optional.of(name), Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty()), VARBINARY);
+            for (byte[] bytes : List.of(new byte[0], new byte[] {0}, new byte[] {0, (byte) 0x80, (byte) 0xFF},
+                    new byte[] {(byte) 0xC0}, new byte[] {(byte) 0xC1})) {
+                Constant value = new Constant(wrappedBuffer(bytes), VARBINARY);
+                for (var operator : List.of(EQUAL_OPERATOR_FUNCTION_NAME, LESS_THAN_OPERATOR_FUNCTION_NAME)) {
+                    Call predicate = new Call(BOOLEAN, operator, List.of(key, value));
+                    var rewritten = client.convertPredicate(SESSION, predicate, Map.of("key", column)).orElseThrow();
+                    assertThat(rewritten.expression()).isEqualTo("(`binary key`) " +
+                            (operator.equals(EQUAL_OPERATOR_FUNCTION_NAME) ? "=" : "<") + " (?)");
+                    assertThat(rewritten.parameters()).containsExactly(new QueryParameter(VARBINARY, Optional.of(wrappedBuffer(bytes))));
+                    assertThat(((Slice) rewritten.parameters().getFirst().getValue().orElseThrow()).getBytes()).isEqualTo(bytes);
+                }
+                Call concat = new Call(VARBINARY, new FunctionName("concat"), List.of(key, value));
+                var projection = client.convertProjection(SESSION, table, concat, Map.of("key", column)).orElseThrow();
+                assertThat(projection.getExpression()).isEqualTo("(`binary key`) || (?)");
+                assertThat(projection.getParameters()).containsExactly(new QueryParameter(VARBINARY, Optional.of(wrappedBuffer(bytes))));
+                assertThat(projection.getJdbcTypeHandle()).isEqualTo(YdbTypeUtils.toTypeHandle(VARBINARY).orElseThrow());
+                assertThat(projection.getJdbcTypeHandle().jdbcType()).isEqualTo(Types.VARBINARY);
+                assertThat(projection.getJdbcTypeHandle().jdbcTypeName()).contains("String");
+            }
+        }
+    }
+
+    @Test
+    public void testBinaryMappingUsesBytesAndTypedNull() throws SQLException {
+        for (String name : List.of("String", "Bytes")) {
+            JdbcTypeHandle type = new JdbcTypeHandle(Types.BINARY, Optional.of(name), Optional.empty(), Optional.empty(),
+                    Optional.empty(), Optional.empty());
+            var mapping = client.toColumnMapping(SESSION, null, type).orElseThrow();
+            assertThat(mapping.getType()).isEqualTo(VARBINARY);
+            assertThat(mapping.getPredicatePushdownController()).isSameAs(FULL_PUSHDOWN);
+            var writeMapping = client.toWriteMapping(SESSION, VARBINARY);
+            assertThat(writeMapping.getDataType()).isEqualTo("String");
+            for (byte[] bytes : List.of(new byte[0], new byte[] {0, (byte) 0x80, (byte) 0xFF})) {
+                List<String> calls = new ArrayList<>();
+                ResultSet resultSet = (ResultSet) Proxy.newProxyInstance(getClass().getClassLoader(), new Class<?>[] {ResultSet.class},
+                        (_, method, arguments) -> {
+                            assertThat(method.getName()).isEqualTo("getBytes");
+                            assertThat(arguments).containsExactly(1);
+                            calls.add(method.getName());
+                            return bytes;
+                        });
+                assertThat(((SliceReadFunction) mapping.getReadFunction()).readSlice(resultSet, 1).getBytes()).isEqualTo(bytes);
+                PreparedStatement statement = (PreparedStatement) Proxy.newProxyInstance(getClass().getClassLoader(),
+                        new Class<?>[] {PreparedStatement.class}, (_, method, arguments) -> {
+                            assertThat(method.getName()).isIn("setBytes", "setNull");
+                            assertThat(arguments[0]).isEqualTo(1);
+                            if (method.getName().equals("setBytes")) {
+                                assertThat((byte[]) arguments[1]).isEqualTo(bytes);
+                            } else {
+                                assertThat(arguments[1]).isEqualTo(Types.VARBINARY);
+                            }
+                            calls.add(method.getName());
+                            return null;
+                        });
+                for (var writer : List.of((SliceWriteFunction) mapping.getWriteFunction(),
+                        (SliceWriteFunction) writeMapping.getWriteFunction())) {
+                    writer.set(statement, 1, wrappedBuffer(bytes));
+                    writer.setNull(statement, 1);
+                }
+                assertThat(calls).containsExactly("getBytes", "setBytes", "setNull", "setBytes", "setNull");
+            }
         }
     }
 

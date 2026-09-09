@@ -3,10 +3,13 @@ package tech.ydb.trino;
 import io.trino.testing.BaseConnectorSmokeTest;
 import io.trino.testing.QueryRunner;
 import io.trino.testing.TestingConnectorBehavior;
+import io.trino.testing.sql.TestTable;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import tech.ydb.test.junit5.YdbHelperExtension;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 public class TestYdbConnectorSmokeTest extends BaseConnectorSmokeTest {
     @RegisterExtension
@@ -48,6 +51,17 @@ public class TestYdbConnectorSmokeTest extends BaseConnectorSmokeTest {
             case SUPPORTS_TOPN_PUSHDOWN_WITH_VARCHAR -> true;
             default -> super.hasBehavior(connectorBehavior);
         };
+    }
+
+    @Test
+    public void testVarbinaryRoundTrip() {
+        try (TestTable table = newTrinoTable("binary_roundtrip", "(id bigint, payload varbinary)")) {
+            assertUpdate("INSERT INTO " + table.getName() + " (id, payload) VALUES " +
+                    "(1, X''), (2, X'00008081FF'), (3, X'EFBFBD'), (4, NULL)", 4);
+            assertThat(query("SELECT id, payload FROM " + table.getName()))
+                    .matches("VALUES (BIGINT '1', X''), (BIGINT '2', X'00008081FF'), " +
+                            "(BIGINT '3', X'EFBFBD'), (BIGINT '4', CAST(NULL AS varbinary))");
+        }
     }
 
     @Test

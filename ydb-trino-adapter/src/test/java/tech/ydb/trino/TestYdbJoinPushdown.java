@@ -34,6 +34,7 @@ import static io.trino.spi.type.RealType.REAL;
 import static io.trino.spi.type.SmallintType.SMALLINT;
 import static io.trino.spi.type.TimestampType.TIMESTAMP_MICROS;
 import static io.trino.spi.type.TinyintType.TINYINT;
+import static io.trino.spi.type.VarbinaryType.VARBINARY;
 import static io.trino.spi.type.VarcharType.VARCHAR;
 import static io.trino.testing.connector.TestingConnectorSession.SESSION;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -123,7 +124,7 @@ public class TestYdbJoinPushdown {
     @Test
     public void testNativeAndSyntheticEqualityAccepted() {
         for (Type type : List.of(BOOLEAN, TINYINT, SMALLINT, INTEGER, BIGINT, REAL, DOUBLE,
-                createDecimalType(22, 9), VARCHAR, DATE, TIMESTAMP_MICROS)) {
+                createDecimalType(22, 9), VARCHAR, VARBINARY, DATE, TIMESTAMP_MICROS)) {
             JdbcColumnHandle key = column("key", type);
             JdbcColumnHandle computed = JdbcColumnHandle.builderFrom(key)
                     .setNullable(false).setComment(Optional.of("synthetic")).build();
@@ -147,6 +148,29 @@ public class TestYdbJoinPushdown {
             assertThat(client.isSupportedJoinCondition(SESSION, new JdbcJoinCondition(unsigned, EQUAL, signed)))
                     .as("%s = Int64", name).isTrue();
         }
+    }
+
+    @Test
+    public void testBinaryEqualityUsesRawKeys() {
+        JdbcColumnHandle synthetic = JdbcColumnHandle.builderFrom(column("computed", VARBINARY))
+                .setComment(Optional.of("synthetic")).build();
+        assertThat(synthetic.getJdbcTypeHandle().jdbcType()).isEqualTo(Types.VARBINARY);
+        assertThat(synthetic.getJdbcTypeHandle().jdbcTypeName()).contains("String");
+        for (String name : List.of("String", "Bytes")) {
+            JdbcColumnHandle key = new JdbcColumnHandle("binary key",
+                    new JdbcTypeHandle(Types.BINARY, Optional.of(name), Optional.empty(), Optional.empty(),
+                            Optional.empty(), Optional.empty()), VARBINARY);
+            assertThat(client.isSupportedJoinCondition(SESSION, new JdbcJoinCondition(key, EQUAL, synthetic)))
+                    .as("%s native to synthetic", name).isTrue();
+            assertThat(client.isSupportedJoinCondition(SESSION, new JdbcJoinCondition(synthetic, EQUAL, key)))
+                    .as("%s synthetic to native", name).isTrue();
+            assertThat(queryBuilder.formatJoinCondition(client, "l", "r", new JdbcJoinCondition(key, EQUAL, synthetic)))
+                    .isEqualTo("l.`binary key` = r.`computed`");
+        }
+        JdbcColumnHandle unknown = new JdbcColumnHandle("key",
+                new JdbcTypeHandle(Types.VARBINARY, Optional.of("Blob"), Optional.empty(), Optional.empty(),
+                        Optional.empty(), Optional.empty()), VARBINARY);
+        assertThat(client.isSupportedJoinCondition(SESSION, new JdbcJoinCondition(unknown, EQUAL, synthetic))).isFalse();
     }
 
     @Test
@@ -176,11 +200,19 @@ public class TestYdbJoinPushdown {
 
     @Test
     public void testForcedVarcharMappingRejected() {
-        YdbClient forced = new YdbClient(new BaseJdbcConfig().setJdbcTypesMappedToVarchar(Set.of("Int64")),
+        YdbClient forced = new YdbClient(new BaseJdbcConfig().setJdbcTypesMappedToVarchar(Set.of("Int64", "String", "Bytes")),
                 _ -> { throw new AssertionError("Rejected JOIN must not open a connection"); },
                 queryBuilder, new DefaultIdentifierMapping(), NONE);
         JdbcColumnHandle key = column("key", BIGINT);
         assertThat(forced.isSupportedJoinCondition(SESSION, new JdbcJoinCondition(key, EQUAL, key))).isFalse();
+        for (String name : List.of("String", "Bytes")) {
+            JdbcTypeHandle type = new JdbcTypeHandle(Types.BINARY, Optional.of(name), Optional.empty(), Optional.empty(),
+                    Optional.empty(), Optional.empty());
+            JdbcColumnHandle forcedKey = new JdbcColumnHandle("key", type, VARCHAR);
+            assertThat(forced.toColumnMapping(SESSION, null, type).orElseThrow().getType()).isEqualTo(VARCHAR);
+            assertThat(forced.isSupportedJoinCondition(SESSION, new JdbcJoinCondition(forcedKey, EQUAL, forcedKey)))
+                    .as("forced varchar %s", name).isFalse();
+        }
     }
 
     @Test

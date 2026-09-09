@@ -37,8 +37,9 @@ public final class YdbTypeUtils {
                     Optional.of(new JdbcTypeHandle(Types.DECIMAL, Optional.of("Decimal"), Optional.of(decimalType.getPrecision()), Optional.of(decimalType.getScale()), Optional.empty(), Optional.empty()));
             case io.trino.spi.type.VarcharType _ ->
                     Optional.of(new JdbcTypeHandle(Types.VARCHAR, Optional.of("Utf8"), Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty()));
-            default ->
-                    Optional.of(new JdbcTypeHandle(Types.VARCHAR, Optional.of("String"), Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty()));
+            case io.trino.spi.type.VarbinaryType _ ->
+                    Optional.of(new JdbcTypeHandle(Types.VARBINARY, Optional.of("String"), Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty()));
+            default -> Optional.empty();
         };
     }
 }

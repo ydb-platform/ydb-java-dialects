@@ -409,16 +409,69 @@ public class TestYdbConnectorTest extends BaseConnectorTest {
     }
 
     @Test
-    public void testYdbJoinBinaryStringFallback() {
+    public void testYdbJoinBinaryKeys() {
         JdbcSqlExecutor remote = new JdbcSqlExecutor(YdbQueryRunner.buildJdbcUrl(ydb));
-        try (TestTable table = new TestTable(remote, "join_bytes",
-                "(id Int64 NOT NULL, k String, PRIMARY KEY(id))")) {
-            remote.execute("UPSERT INTO " + table.getName() + " (id, k) VALUES (1, \"\\x80\"), (2, \"\\x81\")");
-            // Both invalid UTF-8 bytes decode to the same Java replacement character through JDBC getString.
-            assertThat(query("SELECT l.id, r.id FROM " + table.getName() + " l JOIN " + table.getName() + " r ON l.k = r.k"))
-                    .matches("VALUES (BIGINT '1', BIGINT '1'), (BIGINT '1', BIGINT '2'), " +
-                            "(BIGINT '2', BIGINT '1'), (BIGINT '2', BIGINT '2')")
-                    .joinIsNotFullyPushedDown();
+        for (String type : List.of("String", "Bytes")) {
+            try (TestTable table = new TestTable(remote, "join_bytes",
+                    "(id Int64 NOT NULL, k " + type + ", PRIMARY KEY(id))")) {
+                remote.execute("UPSERT INTO " + table.getName() + " (id, k) VALUES " +
+                        "(1, \"\\x00\"), (2, \"\\x80\"), (3, \"\\x81\"), (4, \"\\xff\"), " +
+                        "(5, \"\"), (6, NULL), (7, \"\\xef\\xbf\\xbd\"), (8, \"\\x80\")");
+                // Invalid UTF-8 and the valid replacement character must remain distinct byte sequences.
+                assertThat(query("SELECT id, k FROM " + table.getName()))
+                        .matches("VALUES (BIGINT '1', X'00'), (BIGINT '2', X'80'), (BIGINT '3', X'81'), " +
+                                "(BIGINT '4', X'FF'), (BIGINT '5', X''), (BIGINT '6', CAST(NULL AS varbinary)), " +
+                                "(BIGINT '7', X'EFBFBD'), (BIGINT '8', X'80')");
+                for (String join : List.of("JOIN", "LEFT JOIN", "RIGHT JOIN", "FULL JOIN")) {
+                    for (String condition : List.of("l.k = r.k", "l.k || X'00FF' = r.k || X'00FF'")) {
+                        assertThat(query("SELECT l.id, r.id FROM " + table.getName() + " l " + join +
+                                " " + table.getName() + " r ON " + condition))
+                                .isFullyPushedDown();
+                    }
+                }
+                assertThat(query("SELECT l.id, r.id FROM " + table.getName() + " l JOIN " + table.getName() + " r ON l.k = r.k"))
+                        .matches("VALUES (BIGINT '1', BIGINT '1'), (BIGINT '2', BIGINT '2'), " +
+                                "(BIGINT '2', BIGINT '8'), (BIGINT '8', BIGINT '2'), (BIGINT '8', BIGINT '8'), " +
+                                "(BIGINT '3', BIGINT '3'), (BIGINT '4', BIGINT '4'), " +
+                                "(BIGINT '5', BIGINT '5'), (BIGINT '7', BIGINT '7')")
+                        .isFullyPushedDown();
+                for (var predicate : Map.of(
+                        "k = X'80'", "VALUES BIGINT '2', BIGINT '8'",
+                        "k <> X'80'", "VALUES BIGINT '1', BIGINT '3', BIGINT '4', BIGINT '5', BIGINT '7'",
+                        "k < X'80'", "VALUES BIGINT '1', BIGINT '5'",
+                        "k > X'7F'", "VALUES BIGINT '2', BIGINT '3', BIGINT '4', BIGINT '7', BIGINT '8'",
+                        "k > X'00' AND k < X'8000'", "VALUES BIGINT '2', BIGINT '8'",
+                        "k < X'0000'", "VALUES BIGINT '1', BIGINT '5'",
+                        "k >= X'80'", "VALUES BIGINT '2', BIGINT '3', BIGINT '4', BIGINT '7', BIGINT '8'",
+                        "k IN (X'00', X'81', X'FF')", "VALUES BIGINT '1', BIGINT '3', BIGINT '4'",
+                        "k IS NULL", "VALUES BIGINT '6'").entrySet()) {
+                    assertThat(query("SELECT id FROM " + table.getName() + " WHERE " + predicate.getKey()))
+                            .matches(predicate.getValue())
+                            .isFullyPushedDown();
+                }
+                assertUpdate("INSERT INTO " + table.getName() + " (id, k) VALUES (9, X'0080FF'), (10, NULL)", 2);
+                assertThat(query("SELECT id, k FROM " + table.getName() + " WHERE id >= 9"))
+                        .matches("VALUES (BIGINT '9', X'0080FF'), (BIGINT '10', CAST(NULL AS varbinary))")
+                        .isFullyPushedDown();
+            }
+        }
+    }
+
+    @Test
+    public void testYdbNativeTextRemainsVarchar() {
+        JdbcSqlExecutor remote = new JdbcSqlExecutor(YdbQueryRunner.buildJdbcUrl(ydb));
+        for (String type : List.of("Utf8", "Text")) {
+            try (TestTable table = new TestTable(remote, "join_text",
+                    "(id Int64 NOT NULL, k " + type + ", PRIMARY KEY(id))")) {
+                remote.execute("UPSERT INTO " + table.getName() + " (id, k) VALUES " +
+                        "(1, Utf8('λ')), (2, Utf8('�')), (3, NULL)");
+                assertThat(query("SELECT id, k FROM " + table.getName()))
+                        .matches("VALUES (BIGINT '1', VARCHAR 'λ'), (BIGINT '2', VARCHAR '�'), " +
+                                "(BIGINT '3', CAST(NULL AS varchar))");
+                assertThat(query("SELECT l.id, r.id FROM " + table.getName() + " l JOIN " + table.getName() + " r ON l.k = r.k"))
+                        .matches("VALUES (BIGINT '1', BIGINT '1'), (BIGINT '2', BIGINT '2')")
+                        .isFullyPushedDown();
+            }
         }
     }
 
@@ -501,8 +554,8 @@ public class TestYdbConnectorTest extends BaseConnectorTest {
                     "DATE '2006-06-06'",
                     "DATE '2026-06-06'"
             ));
-        } else if (dataMappingTestSetup.getTrinoTypeName().startsWith("time") || dataMappingTestSetup.getTrinoTypeName().equals("varbinary")) {
-            // Нет time и varbinary в YQL
+        } else if (dataMappingTestSetup.getTrinoTypeName().startsWith("time")) {
+            // Нет time в YQL
             return Optional.empty();
         }
         return Optional.of(dataMappingTestSetup);
