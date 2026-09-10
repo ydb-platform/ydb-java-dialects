@@ -184,9 +184,9 @@ public class YdbDialect extends Dialect {
         typeContributions.contributeJdbcType(new YdbJdbcType(YdbJdbcCode.INT16, Integer.class));
         typeContributions.contributeJdbcType(new YdbJdbcType(YdbJdbcCode.UINT16, Integer.class));
         typeContributions.contributeJdbcType(new YdbJdbcType(YdbJdbcCode.INT32, Integer.class));
-        typeContributions.contributeJdbcType(new YdbJdbcType(YdbJdbcCode.UINT32, Integer.class));
-        typeContributions.contributeJdbcType(new YdbJdbcType(YdbJdbcCode.INT64, Integer.class));
-        typeContributions.contributeJdbcType(new YdbJdbcType(YdbJdbcCode.UINT64, Integer.class));
+        typeContributions.contributeJdbcType(new YdbJdbcType(YdbJdbcCode.UINT32, Long.class));
+        typeContributions.contributeJdbcType(new YdbJdbcType(YdbJdbcCode.INT64, Long.class));
+        typeContributions.contributeJdbcType(new YdbJdbcType(YdbJdbcCode.UINT64, Long.class));
         typeContributions.contributeJdbcType(new YdbJdbcType(YdbJdbcCode.FLOAT, Float.class));
         typeContributions.contributeJdbcType(new YdbJdbcType(YdbJdbcCode.DOUBLE, Double.class));
         typeContributions.contributeJdbcType(new YdbJdbcType(YdbJdbcCode.BYTES, byte[].class));
