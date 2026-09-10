@@ -96,10 +96,12 @@ public class YdbMergeSink implements ConnectorMergeSink {
 
         for (int attempt = 0; attempt < maxAttempts; attempt++) {
             Connection connection = null;
+            boolean commitAttempted = false;
             boolean committed = false;
             try {
                 connection = openConnection();
                 executeMergeInTransaction(connection);
+                commitAttempted = true;
                 connection.commit();
                 committed = true;
                 connection.close();
@@ -129,6 +131,13 @@ public class YdbMergeSink implements ConnectorMergeSink {
 
                 if (committed) {
                     throw new TrinoException(JDBC_ERROR, "YDB MERGE committed, but closing its connection failed", e);
+                }
+
+                if (commitAttempted) {
+                    throw new TrinoException(
+                            JDBC_ERROR,
+                            "YDB MERGE commit outcome is unknown; operation was not retried to avoid duplicate writes",
+                            e);
                 }
 
                 if (!YdbRetryUtils.isRetryable(e) && !isRejectedDriverSessionAcquisition(e)) {

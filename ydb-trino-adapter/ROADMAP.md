@@ -88,8 +88,9 @@ failure.
    changes as atomic delete+insert row changes, or reject that statement with a
    documented `NOT_SUPPORTED` error. See the
    [YQL UPDATE contract](https://ydb.tech/docs/en/yql/reference/syntax/update).
-4. Add focused tests for composite primary keys, a non-unique first visible
-   column, physical-key updates, rollback/close, and fresh-state retries.
+4. A failed `Connection.commit()` has an ambiguous outcome, so the connector
+   never replays that MERGE attempt. Add further focused tests for composite
+   primary keys, physical-key updates, rollback/close, and fresh-state retries.
 
 **Exit criterion:** retain the current green inherited `testMerge*` suite and
 add a bounded-memory benchmark that demonstrates acceptable production-scale
@@ -114,7 +115,7 @@ runtime for the set-based implementation.
 - Do not replay buffered INSERT pages after `JdbcPageSink` may already have
   committed an internal batch.
 - Add unit tests for status classification, interrupted backoff, rollback
-  failure suppression, connection cleanup, and a failure after commit.
+  failure suppression, and connection cleanup.
 - Define memory/backpressure limits for buffered merge pages; memory usage must
   not remain unreported.
 
