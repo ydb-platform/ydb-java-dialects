@@ -91,12 +91,6 @@ public class TestYdbConnectorTest extends BaseConnectorTest {
 
     @Test
     @Override
-    public void testDateYearOfEraPredicate() {
-        // YDB не поддерживает, negative daysSinceEpoch
-    }
-
-    @Test
-    @Override
     public void testCreateTableAsSelectNegativeDate() {
         // YDB не поддерживает, negative daysSinceEpoch
     }

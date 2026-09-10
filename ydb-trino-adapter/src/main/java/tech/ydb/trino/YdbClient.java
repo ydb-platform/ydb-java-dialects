@@ -374,7 +374,13 @@ public class YdbClient extends BaseJdbcClient {
         return ColumnMapping.longMapping(
                 DATE,
                 dateReadFunctionUsingLocalDate(),
-                dateWriteFunctionUsingLocalDate());
+                dateWriteFunctionUsingLocalDate(),
+                (session, domain) -> domain.getValues().getRanges().getOrderedRanges().stream()
+                        .anyMatch(range ->
+                                (!range.isLowUnbounded() && (long) range.getLowBoundedValue() < 0) ||
+                                        (!range.isHighUnbounded() && (long) range.getHighBoundedValue() < 0))
+                        ? DISABLE_PUSHDOWN.apply(session, domain)
+                        : FULL_PUSHDOWN.apply(session, domain));
     }
 
     private static ColumnMapping timestampColumnMapping() {
