@@ -110,12 +110,6 @@ public class TestYdbConnectorTest extends BaseConnectorTest {
                 .hasMessage("Unsupported column type: char(3)");
     }
 
-    @Test
-    @Override
-    public void testVarcharCastToDateInPredicate() {
-        // YDB не поддерживает такой pushdown/cast
-    }
-
     @Override
     protected TestTable createTableWithDefaultColumns() {
         return new TestTable(
