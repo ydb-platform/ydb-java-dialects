@@ -154,11 +154,19 @@ public class TestYdbConnectorTest extends BaseConnectorTest {
                     "DATE '2006-06-06'",
                     "DATE '2026-06-06'"
             ));
-        } else if (dataMappingTestSetup.getTrinoTypeName().startsWith("time") || dataMappingTestSetup.getTrinoTypeName().equals("varbinary")) {
-            // Нет time и varbinary в YQL
+        } else if (dataMappingTestSetup.getTrinoTypeName().startsWith("time")) {
+            // Нет time в YQL
             return Optional.empty();
         }
         return Optional.of(dataMappingTestSetup);
+    }
+
+    @Test
+    public void testVarbinaryCreateTableAndInsert() {
+        try (TestTable table = newTrinoTable("varbinary_insert_", "(id bigint, value varbinary)")) {
+            assertUpdate("INSERT INTO " + table.getName() + " VALUES (1, X'0080FF')", 1);
+            assertQuery("SELECT value FROM " + table.getName(), "VALUES X'0080FF'");
+        }
     }
 
     @Override
