@@ -49,3 +49,6 @@ SELECT * FROM local.default.orders;
 
 YDB `Text` отображается в Trino как `varchar`, а `Bytes` — как `varbinary` без
 декодирования UTF-8. При создании таблиц адаптер использует типы `Text` и `Bytes`.
+
+Trino `date` создаёт YDB `Date32`; существующие колонки YDB `Date` также читаются
+как `date` и не мигрируются. Значения ограничены диапазоном `Date32`.

@@ -13,6 +13,11 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import tech.ydb.test.junit5.YdbHelperExtension;
 
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.ResultSet;
+import java.sql.Types;
+import java.util.List;
 import java.util.Optional;
 import java.util.OptionalInt;
 
@@ -85,24 +90,6 @@ public class TestYdbConnectorTest extends BaseConnectorTest {
 
     @Test
     @Override
-    public void testInsertNegativeDate() {
-        // YDB не поддерживает, negative daysSinceEpoch
-    }
-
-    @Test
-    @Override
-    public void testDateYearOfEraPredicate() {
-        // YDB не поддерживает, negative daysSinceEpoch
-    }
-
-    @Test
-    @Override
-    public void testCreateTableAsSelectNegativeDate() {
-        // YDB не поддерживает, negative daysSinceEpoch
-    }
-
-    @Test
-    @Override
     public void testCharVarcharComparison() {
         // YDB has no fixed-width string primitive. Mapping CHAR to Text loses its width in JDBC metadata
         // and violates Trino padding/coercion semantics: https://ydb.tech/docs/en/yql/reference/types/primitive
@@ -121,6 +108,30 @@ public class TestYdbConnectorTest extends BaseConnectorTest {
                         "col_nonnull_default Int64 NOT NULL DEFAULT 42, " +
                         "col_required2 Int64 NOT NULL, " +
                         "PRIMARY KEY (col_required))");
+    }
+
+    @Test
+    public void testMergeLegacyDateColumns() {
+        try (TestTable table = new TestTable(
+                new JdbcSqlExecutor(YdbQueryRunner.buildJdbcUrl(ydb)),
+                "legacy_date_merge_",
+                "(date_key Date NOT NULL, value Date, PRIMARY KEY (date_key))")) {
+            assertUpdate("MERGE INTO " + table.getName() + " t USING (VALUES (DATE '2020-02-12', DATE '2020-02-13')) s(date_key, value)" +
+                    " ON t.date_key = s.date_key WHEN NOT MATCHED THEN INSERT (date_key, value) VALUES (s.date_key, s.value)", 1);
+            assertQuery("SELECT * FROM " + table.getName(), "VALUES (DATE '2020-02-12', DATE '2020-02-13')");
+
+            assertUpdate("MERGE INTO " + table.getName() + " t USING (VALUES (DATE '2020-02-12', DATE '2020-02-14')) s(date_key, value)" +
+                    " ON t.date_key = s.date_key WHEN MATCHED THEN UPDATE SET value = s.value", 1);
+            assertQuery("SELECT * FROM " + table.getName(), "VALUES (DATE '2020-02-12', DATE '2020-02-14')");
+
+            assertUpdate("MERGE INTO " + table.getName() + " t USING (VALUES (DATE '2020-02-12', CAST(NULL AS date))) s(date_key, value)" +
+                    " ON t.date_key = s.date_key WHEN MATCHED THEN UPDATE SET value = s.value", 1);
+            assertQuery("SELECT * FROM " + table.getName(), "VALUES (DATE '2020-02-12', NULL)");
+
+            assertUpdate("MERGE INTO " + table.getName() + " t USING (VALUES DATE '2020-02-12') s(date_key)" +
+                    " ON t.date_key = s.date_key WHEN MATCHED THEN DELETE", 1);
+            assertQueryReturnsEmptyResult("SELECT * FROM " + table.getName());
+        }
     }
 
     @Override
@@ -142,17 +153,31 @@ public class TestYdbConnectorTest extends BaseConnectorTest {
     protected Optional<DataMappingTestSetup> filterDataMappingSmokeTestData(BaseConnectorTest.DataMappingTestSetup dataMappingTestSetup) {
         if (dataMappingTestSetup.getTrinoTypeName().equals("char(3)")) {
             return Optional.of(dataMappingTestSetup.asUnsupported());
-        } else if (dataMappingTestSetup.getTrinoTypeName().equals("date")) {
-            return Optional.of(new DataMappingTestSetup(
-                    dataMappingTestSetup.getTrinoTypeName(),
-                    "DATE '2006-06-06'",
-                    "DATE '2026-06-06'"
-            ));
         } else if (dataMappingTestSetup.getTrinoTypeName().startsWith("time")) {
             // Нет time в YQL
             return Optional.empty();
         }
         return Optional.of(dataMappingTestSetup);
+    }
+
+    @Test
+    public void testDateDdlUsesDate32() throws Exception {
+        try (TestTable table = newTrinoTable("date32_", "(value date)")) {
+            try (Connection connection = DriverManager.getConnection(YdbQueryRunner.buildJdbcUrl(ydb));
+                    ResultSet columns = connection.getMetaData().getColumns(null, null, table.getName(), "value")) {
+                assertThat(columns.next()).isTrue();
+                assertThat(columns.getInt("DATA_TYPE")).isEqualTo(Types.DATE);
+                assertThat(columns.getString("TYPE_NAME")).isEqualTo("Date32");
+            }
+        }
+    }
+
+    @Test
+    public void testDate32OutOfRangePredicatesAreResidual() {
+        try (TestTable table = newTrinoTable("date32_out_of_range_", "(value date)", List.of("DATE '2020-02-12'"))) {
+            assertQueryReturnsEmptyResult("SELECT * FROM " + table.getName() + " WHERE value = DATE '-144169-01-01'");
+            assertQueryReturnsEmptyResult("SELECT * FROM " + table.getName() + " WHERE value = DATE '148108-01-01'");
+        }
     }
 
     @Test

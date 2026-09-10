@@ -136,7 +136,8 @@ unsupported behavior, record:
 2. an authoritative documentation link or tracked upstream issue;
 3. a focused negative test that proves the connector fails clearly.
 
-The existing negative-date overrides need this treatment.
+Trino `date` now uses YDB `Date32`, including BCE values within its native range.
+Predicates with values outside that range remain residual Trino filters.
 YDB `Date` starts at the Unix epoch; see
 [primitive types](https://ydb.tech/docs/en/yql/reference/types/primitive).
 CHAR is rejected with the focused inherited contract

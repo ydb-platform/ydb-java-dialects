@@ -30,7 +30,7 @@ public final class YdbTypeUtils {
             case io.trino.spi.type.DoubleType _ ->
                     Optional.of(new JdbcTypeHandle(Types.DOUBLE, Optional.of("Double"), Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty()));
             case io.trino.spi.type.DateType _ ->
-                    Optional.of(new JdbcTypeHandle(Types.DATE, Optional.of("Date"), Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty()));
+                    Optional.of(new JdbcTypeHandle(Types.DATE, Optional.of("Date32"), Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty()));
             case io.trino.spi.type.TimestampType _ ->
                     Optional.of(new JdbcTypeHandle(Types.TIMESTAMP, Optional.of("Timestamp"), Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty()));
             case DecimalType decimalType ->

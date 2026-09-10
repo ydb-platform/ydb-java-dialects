@@ -23,6 +23,7 @@ import io.trino.plugin.jdbc.JdbcOutputTableHandle;
 import io.trino.plugin.jdbc.JdbcSortItem;
 import io.trino.plugin.jdbc.JdbcTableHandle;
 import io.trino.plugin.jdbc.JdbcTypeHandle;
+import io.trino.plugin.jdbc.LongWriteFunction;
 import io.trino.plugin.jdbc.PreparedQuery;
 import io.trino.plugin.jdbc.QueryBuilder;
 import io.trino.plugin.jdbc.RemoteTableName;
@@ -48,9 +49,13 @@ import io.trino.spi.connector.RetryMode;
 import io.trino.spi.connector.SchemaTableName;
 import io.trino.spi.connector.SortOrder;
 import io.trino.spi.expression.ConnectorExpression;
+import io.trino.spi.expression.Constant;
+import io.trino.spi.predicate.Domain;
 import io.trino.spi.type.DecimalType;
 import io.trino.spi.type.Type;
 import io.trino.spi.type.VarcharType;
+import tech.ydb.table.values.PrimitiveValue;
+import tech.ydb.table.values.PrimitiveType;
 
 import jakarta.annotation.Nullable;
 
@@ -58,8 +63,10 @@ import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.SQLDataException;
 import java.sql.SQLException;
 import java.sql.Types;
+import java.time.LocalDate;
 import java.util.Collection;
 import java.util.List;
 import java.util.Locale;
@@ -127,6 +134,8 @@ public class YdbClient extends BaseJdbcClient {
     static final String DEFAULT_SCHEMA = "default";
     private static final int YDB_DEFAULT_DECIMAL_PRECISION = 22;
     private static final int YDB_DEFAULT_DECIMAL_SCALE = 9;
+    private static final long DATE32_MIN_EPOCH_DAY = -53375809;
+    private static final long DATE32_MAX_EPOCH_DAY = 53375807;
 
     private final ConnectorExpressionRewriter<ParameterizedExpression> connectorExpressionRewriter;
     private final AggregateFunctionRewriter<JdbcExpression, ParameterizedExpression> aggregateFunctionRewriter;
@@ -210,7 +219,17 @@ public class YdbClient extends BaseJdbcClient {
             ConnectorExpression expression,
             Map<String, ColumnHandle> assignments
     ) {
+        if (containsOutOfRangeDateConstant(expression)) {
+            return Optional.empty();
+        }
         return connectorExpressionRewriter.rewrite(session, expression, assignments);
+    }
+
+    private static boolean containsOutOfRangeDateConstant(ConnectorExpression expression) {
+        if (expression instanceof Constant constant && expression.getType() == DATE && constant.getValue() != null) {
+            return !isDate32EpochDay((long) constant.getValue());
+        }
+        return expression.getChildren().stream().anyMatch(YdbClient::containsOutOfRangeDateConstant);
     }
 
     @Override
@@ -338,7 +357,7 @@ public class YdbClient extends BaseJdbcClient {
                         : typeHandle.columnSize().orElse(VarcharType.MAX_LENGTH);
                 yield Optional.of(varcharColumnMapping(length));
             }
-            case Types.DATE -> Optional.of(dateColumnMapping());
+            case Types.DATE -> Optional.of(jdbcTypeName.equals("date32") ? date32ColumnMapping() : dateColumnMapping());
             case Types.TIMESTAMP -> Optional.of(timestampColumnMapping());
             default -> Optional.empty();
         };
@@ -375,6 +394,49 @@ public class YdbClient extends BaseJdbcClient {
                 DATE,
                 dateReadFunctionUsingLocalDate(),
                 dateWriteFunctionUsingLocalDate());
+    }
+
+    private static ColumnMapping date32ColumnMapping() {
+        return ColumnMapping.longMapping(
+                DATE,
+                dateReadFunctionUsingLocalDate(),
+                date32WriteFunction(),
+                (session, domain) -> date32DomainIsSupported(domain)
+                        ? FULL_PUSHDOWN.apply(session, domain)
+                        : DISABLE_PUSHDOWN.apply(session, domain));
+    }
+
+    private static LongWriteFunction date32WriteFunction() {
+        return new LongWriteFunction() {
+            @Override
+            public void set(PreparedStatement statement, int index, long daysSinceEpoch) throws SQLException {
+                if (!isDate32EpochDay(daysSinceEpoch)) {
+                    throw new SQLDataException("Date is outside the supported YDB Date32 range: " + LocalDate.ofEpochDay(daysSinceEpoch));
+                }
+                statement.setObject(index, PrimitiveValue.newDate32(LocalDate.ofEpochDay(daysSinceEpoch)));
+            }
+
+            @Override
+            public void setNull(PreparedStatement statement, int index) throws SQLException {
+                statement.setObject(index, PrimitiveType.Date32.makeOptional().emptyValue());
+            }
+        };
+    }
+
+    private static boolean date32DomainIsSupported(Domain domain) {
+        if (domain.getValues().isDiscreteSet()) {
+            return domain.getValues().getDiscreteSet().stream()
+                    .mapToLong(value -> (long) value)
+                    .allMatch(YdbClient::isDate32EpochDay);
+        }
+        return domain.getValues().isAll() || domain.getValues().isNone() || domain.getValues().getRanges().getOrderedRanges().stream()
+                .allMatch(range ->
+                        (range.isLowUnbounded() || isDate32EpochDay((long) range.getLowBoundedValue())) &&
+                                (range.isHighUnbounded() || isDate32EpochDay((long) range.getHighBoundedValue())));
+    }
+
+    private static boolean isDate32EpochDay(long daysSinceEpoch) {
+        return daysSinceEpoch >= DATE32_MIN_EPOCH_DAY && daysSinceEpoch <= DATE32_MAX_EPOCH_DAY;
     }
 
     private static ColumnMapping timestampColumnMapping() {
@@ -420,7 +482,7 @@ public class YdbClient extends BaseJdbcClient {
             return WriteMapping.sliceMapping("Bytes", varbinaryWriteFunction());
         }
         if (type == DATE) {
-            return WriteMapping.longMapping("Date", dateWriteFunctionUsingLocalDate());
+            return WriteMapping.longMapping("Date32", date32WriteFunction());
         }
         if (type == TIMESTAMP_MICROS) {
             return WriteMapping.longMapping("Timestamp", timestampWriteFunction(TIMESTAMP_MICROS));
