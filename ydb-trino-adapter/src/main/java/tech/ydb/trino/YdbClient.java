@@ -100,6 +100,8 @@ import static io.trino.plugin.jdbc.StandardColumnMappings.timestampColumnMapping
 import static io.trino.plugin.jdbc.StandardColumnMappings.timestampReadFunction;
 import static io.trino.plugin.jdbc.StandardColumnMappings.timestampWriteFunction;
 import static io.trino.plugin.jdbc.StandardColumnMappings.tinyintWriteFunction;
+import static io.trino.plugin.jdbc.StandardColumnMappings.varbinaryColumnMapping;
+import static io.trino.plugin.jdbc.StandardColumnMappings.varbinaryWriteFunction;
 import static io.trino.plugin.jdbc.StandardColumnMappings.varcharColumnMapping;
 import static io.trino.plugin.jdbc.StandardColumnMappings.varcharReadFunction;
 import static io.trino.plugin.jdbc.StandardColumnMappings.varcharWriteFunction;
@@ -114,6 +116,7 @@ import static io.trino.spi.type.RealType.REAL;
 import static io.trino.spi.type.SmallintType.SMALLINT;
 import static io.trino.spi.type.TimestampType.TIMESTAMP_MICROS;
 import static io.trino.spi.type.TinyintType.TINYINT;
+import static io.trino.spi.type.VarbinaryType.VARBINARY;
 import static io.trino.spi.type.VarcharType.createUnboundedVarcharType;
 import static io.trino.spi.type.VarcharType.createVarcharType;
 import static java.lang.Math.max;
@@ -279,13 +282,11 @@ public class YdbClient extends BaseJdbcClient {
             return mapping;
         }
 
-        // YDB JDBC reports text columns as Bytes/String/Utf8/Text under various JDBC type codes.
-        // Always map them to unbounded varchar (YDB Text has no useful fixed length).
         String jdbcTypeName = typeHandle.jdbcTypeName().orElse("").toLowerCase(Locale.ROOT);
-        if (jdbcTypeName.equals("bytes")
-                || jdbcTypeName.equals("string")
-                || jdbcTypeName.equals("utf8")
-                || jdbcTypeName.equals("text")) {
+        if (jdbcTypeName.equals("bytes") || jdbcTypeName.equals("string")) {
+            return Optional.of(varbinaryColumnMapping());
+        }
+        if (jdbcTypeName.equals("utf8") || jdbcTypeName.equals("text")) {
             return Optional.of(unboundedVarcharColumnMapping());
         }
 
@@ -414,6 +415,9 @@ public class YdbClient extends BaseJdbcClient {
         }
         if (type instanceof VarcharType) {
             return WriteMapping.sliceMapping("Text", varcharWriteFunction());
+        }
+        if (type == VARBINARY) {
+            return WriteMapping.sliceMapping("Bytes", varbinaryWriteFunction());
         }
         if (type == DATE) {
             return WriteMapping.longMapping("Date", dateWriteFunctionUsingLocalDate());

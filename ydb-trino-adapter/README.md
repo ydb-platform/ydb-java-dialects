@@ -44,3 +44,8 @@ SELECT * FROM local.default.orders;
 ```
 
 Прежние обращения `catalog.ydb.table` нужно заменить на `catalog.default.table`.
+
+## Текст и байты
+
+YDB `Text` отображается в Trino как `varchar`, а `Bytes` — как `varbinary` без
+декодирования UTF-8. При создании таблиц адаптер использует типы `Text` и `Bytes`.
