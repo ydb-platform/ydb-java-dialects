@@ -27,8 +27,6 @@ public final class YdbQueryRunner {
     public static Builder builder(YdbHelperExtension ydb) {
         String jdbcUrl = buildJdbcUrl(ydb);
         return new Builder()
-                // Avoid temporary-table CTAS during INSERT; YDB does not support CREATE TABLE AS SELECT.
-                .addConnectorProperty("insert.non-transactional-insert.enabled", "true")
                 .addConnectorProperty("connection-url", jdbcUrl);
     }
 

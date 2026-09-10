@@ -1,5 +1,6 @@
 package tech.ydb.trino;
 
+import io.trino.Session;
 import io.trino.spi.type.Type;
 import io.trino.spi.type.VarcharType;
 import io.trino.testing.BaseConnectorTest;
@@ -160,6 +161,30 @@ public class TestYdbConnectorTest extends BaseConnectorTest {
         try (TestTable table = newTrinoTable("varbinary_insert_", "(id bigint, value varbinary)")) {
             assertUpdate("INSERT INTO " + table.getName() + " VALUES (1, X'0080FF')", 1);
             assertQuery("SELECT value FROM " + table.getName(), "VALUES X'0080FF'");
+        }
+    }
+
+    @Test
+    public void testInsertFailureDoesNotCommitEarlierBatches() {
+        Session session = Session.builder(getSession())
+                .setCatalogSessionProperty(getSession().getCatalog().orElseThrow(), "write_batch_size", "1")
+                .build();
+        JdbcSqlExecutor executor = new JdbcSqlExecutor(YdbQueryRunner.buildJdbcUrl(ydb));
+        try (TestTable table = new TestTable(executor, "insert_atomic_",
+                "(value Text, id Int64 NOT NULL, _trino_staging_id Int64, PRIMARY KEY (id))")) {
+            executor.execute("INSERT INTO " + table.getName() + " (id, value) VALUES (1, 'existing')");
+            assertQueryFails(session,
+                    "INSERT INTO " + table.getName() + " (id, value, _trino_staging_id) " +
+                            "VALUES (2, 'two', 20), (3, 'three', 30), (1, 'conflict', 10)",
+                    "(?s).*insert_pk.*");
+            assertQuery("SELECT id, value, _trino_staging_id FROM " + table.getName(),
+                    "VALUES (1, 'existing', CAST(NULL AS bigint))");
+            assertUpdate(session,
+                    "INSERT INTO " + table.getName() + " (id, value, _trino_staging_id) " +
+                            "VALUES (2, 'two', 20), (3, NULL, 30)",
+                    2);
+            assertQuery("SELECT id, value, _trino_staging_id FROM " + table.getName(),
+                    "VALUES (1, 'existing', CAST(NULL AS bigint)), (2, 'two', 20), (3, NULL, 30)");
         }
     }
 

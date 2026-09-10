@@ -514,6 +514,45 @@ public class YdbClient extends BaseJdbcClient {
     }
 
     @Override
+    protected void copyTableSchema(
+            ConnectorSession session,
+            Connection connection,
+            String catalogName,
+            String schemaName,
+            String tableName,
+            String newTableName,
+            List<String> columnNames) {
+        RemoteTableName sourceTable = new RemoteTableName(Optional.empty(), Optional.empty(), tableName);
+        try (ResultSet columns = getColumns(sourceTable, connection.getMetaData())) {
+            Map<String, String> definitionsByName = new TreeMap<>();
+            while (columns.next()) {
+                String columnName = columns.getString("COLUMN_NAME");
+                definitionsByName.put(columnName, quoted(columnName) + " " + columns.getString("TYPE_NAME")
+                        + (columns.getInt("NULLABLE") == DatabaseMetaData.columnNoNulls ? " NOT NULL" : ""));
+            }
+
+            String stagingKey = nonRepeatNames("_trino_staging_id", columnNames);
+            ImmutableList.Builder<String> definitions = ImmutableList.builder();
+            definitions.add(quoted(stagingKey) + " BigSerial");
+            for (String columnName : columnNames) {
+                String definition = definitionsByName.get(columnName);
+                if (definition == null) {
+                    throw new TrinoException(JDBC_ERROR, "Source column missing from JDBC metadata: " + columnName);
+                }
+                definitions.add(definition);
+            }
+            execute(session, connection, format(
+                    "CREATE TABLE %s (%s, PRIMARY KEY (%s))",
+                    quoted(catalogName, schemaName, newTableName),
+                    String.join(", ", definitions.build()),
+                    quoted(stagingKey)));
+        }
+        catch (SQLException e) {
+            throw new TrinoException(JDBC_ERROR, "Failed to create YDB INSERT staging table", e);
+        }
+    }
+
+    @Override
     public void renameTable(ConnectorSession session, JdbcTableHandle handle, SchemaTableName newTableName) {
         SchemaTableName currentName = handle.asPlainTable().getSchemaTableName();
         if (!currentName.getSchemaName().equalsIgnoreCase(newTableName.getSchemaName())) {

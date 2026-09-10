@@ -169,7 +169,9 @@ that inherit from this behavior and also remain false. See YDB
 - List/Dict/Struct mappings for Trino ARRAY/MAP/ROW;
 - views, comments, rename column, and type changes after checking current YQL
   semantics;
-- transactional INSERT/staging instead of direct non-transactional writes;
+- default INSERT stages rows in a native YDB table before one final INSERT SELECT;
+  row-oriented targets are covered; mixed row/column-store write transactions
+  remain a separate limitation ([YQL INSERT](https://ydb.tech/docs/en/yql/reference/syntax/insert_into));
 - complete the Trino 483 default-column behavior group before advertising it.
 
 ## Validation ladder
