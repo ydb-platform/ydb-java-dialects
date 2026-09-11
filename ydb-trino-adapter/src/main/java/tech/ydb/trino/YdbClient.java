@@ -23,7 +23,6 @@ import io.trino.plugin.jdbc.JdbcOutputTableHandle;
 import io.trino.plugin.jdbc.JdbcSortItem;
 import io.trino.plugin.jdbc.JdbcTableHandle;
 import io.trino.plugin.jdbc.JdbcTypeHandle;
-import io.trino.plugin.jdbc.LongWriteFunction;
 import io.trino.plugin.jdbc.PreparedQuery;
 import io.trino.plugin.jdbc.QueryBuilder;
 import io.trino.plugin.jdbc.RemoteTableName;
@@ -49,7 +48,6 @@ import io.trino.spi.connector.RetryMode;
 import io.trino.spi.connector.SchemaTableName;
 import io.trino.spi.connector.SortOrder;
 import io.trino.spi.expression.ConnectorExpression;
-import io.trino.spi.predicate.Domain;
 import io.trino.spi.type.DecimalType;
 import io.trino.spi.type.Type;
 import io.trino.spi.type.VarcharType;
@@ -82,7 +80,6 @@ import java.util.stream.Stream;
 
 import tech.ydb.jdbc.settings.YdbConfig;
 import tech.ydb.jdbc.settings.YdbOperationProperties;
-import tech.ydb.table.values.PrimitiveType;
 import tech.ydb.table.values.PrimitiveValue;
 
 import static io.trino.plugin.jdbc.DefaultJdbcMetadata.MERGE_ROW_ID;
@@ -92,8 +89,8 @@ import static io.trino.plugin.jdbc.PredicatePushdownController.FULL_PUSHDOWN;
 import static io.trino.plugin.jdbc.StandardColumnMappings.bigintColumnMapping;
 import static io.trino.plugin.jdbc.StandardColumnMappings.bigintWriteFunction;
 import static io.trino.plugin.jdbc.StandardColumnMappings.booleanColumnMapping;
-import static io.trino.plugin.jdbc.StandardColumnMappings.dateWriteFunctionUsingLocalDate;
 import static io.trino.plugin.jdbc.StandardColumnMappings.dateReadFunctionUsingLocalDate;
+import static io.trino.plugin.jdbc.StandardColumnMappings.dateWriteFunctionUsingLocalDate;
 import static io.trino.plugin.jdbc.StandardColumnMappings.decimalColumnMapping;
 import static io.trino.plugin.jdbc.StandardColumnMappings.doubleColumnMapping;
 import static io.trino.plugin.jdbc.StandardColumnMappings.doubleWriteFunction;
@@ -136,12 +133,6 @@ public class YdbClient extends BaseJdbcClient {
     static final String DEFAULT_SCHEMA = "default";
     private static final int YDB_DEFAULT_DECIMAL_PRECISION = 22;
     private static final int YDB_DEFAULT_DECIMAL_SCALE = 9;
-    // https://github.com/ydb-platform/ydb/blob/0b875c4c2a25249d17ef41db8ea1806c6882a95e/yql/essentials/public/udf/udf_data_type.h#L162-L176
-    private static final long YDB_DATE_MIN = 0;
-    private static final long YDB_DATE_MAX = 49_673;
-    private static final long YDB_DATE32_MIN = -53_375_809;
-    private static final long YDB_DATE32_MAX = 53_375_808;
-
     private final ConnectorExpressionRewriter<ParameterizedExpression> connectorExpressionRewriter;
     private final AggregateFunctionRewriter<JdbcExpression, ParameterizedExpression> aggregateFunctionRewriter;
     private final ProjectFunctionRewriter<JdbcExpression, ParameterizedExpression> projectFunctionRewriter;
@@ -361,7 +352,7 @@ public class YdbClient extends BaseJdbcClient {
                         : typeHandle.columnSize().orElse(VarcharType.MAX_LENGTH);
                 yield Optional.of(varcharColumnMapping(length));
             }
-            case Types.DATE -> Optional.of(dateColumnMapping(jdbcTypeName.equals("date32")));
+            case Types.DATE -> Optional.of(dateColumnMapping());
             case Types.TIMESTAMP -> Optional.of(timestampColumnMapping());
             default -> Optional.empty();
         };
@@ -393,49 +384,11 @@ public class YdbClient extends BaseJdbcClient {
                 FULL_PUSHDOWN);
     }
 
-    private static ColumnMapping dateColumnMapping(boolean signed) {
+    private static ColumnMapping dateColumnMapping() {
         return ColumnMapping.longMapping(
                 DATE,
                 dateReadFunctionUsingLocalDate(),
-                dateWriteFunction(signed),
-                (session, domain) -> isDateDomainSupported(domain, signed)
-                        ? FULL_PUSHDOWN.apply(session, domain)
-                        : DISABLE_PUSHDOWN.apply(session, domain));
-    }
-
-    private static boolean isDateDomainSupported(Domain domain, boolean signed) {
-        if (domain.getType() != DATE) {
-            return true;
-        }
-        return domain.getValues().getRanges().getOrderedRanges().stream().allMatch(range ->
-                (range.isLowUnbounded() || isDateSupported((long) range.getLowBoundedValue(), signed)) &&
-                        (range.isHighUnbounded() || isDateSupported((long) range.getHighBoundedValue(), signed)));
-    }
-
-    private static boolean isDateSupported(long value, boolean signed) {
-        return signed
-                ? value >= YDB_DATE32_MIN && value < YDB_DATE32_MAX
-                : value >= YDB_DATE_MIN && value < YDB_DATE_MAX;
-    }
-
-    private static LongWriteFunction dateWriteFunction(boolean signed) {
-        PrimitiveType type = signed ? PrimitiveType.Date32 : PrimitiveType.Date;
-        return new LongWriteFunction() {
-            @Override
-            public void set(PreparedStatement statement, int index, long value) throws SQLException {
-                if (!isDateSupported(value, signed)) {
-                    throw new SQLException("Date epoch day %s is outside YDB %s range"
-                            .formatted(value, signed ? "Date32" : "Date"));
-                }
-                LocalDate date = LocalDate.ofEpochDay(value);
-                statement.setObject(index, signed ? PrimitiveValue.newDate32(date) : PrimitiveValue.newDate(date));
-            }
-
-            @Override
-            public void setNull(PreparedStatement statement, int index) throws SQLException {
-                statement.setObject(index, type.makeOptional().emptyValue());
-            }
-        };
+                (statement, index, value) -> statement.setObject(index, PrimitiveValue.newDate32(LocalDate.ofEpochDay(value))));
     }
 
     private static ColumnMapping timestampColumnMapping() {

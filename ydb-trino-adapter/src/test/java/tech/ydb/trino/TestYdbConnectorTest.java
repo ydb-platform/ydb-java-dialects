@@ -101,7 +101,7 @@ public class TestYdbConnectorTest extends BaseConnectorTest {
 
     @Override
     protected String errorMessageForInsertNegativeDate(String date) {
-        return ".*outside YDB Date range.*";
+        return ".*negative daysSinceEpoch.*";
     }
 
     @Override
@@ -193,16 +193,10 @@ public class TestYdbConnectorTest extends BaseConnectorTest {
             assertQuery("SELECT legacy_value, signed_value FROM " + name +
                     " WHERE legacy_key = DATE '2020-01-01' AND signed_key = DATE '-0001-01-01'",
                     "VALUES (DATE '2000-01-01', CAST(NULL AS DATE))");
-            for (long day : new long[]{-1, 0, 49_672, 49_673}) {
-                assertQueryReturnsEmptyResult("SELECT * FROM " + name +
-                        " WHERE legacy_key = date_add('day', " + day + ", DATE '1970-01-01')");
-            }
-            for (long day : new long[]{-53_375_810, -53_375_809, 53_375_807, 53_375_808}) {
-                assertQueryReturnsEmptyResult("SELECT * FROM " + name +
-                        " WHERE signed_key = date_add('day', " + day + ", DATE '1970-01-01')");
-            }
-            assertQueryFails("INSERT INTO " + name + " VALUES (DATE '2020-02-01', " +
-                    "date_add('day', 106751992, DATE '1970-01-01'), NULL, NULL)", ".*outside YDB Date32 range.*");
+            assertQueryReturnsEmptyResult("SELECT * FROM " + name + " WHERE legacy_key = DATE '-0001-01-01'");
+            assertQuery("SELECT count(*) FROM " + name + " WHERE legacy_key > DATE '-0001-01-01'", "VALUES BIGINT '3'");
+            assertQueryReturnsEmptyResult("SELECT * FROM " + name + " WHERE legacy_key = DATE '2106-01-01'");
+            assertQuery("SELECT count(*) FROM " + name + " WHERE legacy_key < DATE '2106-01-01'", "VALUES BIGINT '3'");
             assertUpdate("UPDATE " + name + " SET legacy_value = DATE '2001-01-01', signed_value = DATE '-0003-01-01'" +
                     " WHERE legacy_key = DATE '2020-01-01' AND signed_key = DATE '-0001-01-01'", 1);
             assertUpdate("""
