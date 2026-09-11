@@ -27,7 +27,7 @@ jobs:
         test_args:
           - '-Duser.timezone=UTC'
           - '-Duser.timezone=UTC -Dydb.test.force-signed-datetimes=true'
-          - "-Duser.timezone=Europe/Moscow -Dtest='TestYdbConnectorTest#testNativeDateCompatibility'"
+          - "-Duser.timezone=Europe/Moscow -Dtest='TestYdbConnectorTest#testNativeDateCompatibility+testDatePredicateWidening'"
 
     steps:
       - uses: actions/checkout@v5
