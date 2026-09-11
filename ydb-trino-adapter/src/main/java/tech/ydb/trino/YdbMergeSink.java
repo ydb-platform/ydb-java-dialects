@@ -37,6 +37,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.stream.IntStream;
 
 import static com.google.common.collect.ImmutableSet.toImmutableSet;
@@ -49,6 +50,7 @@ import static java.util.concurrent.CompletableFuture.completedFuture;
   Code partly borrowed from JdbcMergeSink. Key differences are:
   - We do not write into the target table on each storeMergedRows call; instead, we store the necessary pages
     and write everything at once when finish() is called. Without it, I had serious atomicity problems and flaky tests.
+  - We retry in case YDB returns a retryable exception on an update attempt.
   - We do not use temporary tables unlike base Trino implementation, but write straight to YDB target.
  */
 public class YdbMergeSink implements ConnectorMergeSink {
@@ -89,44 +91,65 @@ public class YdbMergeSink implements ConnectorMergeSink {
     public CompletableFuture<Collection<Slice>> finish() {
         finished = true;
 
-        Connection connection = null;
-        boolean committed = false;
-        try {
-            connection = openConnection();
-            executeMergeInTransaction(connection);
-            connection.commit();
-            committed = true;
-            connection.close();
-            connection = null;
-        }
-        catch (Exception e) {
-            if (connection != null) {
-                if (!committed) {
+        int maxAttempts = 10;
+        Exception lastException = null;
+
+        for (int attempt = 0; attempt < maxAttempts; attempt++) {
+            Connection connection = null;
+            boolean committed = false;
+            try {
+                connection = openConnection();
+                executeMergeInTransaction(connection);
+                connection.commit();
+                committed = true;
+                connection.close();
+                connection = null;
+
+                Slice value = Slices.allocate(Long.BYTES);
+                value.setLong(0, pageSinkId.getId());
+                return completedFuture(ImmutableList.of(value));
+            }
+            catch (Exception e) {
+                if (connection != null) {
+                    if (!committed) {
+                        try {
+                            connection.rollback();
+                        }
+                        catch (SQLException rollbackError) {
+                            e.addSuppressed(rollbackError);
+                        }
+                    }
                     try {
-                        connection.rollback();
+                        connection.close();
                     }
-                    catch (SQLException rollbackError) {
-                        e.addSuppressed(rollbackError);
+                    catch (SQLException closeError) {
+                        e.addSuppressed(closeError);
                     }
                 }
+
+                if (committed) {
+                    throw new TrinoException(JDBC_ERROR, "YDB MERGE committed, but closing its connection failed", e);
+                }
+
+                if (!YdbRetryUtils.isRetryable(e) && !isRejectedDriverSessionAcquisition(e)) {
+                    throw new TrinoException(JDBC_ERROR, e);
+                }
+
+                lastException = e;
+
+                long delay = YdbRetryUtils.calculateBackoff(attempt);
+
                 try {
-                    connection.close();
+                    Thread.sleep(delay);
                 }
-                catch (SQLException closeError) {
-                    e.addSuppressed(closeError);
+                catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                    throw new TrinoException(JDBC_ERROR, ie);
                 }
             }
-
-            if (committed) {
-                throw new TrinoException(JDBC_ERROR, "YDB MERGE committed, but closing its connection failed", e);
-            }
-
-            throw new TrinoException(JDBC_ERROR, e);
         }
 
-        Slice value = Slices.allocate(Long.BYTES);
-        value.setLong(0, pageSinkId.getId());
-        return completedFuture(ImmutableList.of(value));
+        throw new TrinoException(JDBC_ERROR, lastException);
     }
 
     private Connection openConnection() throws SQLException {
@@ -428,6 +451,21 @@ public class YdbMergeSink implements ConnectorMergeSink {
         else {
             ((ObjectWriteFunction) writer).set(stmt, index, type.getObject(block, position));
         }
+    }
+
+    private static boolean isRejectedDriverSessionAcquisition(Throwable error) {
+        for (Throwable cause = error; cause != null; cause = cause.getCause()) {
+            if (cause instanceof RejectedExecutionException) {
+                for (StackTraceElement frame : cause.getStackTrace()) {
+                    if (frame.getClassName().equals("tech.ydb.table.impl.pool.SessionPool") &&
+                            frame.getMethodName().equals("acquire")) {
+                        // Session acquisition was rejected locally before a statement could be sent to YDB.
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
     }
 
     @Override
