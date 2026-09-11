@@ -196,9 +196,9 @@ public class TestYdbConnectorTest extends BaseConnectorTest {
                 statement.executeUpdate();
             }
             assertQueryReturnsEmptyResult("SELECT * FROM " + name + " WHERE legacy_key = DATE '-0001-01-01'");
-            assertQuery("SELECT count(*) FROM " + name + " WHERE legacy_key > DATE '-0001-01-01'", "VALUES BIGINT '1'");
+            assertQuery("SELECT count(*) FROM " + name + " WHERE legacy_key > DATE '-0001-01-01'", "VALUES CAST(1 AS BIGINT)");
             assertQueryReturnsEmptyResult("SELECT * FROM " + name + " WHERE legacy_key = DATE '2106-01-01'");
-            assertQuery("SELECT count(*) FROM " + name + " WHERE legacy_key < DATE '2106-01-01'", "VALUES BIGINT '1'");
+            assertQuery("SELECT count(*) FROM " + name + " WHERE legacy_key < DATE '2106-01-01'", "VALUES CAST(1 AS BIGINT)");
             try (Connection connection = DriverManager.getConnection(YdbQueryRunner.buildJdbcUrl(ydb));
                     PreparedStatement statement = connection.prepareStatement(
                             "DELETE FROM `" + table.getName() + "` WHERE legacy_key = ? AND signed_key = ?")) {
