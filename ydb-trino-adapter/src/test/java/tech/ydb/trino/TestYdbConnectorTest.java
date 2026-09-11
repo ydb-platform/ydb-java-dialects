@@ -1,5 +1,6 @@
 package tech.ydb.trino;
 
+import com.google.common.collect.ImmutableMap;
 import io.trino.spi.type.Type;
 import io.trino.spi.type.VarcharType;
 import io.trino.testing.BaseConnectorTest;
@@ -13,22 +14,36 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import tech.ydb.test.junit5.YdbHelperExtension;
 
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.ResultSet;
+import java.sql.Statement;
+import java.time.LocalDate;
 import java.util.Optional;
 import java.util.OptionalInt;
 
+import static io.trino.testing.TestingNames.randomNameSuffix;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 public class TestYdbConnectorTest extends BaseConnectorTest {
+    private static final String ALTERNATE_DATE_CATALOG = "alternate_dates";
+    private static final boolean FORCE_SIGNED_DATETIMES = Boolean.getBoolean("ydb.test.force-signed-datetimes");
 
     @RegisterExtension
     static final YdbHelperExtension ydb = new YdbHelperExtension();
 
     @Override
     protected QueryRunner createQueryRunner() throws Exception {
-        return YdbQueryRunner.builder(ydb)
+        String jdbcUrl = YdbQueryRunner.buildJdbcUrl(ydb);
+        QueryRunner queryRunner = YdbQueryRunner.builder(ydb)
+                .addConnectorProperty("connection-url", jdbcUrl + "&forceSignedDatetimes=" + FORCE_SIGNED_DATETIMES)
                 .setInitialTables(REQUIRED_TPCH_TABLES)
                 .build();
+        queryRunner.createCatalog(ALTERNATE_DATE_CATALOG, "ydb", ImmutableMap.of(
+                "connection-url", jdbcUrl + "&forceSignedDatetimes=" + !FORCE_SIGNED_DATETIMES,
+                "insert.non-transactional-insert.enabled", "true"));
+        return queryRunner;
     }
 
     @Test
@@ -79,26 +94,19 @@ public class TestYdbConnectorTest extends BaseConnectorTest {
                  SUPPORTS_DROP_DEFAULT_COLUMN_VALUE,
                  SUPPORTS_ADD_COLUMN_NOT_NULL_CONSTRAINT -> false;
             case SUPPORTS_TOPN_PUSHDOWN_WITH_VARCHAR -> true;
+            case SUPPORTS_NEGATIVE_DATE -> FORCE_SIGNED_DATETIMES;
             default -> super.hasBehavior(connectorBehavior);
         };
     }
 
-    @Test
     @Override
-    public void testInsertNegativeDate() {
-        // YDB не поддерживает, negative daysSinceEpoch
+    protected String errorMessageForInsertNegativeDate(String date) {
+        return ".*outside YDB Date range.*";
     }
 
-    @Test
     @Override
-    public void testDateYearOfEraPredicate() {
-        // YDB не поддерживает, negative daysSinceEpoch
-    }
-
-    @Test
-    @Override
-    public void testCreateTableAsSelectNegativeDate() {
-        // YDB не поддерживает, negative daysSinceEpoch
+    protected String errorMessageForCreateTableAsSelectNegativeDate(String date) {
+        return ".*negative daysSinceEpoch.*";
     }
 
     @Test
@@ -142,7 +150,7 @@ public class TestYdbConnectorTest extends BaseConnectorTest {
     protected Optional<DataMappingTestSetup> filterDataMappingSmokeTestData(BaseConnectorTest.DataMappingTestSetup dataMappingTestSetup) {
         if (dataMappingTestSetup.getTrinoTypeName().equals("char(3)")) {
             return Optional.of(dataMappingTestSetup.asUnsupported());
-        } else if (dataMappingTestSetup.getTrinoTypeName().equals("date")) {
+        } else if (dataMappingTestSetup.getTrinoTypeName().equals("date") && !FORCE_SIGNED_DATETIMES) {
             return Optional.of(new DataMappingTestSetup(
                     dataMappingTestSetup.getTrinoTypeName(),
                     "DATE '2006-06-06'",
@@ -160,6 +168,78 @@ public class TestYdbConnectorTest extends BaseConnectorTest {
         try (TestTable table = newTrinoTable("varbinary_insert_", "(id bigint, value varbinary)")) {
             assertUpdate("INSERT INTO " + table.getName() + " VALUES (1, X'0080FF')", 1);
             assertQuery("SELECT value FROM " + table.getName(), "VALUES X'0080FF'");
+        }
+    }
+
+    @Test
+    public void testNativeDateCompatibility() throws Exception {
+        verifyNativeDateCompatibility("local");
+        verifyNativeDateCompatibility(ALTERNATE_DATE_CATALOG);
+    }
+
+    private void verifyNativeDateCompatibility(String catalog) throws Exception {
+        String ddlTable = "trino_date_" + randomNameSuffix();
+        boolean signed = catalog.equals("local") ? FORCE_SIGNED_DATETIMES : !FORCE_SIGNED_DATETIMES;
+        try (TestTable table = new TestTable(
+                new JdbcSqlExecutor(YdbQueryRunner.buildJdbcUrl(ydb)),
+                "native_dates_",
+                "(legacy_key Date NOT NULL, signed_key Date32 NOT NULL, legacy_value Date, signed_value Date32, " +
+                        "PRIMARY KEY (legacy_key, signed_key))")) {
+            String name = catalog + ".default." + table.getName();
+            assertUpdate("INSERT INTO " + name + " VALUES " +
+                    "(DATE '2020-01-01', DATE '-0001-01-01', DATE '2000-01-01', NULL), " +
+                    "(DATE '2020-01-02', DATE '-0001-01-02', NULL, DATE '-0002-01-01'), " +
+                    "(DATE '2020-01-01', DATE '-0001-01-04', DATE '2004-01-01', NULL)", 3);
+            assertQuery("SELECT legacy_value, signed_value FROM " + name +
+                    " WHERE legacy_key = DATE '2020-01-01' AND signed_key = DATE '-0001-01-01'",
+                    "VALUES (DATE '2000-01-01', CAST(NULL AS DATE))");
+            for (long day : new long[]{-1, 0, 49_672, 49_673}) {
+                assertQueryReturnsEmptyResult("SELECT * FROM " + name +
+                        " WHERE legacy_key = date_add('day', " + day + ", DATE '1970-01-01')");
+            }
+            for (long day : new long[]{-53_375_810, -53_375_809, 53_375_807, 53_375_808}) {
+                assertQueryReturnsEmptyResult("SELECT * FROM " + name +
+                        " WHERE signed_key = date_add('day', " + day + ", DATE '1970-01-01')");
+            }
+            assertQueryFails("INSERT INTO " + name + " VALUES (DATE '2020-02-01', " +
+                    "date_add('day', 106751992, DATE '1970-01-01'), NULL, NULL)", ".*outside YDB Date32 range.*");
+            assertUpdate("UPDATE " + name + " SET legacy_value = DATE '2001-01-01', signed_value = DATE '-0003-01-01'" +
+                    " WHERE legacy_key = DATE '2020-01-01' AND signed_key = DATE '-0001-01-01'", 1);
+            assertUpdate("""
+                    MERGE INTO %s t
+                    USING (VALUES
+                        (DATE '2020-01-01', DATE '-0001-01-01', CAST(NULL AS DATE), DATE '-0004-01-01', 'update'),
+                        (DATE '2020-01-02', DATE '-0001-01-02', CAST(NULL AS DATE), CAST(NULL AS DATE), 'delete'),
+                        (DATE '2020-01-03', DATE '-0001-01-03', DATE '2003-01-01', CAST(NULL AS DATE), 'insert')
+                    ) s (legacy_key, signed_key, legacy_value, signed_value, operation)
+                    ON (t.legacy_key = s.legacy_key AND t.signed_key = s.signed_key)
+                    WHEN MATCHED AND s.operation = 'delete' THEN DELETE
+                    WHEN MATCHED THEN UPDATE SET legacy_value = s.legacy_value, signed_value = s.signed_value
+                    WHEN NOT MATCHED THEN INSERT VALUES (s.legacy_key, s.signed_key, s.legacy_value, s.signed_value)
+                    """.formatted(name), 3);
+            assertQuery("SELECT legacy_key, signed_key, legacy_value, signed_value FROM " + name + " ORDER BY legacy_key",
+                    "VALUES " +
+                            "(DATE '2020-01-01', DATE '-0001-01-01', NULL, DATE '-0004-01-01'), " +
+                            "(DATE '2020-01-01', DATE '-0001-01-04', DATE '2004-01-01', NULL), " +
+                            "(DATE '2020-01-03', DATE '-0001-01-03', DATE '2003-01-01', NULL)");
+            try (Connection connection = DriverManager.getConnection(YdbQueryRunner.buildJdbcUrl(ydb));
+                    Statement statement = connection.createStatement();
+                    ResultSet rows = statement.executeQuery("SELECT * FROM `" + table.getName() + "` ORDER BY legacy_key, signed_key")) {
+                assertThat(rows.next()).isTrue();
+                assertThat(rows.getObject("legacy_value", LocalDate.class)).isNull();
+                assertThat(rows.getObject("signed_value", LocalDate.class)).isEqualTo(LocalDate.of(-4, 1, 1));
+            }
+        }
+        try {
+            assertUpdate("CREATE TABLE " + catalog + ".default." + ddlTable + " (value DATE)");
+            try (Connection connection = DriverManager.getConnection(YdbQueryRunner.buildJdbcUrl(ydb));
+                    ResultSet columns = connection.getMetaData().getColumns(null, null, ddlTable, "value")) {
+                assertThat(columns.next()).isTrue();
+                assertThat(columns.getString("TYPE_NAME")).isEqualTo(signed ? "Date32" : "Date");
+            }
+        }
+        finally {
+            assertUpdate("DROP TABLE IF EXISTS " + catalog + ".default." + ddlTable);
         }
     }
 
