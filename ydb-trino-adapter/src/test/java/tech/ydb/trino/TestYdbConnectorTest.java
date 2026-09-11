@@ -19,6 +19,7 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.sql.Statement;
 import java.time.LocalDate;
 import java.util.Optional;
@@ -27,6 +28,7 @@ import java.util.OptionalInt;
 import static io.trino.testing.TestingNames.randomNameSuffix;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.jupiter.api.Assertions.assertAll;
 
 public class TestYdbConnectorTest extends BaseConnectorTest {
     private static final String ALTERNATE_DATE_CATALOG = "alternate_dates";
@@ -174,6 +176,47 @@ public class TestYdbConnectorTest extends BaseConnectorTest {
     }
 
     @Test
+    public void testDatePredicateWidening() throws Exception {
+        assertAll(
+                () -> verifyDatePredicateWidening("local"),
+                () -> verifyDatePredicateWidening(ALTERNATE_DATE_CATALOG));
+    }
+
+    private void verifyDatePredicateWidening(String catalog) throws Exception {
+        try (TestTable table = new TestTable(
+                new JdbcSqlExecutor(YdbQueryRunner.buildJdbcUrl(ydb)),
+                "date_predicate_",
+                "(legacy_key Date NOT NULL, signed_key Date32 NOT NULL, PRIMARY KEY (legacy_key, signed_key))")) {
+            try (Connection connection = DriverManager.getConnection(YdbQueryRunner.buildJdbcUrl(ydb));
+                    PreparedStatement statement = connection.prepareStatement(
+                            "INSERT INTO `" + table.getName() + "` (legacy_key, signed_key) VALUES (?, ?)")) {
+                setDateKey(statement);
+                statement.executeUpdate();
+            }
+            try (Connection connection = DriverManager.getConnection(YdbQueryRunner.buildJdbcUrl(ydb));
+                    Statement statement = connection.createStatement();
+                    ResultSet rows = statement.executeQuery("SELECT * FROM `" + table.getName() + "`")) {
+                assertThat(rows.next()).isTrue();
+                assertThat(rows.getObject("legacy_key", LocalDate.class)).isEqualTo(LocalDate.of(2020, 1, 1));
+                assertThat(rows.getObject("signed_key", LocalDate.class)).isEqualTo(LocalDate.of(-1, 1, 1));
+                assertThat(rows.next()).isFalse();
+            }
+            String name = catalog + ".default." + table.getName();
+            assertQuery("SELECT count(*) FROM " + name, "VALUES CAST(1 AS BIGINT)");
+            assertAll(
+                    () -> assertQueryReturnsEmptyResult("SELECT * FROM " + name + " WHERE legacy_key = DATE '-0001-01-01'"),
+                    () -> assertQuery("SELECT count(*) FROM " + name + " WHERE legacy_key > DATE '-0001-01-01'", "VALUES CAST(1 AS BIGINT)"),
+                    () -> assertQueryReturnsEmptyResult("SELECT * FROM " + name + " WHERE legacy_key = DATE '2106-01-01'"),
+                    () -> assertQuery("SELECT count(*) FROM " + name + " WHERE legacy_key < DATE '2106-01-01'", "VALUES CAST(1 AS BIGINT)"));
+        }
+    }
+
+    private static void setDateKey(PreparedStatement statement) throws SQLException {
+        statement.setObject(1, PrimitiveValue.newDate(LocalDate.of(2020, 1, 1)));
+        statement.setObject(2, PrimitiveValue.newDate32(LocalDate.of(-1, 1, 1)));
+    }
+
+    @Test
     public void testNativeDateCompatibility() throws Exception {
         verifyNativeDateCompatibility("local");
         verifyNativeDateCompatibility(ALTERNATE_DATE_CATALOG);
@@ -188,24 +231,6 @@ public class TestYdbConnectorTest extends BaseConnectorTest {
                 "(legacy_key Date NOT NULL, signed_key Date32 NOT NULL, legacy_value Date, signed_value Date32, " +
                         "PRIMARY KEY (legacy_key, signed_key))")) {
             String name = catalog + ".default." + table.getName();
-            try (Connection connection = DriverManager.getConnection(YdbQueryRunner.buildJdbcUrl(ydb));
-                    PreparedStatement statement = connection.prepareStatement(
-                            "INSERT INTO `" + table.getName() + "` (legacy_key, signed_key) VALUES (?, ?)")) {
-                statement.setObject(1, PrimitiveValue.newDate(LocalDate.of(2020, 1, 1)));
-                statement.setObject(2, PrimitiveValue.newDate32(LocalDate.of(-1, 1, 1)));
-                statement.executeUpdate();
-            }
-            assertQueryReturnsEmptyResult("SELECT * FROM " + name + " WHERE legacy_key = DATE '-0001-01-01'");
-            assertQuery("SELECT count(*) FROM " + name + " WHERE legacy_key > DATE '-0001-01-01'", "VALUES CAST(1 AS BIGINT)");
-            assertQueryReturnsEmptyResult("SELECT * FROM " + name + " WHERE legacy_key = DATE '2106-01-01'");
-            assertQuery("SELECT count(*) FROM " + name + " WHERE legacy_key < DATE '2106-01-01'", "VALUES CAST(1 AS BIGINT)");
-            try (Connection connection = DriverManager.getConnection(YdbQueryRunner.buildJdbcUrl(ydb));
-                    PreparedStatement statement = connection.prepareStatement(
-                            "DELETE FROM `" + table.getName() + "` WHERE legacy_key = ? AND signed_key = ?")) {
-                statement.setObject(1, PrimitiveValue.newDate(LocalDate.of(2020, 1, 1)));
-                statement.setObject(2, PrimitiveValue.newDate32(LocalDate.of(-1, 1, 1)));
-                statement.executeUpdate();
-            }
             assertUpdate("INSERT INTO " + name + " VALUES " +
                     "(DATE '2020-01-01', DATE '-0001-01-01', DATE '2000-01-01', NULL), " +
                     "(DATE '2020-01-02', DATE '-0001-01-02', NULL, DATE '-0002-01-01'), " +
