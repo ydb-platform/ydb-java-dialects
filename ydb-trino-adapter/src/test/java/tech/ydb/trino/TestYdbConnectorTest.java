@@ -19,7 +19,6 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.sql.Statement;
 import java.time.LocalDate;
 import java.util.Optional;
@@ -190,7 +189,8 @@ public class TestYdbConnectorTest extends BaseConnectorTest {
             try (Connection connection = DriverManager.getConnection(YdbQueryRunner.buildJdbcUrl(ydb));
                     PreparedStatement statement = connection.prepareStatement(
                             "INSERT INTO `" + table.getName() + "` (legacy_key, signed_key) VALUES (?, ?)")) {
-                setDateKey(statement);
+                statement.setObject(1, PrimitiveValue.newDate(LocalDate.of(2020, 1, 1)));
+                statement.setObject(2, PrimitiveValue.newDate32(LocalDate.of(-1, 1, 1)));
                 statement.executeUpdate();
             }
             try (Connection connection = DriverManager.getConnection(YdbQueryRunner.buildJdbcUrl(ydb));
@@ -211,15 +211,11 @@ public class TestYdbConnectorTest extends BaseConnectorTest {
         }
     }
 
-    private static void setDateKey(PreparedStatement statement) throws SQLException {
-        statement.setObject(1, PrimitiveValue.newDate(LocalDate.of(2020, 1, 1)));
-        statement.setObject(2, PrimitiveValue.newDate32(LocalDate.of(-1, 1, 1)));
-    }
-
     @Test
     public void testNativeDateCompatibility() throws Exception {
-        verifyNativeDateCompatibility("local");
-        verifyNativeDateCompatibility(ALTERNATE_DATE_CATALOG);
+        assertAll(
+                () -> verifyNativeDateCompatibility("local"),
+                () -> verifyNativeDateCompatibility(ALTERNATE_DATE_CATALOG));
     }
 
     private void verifyNativeDateCompatibility(String catalog) throws Exception {
