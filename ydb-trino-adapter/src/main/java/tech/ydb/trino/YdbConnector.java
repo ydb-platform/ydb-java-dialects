@@ -23,7 +23,7 @@ public class YdbConnector extends JdbcConnector {
             LifeCycleManager lifeCycleManager,
             ConnectorSplitManager jdbcSplitManager,
             ConnectorPageSourceProvider jdbcPageSourceProvider,
-            YdbPageSinkProvider jdbcPageSinkProvider,
+            ConnectorPageSinkProvider jdbcPageSinkProvider,
             Optional<ConnectorAccessControl> accessControl,
             Set<Procedure> procedures,
             Set<ConnectorTableFunction> connectorTableFunctions,
