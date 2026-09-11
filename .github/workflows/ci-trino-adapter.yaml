@@ -21,8 +21,13 @@ jobs:
     runs-on: ubuntu-latest
 
     strategy:
+      fail-fast: false
       matrix:
         java: [ '25' ]
+        test_args:
+          - '-Duser.timezone=UTC'
+          - '-Duser.timezone=UTC -Dydb.test.force-signed-datetimes=true'
+          - "-Duser.timezone=Europe/Moscow -Dtest='TestYdbConnectorTest#testNativeDateCompatibility'"
 
     steps:
       - uses: actions/checkout@v5
@@ -40,12 +45,4 @@ jobs:
 
       - name: Build and test Trino Adapter
         working-directory: ./ydb-trino-adapter
-        run: mvn $MAVEN_ARGS -Duser.timezone=UTC clean test
-
-      - name: Build and test Trino Adapter with signed datetimes
-        working-directory: ./ydb-trino-adapter
-        run: mvn $MAVEN_ARGS -Duser.timezone=UTC -Dydb.test.force-signed-datetimes=true clean test
-
-      - name: Test native dates in Europe/Moscow
-        working-directory: ./ydb-trino-adapter
-        run: mvn $MAVEN_ARGS -Duser.timezone=Europe/Moscow -Dtest='TestYdbConnectorTest#testNativeDateCompatibility' test
+        run: mvn $MAVEN_ARGS ${{matrix.test_args}} clean test
