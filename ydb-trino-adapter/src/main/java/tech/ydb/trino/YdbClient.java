@@ -672,7 +672,7 @@ public class YdbClient extends BaseJdbcClient {
             JdbcMergeTableHandle tableHandle,
             Set<Long> pageSinkIds
     ) {
-        // Each YdbMergeSink owns and commits its transaction before reporting success.
+        // JdbcMergeSink finishes its operation-specific sinks before reporting success.
     }
 
     @Override

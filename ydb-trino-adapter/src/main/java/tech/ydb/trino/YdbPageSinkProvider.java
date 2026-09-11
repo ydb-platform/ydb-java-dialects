@@ -2,6 +2,7 @@ package tech.ydb.trino;
 
 import com.google.inject.Inject;
 import io.trino.plugin.jdbc.JdbcClient;
+import io.trino.plugin.jdbc.JdbcMergeSink;
 import io.trino.plugin.jdbc.JdbcOutputTableHandle;
 import io.trino.plugin.jdbc.JdbcPageSink;
 import io.trino.plugin.jdbc.QueryBuilder;
@@ -68,8 +69,7 @@ public record YdbPageSinkProvider(
             ConnectorMergeTableHandle mergeHandle,
             Optional<ConnectorTableCredentials> tableCredentials,
             ConnectorPageSinkId pageSinkId) {
-        return new YdbMergeSink(
-                transactionHandle,
+        return new JdbcMergeSink(
                 session,
                 mergeHandle,
                 jdbcClient,
