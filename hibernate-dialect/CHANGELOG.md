@@ -1,3 +1,7 @@
+## 1.7.1 ##
+
+- Fixed default type mapping fop UInt32/Int64/UInt64
+
 ## 1.7.0 ##
 
 - Fixed `HINT_COMMENT` handling: multiple short-form `use_index` hints in one comment become `view a, b` instead of `view a view b`
