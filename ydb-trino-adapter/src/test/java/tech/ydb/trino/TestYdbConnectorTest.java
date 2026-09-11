@@ -103,7 +103,7 @@ public class TestYdbConnectorTest extends BaseConnectorTest {
 
     @Override
     protected String errorMessageForInsertNegativeDate(String date) {
-        return ".*Cannot cast parameter \\[dt\\] from \\[Date32\\] to \\[Date\\].*";
+        return ".*negative daysSinceEpoch.*";
     }
 
     @Override
