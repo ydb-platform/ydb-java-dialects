@@ -12,10 +12,12 @@ import io.trino.testing.sql.TestTable;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
+import tech.ydb.table.values.PrimitiveValue;
 import tech.ydb.test.junit5.YdbHelperExtension;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.Statement;
 import java.time.LocalDate;
@@ -186,6 +188,24 @@ public class TestYdbConnectorTest extends BaseConnectorTest {
                 "(legacy_key Date NOT NULL, signed_key Date32 NOT NULL, legacy_value Date, signed_value Date32, " +
                         "PRIMARY KEY (legacy_key, signed_key))")) {
             String name = catalog + ".default." + table.getName();
+            try (Connection connection = DriverManager.getConnection(YdbQueryRunner.buildJdbcUrl(ydb));
+                    PreparedStatement statement = connection.prepareStatement(
+                            "INSERT INTO `" + table.getName() + "` (legacy_key, signed_key) VALUES (?, ?)")) {
+                statement.setObject(1, PrimitiveValue.newDate(LocalDate.of(2020, 1, 1)));
+                statement.setObject(2, PrimitiveValue.newDate32(LocalDate.of(-1, 1, 1)));
+                statement.executeUpdate();
+            }
+            assertQueryReturnsEmptyResult("SELECT * FROM " + name + " WHERE legacy_key = DATE '-0001-01-01'");
+            assertQuery("SELECT count(*) FROM " + name + " WHERE legacy_key > DATE '-0001-01-01'", "VALUES BIGINT '1'");
+            assertQueryReturnsEmptyResult("SELECT * FROM " + name + " WHERE legacy_key = DATE '2106-01-01'");
+            assertQuery("SELECT count(*) FROM " + name + " WHERE legacy_key < DATE '2106-01-01'", "VALUES BIGINT '1'");
+            try (Connection connection = DriverManager.getConnection(YdbQueryRunner.buildJdbcUrl(ydb));
+                    PreparedStatement statement = connection.prepareStatement(
+                            "DELETE FROM `" + table.getName() + "` WHERE legacy_key = ? AND signed_key = ?")) {
+                statement.setObject(1, PrimitiveValue.newDate(LocalDate.of(2020, 1, 1)));
+                statement.setObject(2, PrimitiveValue.newDate32(LocalDate.of(-1, 1, 1)));
+                statement.executeUpdate();
+            }
             assertUpdate("INSERT INTO " + name + " VALUES " +
                     "(DATE '2020-01-01', DATE '-0001-01-01', DATE '2000-01-01', NULL), " +
                     "(DATE '2020-01-02', DATE '-0001-01-02', NULL, DATE '-0002-01-01'), " +
@@ -193,10 +213,6 @@ public class TestYdbConnectorTest extends BaseConnectorTest {
             assertQuery("SELECT legacy_value, signed_value FROM " + name +
                     " WHERE legacy_key = DATE '2020-01-01' AND signed_key = DATE '-0001-01-01'",
                     "VALUES (DATE '2000-01-01', CAST(NULL AS DATE))");
-            assertQueryReturnsEmptyResult("SELECT * FROM " + name + " WHERE legacy_key = DATE '-0001-01-01'");
-            assertQuery("SELECT count(*) FROM " + name + " WHERE legacy_key > DATE '-0001-01-01'", "VALUES BIGINT '3'");
-            assertQueryReturnsEmptyResult("SELECT * FROM " + name + " WHERE legacy_key = DATE '2106-01-01'");
-            assertQuery("SELECT count(*) FROM " + name + " WHERE legacy_key < DATE '2106-01-01'", "VALUES BIGINT '3'");
             assertUpdate("UPDATE " + name + " SET legacy_value = DATE '2001-01-01', signed_value = DATE '-0003-01-01'" +
                     " WHERE legacy_key = DATE '2020-01-01' AND signed_key = DATE '-0001-01-01'", 1);
             assertUpdate("""
