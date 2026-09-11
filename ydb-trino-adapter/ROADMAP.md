@@ -64,8 +64,7 @@ have been verified locally against a real YDB test container:
 - real JDBC primary-key metadata, including `KEY_SEQ` ordering;
 - concurrent updates identified by the test-only hidden primary key;
 - smoke MERGE and row-level UPDATE without disabling their behavior flags;
-- retry classification through the YDB SDK status model, with fresh merge
-  connections and rollback-before-close.
+- one connector attempt per MERGE, with rollback-before-close on failure.
 
 GitHub Actions is green on PR #240: 314 tests run, 0 failed, 0 errors, 84
 skipped. This includes 36 smoke tests (4 skipped) and 278 connector tests (80
@@ -89,22 +88,18 @@ failure.
    documented `NOT_SUPPORTED` error. See the
    [YQL UPDATE contract](https://ydb.tech/docs/en/yql/reference/syntax/update).
 4. Add focused tests for composite primary keys, a non-unique first visible
-   column, physical-key updates, rollback/close, and fresh-state retries.
+   column, physical-key updates, and rollback/close failure paths.
 
 **Exit criterion:** retain the current green inherited `testMerge*` suite and
 add a bounded-memory benchmark that demonstrates acceptable production-scale
 runtime for the set-based implementation.
 
-## P1 — retry and transaction hardening
+## P1 — transaction and replay hardening
 
-- Retry only statuses classified as unconditional by the pinned YDB SDK.
-  `TIMEOUT`, `UNDETERMINED`, transport failures, and other conditional statuses
-  are unsafe for non-idempotent writes unless an operation-id/staging design
-  proves replay safety. See
-  [YDB SDK error handling](https://ydb.tech/docs/en/reference/ydb-sdk/error_handling).
-- Keep the JDBC `SessionPool.acquire` scheduler-rejection workaround limited to
-  that provably pre-execution stack. Track it against the YDB JDBC driver and
-  remove the connector workaround after upgrading to a fixed driver.
+- Do not replay buffered MERGE pages after any driver or YDB failure, including
+  session-acquisition rejection or an ambiguous commit result. The connector
+  performs one transaction attempt and preserves the original failure; a future
+  retry design requires staging or an operation ID that proves replay safety.
 - YDB JDBC 2.3.18 connection-context caching has a close/register race under
   concurrent connections. The connector therefore defaults
   `cacheConnectionsInDriver` to `false`; an explicit JDBC URL option can
@@ -113,8 +108,8 @@ runtime for the set-based implementation.
   with a verified cache-lifecycle fix.
 - Do not replay buffered INSERT pages after `JdbcPageSink` may already have
   committed an internal batch.
-- Add unit tests for status classification, interrupted backoff, rollback
-  failure suppression, connection cleanup, and a failure after commit.
+- Add unit tests for rollback failure suppression, connection cleanup, and a
+  failure after commit.
 - Define memory/backpressure limits for buffered merge pages; memory usage must
   not remain unreported.
 
