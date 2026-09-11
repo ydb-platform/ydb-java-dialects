@@ -25,7 +25,6 @@ public class TestingYdbJdbcModule implements Module {
                 .to(YdbMetadataFactory.class)
                 .in(Scopes.SINGLETON);
 
-        binder.bind(YdbPageSinkProvider.class).in(Scopes.SINGLETON);
         binder.bind(YdbConnector.class).in(Scopes.SINGLETON);
     }
 

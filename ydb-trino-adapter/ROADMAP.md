@@ -74,37 +74,31 @@ within the CI budget. An isolated local Colima run previously exceeded 11
 minutes, so MERGE scalability remains a production concern rather than a CI
 failure.
 
-## P0 — harden MERGE scalability and atomicity
+## P0 — harden standard MERGE execution
 
-1. Replace row-by-row prepared-statement execution in `YdbMergeSink` with a
-   set-based YQL path. Candidate primitives are
-   [`UPDATE ... ON`](https://ydb.tech/docs/en/yql/reference/syntax/update) and
-   [`AS_TABLE`](https://ydb.tech/docs/en/yql/reference/syntax/select/from_as_table),
-   using bounded batches of typed list-of-struct parameters.
-2. Preserve one logical MERGE transaction. Until a staging/finalize design is
-   implemented, keep one writer task and reject Trino query/task retries for a
-   direct-to-target merge.
+1. Keep MERGE on Trino's `JdbcMergeSink`; YDB-specific code should only build
+   the handle and supply primary-key metadata.
+2. The standard sink may commit INSERT, DELETE, and UPDATE batches through
+   separate JDBC connections. Keep one writer task and reject Trino query/task
+   retries, but do not claim that this makes MERGE atomic across operation sinks.
 3. YQL `UPDATE` cannot change a primary-key value. Implement physical-key
    changes as atomic delete+insert row changes, or reject that statement with a
    documented `NOT_SUPPORTED` error. See the
    [YQL UPDATE contract](https://ydb.tech/docs/en/yql/reference/syntax/update).
 4. Add focused tests for composite primary keys, a non-unique first visible
-   column, physical-key updates, rollback/close, and fresh-state retries.
+   column, physical-key updates, partial sink failures, and abort cleanup.
 
 **Exit criterion:** retain the current green inherited `testMerge*` suite and
-add a bounded-memory benchmark that demonstrates acceptable production-scale
-runtime for the set-based implementation.
+cover partial failures between operation sinks. If atomic MERGE becomes a
+requirement, implement staging plus one finalize transaction instead of
+wrapping the standard sink in replay logic.
 
 ## P1 — retry and transaction hardening
 
-- Retry only statuses classified as unconditional by the pinned YDB SDK.
-  `TIMEOUT`, `UNDETERMINED`, transport failures, and other conditional statuses
-  are unsafe for non-idempotent writes unless an operation-id/staging design
-  proves replay safety. See
+- Do not wrap `JdbcMergeSink` in connector-owned replay after any driver or YDB
+  failure. A future retry design requires staging or an operation ID that proves
+  replay safety. See
   [YDB SDK error handling](https://ydb.tech/docs/en/reference/ydb-sdk/error_handling).
-- Keep the JDBC `SessionPool.acquire` scheduler-rejection workaround limited to
-  that provably pre-execution stack. Track it against the YDB JDBC driver and
-  remove the connector workaround after upgrading to a fixed driver.
 - YDB JDBC 2.3.18 connection-context caching has a close/register race under
   concurrent connections. The connector therefore defaults
   `cacheConnectionsInDriver` to `false`; an explicit JDBC URL option can
@@ -113,10 +107,7 @@ runtime for the set-based implementation.
   with a verified cache-lifecycle fix.
 - Do not replay buffered INSERT pages after `JdbcPageSink` may already have
   committed an internal batch.
-- Add unit tests for status classification, interrupted backoff, rollback
-  failure suppression, connection cleanup, and a failure after commit.
-- Define memory/backpressure limits for buffered merge pages; memory usage must
-  not remain unreported.
+- Add tests for partial sink failures and abort cleanup.
 
 Concurrent `ALTER TABLE ... ADD COLUMN` statements on one table can be rejected
 by YDB with `OVERLOADED` (400060) and the specific issue `path is under
