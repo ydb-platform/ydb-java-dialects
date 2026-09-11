@@ -63,8 +63,7 @@ have been verified locally against a real YDB test container:
 - `Float`/`Double` write mappings during MERGE;
 - real JDBC primary-key metadata, including `KEY_SEQ` ordering;
 - concurrent updates identified by the test-only hidden primary key;
-- smoke MERGE and row-level UPDATE without disabling their behavior flags;
-- one connector attempt per MERGE, with rollback-before-close on failure.
+- smoke MERGE and row-level UPDATE without disabling their behavior flags.
 
 GitHub Actions is green on PR #240: 314 tests run, 0 failed, 0 errors, 84
 skipped. This includes 36 smoke tests (4 skipped) and 278 connector tests (80
