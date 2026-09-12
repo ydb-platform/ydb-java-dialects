@@ -203,11 +203,32 @@ public class TestYdbConnectorTest extends BaseConnectorTest {
             }
             String name = catalog + ".default." + table.getName();
             assertQuery("SELECT count(*) FROM " + name, "VALUES CAST(1 AS BIGINT)");
-            assertAll(
-                    () -> assertQueryReturnsEmptyResult("SELECT * FROM " + name + " WHERE legacy_key = DATE '-0001-01-01'"),
-                    () -> assertQuery("SELECT count(*) FROM " + name + " WHERE legacy_key > DATE '-0001-01-01'", "VALUES CAST(1 AS BIGINT)"),
-                    () -> assertQueryReturnsEmptyResult("SELECT * FROM " + name + " WHERE legacy_key = DATE '2106-01-01'"),
-                    () -> assertQuery("SELECT count(*) FROM " + name + " WHERE legacy_key < DATE '2106-01-01'", "VALUES CAST(1 AS BIGINT)"));
+            try (Connection connection = DriverManager.getConnection(YdbQueryRunner.buildJdbcUrl(ydb))) {
+                assertAll(
+                        () -> assertNativeDate32Predicate(connection, table.getName(), "`legacy_key`", ">", LocalDate.of(-1, 1, 1)),
+                        () -> assertNativeDate32Predicate(connection, table.getName(), "CAST(`legacy_key` AS Date32)", ">", LocalDate.of(-1, 1, 1)),
+                        () -> assertNativeDate32Predicate(connection, table.getName(), "`legacy_key`", "<", LocalDate.of(2106, 1, 1)),
+                        () -> assertNativeDate32Predicate(connection, table.getName(), "CAST(`legacy_key` AS Date32)", "<", LocalDate.of(2106, 1, 1)),
+                        () -> assertQueryReturnsEmptyResult("SELECT * FROM " + name + " WHERE legacy_key = DATE '-0001-01-01'"),
+                        () -> assertQuery("SELECT count(*) FROM " + name + " WHERE legacy_key > DATE '-0001-01-01'", "VALUES CAST(1 AS BIGINT)"),
+                        () -> assertQueryReturnsEmptyResult("SELECT * FROM " + name + " WHERE legacy_key = DATE '2106-01-01'"),
+                        () -> assertQuery("SELECT count(*) FROM " + name + " WHERE legacy_key < DATE '2106-01-01'", "VALUES CAST(1 AS BIGINT)"));
+            }
+        }
+    }
+
+    private static void assertNativeDate32Predicate(
+            Connection connection, String table, String leftExpression, String operator, LocalDate value) throws Exception {
+        String sql = "SELECT COUNT(*) FROM `" + table + "` WHERE " + leftExpression + " " + operator + " ?";
+        String nativeSql = connection.nativeSQL(sql);
+        try (PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setObject(1, PrimitiveValue.newDate32(value));
+            String description = nativeSql + " [Date32 epochDay=" + value.toEpochDay() + "]";
+            assertThat(statement.getParameterMetaData().getParameterTypeName(1)).as(description).isEqualTo("Date32");
+            try (ResultSet rows = statement.executeQuery()) {
+                assertThat(rows.next()).isTrue();
+                assertThat(rows.getLong(1)).as(description).isEqualTo(1);
+            }
         }
     }
 
