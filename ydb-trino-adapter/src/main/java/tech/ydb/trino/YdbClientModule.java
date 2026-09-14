@@ -52,8 +52,6 @@ public class YdbClientModule implements Module {
             BaseJdbcConfig config,
             CredentialProvider credentialProvider) {
         Properties connectionProperties = new Properties();
-        // Avoid the YDB JDBC 2.3.18 shared-context close/register race under concurrent connections.
-        connectionProperties.setProperty("cacheConnectionsInDriver", "false");
         connectionProperties.setProperty("forceSignedDatetimes", "true");
         return DriverConnectionFactory.builder(
                         new YdbDriver(),
