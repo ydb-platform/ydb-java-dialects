@@ -23,6 +23,7 @@ import io.trino.plugin.jdbc.JdbcOutputTableHandle;
 import io.trino.plugin.jdbc.JdbcSortItem;
 import io.trino.plugin.jdbc.JdbcTableHandle;
 import io.trino.plugin.jdbc.JdbcTypeHandle;
+import io.trino.plugin.jdbc.LongWriteFunction;
 import io.trino.plugin.jdbc.PreparedQuery;
 import io.trino.plugin.jdbc.QueryBuilder;
 import io.trino.plugin.jdbc.RemoteTableName;
@@ -388,7 +389,10 @@ public class YdbClient extends BaseJdbcClient {
         return ColumnMapping.longMapping(
                 DATE,
                 dateReadFunctionUsingLocalDate(),
-                (statement, index, value) -> statement.setObject(index, PrimitiveValue.newDate32(LocalDate.ofEpochDay(value))));
+                LongWriteFunction.of(Types.DATE, (statement, index, value) -> statement.setObject(index,
+                        statement.getParameterMetaData().getParameterType(index) == Types.OTHER
+                                ? PrimitiveValue.newDate32(LocalDate.ofEpochDay(value))
+                                : LocalDate.ofEpochDay(value))));
     }
 
     private static ColumnMapping timestampColumnMapping() {
