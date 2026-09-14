@@ -38,6 +38,10 @@ jobs:
         working-directory: ./ydb-trino-adapter
         run: mvn $MAVEN_ARGS dependency:go-offline
 
+      - name: Test native timestamp reads in a non-UTC JVM
+        working-directory: ./ydb-trino-adapter
+        run: mvn $MAVEN_ARGS -Dtest=TestYdbConnectorTest#testNativeTimestampReadsUseUtcAndPreserveMicros -Duser.timezone=Europe/Moscow test
+
       - name: Build and test Trino Adapter
         working-directory: ./ydb-trino-adapter
         run: mvn $MAVEN_ARGS clean test

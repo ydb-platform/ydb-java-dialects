@@ -23,6 +23,7 @@ import io.trino.plugin.jdbc.JdbcOutputTableHandle;
 import io.trino.plugin.jdbc.JdbcSortItem;
 import io.trino.plugin.jdbc.JdbcTableHandle;
 import io.trino.plugin.jdbc.JdbcTypeHandle;
+import io.trino.plugin.jdbc.LongReadFunction;
 import io.trino.plugin.jdbc.PreparedQuery;
 import io.trino.plugin.jdbc.QueryBuilder;
 import io.trino.plugin.jdbc.RemoteTableName;
@@ -60,6 +61,8 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Types;
+import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.List;
 import java.util.Locale;
@@ -100,6 +103,7 @@ import static io.trino.plugin.jdbc.StandardColumnMappings.timestampColumnMapping
 import static io.trino.plugin.jdbc.StandardColumnMappings.timestampReadFunction;
 import static io.trino.plugin.jdbc.StandardColumnMappings.timestampWriteFunction;
 import static io.trino.plugin.jdbc.StandardColumnMappings.tinyintWriteFunction;
+import static io.trino.plugin.jdbc.StandardColumnMappings.toTrinoTimestamp;
 import static io.trino.plugin.jdbc.StandardColumnMappings.varbinaryColumnMapping;
 import static io.trino.plugin.jdbc.StandardColumnMappings.varbinaryWriteFunction;
 import static io.trino.plugin.jdbc.StandardColumnMappings.varcharColumnMapping;
@@ -121,6 +125,7 @@ import static io.trino.spi.type.VarcharType.createUnboundedVarcharType;
 import static io.trino.spi.type.VarcharType.createVarcharType;
 import static java.lang.Math.max;
 import static java.lang.String.format;
+import static java.time.ZoneOffset.UTC;
 import static java.util.stream.Collectors.joining;
 
 public class YdbClient extends BaseJdbcClient {
@@ -339,7 +344,7 @@ public class YdbClient extends BaseJdbcClient {
                 yield Optional.of(varcharColumnMapping(length));
             }
             case Types.DATE -> Optional.of(dateColumnMapping());
-            case Types.TIMESTAMP -> Optional.of(timestampColumnMapping());
+            case Types.TIMESTAMP -> Optional.of(timestampColumnMapping(typeHandle));
             default -> Optional.empty();
         };
 
@@ -377,10 +382,17 @@ public class YdbClient extends BaseJdbcClient {
                 dateWriteFunctionUsingLocalDate());
     }
 
-    private static ColumnMapping timestampColumnMapping() {
+    private static ColumnMapping timestampColumnMapping(JdbcTypeHandle typeHandle) {
+        String typeName = typeHandle.jdbcTypeName().orElse("");
+        boolean isMicrosecondTimestamp = typeName.equalsIgnoreCase("Timestamp") || typeName.equalsIgnoreCase("Timestamp64");
+        LongReadFunction readFunction = isMicrosecondTimestamp
+                ? (resultSet, columnIndex) -> toTrinoTimestamp(
+                        TIMESTAMP_MICROS,
+                        LocalDateTime.ofInstant(resultSet.getObject(columnIndex, Instant.class), UTC))
+                : timestampReadFunction(TIMESTAMP_MICROS);
         return ColumnMapping.longMapping(
                 TIMESTAMP_MICROS,
-                timestampReadFunction(TIMESTAMP_MICROS),
+                readFunction,
                 timestampWriteFunction(TIMESTAMP_MICROS));
     }
 

@@ -16,6 +16,7 @@ import tech.ydb.test.junit5.YdbHelperExtension;
 import java.util.Optional;
 import java.util.OptionalInt;
 
+import static io.trino.spi.type.TimestampType.TIMESTAMP_MICROS;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -136,6 +137,32 @@ public class TestYdbConnectorTest extends BaseConnectorTest {
         try (TestTable table = newTrinoTable("varbinary_insert_", "(id bigint, value varbinary)")) {
             assertUpdate("INSERT INTO " + table.getName() + " VALUES (1, X'0080FF')", 1);
             assertQuery("SELECT value FROM " + table.getName(), "VALUES X'0080FF'");
+        }
+    }
+
+    @Test
+    public void testNativeTimestampReadsUseUtcAndPreserveMicros() {
+        JdbcSqlExecutor executor = new JdbcSqlExecutor(YdbQueryRunner.buildJdbcUrl(ydb));
+        try (TestTable table = new TestTable(
+                executor,
+                "timestamp_read_",
+                "(id Int64 NOT NULL, ts Timestamp, ts64 Timestamp64, dt Datetime, dt64 Datetime64, PRIMARY KEY (id))")) {
+            executor.execute("UPSERT INTO " + table.getName() + " (id, ts, ts64, dt, dt64) VALUES " +
+                    "(1, Timestamp(\"2024-01-02T03:04:05.123456Z\"), " +
+                    "Timestamp64(\"1969-12-31T23:59:59.123456Z\"), " +
+                    "Datetime(\"2024-01-02T03:04:05Z\"), Datetime64(\"1969-12-31T23:59:59Z\")), " +
+                    "(2, NULL, NULL, NULL, NULL)");
+
+            String query = "SELECT ts, ts64, dt, dt64 FROM " + table.getName() + " ORDER BY id";
+            assertThat(computeActual(query).getTypes())
+                    .containsExactly(TIMESTAMP_MICROS, TIMESTAMP_MICROS, TIMESTAMP_MICROS, TIMESTAMP_MICROS);
+            assertQuery(
+                    query,
+                    "VALUES " +
+                            "(TIMESTAMP '2024-01-02 03:04:05.123456', " +
+                            "TIMESTAMP '1969-12-31 23:59:59.123456', " +
+                            "TIMESTAMP '2024-01-02 03:04:05', TIMESTAMP '1969-12-31 23:59:59'), " +
+                            "(NULL, NULL, NULL, NULL)");
         }
     }
 
