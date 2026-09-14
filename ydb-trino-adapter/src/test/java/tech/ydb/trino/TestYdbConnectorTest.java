@@ -125,7 +125,10 @@ public class TestYdbConnectorTest extends BaseConnectorTest {
         String trinoTypeName = dataMappingTestSetup.getTrinoTypeName();
         if (trinoTypeName.equals("char(3)")) {
             return Optional.of(dataMappingTestSetup.asUnsupported());
-        } else if (trinoTypeName.startsWith("time") && !trinoTypeName.equals("timestamp(6)")) {
+        } else if (trinoTypeName.equals("time")
+                || trinoTypeName.equals("time(6)")
+                || trinoTypeName.equals("timestamp(3) with time zone")
+                || trinoTypeName.equals("timestamp(6) with time zone")) {
             // Нет time в YQL
             return Optional.empty();
         }

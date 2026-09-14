@@ -23,7 +23,6 @@ import io.trino.plugin.jdbc.JdbcOutputTableHandle;
 import io.trino.plugin.jdbc.JdbcSortItem;
 import io.trino.plugin.jdbc.JdbcTableHandle;
 import io.trino.plugin.jdbc.JdbcTypeHandle;
-import io.trino.plugin.jdbc.LongWriteFunction;
 import io.trino.plugin.jdbc.PreparedQuery;
 import io.trino.plugin.jdbc.QueryBuilder;
 import io.trino.plugin.jdbc.RemoteTableName;
@@ -84,12 +83,9 @@ import static io.trino.plugin.jdbc.PredicatePushdownController.FULL_PUSHDOWN;
 import static io.trino.plugin.jdbc.StandardColumnMappings.bigintColumnMapping;
 import static io.trino.plugin.jdbc.StandardColumnMappings.bigintWriteFunction;
 import static io.trino.plugin.jdbc.StandardColumnMappings.booleanColumnMapping;
-import static io.trino.plugin.jdbc.StandardColumnMappings.dateWriteFunctionUsingLocalDate;
-import static io.trino.plugin.jdbc.StandardColumnMappings.dateReadFunctionUsingLocalDate;
 import static io.trino.plugin.jdbc.StandardColumnMappings.decimalColumnMapping;
 import static io.trino.plugin.jdbc.StandardColumnMappings.doubleColumnMapping;
 import static io.trino.plugin.jdbc.StandardColumnMappings.doubleWriteFunction;
-import static io.trino.plugin.jdbc.StandardColumnMappings.fromTrinoTimestamp;
 import static io.trino.plugin.jdbc.StandardColumnMappings.integerColumnMapping;
 import static io.trino.plugin.jdbc.StandardColumnMappings.integerWriteFunction;
 import static io.trino.plugin.jdbc.StandardColumnMappings.longDecimalWriteFunction;
@@ -98,9 +94,6 @@ import static io.trino.plugin.jdbc.StandardColumnMappings.realWriteFunction;
 import static io.trino.plugin.jdbc.StandardColumnMappings.shortDecimalWriteFunction;
 import static io.trino.plugin.jdbc.StandardColumnMappings.smallintColumnMapping;
 import static io.trino.plugin.jdbc.StandardColumnMappings.smallintWriteFunction;
-import static io.trino.plugin.jdbc.StandardColumnMappings.timestampColumnMapping;
-import static io.trino.plugin.jdbc.StandardColumnMappings.timestampReadFunction;
-import static io.trino.plugin.jdbc.StandardColumnMappings.timestampWriteFunction;
 import static io.trino.plugin.jdbc.StandardColumnMappings.tinyintWriteFunction;
 import static io.trino.plugin.jdbc.StandardColumnMappings.varbinaryColumnMapping;
 import static io.trino.plugin.jdbc.StandardColumnMappings.varbinaryWriteFunction;
@@ -116,6 +109,7 @@ import static io.trino.spi.type.DoubleType.DOUBLE;
 import static io.trino.spi.type.IntegerType.INTEGER;
 import static io.trino.spi.type.RealType.REAL;
 import static io.trino.spi.type.SmallintType.SMALLINT;
+import static io.trino.spi.type.TimestampType.TIMESTAMP_MILLIS;
 import static io.trino.spi.type.TimestampType.TIMESTAMP_MICROS;
 import static io.trino.spi.type.TinyintType.TINYINT;
 import static io.trino.spi.type.VarbinaryType.VARBINARY;
@@ -123,8 +117,13 @@ import static io.trino.spi.type.VarcharType.createUnboundedVarcharType;
 import static io.trino.spi.type.VarcharType.createVarcharType;
 import static java.lang.Math.max;
 import static java.lang.String.format;
-import static java.time.ZoneOffset.UTC;
 import static java.util.stream.Collectors.joining;
+import static tech.ydb.trino.YdbColumnMappings.YDB_DATE32_SQL_TYPE;
+import static tech.ydb.trino.YdbColumnMappings.YDB_TIMESTAMP64_SQL_TYPE;
+import static tech.ydb.trino.YdbColumnMappings.dateColumnMapping;
+import static tech.ydb.trino.YdbColumnMappings.dateWriteFunction;
+import static tech.ydb.trino.YdbColumnMappings.timestampColumnMapping;
+import static tech.ydb.trino.YdbColumnMappings.timestampWriteFunction;
 
 public class YdbClient extends BaseJdbcClient {
     static final String DEFAULT_SCHEMA = "default";
@@ -341,7 +340,7 @@ public class YdbClient extends BaseJdbcClient {
                         : typeHandle.columnSize().orElse(VarcharType.MAX_LENGTH);
                 yield Optional.of(varcharColumnMapping(length));
             }
-            case Types.DATE -> Optional.of(dateColumnMapping());
+            case Types.DATE -> Optional.of(dateColumnMapping(typeHandle));
             case Types.TIMESTAMP -> Optional.of(timestampColumnMapping(typeHandle));
             default -> Optional.empty();
         };
@@ -371,30 +370,6 @@ public class YdbClient extends BaseJdbcClient {
                 varcharReadFunction(varcharType),
                 varcharWriteFunction(),
                 FULL_PUSHDOWN);
-    }
-
-    private static ColumnMapping dateColumnMapping() {
-        return ColumnMapping.longMapping(
-                DATE,
-                dateReadFunctionUsingLocalDate(),
-                dateWriteFunctionUsingLocalDate());
-    }
-
-    private static ColumnMapping timestampColumnMapping(JdbcTypeHandle typeHandle) {
-        String typeName = typeHandle.jdbcTypeName().orElse("");
-        LongWriteFunction writeFunction = typeName.equalsIgnoreCase("Timestamp64")
-                ? timestamp64WriteFunction()
-                : timestampWriteFunction(TIMESTAMP_MICROS);
-        return ColumnMapping.longMapping(
-                TIMESTAMP_MICROS,
-                timestampReadFunction(TIMESTAMP_MICROS),
-                writeFunction);
-    }
-
-    private static LongWriteFunction timestamp64WriteFunction() {
-        return LongWriteFunction.of(
-                Types.TIMESTAMP,
-                (statement, index, value) -> statement.setObject(index, fromTrinoTimestamp(value).toInstant(UTC)));
     }
 
     @Override
@@ -433,10 +408,10 @@ public class YdbClient extends BaseJdbcClient {
             return WriteMapping.sliceMapping("Bytes", varbinaryWriteFunction());
         }
         if (type == DATE) {
-            return WriteMapping.longMapping("Date32", dateWriteFunctionUsingLocalDate());
+            return WriteMapping.longMapping("Date32", dateWriteFunction(YDB_DATE32_SQL_TYPE));
         }
-        if (type == TIMESTAMP_MICROS) {
-            return WriteMapping.longMapping("Timestamp64", timestamp64WriteFunction());
+        if (type == TIMESTAMP_MILLIS || type == TIMESTAMP_MICROS) {
+            return WriteMapping.longMapping("Timestamp64", timestampWriteFunction(YDB_TIMESTAMP64_SQL_TYPE));
         }
 
         throw new TrinoException(NOT_SUPPORTED, "Unsupported column type: " + type);

@@ -17,8 +17,6 @@ import io.trino.plugin.jdbc.credential.CredentialProvider;
 import io.trino.plugin.jdbc.logging.RemoteQueryModifier;
 import tech.ydb.jdbc.YdbDriver;
 
-import java.util.Properties;
-
 import static com.google.inject.multibindings.OptionalBinder.newOptionalBinder;
 
 public class YdbClientModule implements Module {
@@ -51,13 +49,10 @@ public class YdbClientModule implements Module {
     public static ConnectionFactory createConnectionFactory(
             BaseJdbcConfig config,
             CredentialProvider credentialProvider) {
-        Properties connectionProperties = new Properties();
-        connectionProperties.setProperty("forceSignedDatetimes", "true");
         return DriverConnectionFactory.builder(
                         new YdbDriver(),
                         config.getConnectionUrl(),
                         credentialProvider)
-                .setConnectionProperties(connectionProperties)
                 .build();
     }
 }
