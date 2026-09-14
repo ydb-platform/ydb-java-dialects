@@ -420,7 +420,7 @@ public class YdbClient extends BaseJdbcClient {
             return WriteMapping.sliceMapping("Bytes", varbinaryWriteFunction());
         }
         if (type == DATE) {
-            return WriteMapping.longMapping("Date", dateWriteFunctionUsingLocalDate());
+            return WriteMapping.longMapping("Date32", dateWriteFunctionUsingLocalDate());
         }
         if (type == TIMESTAMP_MICROS) {
             return WriteMapping.longMapping("Timestamp", timestampWriteFunction(TIMESTAMP_MICROS));

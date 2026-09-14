@@ -49,3 +49,10 @@ SELECT * FROM local.default.orders;
 
 YDB `Text` отображается в Trino как `varchar`, а `Bytes` — как `varbinary` без
 декодирования UTF-8. При создании таблиц адаптер использует типы `Text` и `Bytes`.
+
+## Даты
+
+Новые столбцы Trino `date` создаются как YDB `Date32`; адаптер также включает JDBC-параметр `forceSignedDatetimes=true`.
+Существующие столбцы YDB `Date` и `Date32` читаются как Trino `date`.
+Это не исправляет диапазонные фильтры и `UPDATE` существующих столбцов YDB `Date`.
+Не задавайте `forceSignedDatetimes=false` в JDBC URL: параметры URL имеют приоритет над настройками адаптера.

@@ -85,24 +85,6 @@ public class TestYdbConnectorTest extends BaseConnectorTest {
 
     @Test
     @Override
-    public void testInsertNegativeDate() {
-        // YDB не поддерживает, negative daysSinceEpoch
-    }
-
-    @Test
-    @Override
-    public void testDateYearOfEraPredicate() {
-        // YDB не поддерживает, negative daysSinceEpoch
-    }
-
-    @Test
-    @Override
-    public void testCreateTableAsSelectNegativeDate() {
-        // YDB не поддерживает, negative daysSinceEpoch
-    }
-
-    @Test
-    @Override
     public void testCharVarcharComparison() {
         // YDB has no fixed-width string primitive. Mapping CHAR to Text loses its width in JDBC metadata
         // and violates Trino padding/coercion semantics: https://ydb.tech/docs/en/yql/reference/types/primitive
@@ -142,12 +124,6 @@ public class TestYdbConnectorTest extends BaseConnectorTest {
     protected Optional<DataMappingTestSetup> filterDataMappingSmokeTestData(BaseConnectorTest.DataMappingTestSetup dataMappingTestSetup) {
         if (dataMappingTestSetup.getTrinoTypeName().equals("char(3)")) {
             return Optional.of(dataMappingTestSetup.asUnsupported());
-        } else if (dataMappingTestSetup.getTrinoTypeName().equals("date")) {
-            return Optional.of(new DataMappingTestSetup(
-                    dataMappingTestSetup.getTrinoTypeName(),
-                    "DATE '2006-06-06'",
-                    "DATE '2026-06-06'"
-            ));
         } else if (dataMappingTestSetup.getTrinoTypeName().startsWith("time")) {
             // Нет time в YQL
             return Optional.empty();
