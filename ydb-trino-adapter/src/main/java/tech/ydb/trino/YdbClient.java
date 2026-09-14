@@ -342,7 +342,7 @@ public class YdbClient extends BaseJdbcClient {
                 yield Optional.of(varcharColumnMapping(length));
             }
             case Types.DATE -> Optional.of(dateColumnMapping());
-            case Types.TIMESTAMP -> Optional.of(timestampColumnMapping());
+            case Types.TIMESTAMP -> Optional.of(timestampColumnMapping(typeHandle));
             default -> Optional.empty();
         };
 
@@ -380,11 +380,21 @@ public class YdbClient extends BaseJdbcClient {
                 dateWriteFunctionUsingLocalDate());
     }
 
-    private static ColumnMapping timestampColumnMapping() {
+    private static ColumnMapping timestampColumnMapping(JdbcTypeHandle typeHandle) {
+        String typeName = typeHandle.jdbcTypeName().orElse("");
+        LongWriteFunction writeFunction = typeName.equalsIgnoreCase("Timestamp64")
+                ? timestamp64WriteFunction()
+                : timestampWriteFunction(TIMESTAMP_MICROS);
         return ColumnMapping.longMapping(
                 TIMESTAMP_MICROS,
                 timestampReadFunction(TIMESTAMP_MICROS),
-                timestampWriteFunction(TIMESTAMP_MICROS));
+                writeFunction);
+    }
+
+    private static LongWriteFunction timestamp64WriteFunction() {
+        return LongWriteFunction.of(
+                Types.TIMESTAMP,
+                (statement, index, value) -> statement.setObject(index, fromTrinoTimestamp(value).toInstant(UTC)));
     }
 
     @Override
@@ -426,10 +436,7 @@ public class YdbClient extends BaseJdbcClient {
             return WriteMapping.longMapping("Date32", dateWriteFunctionUsingLocalDate());
         }
         if (type == TIMESTAMP_MICROS) {
-            return WriteMapping.longMapping(
-                    "Timestamp64",
-                    LongWriteFunction.of(Types.TIMESTAMP, (statement, index, value) ->
-                            statement.setObject(index, fromTrinoTimestamp(value).toInstant(UTC))));
+            return WriteMapping.longMapping("Timestamp64", timestamp64WriteFunction());
         }
 
         throw new TrinoException(NOT_SUPPORTED, "Unsupported column type: " + type);
