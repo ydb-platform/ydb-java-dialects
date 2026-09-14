@@ -122,9 +122,10 @@ public class TestYdbConnectorTest extends BaseConnectorTest {
 
     @Override
     protected Optional<DataMappingTestSetup> filterDataMappingSmokeTestData(BaseConnectorTest.DataMappingTestSetup dataMappingTestSetup) {
-        if (dataMappingTestSetup.getTrinoTypeName().equals("char(3)")) {
+        String trinoTypeName = dataMappingTestSetup.getTrinoTypeName();
+        if (trinoTypeName.equals("char(3)")) {
             return Optional.of(dataMappingTestSetup.asUnsupported());
-        } else if (dataMappingTestSetup.getTrinoTypeName().startsWith("time")) {
+        } else if (trinoTypeName.startsWith("time") && !trinoTypeName.equals("timestamp(6)")) {
             // Нет time в YQL
             return Optional.empty();
         }
