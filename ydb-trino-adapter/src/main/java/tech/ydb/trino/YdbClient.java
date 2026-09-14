@@ -23,6 +23,7 @@ import io.trino.plugin.jdbc.JdbcOutputTableHandle;
 import io.trino.plugin.jdbc.JdbcSortItem;
 import io.trino.plugin.jdbc.JdbcTableHandle;
 import io.trino.plugin.jdbc.JdbcTypeHandle;
+import io.trino.plugin.jdbc.LongWriteFunction;
 import io.trino.plugin.jdbc.PreparedQuery;
 import io.trino.plugin.jdbc.QueryBuilder;
 import io.trino.plugin.jdbc.RemoteTableName;
@@ -88,6 +89,7 @@ import static io.trino.plugin.jdbc.StandardColumnMappings.dateReadFunctionUsingL
 import static io.trino.plugin.jdbc.StandardColumnMappings.decimalColumnMapping;
 import static io.trino.plugin.jdbc.StandardColumnMappings.doubleColumnMapping;
 import static io.trino.plugin.jdbc.StandardColumnMappings.doubleWriteFunction;
+import static io.trino.plugin.jdbc.StandardColumnMappings.fromTrinoTimestamp;
 import static io.trino.plugin.jdbc.StandardColumnMappings.integerColumnMapping;
 import static io.trino.plugin.jdbc.StandardColumnMappings.integerWriteFunction;
 import static io.trino.plugin.jdbc.StandardColumnMappings.longDecimalWriteFunction;
@@ -121,6 +123,7 @@ import static io.trino.spi.type.VarcharType.createUnboundedVarcharType;
 import static io.trino.spi.type.VarcharType.createVarcharType;
 import static java.lang.Math.max;
 import static java.lang.String.format;
+import static java.time.ZoneOffset.UTC;
 import static java.util.stream.Collectors.joining;
 
 public class YdbClient extends BaseJdbcClient {
@@ -423,7 +426,10 @@ public class YdbClient extends BaseJdbcClient {
             return WriteMapping.longMapping("Date32", dateWriteFunctionUsingLocalDate());
         }
         if (type == TIMESTAMP_MICROS) {
-            return WriteMapping.longMapping("Timestamp64", timestampWriteFunction(TIMESTAMP_MICROS));
+            return WriteMapping.longMapping(
+                    "Timestamp64",
+                    LongWriteFunction.of(Types.TIMESTAMP, (statement, index, value) ->
+                            statement.setObject(index, fromTrinoTimestamp(value).toInstant(UTC))));
         }
 
         throw new TrinoException(NOT_SUPPORTED, "Unsupported column type: " + type);
