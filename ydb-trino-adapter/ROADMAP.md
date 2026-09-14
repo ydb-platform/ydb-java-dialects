@@ -99,12 +99,8 @@ wrapping the standard sink in replay logic.
   failure. A future retry design requires staging or an operation ID that proves
   replay safety. See
   [YDB SDK error handling](https://ydb.tech/docs/en/reference/ydb-sdk/error_handling).
-- YDB JDBC 2.3.18 connection-context caching has a close/register race under
-  concurrent connections. The connector therefore defaults
-  `cacheConnectionsInDriver` to `false`; an explicit JDBC URL option can
-  override it. This trades connection reuse for correctness and may increase
-  connection latency/load. Re-evaluate the default after upgrading to a driver
-  with a verified cache-lifecycle fix.
+- The connector uses the YDB JDBC 2.4.1 default
+  `cacheConnectionsInDriver=true`; an explicit JDBC URL option can override it.
 - Do not replay buffered INSERT pages after `JdbcPageSink` may already have
   committed an internal batch.
 - Add tests for partial sink failures and abort cleanup.
