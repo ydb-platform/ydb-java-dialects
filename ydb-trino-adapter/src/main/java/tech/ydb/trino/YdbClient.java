@@ -23,7 +23,6 @@ import io.trino.plugin.jdbc.JdbcOutputTableHandle;
 import io.trino.plugin.jdbc.JdbcSortItem;
 import io.trino.plugin.jdbc.JdbcTableHandle;
 import io.trino.plugin.jdbc.JdbcTypeHandle;
-import io.trino.plugin.jdbc.LongWriteFunction;
 import io.trino.plugin.jdbc.PreparedQuery;
 import io.trino.plugin.jdbc.QueryBuilder;
 import io.trino.plugin.jdbc.RemoteTableName;
@@ -61,7 +60,6 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Types;
-import java.time.LocalDate;
 import java.util.Collection;
 import java.util.List;
 import java.util.Locale;
@@ -70,7 +68,6 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.OptionalLong;
-import java.util.Properties;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.function.BiFunction;
@@ -79,10 +76,6 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import tech.ydb.jdbc.settings.YdbConfig;
-import tech.ydb.jdbc.settings.YdbOperationProperties;
-import tech.ydb.table.values.PrimitiveValue;
-
 import static io.trino.plugin.jdbc.DefaultJdbcMetadata.MERGE_ROW_ID;
 import static io.trino.plugin.jdbc.JdbcErrorCode.JDBC_ERROR;
 import static io.trino.plugin.jdbc.PredicatePushdownController.DISABLE_PUSHDOWN;
@@ -90,8 +83,8 @@ import static io.trino.plugin.jdbc.PredicatePushdownController.FULL_PUSHDOWN;
 import static io.trino.plugin.jdbc.StandardColumnMappings.bigintColumnMapping;
 import static io.trino.plugin.jdbc.StandardColumnMappings.bigintWriteFunction;
 import static io.trino.plugin.jdbc.StandardColumnMappings.booleanColumnMapping;
-import static io.trino.plugin.jdbc.StandardColumnMappings.dateReadFunctionUsingLocalDate;
 import static io.trino.plugin.jdbc.StandardColumnMappings.dateWriteFunctionUsingLocalDate;
+import static io.trino.plugin.jdbc.StandardColumnMappings.dateReadFunctionUsingLocalDate;
 import static io.trino.plugin.jdbc.StandardColumnMappings.decimalColumnMapping;
 import static io.trino.plugin.jdbc.StandardColumnMappings.doubleColumnMapping;
 import static io.trino.plugin.jdbc.StandardColumnMappings.doubleWriteFunction;
@@ -134,10 +127,10 @@ public class YdbClient extends BaseJdbcClient {
     static final String DEFAULT_SCHEMA = "default";
     private static final int YDB_DEFAULT_DECIMAL_PRECISION = 22;
     private static final int YDB_DEFAULT_DECIMAL_SCALE = 9;
+
     private final ConnectorExpressionRewriter<ParameterizedExpression> connectorExpressionRewriter;
     private final AggregateFunctionRewriter<JdbcExpression, ParameterizedExpression> aggregateFunctionRewriter;
     private final ProjectFunctionRewriter<JdbcExpression, ParameterizedExpression> projectFunctionRewriter;
-    private final boolean forceSignedDatetimes;
 
     @Inject
     public YdbClient(
@@ -156,14 +149,6 @@ public class YdbClient extends BaseJdbcClient {
                 remoteQueryModifier,
                 true
         );
-
-        try {
-            forceSignedDatetimes = new YdbOperationProperties(YdbConfig.from(config.getConnectionUrl(), new Properties()))
-                    .getForceNewDatetypes();
-        }
-        catch (SQLException e) {
-            throw new TrinoException(JDBC_ERROR, "Invalid YDB JDBC configuration", e);
-        }
 
         this.connectorExpressionRewriter = JdbcConnectorExpressionRewriterBuilder.newBuilder()
                 .addStandardRules(this::quoted)
@@ -389,10 +374,7 @@ public class YdbClient extends BaseJdbcClient {
         return ColumnMapping.longMapping(
                 DATE,
                 dateReadFunctionUsingLocalDate(),
-                LongWriteFunction.of(Types.DATE, (statement, index, value) -> statement.setObject(index,
-                        statement.getParameterMetaData().getParameterType(index) == Types.OTHER
-                                ? PrimitiveValue.newDate32(LocalDate.ofEpochDay(value))
-                                : LocalDate.ofEpochDay(value))));
+                dateWriteFunctionUsingLocalDate());
     }
 
     private static ColumnMapping timestampColumnMapping() {
@@ -438,7 +420,7 @@ public class YdbClient extends BaseJdbcClient {
             return WriteMapping.sliceMapping("Bytes", varbinaryWriteFunction());
         }
         if (type == DATE) {
-            return WriteMapping.longMapping(forceSignedDatetimes ? "Date32" : "Date", dateWriteFunctionUsingLocalDate());
+            return WriteMapping.longMapping("Date32", dateWriteFunctionUsingLocalDate());
         }
         if (type == TIMESTAMP_MICROS) {
             return WriteMapping.longMapping("Timestamp", timestampWriteFunction(TIMESTAMP_MICROS));
