@@ -84,7 +84,6 @@ import static io.trino.plugin.jdbc.PredicatePushdownController.FULL_PUSHDOWN;
 import static io.trino.plugin.jdbc.StandardColumnMappings.bigintColumnMapping;
 import static io.trino.plugin.jdbc.StandardColumnMappings.bigintWriteFunction;
 import static io.trino.plugin.jdbc.StandardColumnMappings.booleanColumnMapping;
-import static io.trino.plugin.jdbc.StandardColumnMappings.dateWriteFunctionUsingLocalDate;
 import static io.trino.plugin.jdbc.StandardColumnMappings.dateReadFunctionUsingLocalDate;
 import static io.trino.plugin.jdbc.StandardColumnMappings.decimalColumnMapping;
 import static io.trino.plugin.jdbc.StandardColumnMappings.doubleColumnMapping;
@@ -100,7 +99,6 @@ import static io.trino.plugin.jdbc.StandardColumnMappings.smallintColumnMapping;
 import static io.trino.plugin.jdbc.StandardColumnMappings.smallintWriteFunction;
 import static io.trino.plugin.jdbc.StandardColumnMappings.timestampColumnMapping;
 import static io.trino.plugin.jdbc.StandardColumnMappings.timestampReadFunction;
-import static io.trino.plugin.jdbc.StandardColumnMappings.timestampWriteFunction;
 import static io.trino.plugin.jdbc.StandardColumnMappings.tinyintWriteFunction;
 import static io.trino.plugin.jdbc.StandardColumnMappings.varbinaryColumnMapping;
 import static io.trino.plugin.jdbc.StandardColumnMappings.varbinaryWriteFunction;
@@ -126,11 +124,19 @@ import static java.lang.Math.max;
 import static java.lang.String.format;
 import static java.time.ZoneOffset.UTC;
 import static java.util.stream.Collectors.joining;
+import static tech.ydb.jdbc.YdbConst.SQL_KIND_PRIMITIVE;
 
 public class YdbClient extends BaseJdbcClient {
     static final String DEFAULT_SCHEMA = "default";
     private static final int YDB_DEFAULT_DECIMAL_PRECISION = 22;
     private static final int YDB_DEFAULT_DECIMAL_SCALE = 9;
+    // https://github.com/ydb-platform/ydb-jdbc-driver/blob/v2.4.1/jdbc/src/main/java/tech/ydb/jdbc/common/YdbTypes.java#L64-L77
+    private static final int YDB_DATE_SQL_TYPE = SQL_KIND_PRIMITIVE + 16;
+    private static final int YDB_DATETIME_SQL_TYPE = SQL_KIND_PRIMITIVE + 17;
+    private static final int YDB_TIMESTAMP_SQL_TYPE = SQL_KIND_PRIMITIVE + 18;
+    private static final int YDB_DATE32_SQL_TYPE = SQL_KIND_PRIMITIVE + 25;
+    private static final int YDB_DATETIME64_SQL_TYPE = SQL_KIND_PRIMITIVE + 26;
+    private static final int YDB_TIMESTAMP64_SQL_TYPE = SQL_KIND_PRIMITIVE + 27;
 
     private final ConnectorExpressionRewriter<ParameterizedExpression> connectorExpressionRewriter;
     private final AggregateFunctionRewriter<JdbcExpression, ParameterizedExpression> aggregateFunctionRewriter;
@@ -342,7 +348,7 @@ public class YdbClient extends BaseJdbcClient {
                         : typeHandle.columnSize().orElse(VarcharType.MAX_LENGTH);
                 yield Optional.of(varcharColumnMapping(length));
             }
-            case Types.DATE -> Optional.of(dateColumnMapping());
+            case Types.DATE -> Optional.of(dateColumnMapping(typeHandle));
             case Types.TIMESTAMP -> Optional.of(timestampColumnMapping(typeHandle));
             default -> Optional.empty();
         };
@@ -374,28 +380,56 @@ public class YdbClient extends BaseJdbcClient {
                 FULL_PUSHDOWN);
     }
 
-    private static ColumnMapping dateColumnMapping() {
+    private static ColumnMapping dateColumnMapping(JdbcTypeHandle typeHandle) {
+        String typeName = typeHandle.jdbcTypeName().orElse("");
+        LongWriteFunction writeFunction = switch (typeName.toLowerCase(Locale.ROOT)) {
+            case "date" -> dateWriteFunction(YDB_DATE_SQL_TYPE);
+            case "date32" -> dateWriteFunction(YDB_DATE32_SQL_TYPE);
+            default -> throw new TrinoException(NOT_SUPPORTED, "Unsupported YDB date type: " + typeName);
+        };
         return ColumnMapping.longMapping(
                 DATE,
                 dateReadFunctionUsingLocalDate(),
-                dateWriteFunctionUsingLocalDate());
+                writeFunction);
     }
 
     private static ColumnMapping timestampColumnMapping(JdbcTypeHandle typeHandle) {
         String typeName = typeHandle.jdbcTypeName().orElse("");
-        LongWriteFunction writeFunction = typeName.equalsIgnoreCase("Timestamp64")
-                ? timestamp64WriteFunction()
-                : timestampWriteFunction(TIMESTAMP_MICROS);
+        LongWriteFunction writeFunction = switch (typeName.toLowerCase(Locale.ROOT)) {
+            case "datetime" -> datetimeWriteFunction(YDB_DATETIME_SQL_TYPE);
+            case "datetime64" -> datetimeWriteFunction(YDB_DATETIME64_SQL_TYPE);
+            case "timestamp" -> timestampWriteFunction(YDB_TIMESTAMP_SQL_TYPE);
+            case "timestamp64" -> timestampWriteFunction(YDB_TIMESTAMP64_SQL_TYPE);
+            default -> throw new TrinoException(NOT_SUPPORTED, "Unsupported YDB timestamp type: " + typeName);
+        };
         return ColumnMapping.longMapping(
                 TIMESTAMP_MICROS,
                 timestampReadFunction(TIMESTAMP_MICROS),
                 writeFunction);
     }
 
-    private static LongWriteFunction timestamp64WriteFunction() {
+    private static LongWriteFunction dateWriteFunction(int sqlType) {
         return LongWriteFunction.of(
-                Types.TIMESTAMP,
-                (statement, index, value) -> statement.setObject(index, fromTrinoTimestamp(value).toInstant(UTC)));
+                sqlType,
+                (statement, index, value) -> statement.setObject(index, value, sqlType));
+    }
+
+    private static LongWriteFunction datetimeWriteFunction(int sqlType) {
+        return LongWriteFunction.of(
+                sqlType,
+                (statement, index, value) -> statement.setObject(
+                        index,
+                        fromTrinoTimestamp(value).toEpochSecond(UTC),
+                        sqlType));
+    }
+
+    private static LongWriteFunction timestampWriteFunction(int sqlType) {
+        return LongWriteFunction.of(
+                sqlType,
+                (statement, index, value) -> statement.setObject(
+                        index,
+                        fromTrinoTimestamp(value).toInstant(UTC),
+                        sqlType));
     }
 
     @Override
@@ -434,10 +468,10 @@ public class YdbClient extends BaseJdbcClient {
             return WriteMapping.sliceMapping("Bytes", varbinaryWriteFunction());
         }
         if (type == DATE) {
-            return WriteMapping.longMapping("Date32", dateWriteFunctionUsingLocalDate());
+            return WriteMapping.longMapping("Date32", dateWriteFunction(YDB_DATE32_SQL_TYPE));
         }
         if (type == TIMESTAMP_MILLIS || type == TIMESTAMP_MICROS) {
-            return WriteMapping.longMapping("Timestamp64", timestamp64WriteFunction());
+            return WriteMapping.longMapping("Timestamp64", timestampWriteFunction(YDB_TIMESTAMP64_SQL_TYPE));
         }
 
         throw new TrinoException(NOT_SUPPORTED, "Unsupported column type: " + type);

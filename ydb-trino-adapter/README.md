@@ -52,9 +52,13 @@ YDB `Text` отображается в Trino как `varchar`, а `Bytes` — к
 
 ## Даты
 
-Новые столбцы Trino `date` создаются как YDB `Date32`; адаптер также включает JDBC-параметр `forceSignedDatetimes=true`.
+Новые столбцы Trino `date` создаются как YDB `Date32`.
 Существующие столбцы YDB `Date` и `Date32` читаются как Trino `date`.
 Новые столбцы Trino `timestamp(3)` и `timestamp(6)` создаются как YDB `Timestamp64`.
-При чтении физический `Timestamp64` описывается как Trino `timestamp(6)`.
-Это не исправляет диапазонные фильтры и `UPDATE` существующих столбцов YDB `Date`.
-Не задавайте `forceSignedDatetimes=false` в JDBC URL: параметры URL имеют приоритет над настройками адаптера.
+Существующие YDB `Datetime`, `Datetime64`, `Timestamp` и `Timestamp64` читаются как Trino `timestamp(6)`;
+исходная точность `timestamp(3)` в метаданных не сохраняется.
+При записи адаптер передаёт YDB JDBC точный vendor type по `TYPE_NAME` и больше не задаёт `forceSignedDatetimes`:
+`Date`/`Date32` получают дни от эпохи, `Datetime`/`Datetime64` — секунды UTC, а `Timestamp`/`Timestamp64` — `Instant` с микросекундами.
+В `UPDATE`/`DELETE`, которые стандартный merge sink выполняет внутри `MERGE`, native `TYPE_NAME` не передаётся;
+fallback `Instant` для `Datetime`/`Datetime64` может зависеть от часового пояса JVM и остаётся отдельным риском.
+Диапазонные предикаты вне диапазона legacy YDB `Date` остаются отдельным известным ограничением.
