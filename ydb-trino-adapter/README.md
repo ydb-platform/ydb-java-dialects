@@ -54,6 +54,7 @@ YDB `Text` отображается в Trino как `varchar`, а `Bytes` — к
 
 Новые столбцы Trino `date` создаются как YDB `Date32`; адаптер также включает JDBC-параметр `forceSignedDatetimes=true`.
 Существующие столбцы YDB `Date` и `Date32` читаются как Trino `date`.
-Новые столбцы Trino `timestamp(6)` создаются как YDB `Timestamp64`.
+Новые столбцы Trino `timestamp(3)` и `timestamp(6)` создаются как YDB `Timestamp64`.
+При чтении физический `Timestamp64` описывается как Trino `timestamp(6)`.
 Это не исправляет диапазонные фильтры и `UPDATE` существующих столбцов YDB `Date`.
 Не задавайте `forceSignedDatetimes=false` в JDBC URL: параметры URL имеют приоритет над настройками адаптера.

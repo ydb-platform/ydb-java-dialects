@@ -116,6 +116,7 @@ import static io.trino.spi.type.DoubleType.DOUBLE;
 import static io.trino.spi.type.IntegerType.INTEGER;
 import static io.trino.spi.type.RealType.REAL;
 import static io.trino.spi.type.SmallintType.SMALLINT;
+import static io.trino.spi.type.TimestampType.TIMESTAMP_MILLIS;
 import static io.trino.spi.type.TimestampType.TIMESTAMP_MICROS;
 import static io.trino.spi.type.TinyintType.TINYINT;
 import static io.trino.spi.type.VarbinaryType.VARBINARY;
@@ -435,7 +436,7 @@ public class YdbClient extends BaseJdbcClient {
         if (type == DATE) {
             return WriteMapping.longMapping("Date32", dateWriteFunctionUsingLocalDate());
         }
-        if (type == TIMESTAMP_MICROS) {
+        if (type == TIMESTAMP_MILLIS || type == TIMESTAMP_MICROS) {
             return WriteMapping.longMapping("Timestamp64", timestamp64WriteFunction());
         }
 
