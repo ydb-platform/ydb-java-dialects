@@ -44,9 +44,11 @@ public class TestYdbCreateTable extends AbstractTestQueryFramework {
                     "AS VALUES (BIGINT '1', 'a'), (BIGINT '2', 'b')", 2);
             assertQuery("SELECT * FROM " + tableName, "VALUES (BIGINT '1', 'a'), (BIGINT '2', 'b')");
 
+            var tablesBefore = computeActual("SHOW TABLES").getOnlyColumnAsSet();
             assertThat(query("CREATE TABLE " + duplicateTableName + " (id, payload) " +
                     "WITH (primary_key = ARRAY['id']) AS VALUES (BIGINT '1', 'a'), (BIGINT '1', 'b')"))
                     .failure();
+            assertThat(computeActual("SHOW TABLES").getOnlyColumnAsSet()).isEqualTo(tablesBefore);
             assertThat(getQueryRunner().tableExists(getSession(), duplicateTableName)).isFalse();
         }
         finally {
@@ -67,6 +69,8 @@ public class TestYdbCreateTable extends AbstractTestQueryFramework {
                 ".*Column 'missing' specified in table property 'primary_key' does not exist");
         assertQueryFails("CREATE TABLE " + tableName + " (id bigint) WITH (primary_key = ARRAY['id', 'id'])",
                 ".*Table property 'primary_key' contains duplicate columns");
+        assertQueryFails("CREATE TABLE " + tableName + " (id bigint) WITH (primary_key = ARRAY[CAST(NULL AS VARCHAR)])",
+                ".*Table property 'primary_key' must not contain null columns");
         assertThat(getQueryRunner().tableExists(getSession(), tableName)).isFalse();
     }
 }

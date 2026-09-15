@@ -740,6 +740,9 @@ public class YdbClient extends BaseJdbcClient {
         if (primaryKeys.isEmpty()) {
             throw new TrinoException(INVALID_TABLE_PROPERTY, "Table property 'primary_key' must contain at least one column");
         }
+        if (primaryKeys.contains(null)) {
+            throw new TrinoException(INVALID_TABLE_PROPERTY, "Table property 'primary_key' must not contain null columns");
+        }
         if (primaryKeys.stream().distinct().count() != primaryKeys.size()) {
             throw new TrinoException(INVALID_TABLE_PROPERTY, "Table property 'primary_key' contains duplicate columns");
         }
