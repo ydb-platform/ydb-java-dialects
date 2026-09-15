@@ -45,6 +45,25 @@ SELECT * FROM local.default.orders;
 
 Прежние обращения `catalog.ydb.table` нужно заменить на `catalog.default.table`.
 
+## Создание таблиц
+
+YDB требует первичный ключ, поэтому `CREATE TABLE` и `CREATE TABLE AS` должны
+задавать упорядоченное свойство `primary_key`. Адаптер не добавляет скрытый ключ:
+
+```sql
+CREATE TABLE events (tenant bigint, event_id bigint, payload varchar)
+WITH (primary_key = ARRAY['tenant', 'event_id']);
+
+CREATE TABLE events_copy
+WITH (primary_key = ARRAY['tenant', 'event_id'])
+AS SELECT tenant, event_id, payload FROM events;
+```
+
+Имена ключей в CTAS относятся к выходным столбцам запроса. Отсутствующий,
+пустой, повторяющийся или неизвестный `primary_key` отклоняется. Текущая
+integration-проверка CTAS использует `insert.non-transactional-insert.enabled=true`;
+transactional staging этой проверкой не подтверждается.
+
 ## Текст и байты
 
 YDB `Text` отображается в Trino как `varchar`, а `Bytes` — как `varbinary` без

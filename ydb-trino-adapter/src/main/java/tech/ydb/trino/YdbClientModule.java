@@ -18,6 +18,7 @@ import io.trino.plugin.jdbc.logging.RemoteQueryModifier;
 import tech.ydb.jdbc.YdbDriver;
 
 import static com.google.inject.multibindings.OptionalBinder.newOptionalBinder;
+import static io.trino.plugin.jdbc.JdbcModule.bindTablePropertiesProvider;
 
 public class YdbClientModule implements Module {
 
@@ -28,6 +29,7 @@ public class YdbClientModule implements Module {
                 .to(YdbMetadataFactory.class)
                 .in(Scopes.SINGLETON);
 
+        bindTablePropertiesProvider(binder, YdbTableProperties.class);
         binder.bind(YdbConnector.class).in(Scopes.SINGLETON);
     }
 

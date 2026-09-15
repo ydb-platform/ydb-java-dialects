@@ -4,6 +4,7 @@ import io.trino.plugin.base.mapping.IdentifierMapping;
 import io.trino.plugin.jdbc.BaseJdbcConfig;
 import io.trino.plugin.jdbc.ConnectionFactory;
 import io.trino.plugin.jdbc.JdbcColumnHandle;
+import io.trino.plugin.jdbc.JdbcTableHandle;
 import io.trino.plugin.jdbc.QueryBuilder;
 import io.trino.plugin.jdbc.RemoteTableName;
 import io.trino.plugin.jdbc.logging.RemoteQueryModifier;
@@ -13,6 +14,7 @@ import io.trino.spi.connector.ConnectorTableMetadata;
 import io.trino.spi.connector.SchemaTableName;
 
 import java.util.List;
+import java.util.Map;
 
 import static io.trino.spi.StandardErrorCode.NOT_SUPPORTED;
 
@@ -45,6 +47,15 @@ public class TestingYdbJdbcClient extends YdbClient {
             SchemaTableName schemaTableName,
             RemoteTableName remoteTableName) {
         return super.getColumns(session, schemaTableName, remoteTableName);
+    }
+
+    @Override
+    public Map<String, Object> getTableProperties(ConnectorSession session, JdbcTableHandle tableHandle) {
+        Map<String, Object> properties = super.getTableProperties(session, tableHandle);
+        if (YdbTableProperties.getPrimaryKey(properties).equals(List.of(YDB_HIDDEN_PK_COLUMN))) {
+            return Map.of();
+        }
+        return properties;
     }
 
     @Override
