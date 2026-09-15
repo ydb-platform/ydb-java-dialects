@@ -1,0 +1,29 @@
+databaseChangeLog:
+  - changeSet:
+      id: "composite_key_entity"
+      author: "YDBREQUESTS-8347"
+      changes:
+        - createTable:
+            tableName: composite_key_entity
+            columns:
+              - column:
+                  name: workspace_id
+                  type: varchar
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: scope_id
+                  type: varchar
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: status
+                  type: varchar
+              - column:
+                  name: version
+                  type: bigint
+      rollback:
+        - dropTable:
+            tableName: composite_key_entity
