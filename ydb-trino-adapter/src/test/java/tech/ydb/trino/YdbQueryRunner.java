@@ -47,6 +47,7 @@ public final class YdbQueryRunner {
     public static class Builder extends DistributedQueryRunner.Builder<Builder> {
         private final Map<String, String> connectorProperties = new HashMap<>();
         private List<TpchTable<?>> initialTables = ImmutableList.of();
+        private boolean useTestingClient = true;
 
         private Builder() {
             super(testSessionBuilder()
@@ -65,6 +66,11 @@ public final class YdbQueryRunner {
             return this;
         }
 
+        public Builder useProductionClient() {
+            this.useTestingClient = false;
+            return this;
+        }
+
         @Override
         public DistributedQueryRunner build() throws Exception {
             DistributedQueryRunner queryRunner = super.build();
@@ -72,7 +78,7 @@ public final class YdbQueryRunner {
                 queryRunner.installPlugin(new io.trino.plugin.tpch.TpchPlugin());
                 queryRunner.createCatalog("tpch", "tpch");
 
-                queryRunner.installPlugin(new YdbPlugin(new TestingYdbJdbcModule()));
+                queryRunner.installPlugin(new YdbPlugin(useTestingClient ? new TestingYdbJdbcModule() : new YdbClientModule()));
                 queryRunner.createCatalog("local", "ydb", ImmutableMap.copyOf(connectorProperties));
 
                 for (TpchTable<?> table : initialTables) {

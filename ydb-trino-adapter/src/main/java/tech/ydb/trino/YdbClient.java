@@ -100,6 +100,7 @@ import static io.trino.plugin.jdbc.StandardColumnMappings.varbinaryWriteFunction
 import static io.trino.plugin.jdbc.StandardColumnMappings.varcharColumnMapping;
 import static io.trino.plugin.jdbc.StandardColumnMappings.varcharReadFunction;
 import static io.trino.plugin.jdbc.StandardColumnMappings.varcharWriteFunction;
+import static io.trino.spi.StandardErrorCode.INVALID_TABLE_PROPERTY;
 import static io.trino.spi.StandardErrorCode.NOT_SUPPORTED;
 import static io.trino.spi.type.BigintType.BIGINT;
 import static io.trino.spi.type.BooleanType.BOOLEAN;
@@ -124,6 +125,7 @@ import static tech.ydb.trino.YdbColumnMappings.dateColumnMapping;
 import static tech.ydb.trino.YdbColumnMappings.dateWriteFunction;
 import static tech.ydb.trino.YdbColumnMappings.timestampColumnMapping;
 import static tech.ydb.trino.YdbColumnMappings.timestampWriteFunction;
+import static tech.ydb.trino.YdbTableProperties.PRIMARY_KEY_PROPERTY;
 
 public class YdbClient extends BaseJdbcClient {
     static final String DEFAULT_SCHEMA = "default";
@@ -730,6 +732,44 @@ public class YdbClient extends BaseJdbcClient {
 
     @Override
     protected List<String> createTableSqls(RemoteTableName remoteTableName, List<String> columns, ConnectorTableMetadata tableMetadata) {
-        return super.createTableSqls(remoteTableName, columns, tableMetadata);
+        if (tableMetadata.getComment().isPresent()) {
+            throw new TrinoException(NOT_SUPPORTED, "This connector does not support creating tables with table comment");
+        }
+
+        List<String> primaryKeys = YdbTableProperties.getPrimaryKey(tableMetadata.getProperties());
+        if (primaryKeys.isEmpty()) {
+            throw new TrinoException(INVALID_TABLE_PROPERTY, "Table property 'primary_key' must contain at least one column");
+        }
+        if (primaryKeys.contains(null)) {
+            throw new TrinoException(INVALID_TABLE_PROPERTY, "Table property 'primary_key' must not contain null columns");
+        }
+        if (primaryKeys.stream().distinct().count() != primaryKeys.size()) {
+            throw new TrinoException(INVALID_TABLE_PROPERTY, "Table property 'primary_key' contains duplicate columns");
+        }
+
+        Set<String> columnNames = tableMetadata.getColumns().stream()
+                .map(ColumnMetadata::getName)
+                .collect(Collectors.toSet());
+        primaryKeys.stream()
+                .filter(primaryKey -> !columnNames.contains(primaryKey))
+                .findFirst()
+                .ifPresent(primaryKey -> {
+                    throw new TrinoException(
+                            INVALID_TABLE_PROPERTY,
+                            "Column '%s' specified in table property '%s' does not exist".formatted(primaryKey, PRIMARY_KEY_PROPERTY));
+                });
+
+        return List.of("CREATE TABLE %s (%s, PRIMARY KEY (%s))".formatted(
+                quoted(remoteTableName),
+                String.join(", ", columns),
+                primaryKeys.stream().map(this::quoted).collect(joining(", "))));
+    }
+
+    @Override
+    public Map<String, Object> getTableProperties(ConnectorSession session, JdbcTableHandle tableHandle) {
+        List<String> primaryKeys = getPrimaryKeys(session, tableHandle.getRequiredNamedRelation().getRemoteTableName()).stream()
+                .map(JdbcColumnHandle::getColumnName)
+                .toList();
+        return Map.of(PRIMARY_KEY_PROPERTY, primaryKeys);
     }
 }
