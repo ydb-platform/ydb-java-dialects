@@ -28,7 +28,7 @@ public class TestYdbCreateTable extends AbstractTestQueryFramework {
             assertUpdate("INSERT INTO " + tableName + " VALUES (1, 10, 'a'), (2, NULL, 'b')", 2);
             assertQuery("SELECT * FROM " + tableName, "VALUES (1, 10, 'a'), (2, NULL, 'b')");
             assertThat((String) computeScalar("SHOW CREATE TABLE " + tableName))
-                    .contains("primary_key = ARRAY['event_id', 'tenant']");
+                    .contains("primary_key = ARRAY['event_id','tenant']");
         }
         finally {
             assertUpdate("DROP TABLE IF EXISTS " + tableName);
@@ -42,7 +42,7 @@ public class TestYdbCreateTable extends AbstractTestQueryFramework {
         try {
             assertUpdate("CREATE TABLE " + tableName + " (id, payload) WITH (primary_key = ARRAY['id']) " +
                     "AS VALUES (BIGINT '1', 'a'), (BIGINT '2', 'b')", 2);
-            assertQuery("SELECT * FROM " + tableName, "VALUES (BIGINT '1', 'a'), (BIGINT '2', 'b')");
+            assertQuery("SELECT * FROM " + tableName, "VALUES (CAST(1 AS BIGINT), 'a'), (CAST(2 AS BIGINT), 'b')");
 
             var tablesBefore = computeActual("SHOW TABLES").getOnlyColumnAsSet();
             assertThat(query("CREATE TABLE " + duplicateTableName + " (id, payload) " +
