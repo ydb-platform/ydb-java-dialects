@@ -78,9 +78,12 @@ public class TestYdbConnectorTest extends BaseConnectorTest {
             assertThat(query(session, join.formatted("JOIN", "l.k < r.k")))
                     .joinIsNotFullyPushedDown();
             assertThat(query(session, join.formatted("JOIN", "l.s = r.s")))
-                    .joinIsNotFullyPushedDown();
+                    .matches("VALUES (BIGINT '1', BIGINT '10'), (BIGINT '2', BIGINT '11')")
+                    .isFullyPushedDown();
             assertThat(query(session, join.formatted("JOIN", "l.d = r.d")))
-                    .joinIsNotFullyPushedDown();
+                    .matches("VALUES (BIGINT '1', BIGINT '10'), (BIGINT '2', BIGINT '11'), " +
+                            "(BIGINT '3', BIGINT '12'), (BIGINT '4', BIGINT '13')")
+                    .isFullyPushedDown();
             Session complex = Session.builder(session)
                     .setCatalogSessionProperty(getSession().getCatalog().orElseThrow(), "complex_join_pushdown_enabled", "true")
                     .build();
