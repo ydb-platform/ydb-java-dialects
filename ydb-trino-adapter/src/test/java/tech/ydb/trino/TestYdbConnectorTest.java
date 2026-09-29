@@ -15,9 +15,12 @@ import org.junit.jupiter.api.extension.RegisterExtension;
 import tech.ydb.test.junit5.YdbHelperExtension;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.OptionalInt;
 
+import static io.trino.sql.planner.assertions.PlanMatchPattern.anyTree;
+import static io.trino.sql.planner.assertions.PlanMatchPattern.node;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -90,6 +93,141 @@ public class TestYdbConnectorTest extends BaseConnectorTest {
                     .build();
             assertThat(query(complex, join.formatted("JOIN", "l.k = r.k"))).joinIsNotFullyPushedDown();
         }
+    }
+
+    @Test
+    public void testScalarJoinKeys() {
+        Session session = joinPushdownSession();
+        try (TestTable table = newTrinoTable("join_scalar_",
+                "(id bigint, bool_key boolean, tiny_key tinyint, small_key smallint, int_key integer, " +
+                        "real_key real, double_key double, decimal_key decimal(10, 2), text_key varchar, " +
+                        "binary_key varbinary, date_key date, timestamp_key timestamp(6))",
+                List.of(
+                        "1, true, -128, -32768, -2147483648, 1.5, 1.5, 1.50, 'Aλ', X'0080', DATE '2026-01-01', TIMESTAMP '2026-01-01 01:02:03.123456'",
+                        "2, false, 127, 32767, 2147483647, 2.5, 2.5, -2.50, 'aλ ', X'FF', DATE '2026-01-02', TIMESTAMP '2026-01-01 01:02:03.123457'"))) {
+            assertUpdate("INSERT INTO " + table.getName() + " (id) VALUES (3)", 1);
+            for (String key : List.of("bool_key", "tiny_key", "small_key", "int_key", "real_key", "double_key",
+                    "decimal_key", "text_key", "binary_key", "date_key", "timestamp_key")) {
+                for (String join : List.of("JOIN", "LEFT JOIN", "RIGHT JOIN", "FULL JOIN")) {
+                    String sql = "SELECT l.id, r.id FROM " + table.getName() + " l " + join + " " + table.getName() +
+                            " r ON l." + key + " = r." + key;
+                    String expected = "VALUES (BIGINT '1', BIGINT '1'), (BIGINT '2', BIGINT '2')";
+                    if (join.equals("LEFT JOIN") || join.equals("FULL JOIN")) {
+                        expected += ", (BIGINT '3', CAST(NULL AS BIGINT))";
+                    }
+                    if (join.equals("RIGHT JOIN") || join.equals("FULL JOIN")) {
+                        expected += ", (CAST(NULL AS BIGINT), BIGINT '3')";
+                    }
+                    assertThat(query(session, sql)).matches(expected).isFullyPushedDown();
+                }
+            }
+        }
+    }
+
+    @Test
+    public void testFloatingJoinKeys() {
+        Session session = joinPushdownSession();
+        try (TestTable table = newTrinoTable("join_floating_", "(id bigint, real_key real, double_key double)",
+                List.of("1, REAL '0.0', DOUBLE '0.0'", "2, REAL '-0.0', DOUBLE '-0.0'",
+                        "3, REAL 'NaN', DOUBLE 'NaN'", "4, REAL 'Infinity', DOUBLE 'Infinity'",
+                        "5, REAL '-Infinity', DOUBLE '-Infinity'", "6, NULL, NULL"))) {
+            String matches = "VALUES (BIGINT '1', BIGINT '1'), (BIGINT '1', BIGINT '2'), " +
+                    "(BIGINT '2', BIGINT '1'), (BIGINT '2', BIGINT '2'), " +
+                    "(BIGINT '4', BIGINT '4'), (BIGINT '5', BIGINT '5')";
+            for (String key : List.of("real_key", "double_key")) {
+                for (String join : List.of("JOIN", "LEFT JOIN", "RIGHT JOIN", "FULL JOIN")) {
+                    String sql = "SELECT l.id, r.id FROM " + table.getName() + " l " + join + " " + table.getName() +
+                            " r ON l." + key + " = r." + key;
+                    String expected = matches;
+                    if (join.equals("LEFT JOIN") || join.equals("FULL JOIN")) {
+                        expected += ", (BIGINT '3', CAST(NULL AS BIGINT)), (BIGINT '6', CAST(NULL AS BIGINT))";
+                    }
+                    if (join.equals("RIGHT JOIN") || join.equals("FULL JOIN")) {
+                        expected += ", (CAST(NULL AS BIGINT), BIGINT '3'), (CAST(NULL AS BIGINT), BIGINT '6')";
+                    }
+                    assertThat(query(session, sql)).matches(expected).isFullyPushedDown();
+                }
+            }
+        }
+    }
+
+    @Test
+    public void testUnsignedJoinKeys() {
+        Session session = joinPushdownSession();
+        JdbcSqlExecutor remote = new JdbcSqlExecutor(YdbQueryRunner.buildJdbcUrl(ydb));
+        try (TestTable table = new TestTable(remote, "join_unsigned_",
+                "(id Int64 NOT NULL, u8 Uint8, u16 Uint16, u32 Uint32, u64 Uint64, signed_key Int64, PRIMARY KEY(id))")) {
+            remote.execute("UPSERT INTO " + table.getName() + " (id, u8, u16, u32, u64, signed_key) VALUES " +
+                    "(1, 255, 65535, 4294967295ul, 18446744073709551615ul, -1), (2, 0, 0, 0, 1, 1)");
+            for (String key : List.of("u8", "u16", "u32", "u64")) {
+                for (String join : List.of("JOIN", "LEFT JOIN", "RIGHT JOIN", "FULL JOIN")) {
+                    assertThat(query(session, "SELECT l.id, r.id FROM " + table.getName() + " l " + join +
+                            " " + table.getName() + " r ON l." + key + " = r." + key))
+                            .matches("VALUES (BIGINT '1', BIGINT '1'), (BIGINT '2', BIGINT '2')")
+                            .isFullyPushedDown();
+                }
+            }
+            assertThat(query(session, "SELECT l.id, r.id FROM " + table.getName() + " l JOIN " + table.getName() +
+                    " r ON l.u64 = r.signed_key"))
+                    .matches("VALUES (BIGINT '1', BIGINT '1'), (BIGINT '2', BIGINT '2')")
+                    .isFullyPushedDown();
+        }
+    }
+
+    @Test
+    public void testComputedJoinKeys() {
+        Session session = joinPushdownSession();
+        Session local = Session.builder(getSession())
+                .setSystemProperty("allow_pushdown_into_connectors", "false")
+                .build();
+        try (TestTable table = newTrinoTable("join_computed_",
+                "(id bigint, k bigint, s smallint, i integer, text_key varchar, binary_key varbinary)",
+                List.of("1, -2, -2, -2, 'A', X'00'", "2, -1, -1, -1, 'B', X'80'",
+                        "3, 0, 0, 0, 'C', X'FF'", "4, 1, 1, 1, 'D', X'01'",
+                        "5, 2, 2, 2, 'E', X'02'", "6, NULL, NULL, NULL, NULL, NULL"))) {
+            for (String condition : List.of(
+                    "l.k + 1 = r.k", "l.k - 1 = r.k", "l.k * 2 = r.k", "-l.k = r.k",
+                    "CAST(l.s AS integer) = r.i", "CAST(l.s AS bigint) = r.k",
+                    "CAST(l.i AS bigint) = CAST(r.i AS bigint)",
+                    "l.text_key || 'suffix' = r.text_key || 'suffix'",
+                    "l.binary_key || X'00' = r.binary_key || X'00'")) {
+                for (String join : List.of("JOIN", "LEFT JOIN", "RIGHT JOIN", "FULL JOIN")) {
+                    String sql = "SELECT l.id, r.id FROM " + table.getName() + " l " + join + " " + table.getName() +
+                            " r ON " + condition;
+                    assertThat(query(session, sql)).matches(local, sql).isFullyPushedDown();
+                }
+            }
+            assertThat(query(session, "SELECT l.id, r.id FROM " + table.getName() + " l LEFT JOIN " +
+                    table.getName() + " r ON CAST(l.k AS smallint) = CAST(r.k AS smallint)"))
+                    .joinIsNotFullyPushedDown();
+        }
+    }
+
+    @Test
+    public void testComputedJoinOverflow() {
+        Session session = joinPushdownSession();
+        Session local = Session.builder(getSession())
+                .setSystemProperty("allow_pushdown_into_connectors", "false")
+                .build();
+        for (Map.Entry<String, String> test : Map.of(
+                "%s + 1", "1, 9223372036854775807, -9223372036854775808",
+                "%s - 1", "1, -9223372036854775808, 9223372036854775807",
+                "-%s", "1, -9223372036854775808, -9223372036854775808",
+                "%1$s * %1$s", "1, 9223372036854775807, 1").entrySet()) {
+            try (TestTable table = newTrinoTable("join_overflow_", "(id bigint, k bigint, wrapped bigint)",
+                    List.of(test.getValue()))) {
+                String sql = "SELECT l.id, r.id FROM " + table.getName() + " l JOIN " + table.getName() +
+                        " r ON " + test.getKey().formatted("l.k") + " = r.wrapped";
+                assertThat(query(local, sql)).failure().hasMessageMatching("(?is).*overflow.*");
+                assertThat(query(session, sql)).failure().hasMessageMatching("(?is).*overflow.*");
+            }
+        }
+    }
+
+    private Session joinPushdownSession() {
+        return Session.builder(getSession())
+                .setCatalogSessionProperty(getSession().getCatalog().orElseThrow(), "join_pushdown_enabled", "true")
+                .build();
     }
 
     @Override
