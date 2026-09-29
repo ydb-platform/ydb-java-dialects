@@ -37,7 +37,11 @@ import io.trino.plugin.jdbc.aggregation.ImplementMinMax;
 import io.trino.plugin.jdbc.aggregation.ImplementSum;
 import io.trino.plugin.jdbc.expression.JdbcConnectorExpressionRewriterBuilder;
 import io.trino.plugin.jdbc.expression.ParameterizedExpression;
+import io.trino.plugin.jdbc.expression.RewriteAnd;
+import io.trino.plugin.jdbc.expression.RewriteExactNumericConstant;
 import io.trino.plugin.jdbc.expression.RewriteIn;
+import io.trino.plugin.jdbc.expression.RewriteOr;
+import io.trino.plugin.jdbc.expression.RewriteVarcharConstant;
 import io.trino.plugin.jdbc.logging.RemoteQueryModifier;
 import io.trino.spi.TrinoException;
 import io.trino.spi.connector.AggregateFunction;
@@ -158,35 +162,50 @@ public class YdbClient extends BaseJdbcClient {
                 true
         );
 
-        this.connectorExpressionRewriter = JdbcConnectorExpressionRewriterBuilder.newBuilder()
-                .addStandardRules(this::quoted)
+        JdbcConnectorExpressionRewriterBuilder expressionBuilder = JdbcConnectorExpressionRewriterBuilder.newBuilder()
+                .add(new RewriteYdbVariable(this::quoted, this::hasSupportedValueMapping))
+                .add(new RewriteVarcharConstant())
+                .add(new RewriteVarbinaryConstant())
+                .add(new RewriteExactNumericConstant())
+                .add(new RewriteAnd())
+                .add(new RewriteOr())
                 .add(new RewriteIn())
                 .add(new RewriteDivideModulus())
                 .add(new RewriteNullIf())
-                .withTypeClass("integer_type", ImmutableSet.of("tinyint", "smallint", "integer", "bigint"))
                 .withTypeClass("numeric_type", ImmutableSet.of("tinyint", "smallint", "integer", "bigint", "decimal", "real", "double"))
                 .withTypeClass("comparable_type", ImmutableSet.of(
-                        "tinyint", "smallint", "integer", "bigint", "decimal", "real", "double", "varchar", "char", "date", "timestamp"))
+                        "tinyint", "smallint", "integer", "bigint", "decimal", "real", "double", "varchar", "varbinary", "char", "date", "timestamp"))
                 .map("$equal(left, right)").to("left = right")
                 .map("$not_equal(left, right)").to("left <> right")
-                .map("$add(left: integer_type, right: integer_type)").to("left + right")
-                .map("$subtract(left: integer_type, right: integer_type)").to("left - right")
-                .map("$multiply(left: integer_type, right: integer_type)").to("left * right")
-                .map("$negate(value: integer_type)").to("-value")
                 .map("$less_than(left: comparable_type, right: comparable_type)").to("left < right")
                 .map("$less_than_or_equal(left: comparable_type, right: comparable_type)").to("left <= right")
                 .map("$greater_than(left: comparable_type, right: comparable_type)").to("left > right")
                 .map("$greater_than_or_equal(left: comparable_type, right: comparable_type)").to("left >= right")
                 .map("$is_null(value)").to("value IS NULL")
                 .map("$not($is_null(value))").to("value IS NOT NULL")
-                .map("$concat(left: varchar, right: varchar)").to("left || right")
-                .build();
+                .map("concat(left: varchar, right: varchar)").to("left || right")
+                .map("concat(left: varbinary, right: varbinary)").to("left || right");
+
+        for (Type type : List.of(TINYINT, SMALLINT, INTEGER, BIGINT)) {
+            String sqlType = YdbTypeUtils.toTypeHandle(type).orElseThrow().jdbcTypeName().orElseThrow();
+            for (Map.Entry<String, String> operation : Map.of("$add", "+", "$subtract", "-", "$multiply", "*").entrySet()) {
+                expressionBuilder.map(operation.getKey() + "(left: " + type + ", right: " + type + ")")
+                        .to("IF(left IS NULL OR right IS NULL, NULL, Unwrap(CAST(" +
+                                "CAST(left AS Decimal(35,0)) " + operation.getValue() + " CAST(right AS Decimal(35,0)) " +
+                                "AS " + sqlType + "), 'integer overflow'))");
+            }
+            expressionBuilder.map("$negate(value: " + type + ")")
+                    .to("IF(value IS NULL, NULL, Unwrap(CAST(-CAST(value AS Decimal(35,0)) " +
+                            "AS " + sqlType + "), 'integer overflow'))");
+        }
+        this.connectorExpressionRewriter = expressionBuilder.build();
 
         this.projectFunctionRewriter = new ProjectFunctionRewriter<>(
                 this.connectorExpressionRewriter,
                 ImmutableSet.<ProjectFunctionRule<JdbcExpression, ParameterizedExpression>>builder()
                         .add(new RewriteUnaryStringOperations())
                         .add(new RewriteStringPosition())
+                        .add(new RewriteCast())
                         .build());
 
         JdbcTypeHandle bigintTypeHandle = YdbTypeUtils.toTypeHandle(BIGINT).orElseThrow();
@@ -332,6 +351,12 @@ public class YdbClient extends BaseJdbcClient {
         }
         if (jdbcTypeName.equals("utf8") || jdbcTypeName.equals("text")) {
             return Optional.of(unboundedVarcharColumnMapping());
+        }
+        if (jdbcTypeName.equals("uint64")) {
+            ColumnMapping integerMapping = bigintColumnMapping();
+            // JDBC exposes Uint64 as signed long bits, so native range filters are unsafe.
+            return Optional.of(ColumnMapping.mapping(
+                    BIGINT, integerMapping.getReadFunction(), integerMapping.getWriteFunction(), DISABLE_PUSHDOWN));
         }
 
         Optional<ColumnMapping> columnMapping = switch (typeHandle.jdbcType()) {
