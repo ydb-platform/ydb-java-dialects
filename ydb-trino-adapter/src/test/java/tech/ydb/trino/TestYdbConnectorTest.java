@@ -78,7 +78,8 @@ public class TestYdbConnectorTest extends BaseConnectorTest {
             assertThat(query(session, join.formatted("JOIN", "l.k < r.k")))
                     .joinIsNotFullyPushedDown();
             assertThat(query(session, join.formatted("JOIN", "l.s = r.s")))
-                    .matches("VALUES (BIGINT '1', BIGINT '10'), (BIGINT '2', BIGINT '11')")
+                    .matches("VALUES (BIGINT '1', BIGINT '10'), (BIGINT '2', BIGINT '11'), " +
+                            "(BIGINT '3', BIGINT '12'), (BIGINT '4', BIGINT '13')")
                     .isFullyPushedDown();
             assertThat(query(session, join.formatted("JOIN", "l.d = r.d")))
                     .matches("VALUES (BIGINT '1', BIGINT '10'), (BIGINT '2', BIGINT '11'), " +
