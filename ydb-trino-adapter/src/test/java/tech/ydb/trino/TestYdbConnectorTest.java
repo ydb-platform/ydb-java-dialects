@@ -3,6 +3,10 @@ package tech.ydb.trino;
 import io.trino.Session;
 import io.trino.spi.type.Type;
 import io.trino.spi.type.VarcharType;
+import io.trino.sql.planner.plan.ExchangeNode;
+import io.trino.sql.planner.plan.JoinNode;
+import io.trino.sql.planner.plan.TableScanNode;
+import io.trino.sql.planner.plan.TopNNode;
 import io.trino.testing.BaseConnectorTest;
 import io.trino.testing.MaterializedResult;
 import io.trino.testing.QueryRunner;
@@ -47,11 +51,137 @@ public class TestYdbConnectorTest extends BaseConnectorTest {
         assertQueryFails("SELECT * FROM local.\"%\".orders", ".*Schema '%' does not exist");
     }
 
+    // JOIN contracts from Trino 483, kept here without enabling unrelated JDBC fixture tests:
+    // https://github.com/trinodb/trino/blob/483/plugin/trino-base-jdbc/src/test/java/io/trino/plugin/jdbc/BaseJdbcConnectorTest.java
     @Test
-    public void testOptInInt64JoinPushdown() {
+    public void testJoinPushdownDisabled() {
         Session session = Session.builder(getSession())
-                .setCatalogSessionProperty(getSession().getCatalog().orElseThrow(), "join_pushdown_enabled", "true")
+                .setCatalogSessionProperty(getSession().getCatalog().orElseThrow(), "join_pushdown_enabled", "false")
+                .setSystemProperty("enable_dynamic_filtering", "false")
                 .build();
+        assertThat(query(session, "SELECT r.name, n.name FROM nation n JOIN region r ON n.regionkey = r.regionkey"))
+                .joinIsNotFullyPushedDown();
+    }
+
+    @Test
+    public void testJoinPushdown() {
+        // YQL requires equality between the two sources; one-sided outer JOIN conditions stay in Trino:
+        // https://ydb.tech/docs/en/yql/reference/syntax/select/join
+        // Trino 483 hard-codes the opposite expectation in static expectJoinPushdownOnEmptyProjection:
+        // https://github.com/trinodb/trino/blob/483/plugin/trino-base-jdbc/src/test/java/io/trino/plugin/jdbc/BaseJdbcConnectorTest.java#L1391-L1394
+        Session session = Session.builder(getSession())
+                .setSystemProperty("enable_dynamic_filtering", "false")
+                .build();
+        try (TestTable lowercaseNation = newTrinoTable(
+                "nation_lowercase", "AS SELECT nationkey, lower(name) name, regionkey FROM nation")) {
+            for (String join : List.of("JOIN", "LEFT JOIN", "RIGHT JOIN", "FULL JOIN")) {
+                for (String sql : List.of(
+                        "SELECT r.name, n.name FROM nation n %s region r ON n.regionkey = r.regionkey",
+                        "SELECT r.name, n.name FROM nation n %s region r ON n.nationkey = r.regionkey",
+                        "SELECT n.name, r.name FROM nation n %s region r ON n.regionkey + 1 = r.regionkey",
+                        "SELECT r.name, n.name FROM nation n %s region r USING (regionkey)",
+                        "SELECT n.name, c.name FROM nation n %s customer c ON n.nationkey = c.nationkey AND n.regionkey = c.custkey",
+                        "SELECT c.name, n.name FROM (SELECT * FROM customer WHERE acctbal > 8000) c %s nation n ON c.custkey = n.nationkey",
+                        "SELECT c.name, n.name FROM (SELECT * FROM customer WHERE address = 'TcGe5gaZNgVePxU5kRrvXBfkasDTea') c %s nation n ON c.custkey = n.nationkey",
+                        "SELECT c.name, n.name FROM (SELECT * FROM customer WHERE address < 'TcGe5gaZNgVePxU5kRrvXBfkasDTea') c %s nation n ON c.custkey = n.nationkey",
+                        "SELECT * FROM (SELECT regionkey rk, count(nationkey) c FROM nation GROUP BY regionkey) n %s region r ON n.rk = r.regionkey",
+                        "SELECT * FROM (SELECT regionkey, count(*) c FROM nation GROUP BY regionkey) n %s region r ON n.c = r.regionkey",
+                        "SELECT n.name, n2.regionkey FROM nation n %s nation n2 ON n.name = n2.name",
+                        "SELECT * FROM (SELECT nationkey FROM nation LIMIT 30) n %s region r ON n.nationkey = r.regionkey",
+                        "SELECT * FROM (SELECT nationkey FROM nation ORDER BY regionkey LIMIT 5) n %s region r ON n.nationkey = r.regionkey",
+                        "SELECT count(*) FROM nation n %s region r ON n.regionkey = r.regionkey")) {
+                    assertThat(query(session, sql.formatted(join))).isFullyPushedDown();
+                }
+
+                for (String sql : List.of(
+                        "SELECT n.name FROM nation n %s orders o ON DATE '2025-03-19' = o.orderdate",
+                        "SELECT n.name FROM nation n %s region r ON n.regionkey = 1",
+                        "SELECT n.name, r.name FROM nation n %s region r ON n.nationkey = n.regionkey")) {
+                    assertThat(query(session, sql.formatted(join))).joinIsNotFullyPushedDown();
+                }
+
+                assertThat(query(session, "SELECT n.name, nl.name FROM nation n " + join + " " + lowercaseNation.getName() +
+                        " nl ON n.name = nl.name"))
+                        .isFullyPushedDown();
+                assertThat(query(session, "SELECT n.name, nl.name FROM nation n " + join + " " + lowercaseNation.getName() +
+                        " nl ON n.regionkey = nl.regionkey AND n.name = nl.name"))
+                        .isFullyPushedDown();
+                for (String operator : List.of("<>", "<", "<=", ">", ">=", "IS DISTINCT FROM", "IS NOT DISTINCT FROM")) {
+                    assertThat(query(session, "SELECT n.name, nl.name FROM nation n " + join + " " + lowercaseNation.getName() +
+                            " nl ON n.name " + operator + " nl.name"))
+                            .joinIsNotFullyPushedDown();
+                    assertThat(query(session, "SELECT n.name, nl.name FROM nation n " + join + " " + lowercaseNation.getName() +
+                            " nl ON n.regionkey = nl.regionkey AND n.name " + operator + " nl.name"))
+                            .joinIsNotFullyPushedDown();
+                    assertThat(query(session, "SELECT r.name, n.name FROM nation n " + join +
+                            " region r ON n.regionkey " + operator + " r.regionkey"))
+                            .joinIsNotFullyPushedDown();
+                    assertThat(query(session, "SELECT n.name, c.name FROM nation n " + join +
+                            " customer c ON n.nationkey = c.nationkey AND n.regionkey " + operator + " c.custkey"))
+                            .joinIsNotFullyPushedDown();
+                }
+            }
+        }
+        assertThat(query(session, "SELECT * FROM nation n, region r, customer c " +
+                "WHERE n.regionkey = r.regionkey AND r.regionkey = c.custkey"))
+                .isFullyPushedDown();
+    }
+
+    @Test
+    public void testComplexJoinPushdown() {
+        // Arithmetic predicates are supported individually, but this condition mixes both JOIN sources:
+        // https://ydb.tech/docs/en/yql/reference/syntax/select/join
+        for (boolean complex : List.of(false, true)) {
+            Session session = Session.builder(getSession())
+                    .setCatalogSessionProperty(getSession().getCatalog().orElseThrow(), "complex_join_pushdown_enabled", Boolean.toString(complex))
+                    .build();
+            assertThat(query(session, "SELECT n.name, o.orderstatus FROM nation n JOIN orders o " +
+                    "ON n.regionkey = o.orderkey AND n.nationkey + o.custkey - 3 = 0"))
+                    .joinIsNotFullyPushedDown();
+            if (complex) {
+                assertThat(query(session, "SELECT n.name, r.name FROM nation n JOIN region r ON n.regionkey = r.regionkey"))
+                        .joinIsNotFullyPushedDown();
+            }
+        }
+    }
+
+    @Test
+    public void testLimitPushdownWithDistinctAndJoin() {
+        assertThat(query("SELECT DISTINCT regionkey FROM nation LIMIT 5")).isFullyPushedDown();
+        assertThat(query(getSession(),
+                "SELECT n.name, r.name FROM nation n LEFT JOIN region r USING (regionkey) LIMIT 30"))
+                .isFullyPushedDown();
+    }
+
+    @Test
+    public void testTopNPushdownWithJoin() {
+        Session session = Session.builder(getSession())
+                .setCatalogSessionProperty(getSession().getCatalog().orElseThrow(), "join_pushdown_enabled", "false")
+                .build();
+        assertThat(query(session, "SELECT * FROM nation n LEFT JOIN region r ON n.regionkey = r.regionkey " +
+                "ORDER BY n.nationkey LIMIT 3"))
+                .ordered()
+                .isNotFullyPushedDown(node(TopNNode.class,
+                        anyTree(node(JoinNode.class,
+                                node(ExchangeNode.class, node(TableScanNode.class)),
+                                anyTree(node(TableScanNode.class))))));
+    }
+
+    @Test
+    public void testJoinPushdownWithLongIdentifiers() {
+        String column = "col" + "z".repeat(maxColumnNameLength().orElseThrow() - 3);
+        try (TestTable left = newTrinoTable("test_long_id_l", "(" + column + " BIGINT)", List.of("1"));
+                TestTable right = newTrinoTable("test_long_id_r", "(" + column + " BIGINT)", List.of("1", "2"))) {
+            assertThat(query(getSession(),
+                    "SELECT l.%1$s, r.%1$s FROM %2$s l JOIN %3$s r ON l.%1$s = r.%1$s"
+                            .formatted(column, left.getName(), right.getName())))
+                    .isFullyPushedDown();
+        }
+    }
+
+    @Test
+    public void testInt64JoinPushdown() {
+        Session session = joinPushdownSession();
         try (TestTable left = newTrinoTable("join_int64_left_", "(id bigint, k bigint, second_key bigint, d double, s varchar)",
                 List.of("1, 7, 1, 1.0, 'a'", "2, 7, 2, 2.0, 'b'", "3, NULL, 1, 3.0, 'c'", "4, 8, 1, 4.0, 'd'"));
                 TestTable right = newTrinoTable("join_int64_right_", "(id bigint, k bigint, second_key bigint, d double, s varchar)",
@@ -77,7 +207,10 @@ public class TestYdbConnectorTest extends BaseConnectorTest {
                     .isFullyPushedDown()
                     .matches("VALUES (BIGINT '2', BIGINT '11')");
 
-            assertThat(query(getSession(), join.formatted("JOIN", "l.k = r.k"))).joinIsNotFullyPushedDown();
+            Session disabled = Session.builder(getSession())
+                    .setCatalogSessionProperty(getSession().getCatalog().orElseThrow(), "join_pushdown_enabled", "false")
+                    .build();
+            assertThat(query(disabled, join.formatted("JOIN", "l.k = r.k"))).joinIsNotFullyPushedDown();
             assertThat(query(session, join.formatted("JOIN", "l.k < r.k")))
                     .joinIsNotFullyPushedDown();
             assertThat(query(session, join.formatted("JOIN", "l.s = r.s")))
@@ -265,8 +398,13 @@ public class TestYdbConnectorTest extends BaseConnectorTest {
                  SUPPORTS_DEFAULT_COLUMN_VALUE,
                  SUPPORTS_SET_DEFAULT_COLUMN_VALUE,
                  SUPPORTS_DROP_DEFAULT_COLUMN_VALUE,
-                 SUPPORTS_ADD_COLUMN_NOT_NULL_CONSTRAINT -> false;
-            case SUPPORTS_TOPN_PUSHDOWN_WITH_VARCHAR -> true;
+                 SUPPORTS_ADD_COLUMN_NOT_NULL_CONSTRAINT,
+                 SUPPORTS_JOIN_PUSHDOWN_WITH_DISTINCT_FROM,
+                 SUPPORTS_JOIN_PUSHDOWN_WITH_VARCHAR_INEQUALITY -> false;
+            case SUPPORTS_TOPN_PUSHDOWN_WITH_VARCHAR,
+                 SUPPORTS_JOIN_PUSHDOWN,
+                 SUPPORTS_JOIN_PUSHDOWN_WITH_VARCHAR_EQUALITY,
+                 SUPPORTS_JOIN_PUSHDOWN_WITH_FULL_JOIN -> true;
             default -> super.hasBehavior(connectorBehavior);
         };
     }
