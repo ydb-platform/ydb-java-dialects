@@ -60,9 +60,17 @@ AS SELECT tenant, event_id, payload FROM events;
 ```
 
 Имена ключей в CTAS относятся к выходным столбцам запроса. Отсутствующий,
-пустой, повторяющийся или неизвестный `primary_key` отклоняется. Текущая
-integration-проверка CTAS использует `insert.non-transactional-insert.enabled=true`;
-transactional staging этой проверкой не подтверждается.
+пустой, повторяющийся или неизвестный `primary_key` отклоняется. CTAS адаптера
+работает при обоих значениях `insert.non-transactional-insert.enabled`.
+
+При значении `false` (по умолчанию в Trino 483) обычный `INSERT` не работает:
+Trino пытается создать промежуточную таблицу запросом `CREATE TABLE tmp AS SELECT
+... WHERE 0 = 1`, который YDB отклоняет на `AS`. Эта форма не соответствует
+[синтаксису YQL CTAS](https://ydb.tech/docs/en/yql/reference/syntax/create_table/as_select):
+он требует первичный ключ и поддерживается для колоночных таблиц. Для `INSERT`
+задайте `insert.non-transactional-insert.enabled=true` в свойствах каталога.
+Тогда Trino пишет непосредственно в целевую таблицу; при сбое запись может
+остаться частичной.
 
 ## Текст и байты
 
