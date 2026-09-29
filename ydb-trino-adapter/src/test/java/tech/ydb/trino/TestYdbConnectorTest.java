@@ -1,5 +1,6 @@
 package tech.ydb.trino;
 
+import io.trino.Session;
 import io.trino.spi.type.Type;
 import io.trino.spi.type.VarcharType;
 import io.trino.testing.BaseConnectorTest;
@@ -13,6 +14,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import tech.ydb.test.junit5.YdbHelperExtension;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.OptionalInt;
 
@@ -40,6 +42,50 @@ public class TestYdbConnectorTest extends BaseConnectorTest {
         assertQuerySucceeds("SELECT orderkey FROM local.default.orders LIMIT 1");
         assertQueryFails("SELECT * FROM local.missing.orders", ".*Schema 'missing' does not exist");
         assertQueryFails("SELECT * FROM local.\"%\".orders", ".*Schema '%' does not exist");
+    }
+
+    @Test
+    public void testOptInInt64JoinPushdown() {
+        Session session = Session.builder(getSession())
+                .setCatalogSessionProperty(getSession().getCatalog().orElseThrow(), "join_pushdown_enabled", "true")
+                .build();
+        try (TestTable left = newTrinoTable("join_int64_left_", "(id bigint, k bigint, second_key bigint, d double, s varchar)",
+                List.of("1, 7, 1, 1.0, 'a'", "2, 7, 2, 2.0, 'b'", "3, NULL, 1, 3.0, 'c'", "4, 8, 1, 4.0, 'd'"));
+                TestTable right = newTrinoTable("join_int64_right_", "(id bigint, k bigint, second_key bigint, d double, s varchar)",
+                        List.of("10, 7, 1, 1.0, 'a'", "11, 7, 2, 2.0, 'b'", "12, NULL, 1, 3.0, 'c'", "13, 9, 1, 4.0, 'd'"))) {
+            String join = "SELECT l.id, r.id FROM " + left.getName() + " l %s " + right.getName() + " r ON %s";
+            String matches = "VALUES (BIGINT '1', BIGINT '10'), (BIGINT '1', BIGINT '11'), " +
+                    "(BIGINT '2', BIGINT '10'), (BIGINT '2', BIGINT '11')";
+            assertThat(query(session, join.formatted("JOIN", "l.k = r.k"))).isFullyPushedDown().matches(matches);
+            assertThat(query(session, join.formatted("LEFT JOIN", "l.k = r.k"))).isFullyPushedDown()
+                    .matches(matches + ", (BIGINT '3', CAST(NULL AS BIGINT)), (BIGINT '4', CAST(NULL AS BIGINT))");
+            assertThat(query(session, join.formatted("RIGHT JOIN", "l.k = r.k"))).isFullyPushedDown()
+                    .matches(matches + ", (CAST(NULL AS BIGINT), BIGINT '12'), (CAST(NULL AS BIGINT), BIGINT '13')");
+            assertThat(query(session, join.formatted("FULL JOIN", "l.k = r.k"))).isFullyPushedDown()
+                    .matches(matches + ", (BIGINT '3', CAST(NULL AS BIGINT)), (BIGINT '4', CAST(NULL AS BIGINT)), " +
+                            "(CAST(NULL AS BIGINT), BIGINT '12'), (CAST(NULL AS BIGINT), BIGINT '13')");
+
+            assertThat(query(session, join.formatted("JOIN", "l.k = r.k AND l.second_key = r.second_key")))
+                    .isFullyPushedDown()
+                    .matches("VALUES (BIGINT '1', BIGINT '10'), (BIGINT '2', BIGINT '11')");
+            assertThat(query(session, "SELECT l.id, r.id FROM (SELECT id, k FROM " + left.getName() +
+                    " WHERE id > 1 AND id < 3) l JOIN (SELECT id, k FROM " + right.getName() +
+                    " WHERE id > 10 AND id < 12) r ON l.k = r.k"))
+                    .isFullyPushedDown()
+                    .matches("VALUES (BIGINT '2', BIGINT '11')");
+
+            assertThat(query(getSession(), join.formatted("JOIN", "l.k = r.k"))).joinIsNotFullyPushedDown();
+            assertThat(query(session, join.formatted("JOIN", "l.k < r.k")))
+                    .joinIsNotFullyPushedDown();
+            assertThat(query(session, join.formatted("JOIN", "l.s = r.s")))
+                    .joinIsNotFullyPushedDown();
+            assertThat(query(session, join.formatted("JOIN", "l.d = r.d")))
+                    .joinIsNotFullyPushedDown();
+            Session complex = Session.builder(session)
+                    .setCatalogSessionProperty(getSession().getCatalog().orElseThrow(), "complex_join_pushdown_enabled", "true")
+                    .build();
+            assertThat(query(complex, join.formatted("JOIN", "l.k = r.k"))).joinIsNotFullyPushedDown();
+        }
     }
 
     @Override

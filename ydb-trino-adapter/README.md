@@ -64,6 +64,14 @@ AS SELECT tenant, event_id, payload FROM events;
 integration-проверка CTAS использует `insert.non-transactional-insert.enabled=true`;
 transactional staging этой проверкой не подтверждается.
 
+## JOIN pushdown
+
+По умолчанию JOIN выполняет Trino. Для пробного pushdown задайте
+`join_pushdown_enabled=true` в сессии каталога. Адаптер передаёт YDB
+`INNER`, `LEFT`, `RIGHT` и `FULL JOIN` только по равенству исходных столбцов
+`Int64` (Trino `bigint`), включая составной ключ. Остальные условия JOIN,
+вычисляемые ключи и другие типы остаются в Trino. См. [правила YQL JOIN](https://ydb.tech/docs/ru/yql/reference/syntax/select/join).
+
 ## Текст и байты
 
 YDB `Text` отображается в Trino как `varchar`, а `Bytes` — как `varbinary` без

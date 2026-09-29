@@ -18,6 +18,7 @@ import io.trino.plugin.jdbc.ColumnMapping;
 import io.trino.plugin.jdbc.ConnectionFactory;
 import io.trino.plugin.jdbc.JdbcColumnHandle;
 import io.trino.plugin.jdbc.JdbcExpression;
+import io.trino.plugin.jdbc.JdbcJoinCondition;
 import io.trino.plugin.jdbc.JdbcMergeTableHandle;
 import io.trino.plugin.jdbc.JdbcOutputTableHandle;
 import io.trino.plugin.jdbc.JdbcSortItem;
@@ -44,6 +45,8 @@ import io.trino.spi.connector.ColumnHandle;
 import io.trino.spi.connector.ColumnMetadata;
 import io.trino.spi.connector.ConnectorSession;
 import io.trino.spi.connector.ConnectorTableMetadata;
+import io.trino.spi.connector.JoinStatistics;
+import io.trino.spi.connector.JoinType;
 import io.trino.spi.connector.RetryMode;
 import io.trino.spi.connector.SchemaTableName;
 import io.trino.spi.connector.SortOrder;
@@ -102,6 +105,7 @@ import static io.trino.plugin.jdbc.StandardColumnMappings.varcharReadFunction;
 import static io.trino.plugin.jdbc.StandardColumnMappings.varcharWriteFunction;
 import static io.trino.spi.StandardErrorCode.INVALID_TABLE_PROPERTY;
 import static io.trino.spi.StandardErrorCode.NOT_SUPPORTED;
+import static io.trino.spi.connector.JoinCondition.Operator.EQUAL;
 import static io.trino.spi.type.BigintType.BIGINT;
 import static io.trino.spi.type.BooleanType.BOOLEAN;
 import static io.trino.spi.type.DateType.DATE;
@@ -197,6 +201,34 @@ public class YdbClient extends BaseJdbcClient {
                         .add(new ImplementAvgFloatingPoint())
                         .add(new ImplementAvgDecimal())
                         .build());
+    }
+
+    @Override
+    protected boolean isSupportedJoinCondition(ConnectorSession session, JdbcJoinCondition condition) {
+        return condition.getOperator() == EQUAL
+                && isNativeInt64JoinKey(condition.getLeftColumn())
+                && isNativeInt64JoinKey(condition.getRightColumn());
+    }
+
+    private boolean isNativeInt64JoinKey(JdbcColumnHandle column) {
+        return column.getColumnType().equals(BIGINT)
+                && column.getJdbcTypeHandle().jdbcTypeName().filter("Int64"::equalsIgnoreCase).isPresent()
+                && getForcedMappingToVarchar(column.getJdbcTypeHandle()).isEmpty()
+                && !column.getComment().filter("synthetic"::equals).isPresent();
+    }
+
+    @Override
+    public Optional<PreparedQuery> implementJoin(
+            ConnectorSession session,
+            JoinType joinType,
+            PreparedQuery leftSource,
+            Map<JdbcColumnHandle, String> leftProjections,
+            PreparedQuery rightSource,
+            Map<JdbcColumnHandle, String> rightProjections,
+            List<ParameterizedExpression> joinConditions,
+            JoinStatistics statistics) {
+        // The expression API loses which source owns each YQL ON operand.
+        return Optional.empty();
     }
 
     @Override
