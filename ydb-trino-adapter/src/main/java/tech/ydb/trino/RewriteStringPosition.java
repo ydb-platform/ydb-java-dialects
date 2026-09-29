@@ -69,8 +69,8 @@ public class RewriteStringPosition implements ProjectFunctionRule<JdbcExpression
 
         ImmutableList.Builder<@NonNull QueryParameter> parameters = ImmutableList.builder();
         parameters.addAll(rewrittenString.get().parameters());
-        // Add substring parameters twice - for both occurrences in CASE expression
         parameters.addAll(rewrittenSubstring.get().parameters());
+        parameters.addAll(rewrittenString.get().parameters());
         parameters.addAll(rewrittenSubstring.get().parameters());
 
         String findExpr = format("Find(%s, %s)", strSql, subSql);

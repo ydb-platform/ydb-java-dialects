@@ -1,12 +1,17 @@
 package tech.ydb.trino;
 
+import io.airlift.slice.Slices;
 import io.trino.plugin.base.mapping.DefaultIdentifierMapping;
 import io.trino.plugin.jdbc.BaseJdbcConfig;
 import io.trino.plugin.jdbc.JdbcColumnHandle;
+import io.trino.plugin.jdbc.JdbcTableHandle;
 import io.trino.plugin.jdbc.JdbcTypeHandle;
 import io.trino.plugin.jdbc.QueryParameter;
+import io.trino.plugin.jdbc.RemoteTableName;
+import io.trino.spi.connector.SchemaTableName;
 import io.trino.spi.expression.Call;
 import io.trino.spi.expression.Constant;
+import io.trino.spi.expression.FunctionName;
 import io.trino.spi.expression.Variable;
 import io.trino.spi.type.Type;
 import org.junit.jupiter.api.Test;
@@ -27,6 +32,7 @@ import static io.trino.spi.type.DoubleType.DOUBLE;
 import static io.trino.spi.type.IntegerType.INTEGER;
 import static io.trino.spi.type.SmallintType.SMALLINT;
 import static io.trino.spi.type.TinyintType.TINYINT;
+import static io.trino.spi.type.VarcharType.VARCHAR;
 import static io.trino.testing.connector.TestingConnectorSession.SESSION;
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -90,6 +96,22 @@ public class TestYdbExpressionRewrites {
                         .isEqualTo(entry.getValue().contains(target));
             }
         }
+    }
+
+    @Test
+    public void testNestedStringPositionParameterOrder() {
+        Call concat = new Call(VARCHAR, new FunctionName("concat"), List.of(
+                new Variable("key", VARCHAR), new Constant(Slices.utf8Slice("suffix"), VARCHAR)));
+        Call position = new Call(BIGINT, new FunctionName("strpos"), List.of(
+                concat, new Constant(Slices.utf8Slice("fix"), VARCHAR)));
+        JdbcTableHandle table = new JdbcTableHandle(new SchemaTableName("default", "test"),
+                new RemoteTableName(Optional.empty(), Optional.empty(), "test"), Optional.empty());
+        var rewrite = client.convertProjection(SESSION, table, position, Map.of("key", column("key", VARCHAR)))
+                .orElseThrow();
+        assertThat(rewrite.getParameters()).extracting(parameter -> parameter.getValue().orElseThrow())
+                .containsExactly(Slices.utf8Slice("suffix"), Slices.utf8Slice("fix"),
+                        Slices.utf8Slice("suffix"), Slices.utf8Slice("fix"));
+        assertThat(rewrite.getExpression().chars().filter(character -> character == '?').count()).isEqualTo(4);
     }
 
     private static JdbcColumnHandle column(String name, Type type) {
