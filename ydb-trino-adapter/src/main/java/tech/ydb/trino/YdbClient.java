@@ -206,15 +206,23 @@ public class YdbClient extends BaseJdbcClient {
     @Override
     protected boolean isSupportedJoinCondition(ConnectorSession session, JdbcJoinCondition condition) {
         return condition.getOperator() == EQUAL
-                && isNativeInt64JoinKey(condition.getLeftColumn())
-                && isNativeInt64JoinKey(condition.getRightColumn());
+                && hasSupportedValueMapping(condition.getLeftColumn())
+                && hasSupportedValueMapping(condition.getRightColumn());
     }
 
-    private boolean isNativeInt64JoinKey(JdbcColumnHandle column) {
-        return column.getColumnType().equals(BIGINT)
-                && column.getJdbcTypeHandle().jdbcTypeName().filter("Int64"::equalsIgnoreCase).isPresent()
-                && getForcedMappingToVarchar(column.getJdbcTypeHandle()).isEmpty()
-                && !column.getComment().filter("synthetic"::equals).isPresent();
+    private boolean hasSupportedValueMapping(JdbcColumnHandle column) {
+        JdbcTypeHandle type = column.getJdbcTypeHandle();
+        if (getForcedMappingToVarchar(type).isPresent()) {
+            return false;
+        }
+        String name = type.jdbcTypeName().orElse("").toLowerCase(Locale.ROOT);
+        return switch (name) {
+            case "bool", "int8", "int16", "int32", "int64", "uint8", "uint16", "uint32", "uint64",
+                    "float", "double", "utf8", "text", "date", "date32", "datetime", "datetime64",
+                    "timestamp", "timestamp64", "decimal" -> true;
+            case "string", "bytes" -> column.getColumnType().equals(VARBINARY);
+            default -> name.startsWith("decimal(");
+        };
     }
 
     @Override
