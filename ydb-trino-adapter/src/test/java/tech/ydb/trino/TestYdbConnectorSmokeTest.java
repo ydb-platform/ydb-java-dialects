@@ -6,11 +6,13 @@ import io.trino.testing.TestingConnectorBehavior;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
+import org.junit.jupiter.api.parallel.ResourceLock;
 import tech.ydb.test.junit5.YdbHelperExtension;
 
+@ResourceLock("YDB_HELPER")
 public class TestYdbConnectorSmokeTest extends BaseConnectorSmokeTest {
     @RegisterExtension
-    static final YdbHelperExtension ydb = new YdbHelperExtension();
+    static final YdbHelperExtension ydb = new YdbHelperExtension().failIfUnavailable();
 
     @Override
     protected QueryRunner createQueryRunner() throws Exception {

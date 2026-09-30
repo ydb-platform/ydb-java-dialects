@@ -85,6 +85,7 @@ import java.util.stream.Stream;
 
 import static io.trino.plugin.jdbc.DefaultJdbcMetadata.MERGE_ROW_ID;
 import static io.trino.plugin.jdbc.JdbcErrorCode.JDBC_ERROR;
+import static io.trino.plugin.jdbc.JdbcWriteSessionProperties.isNonTransactionalMerge;
 import static io.trino.plugin.jdbc.PredicatePushdownController.DISABLE_PUSHDOWN;
 import static io.trino.plugin.jdbc.PredicatePushdownController.FULL_PUSHDOWN;
 import static io.trino.plugin.jdbc.StandardColumnMappings.bigintColumnMapping;
@@ -657,7 +658,7 @@ public class YdbClient extends BaseJdbcClient {
             sb.append(" NOT NULL");
         }
         if (column.getDefaultValue().isPresent()) {
-            sb.append(" DEFAULT ").append(column.getDefaultValue().get());
+            throw new TrinoException(NOT_SUPPORTED, "This connector does not support defining column defaults through Trino");
         }
 
         return sb.toString();
@@ -742,6 +743,35 @@ public class YdbClient extends BaseJdbcClient {
     }
 
     @Override
+    protected void copyTableSchema(ConnectorSession session, Connection connection, String catalogName,
+            String schemaName, String tableName, String newTableName, List<String> columnNames) {
+        // YDB JDBC reports neither TABLE_CAT nor TABLE_SCHEM for discovered tables.
+        RemoteTableName remoteTable = new RemoteTableName(Optional.empty(), Optional.empty(), tableName);
+        Map<String, JdbcColumnHandle> sourceColumns = getColumns(session, new SchemaTableName(DEFAULT_SCHEMA, tableName), remoteTable).stream()
+                .collect(Collectors.toMap(JdbcColumnHandle::getColumnName, Function.identity()));
+        String stagingKey = "_trino_ydb_staging_key";
+        while (columnNames.contains(stagingKey)) {
+            stagingKey += "_";
+        }
+        String declarations = columnNames.stream().map(name -> {
+            JdbcColumnHandle column = sourceColumns.get(name);
+            String nativeType = column.getJdbcTypeHandle().jdbcTypeName().orElseThrow();
+            if (nativeType.equalsIgnoreCase("Decimal")) {
+                nativeType = toWriteMapping(session, column.getColumnType()).getDataType();
+            }
+            return quoted(name) + " " + nativeType;
+        }).collect(joining(", "));
+        String sql = "CREATE TABLE %s (%s, %s Serial, PRIMARY KEY (%s))".formatted(
+                quoted(newTableName), declarations, quoted(stagingKey), quoted(stagingKey));
+        try {
+            execute(session, connection, sql);
+        }
+        catch (SQLException e) {
+            throw new TrinoException(JDBC_ERROR, "Failed to create YDB INSERT staging table", e);
+        }
+    }
+
+    @Override
     public JdbcMergeTableHandle beginMerge(
             ConnectorSession session,
             JdbcTableHandle handle,
@@ -752,11 +782,16 @@ public class YdbClient extends BaseJdbcClient {
         if (retryMode != RetryMode.NO_RETRIES) {
             throw new TrinoException(NOT_SUPPORTED, "Query and task retries are not supported for direct YDB MERGE");
         }
+        if (!isNonTransactionalMerge(session)) {
+            throw new TrinoException(NOT_SUPPORTED,
+                    "YDB row-level writes require non_transactional_merge=true; completed batches can remain after a failure");
+        }
 
         List<JdbcColumnHandle> primaryKeys = getPrimaryKeys(session, handle.getRequiredNamedRelation().getRemoteTableName());
         if (primaryKeys.isEmpty()) {
             throw new TrinoException(NOT_SUPPORTED, "The connector cannot perform MERGE on a table without a primary key");
         }
+        updateColumnHandles.values().forEach(columns -> verifyNoPrimaryKeyUpdate(primaryKeys, columns));
 
         SchemaTableName schemaTableName = handle.getRequiredNamedRelation().getSchemaTableName();
         RemoteTableName remoteTableName = handle.getRequiredNamedRelation().getRemoteTableName();
@@ -791,12 +826,12 @@ public class YdbClient extends BaseJdbcClient {
             JdbcMergeTableHandle tableHandle,
             Set<Long> pageSinkIds
     ) {
-        // JdbcMergeSink finishes its operation-specific sinks before reporting success.
+        // YdbMergeSink has already committed its bounded, non-transactional batches.
     }
 
     @Override
     public OptionalInt getMaxWriteParallelism(ConnectorSession session) {
-        // Direct-to-target merge sinks cannot be committed atomically across writer tasks.
+        // This limits ordinary writes; Trino 483 does not enforce this bound for MERGE.
         return OptionalInt.of(1);
     }
 
@@ -819,6 +854,9 @@ public class YdbClient extends BaseJdbcClient {
 
     @Override
     public OptionalLong update(ConnectorSession session, JdbcTableHandle handle) {
+        verifyNoPrimaryKeyUpdate(
+                getPrimaryKeys(session, handle.getRequiredNamedRelation().getRemoteTableName()),
+                handle.getUpdateAssignments().stream().map(assignment -> (ColumnHandle) assignment.column()).toList());
         try (Connection connection = connectionFactory.openConnection(session)) {
             PreparedQuery preparedQuery = queryBuilder.prepareUpdateQuery(
                     this,
@@ -832,6 +870,13 @@ public class YdbClient extends BaseJdbcClient {
         }
         catch (SQLException e) {
             throw new TrinoException(JDBC_ERROR, e);
+        }
+    }
+
+    private static void verifyNoPrimaryKeyUpdate(List<JdbcColumnHandle> primaryKeys, Collection<ColumnHandle> updatedColumns) {
+        if (updatedColumns.stream().anyMatch(primaryKeys::contains)) {
+            throw new TrinoException(NOT_SUPPORTED,
+                    "YDB does not support updating primary key columns: https://ydb.tech/docs/en/yql/reference/syntax/update");
         }
     }
 

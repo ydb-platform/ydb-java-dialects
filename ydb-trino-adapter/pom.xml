@@ -18,7 +18,7 @@
         <maven.compiler.release>25</maven.compiler.release>
         <trino.version>483</trino.version>
         <ydb.jdbc.version>2.4.1</ydb.jdbc.version>
-        <ydb.sdk.version>2.3.13</ydb.sdk.version>
+        <ydb.sdk.version>2.4.10</ydb.sdk.version>
         <junit.version>5.10.1</junit.version>
     </properties>
 
@@ -61,6 +61,12 @@
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter-engine</artifactId>
+            <version>${junit.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-params</artifactId>
             <version>${junit.version}</version>
             <scope>test</scope>
         </dependency>
@@ -155,6 +161,10 @@
                 <version>3.1.0</version>
                 <configuration>
                     <argLine>--add-modules jdk.incubator.vector</argLine>
+                    <systemPropertyVariables>
+                        <YDB_DOCKER_IMAGE>ydbplatform/local-ydb@sha256:9e46fd45875551a75bcf34d0bb9ca0baa1d8763a4ccf2070af45f4467c4b7402</YDB_DOCKER_IMAGE>
+                        <YDB_DOCKER_REUSE>false</YDB_DOCKER_REUSE>
+                    </systemPropertyVariables>
                 </configuration>
             </plugin>
         </plugins>

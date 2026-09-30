@@ -60,9 +60,32 @@ AS SELECT tenant, event_id, payload FROM events;
 ```
 
 Имена ключей в CTAS относятся к выходным столбцам запроса. Отсутствующий,
-пустой, повторяющийся или неизвестный `primary_key` отклоняется. Текущая
-integration-проверка CTAS использует `insert.non-transactional-insert.enabled=true`;
-transactional staging этой проверкой не подтверждается.
+пустой, повторяющийся или неизвестный `primary_key` отклоняется.
+Обычный INSERT использует временную таблицу с native-типами и отдельным
+Serial-ключом; публикация в целевую таблицу выполняется одним `INSERT ... SELECT`.
+`TestYdbCreateTable` проверяет этот режим на production client, включая ошибку
+повторяющегося ключа и очистку временных таблиц.
+
+## UPDATE, DELETE и MERGE
+
+Полностью передаваемые в YDB UPDATE/DELETE возвращают число строк через YQL
+`RETURNING` в том же запросе. Изменение физического первичного ключа явно
+отклоняется с `NOT_SUPPORTED`: [ограничение YQL UPDATE](https://ydb.tech/docs/en/yql/reference/syntax/update).
+
+Для MERGE и UPDATE/DELETE, которые Trino выполняет построчно, нужен явный режим:
+
+```properties
+merge.non-transactional-merge.enabled=true
+```
+
+Либо `SET SESSION local.non_transactional_merge = true`. Такой запрос
+**не атомарен целиком**: уже завершённые пакеты остаются после ошибки или отмены.
+Каждый пакет размером не более `write.batch-size` использует собственные
+соединение и транзакцию; операции сохраняют порядок, nullable-составной ключ
+сопоставляется без потери NULL, а запись сохраняет native-типы.
+Ошибка откатывает текущий пакет; соединения и statements закрываются до
+возврата из обработки пакета. Автоматического replay нет, query/task retry запрещён.
+Ограничение числа writer tasks в Trino 483 не обеспечивает атомарность MERGE.
 
 ## JOIN pushdown
 
@@ -98,6 +121,7 @@ Native decimal `NaN` и бесконечности не представимы �
 передаётся в YDB только для целочисленного результата с ненулевым постоянным
 делителем, отличным от `-1`. `strpos` считает позиции Unicode-символов и
 сохраняет SQL `NULL`, а не заменяет его нулём.
+`trim` остаётся в Trino: byte-oriented `String::Strip` не заменяет Unicode trim.
 
 YDB `Text` отображается в Trino как `varchar`, а `Bytes` — как `varbinary` без
 декодирования UTF-8. При создании таблиц адаптер использует типы `Text` и `Bytes`.
@@ -113,7 +137,7 @@ YDB `Text` отображается в Trino как `varchar`, а `Bytes` — к
 в `Datetime`/`Datetime64` отклоняется без молчаливого усечения.
 При записи адаптер передаёт YDB JDBC точный vendor type по `TYPE_NAME` и больше не задаёт `forceSignedDatetimes`:
 `Date`/`Date32` получают дни от эпохи, `Datetime`/`Datetime64` — секунды UTC, а `Timestamp`/`Timestamp64` — `Instant` с микросекундами.
-В `UPDATE`/`DELETE`, которые стандартный merge sink выполняет внутри `MERGE`, native `TYPE_NAME` не передаётся;
-fallback `Instant` для `Datetime`/`Datetime64` может зависеть от часового пояса JVM и остаётся отдельным риском.
+В построчных UPDATE/DELETE собственный merge sink использует исходный
+`JdbcTypeHandle` и те же native write mappings, что и обычная запись.
 Предикаты для `Date`/`Date32` и legacy temporal типов оставляются в Trino,
 чтобы не связывать значения вне диапазона исходного YDB-типа.

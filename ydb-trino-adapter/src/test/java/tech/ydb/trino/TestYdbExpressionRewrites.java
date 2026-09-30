@@ -62,6 +62,15 @@ public class TestYdbExpressionRewrites {
     }
 
     @Test
+    public void testUnicodeTrimIsNotPushedDown() {
+        JdbcColumnHandle column = new JdbcColumnHandle("value", YdbTypeUtils.toTypeHandle(VARCHAR).orElseThrow(), VARCHAR);
+        JdbcTableHandle table = new JdbcTableHandle(new SchemaTableName("default", "test"),
+                new RemoteTableName(Optional.empty(), Optional.empty(), "test"), Optional.empty());
+        assertThat(client.convertProjection(SESSION, table,
+                new Call(VARCHAR, new FunctionName("trim"), List.of(new Variable("v", VARCHAR))), Map.of("v", column))).isEmpty();
+    }
+
+    @Test
     public void testOverflowingArithmeticIsNotPushedDown() {
         JdbcColumnHandle column = new JdbcColumnHandle("value", YdbTypeUtils.toTypeHandle(BIGINT).orElseThrow(), BIGINT);
         assertThat(client.convertPredicate(SESSION, new Call(BIGINT, ADD_FUNCTION_NAME, List.of(

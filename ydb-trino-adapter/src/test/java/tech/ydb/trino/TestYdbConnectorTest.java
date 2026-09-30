@@ -12,6 +12,7 @@ import io.trino.testing.sql.TestTable;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
+import org.junit.jupiter.api.parallel.ResourceLock;
 import tech.ydb.test.junit5.YdbHelperExtension;
 
 import java.util.List;
@@ -21,10 +22,11 @@ import java.util.OptionalInt;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+@ResourceLock("YDB_HELPER")
 public class TestYdbConnectorTest extends BaseConnectorTest {
 
     @RegisterExtension
-    static final YdbHelperExtension ydb = new YdbHelperExtension();
+    static final YdbHelperExtension ydb = new YdbHelperExtension().failIfUnavailable();
 
     @Override
     protected QueryRunner createQueryRunner() throws Exception {
@@ -45,7 +47,7 @@ public class TestYdbConnectorTest extends BaseConnectorTest {
     }
 
     @Test
-    public void testOptInInt64JoinPushdown() {
+    public void testJoinPushdown() {
         Session session = Session.builder(getSession())
                 .setCatalogSessionProperty(getSession().getCatalog().orElseThrow(), "join_pushdown_enabled", "true")
                 .build();
