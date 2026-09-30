@@ -78,12 +78,12 @@ no replacement upstream PR is created by this work.
 
 ## Validation
 
-With Temurin 25.0.2, the following standalone command passed 18 tests, with
+With Temurin 25.0.2, the following standalone command passed 20 tests, with
 zero failures, errors or skips, and built the module:
 
 ```bash
 mvn -B -ntp -f ydb-trino-adapter/pom.xml \
-  -Dtest=TestYdbExpressionRewrites,TestYdbColumnMappings,TestYdbJoinMappings,TestYdbMergeSink,TestYdbWriteMetadata \
+  -Dtest=TestYdbExpressionRewrites,TestYdbColumnMappings,TestYdbJoinMappings,TestYdbMergeSink,TestYdbWriteMetadata,TestYdbPlugin \
   verify
 ```
 
@@ -98,6 +98,15 @@ the ordinary module CI:
 ```bash
 mvn -B -ntp -f ydb-trino-adapter/pom.xml clean test
 ```
+
+Canonical PR 270's first real-YDB run (`36731448784`) reported 354 tests,
+4 failures, 1 error and 85 skips. The scalar JOIN matrix and smoke suite ran.
+It exposed NaN ordering dependent on both sort direction and NULL placement,
+overly broad Date32 predicate fallback, a cached JDBC context-close race, and
+two H2 reference queries using unsupported typed-literal syntax.
+The follow-up checks NaN ordering against the actual Trino type operator,
+pushes only safely bounded Date32 predicates, defaults to uncached JDBC
+contexts, and corrects the H2 syntax. Its full real-YDB rerun is still required.
 
 The current PR's exact-head CI and independent review, not the historical
 prototype or earlier PRs, determine whether this branch is ready to merge.

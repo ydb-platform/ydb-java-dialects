@@ -101,8 +101,13 @@ or verified upstream planner and cancellation changes, not an implicit promise.
   failure. A future retry design requires staging or an operation ID that proves
   replay safety. See
   [YDB SDK error handling](https://ydb.tech/docs/en/reference/ydb-sdk/error_handling).
-- The connector uses the YDB JDBC 2.4.1 default
-  `cacheConnectionsInDriver=true`; an explicit JDBC URL option can override it.
+- The connector defaults `cacheConnectionsInDriver=false` for JDBC 2.4.1.
+  `YdbDriver.connect` obtains a cached context before connection registration,
+  while the last connection close can remove and shut down that same context.
+  CI exposed a terminated session-pool executor during a concurrent UPDATE.
+  Per-connection context ownership avoids this race without replay. URL options
+  override Properties; explicitly re-enabling this cache is not supported.
+  See the [pinned driver lifecycle](https://github.com/ydb-platform/ydb-jdbc-driver/blob/v2.4.1/jdbc/src/main/java/tech/ydb/jdbc/YdbDriver.java).
 - Do not replay buffered INSERT pages after `JdbcPageSink` may already have
   committed an internal batch.
 - Add tests for partial sink failures and abort cleanup.

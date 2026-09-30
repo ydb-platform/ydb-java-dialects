@@ -18,6 +18,8 @@ import io.trino.plugin.jdbc.logging.RemoteQueryModifier;
 import io.trino.spi.connector.ConnectorPageSinkProvider;
 import tech.ydb.jdbc.YdbDriver;
 
+import java.util.Properties;
+
 import static com.google.inject.multibindings.OptionalBinder.newOptionalBinder;
 import static io.trino.plugin.jdbc.JdbcModule.bindTablePropertiesProvider;
 
@@ -61,10 +63,14 @@ public class YdbClientModule implements Module {
     public static ConnectionFactory createConnectionFactory(
             BaseJdbcConfig config,
             CredentialProvider credentialProvider) {
+        // JDBC 2.4.1 can close a cached context between lookup and connection registration.
+        Properties properties = new Properties();
+        properties.setProperty("cacheConnectionsInDriver", "false");
         return DriverConnectionFactory.builder(
                         new YdbDriver(),
                         config.getConnectionUrl(),
                         credentialProvider)
+                .setConnectionProperties(properties)
                 .build();
     }
 }

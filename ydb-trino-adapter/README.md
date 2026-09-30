@@ -139,5 +139,14 @@ YDB `Text` отображается в Trino как `varchar`, а `Bytes` — к
 `Date`/`Date32` получают дни от эпохи, `Datetime`/`Datetime64` — секунды UTC, а `Timestamp`/`Timestamp64` — `Instant` с микросекундами.
 В построчных UPDATE/DELETE собственный merge sink использует исходный
 `JdbcTypeHandle` и те же native write mappings, что и обычная запись.
-Предикаты для `Date`/`Date32` и legacy temporal типов оставляются в Trino,
-чтобы не связывать значения вне диапазона исходного YDB-типа.
+Date32-предикаты передаются в YDB только с границами внутри документированного
+диапазона. Предикаты с выходящими за него значениями, а также предикаты
+для legacy temporal типов остаются в Trino.
+
+## JDBC-контексты
+
+Для JDBC 2.4.1 адаптер задаёт `cacheConnectionsInDriver=false`: при одновременном
+открытии и закрытии последнего соединения cache драйвера может вернуть уже
+закрываемый контекст. Каждый JDBC connection поэтому владеет своим контекстом.
+Это не retry и не replay записей. Параметры JDBC URL имеют приоритет над
+properties; не включайте `cacheConnectionsInDriver=true` на этой версии драйвера.

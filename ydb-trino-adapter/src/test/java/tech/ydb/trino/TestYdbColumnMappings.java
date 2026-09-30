@@ -4,12 +4,18 @@ import io.trino.plugin.base.mapping.DefaultIdentifierMapping;
 import io.trino.plugin.jdbc.BaseJdbcConfig;
 import io.trino.plugin.jdbc.ColumnMapping;
 import io.trino.plugin.jdbc.JdbcTypeHandle;
+import io.trino.plugin.jdbc.JdbcMetadataConfig;
+import io.trino.plugin.jdbc.JdbcMetadataSessionProperties;
 import io.trino.plugin.jdbc.LongReadFunction;
 import io.trino.plugin.jdbc.LongWriteFunction;
 import io.trino.plugin.jdbc.ObjectReadFunction;
 import io.trino.plugin.jdbc.ObjectWriteFunction;
 import io.trino.plugin.jdbc.logging.RemoteQueryModifier;
+import io.trino.spi.predicate.Domain;
+import io.trino.spi.predicate.Range;
+import io.trino.spi.predicate.ValueSet;
 import io.trino.spi.type.Int128;
+import io.trino.testing.TestingConnectorSession;
 import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.Proxy;
@@ -21,6 +27,7 @@ import java.sql.SQLDataException;
 import java.sql.SQLException;
 import java.sql.Types;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -28,6 +35,7 @@ import java.util.List;
 import java.util.Optional;
 
 import static io.trino.spi.type.DecimalType.createDecimalType;
+import static io.trino.spi.type.DateType.DATE;
 import static io.trino.spi.type.SmallintType.SMALLINT;
 import static io.trino.testing.TestingConnectorSession.SESSION;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -113,6 +121,28 @@ public class TestYdbColumnMappings {
                     Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty());
             LongReadFunction reader = (LongReadFunction) YdbColumnMappings.timestampColumnMapping(handle).getReadFunction();
             assertThat(reader.readLong(resultSet, 1)).isEqualTo(Instant.parse("2020-02-29T12:34:56Z").getEpochSecond() * 1_000_000);
+        }
+    }
+
+    @Test
+    public void testDate32PredicateBounds() {
+        var session = TestingConnectorSession.builder().setPropertyMetadata(
+                new JdbcMetadataSessionProperties(new JdbcMetadataConfig(), Optional.empty()).getSessionProperties()).build();
+        JdbcTypeHandle handle = new JdbcTypeHandle(Types.DATE, Optional.of("Date32"),
+                Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty());
+        var controller = YdbColumnMappings.dateColumnMapping(handle).getPredicatePushdownController();
+        long day = LocalDate.of(1995, 9, 16).toEpochDay();
+        for (Domain domain : List.of(Domain.singleValue(DATE, day), Domain.onlyNull(DATE),
+                Domain.create(ValueSet.ofRanges(Range.greaterThan(DATE, day)), false))) {
+            var result = controller.apply(session, domain);
+            assertThat(result.getPushedDown()).isEqualTo(domain);
+            assertThat(result.getRemainingFilter().isAll()).isTrue();
+        }
+        for (Domain domain : List.of(Domain.singleValue(DATE, (long) Integer.MIN_VALUE),
+                Domain.create(ValueSet.ofRanges(Range.lessThan(DATE, (long) Integer.MAX_VALUE)), true))) {
+            var result = controller.apply(session, domain);
+            assertThat(result.getPushedDown().isAll()).isTrue();
+            assertThat(result.getRemainingFilter()).isEqualTo(domain);
         }
     }
 

@@ -119,12 +119,12 @@ public class TestYdbCreateTable extends AbstractTestQueryFramework {
             assertUpdate("INSERT INTO " + table + " VALUES ('a', 1), ('b', 2)", 2);
             var tablesBefore = computeActual("SHOW TABLES").getOnlyColumnAsSet();
             assertThat(query("INSERT INTO " + table + " VALUES ('c', 3), ('duplicate', 1)")).failure();
-            assertQuery("SELECT * FROM " + table, "VALUES ('a', BIGINT '1'), ('b', BIGINT '2')");
+            assertQuery("SELECT * FROM " + table, "VALUES ('a', CAST(1 AS BIGINT)), ('b', CAST(2 AS BIGINT))");
             assertThat(computeActual("SHOW TABLES").getOnlyColumnAsSet()).isEqualTo(tablesBefore);
             assertThat(query("UPDATE " + table + " SET id = 3 WHERE id = 1")).failure().hasErrorCode(NOT_SUPPORTED);
             assertUpdate("UPDATE " + table + " SET payload = 'changed' WHERE id = 2", 1);
             assertUpdate("DELETE FROM " + table + " WHERE id = 1", 1);
-            assertQuery("SELECT * FROM " + table, "VALUES ('changed', BIGINT '2')");
+            assertQuery("SELECT * FROM " + table, "VALUES ('changed', CAST(2 AS BIGINT))");
         }
         finally {
             assertUpdate("DROP TABLE IF EXISTS " + table);
@@ -145,7 +145,7 @@ public class TestYdbCreateTable extends AbstractTestQueryFramework {
             assertUpdate("INSERT INTO " + table + " VALUES (1, 10, 7), (2, NULL, 8)", 2);
             assertThat(query(merge)).failure().hasErrorCode(NOT_SUPPORTED);
             assertUpdate(mergeSession, merge, 3);
-            assertQuery("SELECT * FROM " + table, "VALUES (BIGINT '20', BIGINT '10', BIGINT '7'), (30, NULL, 8), (40, 11, 9)");
+            assertQuery("SELECT * FROM " + table, "VALUES (CAST(20 AS BIGINT), CAST(10 AS BIGINT), CAST(7 AS BIGINT)), (30, NULL, 8), (40, 11, 9)");
             assertUpdate(mergeSession, "DELETE FROM " + table + " WHERE payload + 1 > 0", 3);
         }
         finally {

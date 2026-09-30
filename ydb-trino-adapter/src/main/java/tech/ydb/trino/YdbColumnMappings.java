@@ -15,6 +15,7 @@ import java.sql.ResultSet;
 import java.sql.SQLDataException;
 import java.sql.SQLException;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Locale;
 
@@ -40,6 +41,9 @@ final class YdbColumnMappings {
     static final int YDB_DATE32_SQL_TYPE = SQL_KIND_PRIMITIVE + 25;
     private static final int YDB_DATETIME64_SQL_TYPE = SQL_KIND_PRIMITIVE + 26;
     static final int YDB_TIMESTAMP64_SQL_TYPE = SQL_KIND_PRIMITIVE + 27;
+    // The documented Date32 interval; keep the upper endpoint exclusive.
+    private static final long MIN_DATE32_DAY = LocalDate.of(-144168, 1, 1).toEpochDay();
+    private static final long MAX_DATE32_DAY = LocalDate.of(148107, 1, 1).toEpochDay() - 1;
 
     private YdbColumnMappings() {}
 
@@ -54,7 +58,15 @@ final class YdbColumnMappings {
                 DATE,
                 dateReadFunctionUsingLocalDate(),
                 writeFunction,
-                DISABLE_PUSHDOWN);
+                (session, domain) -> {
+                    boolean safeBounds = typeName.equalsIgnoreCase("Date32") &&
+                            domain.getValues().getRanges().getOrderedRanges().stream().allMatch(range ->
+                                    (range.isLowUnbounded() || ((long) range.getLowBoundedValue() >= MIN_DATE32_DAY &&
+                                            (long) range.getLowBoundedValue() <= MAX_DATE32_DAY)) &&
+                                    (range.isHighUnbounded() || ((long) range.getHighBoundedValue() >= MIN_DATE32_DAY &&
+                                            (long) range.getHighBoundedValue() <= MAX_DATE32_DAY)));
+                    return (safeBounds ? FULL_PUSHDOWN : DISABLE_PUSHDOWN).apply(session, domain);
+                });
     }
 
     static ColumnMapping timestampColumnMapping(JdbcTypeHandle typeHandle) {

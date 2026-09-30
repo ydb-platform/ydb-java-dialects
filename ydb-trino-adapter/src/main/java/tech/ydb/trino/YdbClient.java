@@ -570,7 +570,8 @@ public class YdbClient extends BaseJdbcClient {
                         String direction = sortOrder.isAscending() ? "ASC" : "DESC";
                         Type type = sortItem.column().getColumnType();
                         if (type.equals(REAL) || type.equals(DOUBLE)) {
-                            String nanSort = "CASE WHEN %1$s != %1$s THEN 1 ELSE 0 END %2$s".formatted(columnName, direction);
+                            String nanDirection = sortOrder.isNullsFirst() == sortOrder.isAscending() ? "DESC" : "ASC";
+                            String nanSort = "CASE WHEN %1$s != %1$s THEN 1 ELSE 0 END %2$s".formatted(columnName, nanDirection);
                             String yqlType = type.equals(REAL) ? "Float" : "Double";
                             return Stream.of(nullSort, nanSort, "NANVL(%s, CAST(0 AS %s)) %s".formatted(columnName, yqlType, direction));
                         }

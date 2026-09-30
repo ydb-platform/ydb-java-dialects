@@ -7,8 +7,10 @@ import io.trino.plugin.jdbc.JdbcJoinCondition;
 import io.trino.plugin.jdbc.JdbcSortItem;
 import io.trino.plugin.jdbc.JdbcTypeHandle;
 import io.trino.plugin.jdbc.logging.RemoteQueryModifier;
+import io.trino.spi.connector.SortOrder;
 import io.trino.spi.type.ArrayType;
 import io.trino.spi.type.Type;
+import io.trino.spi.type.TypeOperators;
 import org.junit.jupiter.api.Test;
 
 import java.sql.SQLException;
@@ -19,7 +21,9 @@ import java.util.Optional;
 import static io.trino.spi.connector.JoinCondition.Operator.EQUAL;
 import static io.trino.spi.connector.JoinCondition.Operator.IDENTICAL;
 import static io.trino.spi.connector.JoinCondition.Operator.LESS_THAN;
-import static io.trino.spi.connector.SortOrder.ASC_NULLS_LAST;
+import static io.trino.spi.function.InvocationConvention.InvocationArgumentConvention.BLOCK_POSITION;
+import static io.trino.spi.function.InvocationConvention.InvocationReturnConvention.FAIL_ON_NULL;
+import static io.trino.spi.function.InvocationConvention.simpleConvention;
 import static io.trino.spi.type.BigintType.BIGINT;
 import static io.trino.spi.type.DecimalType.createDecimalType;
 import static io.trino.spi.type.DoubleType.DOUBLE;
@@ -63,16 +67,32 @@ public class TestYdbJoinMappings {
     }
 
     @Test
-    public void testFloatingPointNormalizationAndTypedTopN() {
+    public void testFloatingPointNormalizationAndTypedTopN() throws Throwable {
         YdbQueryBuilder queryBuilder = new YdbQueryBuilder(RemoteQueryModifier.NONE);
         for (Type type : List.of(REAL, DOUBLE)) {
             String nativeType = type.equals(REAL) ? "Float" : "Double";
             JdbcColumnHandle column = new JdbcColumnHandle("key", typeHandle(nativeType), type);
             String condition = queryBuilder.formatJoinCondition(client, "l", "r", new JdbcJoinCondition(column, EQUAL, column));
             assertThat(condition).contains("NANVL(", "CAST(NULL AS " + nativeType + ")", "l.`key`", "r.`key`");
-            String topN = client.topNFunction().orElseThrow().apply("SELECT `key` FROM `test`",
-                    List.of(new JdbcSortItem(column, ASC_NULLS_LAST)), 2);
-            assertThat(topN).contains("NANVL(`key`, CAST(0 AS " + nativeType + ")) ASC");
+            var values = type.createBlockBuilder(null, 2);
+            if (type.equals(REAL)) {
+                type.writeLong(values, Float.floatToRawIntBits(Float.NaN));
+                type.writeLong(values, Float.floatToRawIntBits(1.0f));
+            } else {
+                type.writeDouble(values, Double.NaN);
+                type.writeDouble(values, 1.0);
+            }
+            var block = values.build();
+            for (SortOrder order : SortOrder.values()) {
+                int comparison = (int) new TypeOperators().getOrderingOperator(type, order,
+                        simpleConvention(FAIL_ON_NULL, BLOCK_POSITION, BLOCK_POSITION)).invokeWithArguments(block, 0, block, 1);
+                String nanDirection = comparison < 0 ? "DESC" : "ASC";
+                String topN = client.topNFunction().orElseThrow().apply("SELECT `key` FROM `test`",
+                        List.of(new JdbcSortItem(column, order)), 2);
+                assertThat(topN).contains(
+                        "CASE WHEN `key` != `key` THEN 1 ELSE 0 END " + nanDirection,
+                        "NANVL(`key`, CAST(0 AS " + nativeType + ")) " + (order.isAscending() ? "ASC" : "DESC"));
+            }
         }
     }
 
