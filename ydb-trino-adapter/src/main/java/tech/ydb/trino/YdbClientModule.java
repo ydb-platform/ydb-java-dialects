@@ -66,6 +66,8 @@ public class YdbClientModule implements Module {
         // JDBC 2.4.1 can close a cached context between lookup and connection registration.
         Properties properties = new Properties();
         properties.setProperty("cacheConnectionsInDriver", "false");
+        // InListJdbcPrm bypasses the driver's native SDK-value binding path.
+        properties.setProperty("replaceJdbcInByYqlList", "false");
         return DriverConnectionFactory.builder(
                         new YdbDriver(),
                         config.getConnectionUrl(),

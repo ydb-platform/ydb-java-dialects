@@ -159,6 +159,8 @@ public class TestYdbJoinPushdown extends AbstractTestQueryFramework {
             String select = "SELECT id FROM " + table.getName();
             assertThat(query(select + " WHERE k = " + timestampLiteral(minimum))).matches("VALUES BIGINT '1'").isFullyPushedDown();
             assertThat(query(select + " WHERE k = " + timestampLiteral(maximum))).matches("VALUES BIGINT '3'").isFullyPushedDown();
+            assertThat(query(select + " WHERE k IN (" + timestampLiteral(minimum) + ", " + timestampLiteral(maximum) + ")"))
+                    .matches("VALUES BIGINT '1', BIGINT '3'").isFullyPushedDown();
             assertThat(query(select + " WHERE k >= " + timestampLiteral(minimum))).matches("VALUES BIGINT '1', BIGINT '2', BIGINT '3'").isFullyPushedDown();
             assertThat(query(select + " WHERE k <= " + timestampLiteral(maximum))).matches("VALUES BIGINT '1', BIGINT '2', BIGINT '3'").isFullyPushedDown();
             assertThat(query(select + " WHERE k IS NULL")).matches("VALUES BIGINT '4'").isFullyPushedDown();

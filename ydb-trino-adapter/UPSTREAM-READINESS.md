@@ -79,6 +79,10 @@ The separate local Trino checkout preserves follow-up commits:
   path instead. The inclusive endpoint is encoded with the Timestamp64 type,
   not an optional CAST. Tests now exercise real driver required/optional value
   conversion, not only recorded setter arguments; all 21 unit/API tests pass.
+- `dce9fe0f112e2341d645ed8282dbc61173e78864`: retain scalar parameters for
+  `IN`, avoiding JDBC 2.4.1's list rewrite that bypasses native SDK values.
+  Pushdown stays enabled and the live test covers both Timestamp64 endpoints.
+  Fresh Error Prone, packaging and all 21 unit/API tests pass.
 
 Its affected core planner/operator group passed 21 tests. Those engine changes
 are not part of Trino 483 and are not silently assumed here. The current

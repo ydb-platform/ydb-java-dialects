@@ -157,3 +157,7 @@ Date32- и Timestamp64-предикаты передаются в YDB тольк
 закрываемый контекст. Каждый JDBC connection поэтому владеет своим контекстом.
 Это не retry и не replay записей. Параметры JDBC URL имеют приоритет над
 properties; не включайте `cacheConnectionsInDriver=true` на этой версии драйвера.
+Также задаётся `replaceJdbcInByYqlList=false`: оптимизированный параметр списка
+в JDBC 2.4.1 не поддерживает типизированные SDK-значения Timestamp64.
+Предикаты `IN` продолжают передаваться в YDB с отдельными параметрами.
+Не включайте `replaceJdbcInByYqlList=true` в JDBC URL на этой версии драйвера.
