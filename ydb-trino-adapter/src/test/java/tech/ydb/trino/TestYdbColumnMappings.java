@@ -176,15 +176,16 @@ public class TestYdbColumnMappings {
     @Test
     public void testTimestamp64WriterBounds() throws Exception {
         LongWriteFunction writer = YdbColumnMappings.timestampWriteFunction(SQL_KIND_PRIMITIVE + 27);
+        assertThat(writer.getBindExpression()).isEqualTo("CAST(? AS Timestamp64)");
         List<List<Object>> calls = new ArrayList<>();
         PreparedStatement statement = statement(calls);
         writer.set(statement, 1, -4611669897600000000L);
         writer.set(statement, 2, 4611669811199999999L);
         writer.setNull(statement, 3);
         assertThat(calls).containsExactly(
-                List.of(1, Instant.ofEpochSecond(-4611669897600L), SQL_KIND_PRIMITIVE + 27),
-                List.of(2, Instant.ofEpochSecond(4611669811199L, 999999000), SQL_KIND_PRIMITIVE + 27),
-                List.of(3, SQL_KIND_PRIMITIVE + 27));
+                List.of(1, -4611669897600000000L),
+                List.of(2, 4611669811199999999L),
+                List.of(3, Types.BIGINT));
         assertThatThrownBy(() -> writer.set(statement, 1, -4611669897600000001L)).isInstanceOf(SQLDataException.class);
         assertThatThrownBy(() -> writer.set(statement, 1, 4611669811200000000L)).isInstanceOf(SQLDataException.class);
     }
@@ -200,7 +201,7 @@ public class TestYdbColumnMappings {
     private static PreparedStatement statement(List<List<Object>> calls) {
         return (PreparedStatement) Proxy.newProxyInstance(PreparedStatement.class.getClassLoader(), new Class<?>[]{PreparedStatement.class},
                 (_, method, args) -> {
-                    assertThat(method.getName()).isIn("setObject", "setNull");
+                    assertThat(method.getName()).isIn("setObject", "setLong", "setNull");
                     calls.add(Arrays.asList(args));
                     return null;
                 });

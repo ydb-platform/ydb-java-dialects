@@ -73,6 +73,10 @@ The separate local Trino checkout preserves follow-up commits:
 - `81f4a2b47eb50396f5176cca15a1ed3b215b39d1`: correct modulo and extended
   timestamp boundaries found by the independent gate; fresh source archives
   and all 21 local unit/API tests were rebuilt successfully.
+- `c4041e10d8e2bc53c980e4cd7a46d9dd6a8264e9`: bind Timestamp64 with an Int64
+  parameter and structured YQL CAST, avoiding SDK 2.4.10's rejection of the
+  inclusive maximum. The expanded live fixture also checks nullable and
+  NOT NULL endpoint writes; all 21 local unit/API tests pass.
 
 Its affected core planner/operator group passed 21 tests. Those engine changes
 are not part of Trino 483 and are not silently assumed here. The current

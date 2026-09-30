@@ -169,6 +169,18 @@ public class TestYdbJoinPushdown extends AbstractTestQueryFramework {
             assertThat(query(select + " WHERE k = " + timestampLiteral(minimum - 1))).returnsEmptyResult();
             assertThat(query(select + " WHERE k < " + timestampLiteral(maximum + 1) + " OR id = 4"))
                     .matches("VALUES BIGINT '1', BIGINT '2', BIGINT '3', BIGINT '4'");
+            assertUpdate("INSERT INTO " + table.getName() + " VALUES (5, NULL), (6, " + timestampLiteral(maximum) +
+                    "), (7, " + timestampLiteral(minimum) + ")", 3);
+            assertThat(query("SELECT id, k IS NULL FROM " + table.getName() + " WHERE id >= 5"))
+                    .matches("VALUES (BIGINT '5', true), (6, false), (7, false)");
+            assertThat(query(select + " WHERE id = 6 AND k = " + timestampLiteral(maximum))).matches("VALUES BIGINT '6'");
+        }
+        try (TestTable table = new TestTable(getQueryRunner()::execute, "timestamp_notnull_",
+                "(id bigint, k timestamp(6) NOT NULL) WITH (primary_key = ARRAY['id'])")) {
+            assertUpdate("INSERT INTO " + table.getName() + " VALUES (1, " + timestampLiteral(maximum) +
+                    "), (2, " + timestampLiteral(minimum) + ")", 2);
+            assertThat(query("SELECT id FROM " + table.getName() + " WHERE k = " + timestampLiteral(maximum)))
+                    .matches("VALUES BIGINT '1'");
         }
     }
 

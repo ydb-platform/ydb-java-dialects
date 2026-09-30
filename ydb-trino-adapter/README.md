@@ -136,8 +136,12 @@ YDB `Text` отображается в Trino как `varchar`, а `Bytes` — к
 исходная точность `timestamp(3)` в метаданных не сохраняется.
 Чтение timestamps использует UTC, а не часовой пояс JVM. Запись дробных секунд
 в `Datetime`/`Datetime64` отклоняется без молчаливого усечения.
-При записи адаптер передаёт YDB JDBC точный vendor type по `TYPE_NAME` и больше не задаёт `forceSignedDatetimes`:
-`Date`/`Date32` получают дни от эпохи, `Datetime`/`Datetime64` — секунды UTC, а `Timestamp`/`Timestamp64` — `Instant` с микросекундами.
+При записи адаптер сохраняет native-тип из `TYPE_NAME` и не задаёт `forceSignedDatetimes`:
+`Date`/`Date32` получают дни от эпохи, `Datetime`/`Datetime64` — секунды UTC, а `Timestamp` — `Instant` с микросекундами.
+Для `Timestamp64` передаются Int64-микросекунды с параметризованным
+`CAST(? AS Timestamp64)`: SDK 2.4.10 ошибочно исключает саму допустимую верхнюю
+границу в фабрике `newTimestamp64`. Явный YQL CAST сохраняет эту границу без
+встраивания значений в SQL.
 В построчных UPDATE/DELETE собственный merge sink использует исходный
 `JdbcTypeHandle` и те же native write mappings, что и обычная запись.
 Date32- и Timestamp64-предикаты передаются в YDB только с представимыми
