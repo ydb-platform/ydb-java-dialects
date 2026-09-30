@@ -28,7 +28,7 @@ public class YdbQueryBuilder extends DefaultQueryBuilder {
     private String formatJoinKey(JdbcClient client, String alias, JdbcColumnHandle column) {
         String reference = alias + "." + client.quoted(column.getColumnName());
         if (column.getJdbcTypeHandle().jdbcTypeName().filter("Uint64"::equalsIgnoreCase).isPresent()) {
-            return "BITCAST(" + reference + " AS Int64)";
+            return "CAST(" + reference + " AS Decimal(20, 0))";
         }
         if (column.getColumnType().equals(REAL) || column.getColumnType().equals(DOUBLE)) {
             // Match Trino's JOIN behavior for NaN and signed zero.

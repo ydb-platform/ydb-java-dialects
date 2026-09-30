@@ -15,6 +15,8 @@ import io.trino.plugin.jdbc.BaseJdbcClient;
 import io.trino.plugin.jdbc.BaseJdbcConfig;
 import io.trino.plugin.jdbc.BooleanWriteFunction;
 import io.trino.plugin.jdbc.ColumnMapping;
+import io.trino.plugin.jdbc.LongWriteFunction;
+import io.trino.plugin.jdbc.ObjectWriteFunction;
 import io.trino.plugin.jdbc.ConnectionFactory;
 import io.trino.plugin.jdbc.JdbcColumnHandle;
 import io.trino.plugin.jdbc.JdbcExpression;
@@ -51,6 +53,8 @@ import io.trino.spi.connector.RetryMode;
 import io.trino.spi.connector.SchemaTableName;
 import io.trino.spi.connector.SortOrder;
 import io.trino.spi.expression.ConnectorExpression;
+import io.trino.spi.expression.Constant;
+import io.trino.spi.expression.Variable;
 import io.trino.spi.type.DecimalType;
 import io.trino.spi.type.Type;
 import io.trino.spi.type.VarcharType;
@@ -86,7 +90,6 @@ import static io.trino.plugin.jdbc.PredicatePushdownController.FULL_PUSHDOWN;
 import static io.trino.plugin.jdbc.StandardColumnMappings.bigintColumnMapping;
 import static io.trino.plugin.jdbc.StandardColumnMappings.bigintWriteFunction;
 import static io.trino.plugin.jdbc.StandardColumnMappings.booleanColumnMapping;
-import static io.trino.plugin.jdbc.StandardColumnMappings.decimalColumnMapping;
 import static io.trino.plugin.jdbc.StandardColumnMappings.doubleColumnMapping;
 import static io.trino.plugin.jdbc.StandardColumnMappings.doubleWriteFunction;
 import static io.trino.plugin.jdbc.StandardColumnMappings.integerColumnMapping;
@@ -98,11 +101,14 @@ import static io.trino.plugin.jdbc.StandardColumnMappings.shortDecimalWriteFunct
 import static io.trino.plugin.jdbc.StandardColumnMappings.smallintColumnMapping;
 import static io.trino.plugin.jdbc.StandardColumnMappings.smallintWriteFunction;
 import static io.trino.plugin.jdbc.StandardColumnMappings.tinyintWriteFunction;
+import static io.trino.plugin.jdbc.StandardColumnMappings.tinyintColumnMapping;
 import static io.trino.plugin.jdbc.StandardColumnMappings.varbinaryColumnMapping;
 import static io.trino.plugin.jdbc.StandardColumnMappings.varbinaryWriteFunction;
 import static io.trino.plugin.jdbc.StandardColumnMappings.varcharColumnMapping;
 import static io.trino.plugin.jdbc.StandardColumnMappings.varcharReadFunction;
 import static io.trino.plugin.jdbc.StandardColumnMappings.varcharWriteFunction;
+import static io.trino.plugin.jdbc.TypeHandlingJdbcSessionProperties.getUnsupportedTypeHandling;
+import static io.trino.plugin.jdbc.UnsupportedTypeHandling.CONVERT_TO_VARCHAR;
 import static io.trino.spi.StandardErrorCode.INVALID_TABLE_PROPERTY;
 import static io.trino.spi.StandardErrorCode.NOT_SUPPORTED;
 import static io.trino.spi.connector.JoinCondition.Operator.EQUAL;
@@ -127,8 +133,11 @@ import static tech.ydb.trino.YdbColumnMappings.YDB_DATE32_SQL_TYPE;
 import static tech.ydb.trino.YdbColumnMappings.YDB_TIMESTAMP64_SQL_TYPE;
 import static tech.ydb.trino.YdbColumnMappings.dateColumnMapping;
 import static tech.ydb.trino.YdbColumnMappings.dateWriteFunction;
+import static tech.ydb.trino.YdbColumnMappings.decimalColumnMapping;
 import static tech.ydb.trino.YdbColumnMappings.timestampColumnMapping;
 import static tech.ydb.trino.YdbColumnMappings.timestampWriteFunction;
+import static tech.ydb.trino.YdbColumnMappings.unsignedBigintColumnMapping;
+import static tech.ydb.trino.YdbColumnMappings.unsignedColumnMapping;
 import static tech.ydb.trino.YdbTableProperties.PRIMARY_KEY_PROPERTY;
 
 public class YdbClient extends BaseJdbcClient {
@@ -202,6 +211,7 @@ public class YdbClient extends BaseJdbcClient {
     @Override
     protected boolean isSupportedJoinCondition(ConnectorSession session, JdbcJoinCondition condition) {
         return condition.getOperator() == EQUAL
+                && condition.getLeftColumn().getColumnType().equals(condition.getRightColumn().getColumnType())
                 && hasSupportedValueMapping(condition.getLeftColumn())
                 && hasSupportedValueMapping(condition.getRightColumn());
     }
@@ -213,12 +223,47 @@ public class YdbClient extends BaseJdbcClient {
         }
         String name = type.jdbcTypeName().orElse("").toLowerCase(Locale.ROOT);
         return switch (name) {
-            case "bool", "int8", "int16", "int32", "int64", "uint8", "uint16", "uint32", "uint64",
-                    "float", "double", "utf8", "text", "date", "date32", "datetime", "datetime64",
-                    "timestamp", "timestamp64", "decimal" -> true;
+            case "bool" -> column.getColumnType().equals(BOOLEAN);
+            case "int8" -> column.getColumnType().equals(TINYINT);
+            case "int16", "uint8" -> column.getColumnType().equals(SMALLINT);
+            case "int32", "uint16" -> column.getColumnType().equals(INTEGER);
+            case "int64", "uint32" -> column.getColumnType().equals(BIGINT);
+            case "uint64" -> column.getColumnType().equals(createDecimalType(20, 0));
+            case "float" -> column.getColumnType().equals(REAL);
+            case "double" -> column.getColumnType().equals(DOUBLE);
+            case "utf8", "text" -> column.getColumnType() instanceof VarcharType;
+            case "date", "date32" -> column.getColumnType().equals(DATE);
+            case "datetime", "datetime64", "timestamp", "timestamp64" -> column.getColumnType().equals(TIMESTAMP_MICROS);
             case "string", "bytes" -> column.getColumnType().equals(VARBINARY);
-            default -> name.startsWith("decimal(");
+            // Native Decimal also admits NaN/infinities, which Trino DECIMAL cannot represent.
+            default -> false;
         };
+    }
+
+    private boolean supportsExpression(ConnectorExpression expression, Map<String, ColumnHandle> assignments) {
+        if (expression instanceof Constant constant) {
+            return YdbTypeUtils.toTypeHandle(constant.getType()).isPresent();
+        }
+        if (expression instanceof Variable variable) {
+            JdbcColumnHandle column = (JdbcColumnHandle) assignments.get(variable.getName());
+            if (!hasSupportedValueMapping(column)) {
+                return false;
+            }
+            return switch (column.getJdbcTypeHandle().jdbcTypeName().orElse("").toLowerCase(Locale.ROOT)) {
+                case "uint8", "uint16", "uint32", "uint64", "float", "double",
+                        "date", "date32", "datetime", "datetime64", "timestamp" -> false;
+                default -> true;
+            };
+        }
+        return expression.getChildren().stream().allMatch(child -> supportsExpression(child, assignments));
+    }
+
+    @Override
+    public boolean supportsAggregationPushdown(ConnectorSession session, JdbcTableHandle table, List<AggregateFunction> aggregates,
+            Map<String, ColumnHandle> assignments, List<List<ColumnHandle>> groupingSets) {
+        return groupingSets.stream().flatMap(List::stream).map(JdbcColumnHandle.class::cast)
+                .allMatch(column -> hasSupportedValueMapping(column)
+                        && !column.getColumnType().equals(REAL) && !column.getColumnType().equals(DOUBLE));
     }
 
     @Override
@@ -241,6 +286,19 @@ public class YdbClient extends BaseJdbcClient {
             AggregateFunction aggregate,
             Map<String, ColumnHandle> assignments
     ) {
+        if (aggregate.getArguments().stream().anyMatch(argument ->
+                argument instanceof Variable variable
+                        ? !hasSupportedValueMapping((JdbcColumnHandle) assignments.get(variable.getName()))
+                        : !supportsExpression(argument, assignments))) {
+            return Optional.empty();
+        }
+        boolean floatingArgument = aggregate.getArguments().stream().anyMatch(argument -> argument.getType().equals(REAL) || argument.getType().equals(DOUBLE));
+        if ((aggregate.getFunctionName().equals("sum") || aggregate.getFunctionName().equals("avg")) && !floatingArgument) {
+            return Optional.empty();
+        }
+        if (floatingArgument && (aggregate.getFunctionName().equals("min") || aggregate.getFunctionName().equals("max") || aggregate.isDistinct())) {
+            return Optional.empty();
+        }
         return aggregateFunctionRewriter.rewrite(session, aggregate, assignments);
     }
 
@@ -250,6 +308,9 @@ public class YdbClient extends BaseJdbcClient {
             ConnectorExpression expression,
             Map<String, ColumnHandle> assignments
     ) {
+        if (!supportsExpression(expression, assignments)) {
+            return Optional.empty();
+        }
         return connectorExpressionRewriter.rewrite(session, expression, assignments);
     }
 
@@ -264,6 +325,9 @@ public class YdbClient extends BaseJdbcClient {
                 .filter(JdbcColumnHandle.class::isInstance)
                 .map(JdbcColumnHandle.class::cast)
                 .anyMatch(column -> column.getColumnName().equals(MERGE_ROW_ID))) {
+            return Optional.empty();
+        }
+        if (!supportsExpression(expression, assignments)) {
             return Optional.empty();
         }
 
@@ -328,6 +392,34 @@ public class YdbClient extends BaseJdbcClient {
         }
         if (jdbcTypeName.equals("utf8") || jdbcTypeName.equals("text")) {
             return Optional.of(unboundedVarcharColumnMapping());
+        }
+        Optional<ColumnMapping> primitiveMapping = switch (jdbcTypeName) {
+            case "bool" -> Optional.of(booleanColumnMapping());
+            case "int8" -> Optional.of(tinyintColumnMapping());
+            case "int16" -> Optional.of(smallintColumnMapping());
+            case "int32" -> Optional.of(integerColumnMapping());
+            case "int64" -> Optional.of(bigintColumnMapping());
+            case "uint8" -> Optional.of(unsignedColumnMapping(SMALLINT, 2));
+            case "uint16" -> Optional.of(unsignedColumnMapping(INTEGER, 4));
+            case "uint32" -> Optional.of(unsignedColumnMapping(BIGINT, 6));
+            case "uint64" -> Optional.of(unsignedBigintColumnMapping());
+            case "float" -> {
+                ColumnMapping valueMapping = realColumnMapping();
+                yield Optional.of(ColumnMapping.mapping(REAL, valueMapping.getReadFunction(), valueMapping.getWriteFunction(), DISABLE_PUSHDOWN));
+            }
+            case "double" -> {
+                ColumnMapping valueMapping = doubleColumnMapping();
+                yield Optional.of(ColumnMapping.mapping(DOUBLE, valueMapping.getReadFunction(), valueMapping.getWriteFunction(), DISABLE_PUSHDOWN));
+            }
+            case "date", "date32" -> Optional.of(dateColumnMapping(typeHandle));
+            case "datetime", "datetime64", "timestamp", "timestamp64" -> Optional.of(timestampColumnMapping(typeHandle));
+            default -> Optional.empty();
+        };
+        if (primitiveMapping.isPresent()) {
+            return primitiveMapping;
+        }
+        if (typeHandle.jdbcType() != Types.DECIMAL) {
+            return getUnsupportedTypeHandling(session) == CONVERT_TO_VARCHAR ? mapToUnboundedVarchar(typeHandle) : Optional.empty();
         }
 
         Optional<ColumnMapping> columnMapping = switch (typeHandle.jdbcType()) {
@@ -434,10 +526,14 @@ public class YdbClient extends BaseJdbcClient {
             return WriteMapping.doubleMapping("Double", doubleWriteFunction());
         }
         if (type instanceof DecimalType decimalType) {
+            if (decimalType.getPrecision() > 35) {
+                throw new TrinoException(NOT_SUPPORTED, "YDB Decimal precision cannot exceed 35");
+            }
             String dataType = format("Decimal(%s, %s)", decimalType.getPrecision(), decimalType.getScale());
+            ColumnMapping mapping = decimalColumnMapping(decimalType);
             return decimalType.isShort()
-                    ? WriteMapping.longMapping(dataType, shortDecimalWriteFunction(decimalType))
-                    : WriteMapping.objectMapping(dataType, longDecimalWriteFunction(decimalType));
+                    ? WriteMapping.longMapping(dataType, (LongWriteFunction) mapping.getWriteFunction())
+                    : WriteMapping.objectMapping(dataType, (ObjectWriteFunction) mapping.getWriteFunction());
         }
         if (type instanceof VarcharType) {
             return WriteMapping.sliceMapping("Text", varcharWriteFunction());
@@ -457,7 +553,7 @@ public class YdbClient extends BaseJdbcClient {
 
     @Override
     public boolean supportsTopN(ConnectorSession session, JdbcTableHandle handle, List<JdbcSortItem> sortOrder) {
-        return true;
+        return sortOrder.stream().allMatch(item -> hasSupportedValueMapping(item.column()));
     }
 
     @Override
@@ -468,19 +564,16 @@ public class YdbClient extends BaseJdbcClient {
                     .flatMap(sortItem -> {
                         String columnName = quoted(sortItem.column().getColumnName());
                         SortOrder sortOrder = sortItem.sortOrder();
-                        // NULLS FIRST:  CASE WHEN col IS NULL THEN 0 ELSE 1 END ASC
-                        // NULLS LAST:   CASE WHEN col IS NULL THEN 1 ELSE 0 END ASC
-                        if (sortOrder.isNullsFirst()) {
-                            // Add null-sorting key first, then the actual column
-                            String nullSort = format("CASE WHEN %s IS NULL THEN 0 ELSE 1 END ASC", columnName);
-                            String valueSort = format("%s %s", columnName, sortOrder.isAscending() ? "ASC" : "DESC");
-                            return Stream.of(nullSort, valueSort);
-                        } else {
-                            // NULLS LAST
-                            String nullSort = format("CASE WHEN %s IS NULL THEN 1 ELSE 0 END ASC", columnName);
-                            String valueSort = format("%s %s", columnName, sortOrder.isAscending() ? "ASC" : "DESC");
-                            return Stream.of(nullSort, valueSort);
+                        String nullSort = "CASE WHEN %s IS NULL THEN %s ELSE %s END ASC".formatted(
+                                columnName, sortOrder.isNullsFirst() ? 0 : 1, sortOrder.isNullsFirst() ? 1 : 0);
+                        String direction = sortOrder.isAscending() ? "ASC" : "DESC";
+                        Type type = sortItem.column().getColumnType();
+                        if (type.equals(REAL) || type.equals(DOUBLE)) {
+                            String nanSort = "CASE WHEN %1$s != %1$s THEN 1 ELSE 0 END %2$s".formatted(columnName, direction);
+                            String yqlType = type.equals(REAL) ? "Float" : "Double";
+                            return Stream.of(nullSort, nanSort, "NANVL(%s, CAST(0 AS %s)) %s".formatted(columnName, yqlType, direction));
                         }
+                        return Stream.of(nullSort, columnName + " " + direction);
                     })
                     .collect(joining(", "));
             return format("%s ORDER BY %s LIMIT %d", query, orderBy, limit);

@@ -69,8 +69,27 @@ transactional staging этой проверкой не подтверждает�
 По умолчанию JOIN выполняет Trino. Для пробного pushdown задайте
 `join_pushdown_enabled=true` в сессии каталога. Адаптер передаёт YDB
 `INNER`, `LEFT`, `RIGHT` и `FULL JOIN` только по равенству исходных столбцов
-`Int64` (Trino `bigint`), включая составной ключ. Остальные условия JOIN,
-вычисляемые ключи и другие типы остаются в Trino. См. [правила YQL JOIN](https://ydb.tech/docs/ru/yql/reference/syntax/select/join).
+с совместимыми отображениями: `Bool`, знаковые и беззнаковые целые,
+`Float`/`Double`, текст, байты, даты и timestamps. Поддерживается составной ключ.
+`NULL` и `NaN` не совпадают по обычному равенству; `-0.0` совпадает с `0.0`.
+Для YQL ключи с `NaN` заменяются на `NULL`, а нули нормализуются.
+Native `Decimal`, null-safe equality, неравенства, вычисляемые ключи и
+неподдерживаемые преобразования остаются в Trino.
+См. [правила YQL JOIN](https://ydb.tech/docs/ru/yql/reference/syntax/select/join).
+
+## Числовые типы
+
+`Uint8`, `Uint16`, `Uint32` отображаются соответственно в `smallint`,
+`integer`, `bigint`. `Uint64` отображается в `decimal(20,0)` и сохраняет
+весь диапазон до `18446744073709551615`, без превращения старшего бита в знак.
+Запись проверяет границы unsigned-типа. `Decimal` записывается с точными
+precision и scale, включая `NULL`; максимальная поддерживаемая precision — 35.
+Native decimal `NaN` и бесконечности не представимы в Trino `decimal`.
+
+Целочисленные и decimal `sum`/`avg`, а также группировки и `min`/`max`
+для floating-point выполняет Trino там, где YQL отличается по переполнению,
+порядку `NaN` или знаковому нулю. Top-N явно учитывает SQL `NULL` и порядок
+`NaN`, используя типизированные floating-point значения в YQL.
 
 ## Текст и байты
 
@@ -90,8 +109,11 @@ YDB `Text` отображается в Trino как `varchar`, а `Bytes` — к
 Новые столбцы Trino `timestamp(3)` и `timestamp(6)` создаются как YDB `Timestamp64`.
 Существующие YDB `Datetime`, `Datetime64`, `Timestamp` и `Timestamp64` читаются как Trino `timestamp(6)`;
 исходная точность `timestamp(3)` в метаданных не сохраняется.
+Чтение timestamps использует UTC, а не часовой пояс JVM. Запись дробных секунд
+в `Datetime`/`Datetime64` отклоняется без молчаливого усечения.
 При записи адаптер передаёт YDB JDBC точный vendor type по `TYPE_NAME` и больше не задаёт `forceSignedDatetimes`:
 `Date`/`Date32` получают дни от эпохи, `Datetime`/`Datetime64` — секунды UTC, а `Timestamp`/`Timestamp64` — `Instant` с микросекундами.
 В `UPDATE`/`DELETE`, которые стандартный merge sink выполняет внутри `MERGE`, native `TYPE_NAME` не передаётся;
 fallback `Instant` для `Datetime`/`Datetime64` может зависеть от часового пояса JVM и остаётся отдельным риском.
-Диапазонные предикаты вне диапазона legacy YDB `Date` остаются отдельным известным ограничением.
+Предикаты для `Date`/`Date32` и legacy temporal типов оставляются в Trino,
+чтобы не связывать значения вне диапазона исходного YDB-типа.
