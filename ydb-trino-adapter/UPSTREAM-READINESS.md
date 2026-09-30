@@ -65,6 +65,11 @@ The separate local Trino checkout preserves follow-up commits:
 - `cf6e4cf33f`: abort unfinished MERGE sinks on operator close;
 - `bd9a654ce3`: correct INSERT staging metadata identity;
 - `dcb449c1f3`: enforce connector limits for unpartitioned MERGE writers.
+- `c70d350cf6d2e98d37846f82ff6052d2e780a3c2`: synchronize the reviewed scalar
+  and write semantics, adapt the 484 sink-provider API, and fix fresh Error
+  Prone findings. Both implementations now require explicitly
+  non-transactional MERGE; the engine fixes are preserved separately, not
+  treated as prerequisites for this batch contract.
 
 Its affected core planner/operator group passed 21 tests. Those engine changes
 are not part of Trino 483 and are not silently assumed here. The current
@@ -92,8 +97,7 @@ Java LSP diagnostics were unavailable because jdtls is not installed.
 Docker's Colima socket was unavailable; Docker/Colima was neither restarted
 nor repaired. The local full `clean test` attempted 22 entries: 18 passed,
 4 integration classes failed in helper setup, with zero errors or skips.
-No local integration test completed. Full integration results must come from
-the ordinary module CI:
+No local integration test completed. The ordinary module CI runs:
 
 ```bash
 mvn -B -ntp -f ydb-trino-adapter/pom.xml clean test
@@ -106,7 +110,35 @@ overly broad Date32 predicate fallback, a cached JDBC context-close race, and
 two H2 reference queries using unsupported typed-literal syntax.
 The follow-up checks NaN ordering against the actual Trino type operator,
 pushes only safely bounded Date32 predicates, defaults to uncached JDBC
-contexts, and corrects the H2 syntax. Its full real-YDB rerun is still required.
+contexts, and corrects the H2 syntax.
+
+The follow-up [real-YDB CI run 36734257262](https://github.com/ydb-platform/ydb-java-dialects/actions/runs/36734257262)
+passed on `2cd8bbede0242ef1a08844e8477f9f5ca02d47e1`: **359 tests,
+274 passed, 85 skipped, zero failures or errors**. Class totals are:
+
+| Group | Tests | Skipped |
+| --- | ---: | ---: |
+| Inherited connector contract | 273 | 81 |
+| Inherited smoke contract | 35 | 4 |
+| Production native JOIN matrix | 25 | 0 |
+| Production CREATE/INSERT/UPDATE/DELETE/MERGE | 6 | 0 |
+| Unit and public plugin-bootstrap tests | 20 | 0 |
+
+The synchronized local Trino 484 prototype passed a fresh build, style checks,
+Error Prone compilation and 14 unit tests:
+
+```bash
+./mvnw -B -ntp -pl plugin/trino-ydb -P errorprone-compiler \
+  -Dtest=TestYdbClient,TestYdbColumnMappings,TestYdbMergeSink,TestYdbPushdownSemantics \
+  clean verify
+```
+
+The build retains compiler deprecation warnings for the framework's legacy
+JDBC JOIN API and an advisory text-block warning in an existing smoke test;
+none are suppressed. Docker-backed tests on Trino 484 and its full upstream
+CI matrix remain unverified for this local commit. The green standalone
+Trino 483 run does not replace those checks. Upstream CLA and publication
+are also left to the designated author.
 
 The current PR's exact-head CI and independent review, not the historical
 prototype or earlier PRs, determine whether this branch is ready to merge.
