@@ -13,11 +13,16 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import tech.ydb.test.junit5.YdbHelperExtension;
 
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Locale;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 import static io.trino.spi.StandardErrorCode.NUMERIC_VALUE_OUT_OF_RANGE;
+import static io.trino.type.DateTimes.parseTimestamp;
+import static java.time.ZoneOffset.UTC;
 import static java.util.stream.Collectors.joining;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
@@ -133,7 +138,46 @@ public class TestYdbJoinPushdown extends AbstractTestQueryFramework {
             assertThat(query(joinSession(), join + "l.k + 1 = r.k")).failure().hasErrorCode(NUMERIC_VALUE_OUT_OF_RANGE);
             assertThat(query(joinSession(), join + "l.k / -1 = r.k")).failure().hasErrorCode(NUMERIC_VALUE_OUT_OF_RANGE);
             assertThat(query(joinSession(), join + "CAST(l.k AS SMALLINT) = r.k")).failure().hasErrorCode(NUMERIC_VALUE_OUT_OF_RANGE);
+            assertThat(query("SELECT id, k % BIGINT '-1' FROM " + left.getName()))
+                    .matches("VALUES (BIGINT '1', BIGINT '0'), (2, 0)");
+            assertThat(query("SELECT id FROM " + left.getName() + " WHERE k % BIGINT '-1' = 0"))
+                    .matches("VALUES BIGINT '1', BIGINT '2'");
+            assertThat(query(joinSession(), join + "l.k % BIGINT '-1' = r.k"))
+                    .matches("VALUES BIGINT '1', BIGINT '2'")
+                    .joinIsNotFullyPushedDown();
         }
+    }
+
+    @Test
+    public void testTimestamp64PredicateBoundaries() {
+        long minimum = -4611669897600000000L;
+        long maximum = 4611669811199999999L;
+        JdbcSqlExecutor executor = new JdbcSqlExecutor(YdbQueryRunner.buildJdbcUrl(ydb));
+        try (TestTable table = nativeTable(executor, "timestamp_bounds_", "(id Int64, k Timestamp64, PRIMARY KEY (id))", "id, k",
+                List.of("1, CAST(" + minimum + "l AS Timestamp64)", "2, CAST(0l AS Timestamp64)",
+                        "3, CAST(" + maximum + "l AS Timestamp64)", "4, NULL"))) {
+            String select = "SELECT id FROM " + table.getName();
+            assertThat(query(select + " WHERE k = " + timestampLiteral(minimum))).matches("VALUES BIGINT '1'").isFullyPushedDown();
+            assertThat(query(select + " WHERE k = " + timestampLiteral(maximum))).matches("VALUES BIGINT '3'").isFullyPushedDown();
+            assertThat(query(select + " WHERE k >= " + timestampLiteral(minimum))).matches("VALUES BIGINT '1', BIGINT '2', BIGINT '3'").isFullyPushedDown();
+            assertThat(query(select + " WHERE k <= " + timestampLiteral(maximum))).matches("VALUES BIGINT '1', BIGINT '2', BIGINT '3'").isFullyPushedDown();
+            assertThat(query(select + " WHERE k IS NULL")).matches("VALUES BIGINT '4'").isFullyPushedDown();
+            assertThat(query(select + " WHERE k IS NOT NULL")).matches("VALUES BIGINT '1', BIGINT '2', BIGINT '3'").isFullyPushedDown();
+            assertThat(query(select + " WHERE k < " + timestampLiteral(maximum + 1))).matches("VALUES BIGINT '1', BIGINT '2', BIGINT '3'");
+            assertThat(query(select + " WHERE k > " + timestampLiteral(minimum - 1))).matches("VALUES BIGINT '1', BIGINT '2', BIGINT '3'");
+            assertThat(query(select + " WHERE k = " + timestampLiteral(maximum + 1))).returnsEmptyResult();
+            assertThat(query(select + " WHERE k = " + timestampLiteral(minimum - 1))).returnsEmptyResult();
+            assertThat(query(select + " WHERE k < " + timestampLiteral(maximum + 1) + " OR id = 4"))
+                    .matches("VALUES BIGINT '1', BIGINT '2', BIGINT '3', BIGINT '4'");
+        }
+    }
+
+    private static String timestampLiteral(long micros) {
+        String value = LocalDateTime.ofEpochSecond(Math.floorDiv(micros, 1_000_000),
+                        (int) Math.floorMod(micros, 1_000_000) * 1_000, UTC)
+                .format(DateTimeFormatter.ofPattern("uuuu-MM-dd HH:mm:ss.SSSSSS", Locale.ROOT));
+        assertThat(parseTimestamp(6, value)).isEqualTo(micros);
+        return "TIMESTAMP '" + value + "'";
     }
 
     private Session joinSession() {

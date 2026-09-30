@@ -87,7 +87,18 @@ final class YdbColumnMappings {
                     return Math.addExact(Math.multiplyExact(instant.getEpochSecond(), 1_000_000), instant.getNano() / 1_000);
                 },
                 writeFunction,
-                typeName.equalsIgnoreCase("Timestamp64") ? FULL_PUSHDOWN : DISABLE_PUSHDOWN);
+                (session, domain) -> {
+                    boolean safeBounds = typeName.equalsIgnoreCase("Timestamp64") &&
+                            domain.getValues().getRanges().getOrderedRanges().stream().allMatch(range ->
+                                    (range.isLowUnbounded() || isTimestamp64ValueSupported((long) range.getLowBoundedValue())) &&
+                                    (range.isHighUnbounded() || isTimestamp64ValueSupported((long) range.getHighBoundedValue())));
+                    return (safeBounds ? FULL_PUSHDOWN : DISABLE_PUSHDOWN).apply(session, domain);
+                });
+    }
+
+    static boolean isTimestamp64ValueSupported(long value) {
+        // YDB yql/essentials/public/udf/udf_data_type.h: MIN_TIMESTAMP64 / MAX_TIMESTAMP64.
+        return value >= -4611669897600000000L && value <= 4611669811199999999L;
     }
 
     static ColumnMapping unsignedColumnMapping(Type type, int typeOffset) {
@@ -184,6 +195,9 @@ final class YdbColumnMappings {
                 (statement, index, value) -> {
                     if (sqlType == YDB_TIMESTAMP_SQL_TYPE && value < 0) {
                         throw new SQLDataException("Value is outside the YDB Timestamp storage range");
+                    }
+                    if (sqlType == YDB_TIMESTAMP64_SQL_TYPE && !isTimestamp64ValueSupported(value)) {
+                        throw new SQLDataException("Value is outside the YDB Timestamp64 range");
                     }
                     statement.setObject(index, fromTrinoTimestamp(value).toInstant(UTC), sqlType);
                 });

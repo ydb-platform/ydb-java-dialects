@@ -37,6 +37,7 @@ import java.util.Optional;
 import static io.trino.spi.type.DecimalType.createDecimalType;
 import static io.trino.spi.type.DateType.DATE;
 import static io.trino.spi.type.SmallintType.SMALLINT;
+import static io.trino.spi.type.TimestampType.TIMESTAMP_MICROS;
 import static io.trino.testing.TestingConnectorSession.SESSION;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -144,6 +145,48 @@ public class TestYdbColumnMappings {
             assertThat(result.getPushedDown().isAll()).isTrue();
             assertThat(result.getRemainingFilter()).isEqualTo(domain);
         }
+    }
+
+    @Test
+    public void testTimestamp64PredicateBounds() {
+        var session = TestingConnectorSession.builder().setPropertyMetadata(
+                new JdbcMetadataSessionProperties(new JdbcMetadataConfig(), Optional.empty()).getSessionProperties()).build();
+        JdbcTypeHandle handle = YdbTypeUtils.toTypeHandle(TIMESTAMP_MICROS).orElseThrow();
+        var controller = YdbColumnMappings.timestampColumnMapping(handle).getPredicatePushdownController();
+        long minimum = -4611669897600000000L;
+        long maximum = 4611669811199999999L;
+        for (Domain domain : List.of(Domain.all(TIMESTAMP_MICROS), Domain.onlyNull(TIMESTAMP_MICROS),
+                Domain.singleValue(TIMESTAMP_MICROS, minimum), Domain.singleValue(TIMESTAMP_MICROS, maximum),
+                Domain.create(ValueSet.ofRanges(Range.greaterThanOrEqual(TIMESTAMP_MICROS, minimum)), false),
+                Domain.create(ValueSet.ofRanges(Range.lessThanOrEqual(TIMESTAMP_MICROS, maximum)), true))) {
+            var result = controller.apply(session, domain);
+            assertThat(result.getPushedDown()).isEqualTo(domain);
+            assertThat(result.getRemainingFilter().isAll()).isTrue();
+        }
+        for (Domain domain : List.of(Domain.singleValue(TIMESTAMP_MICROS, minimum - 1),
+                Domain.singleValue(TIMESTAMP_MICROS, maximum + 1),
+                Domain.create(ValueSet.ofRanges(Range.lessThan(TIMESTAMP_MICROS, maximum + 1)), false),
+                Domain.create(ValueSet.ofRanges(Range.greaterThan(TIMESTAMP_MICROS, minimum - 1)), true))) {
+            var result = controller.apply(session, domain);
+            assertThat(result.getPushedDown().isAll()).isTrue();
+            assertThat(result.getRemainingFilter()).isEqualTo(domain);
+        }
+    }
+
+    @Test
+    public void testTimestamp64WriterBounds() throws Exception {
+        LongWriteFunction writer = YdbColumnMappings.timestampWriteFunction(SQL_KIND_PRIMITIVE + 27);
+        List<List<Object>> calls = new ArrayList<>();
+        PreparedStatement statement = statement(calls);
+        writer.set(statement, 1, -4611669897600000000L);
+        writer.set(statement, 2, 4611669811199999999L);
+        writer.setNull(statement, 3);
+        assertThat(calls).containsExactly(
+                List.of(1, Instant.ofEpochSecond(-4611669897600L), SQL_KIND_PRIMITIVE + 27),
+                List.of(2, Instant.ofEpochSecond(4611669811199L, 999999000), SQL_KIND_PRIMITIVE + 27),
+                List.of(3, SQL_KIND_PRIMITIVE + 27));
+        assertThatThrownBy(() -> writer.set(statement, 1, -4611669897600000001L)).isInstanceOf(SQLDataException.class);
+        assertThatThrownBy(() -> writer.set(statement, 1, 4611669811200000000L)).isInstanceOf(SQLDataException.class);
     }
 
     @Test

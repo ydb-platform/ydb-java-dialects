@@ -11,6 +11,7 @@ import io.trino.spi.expression.Call;
 import io.trino.spi.expression.Constant;
 import io.trino.spi.expression.FunctionName;
 import io.trino.spi.expression.Variable;
+import io.trino.type.BigintOperators;
 import org.junit.jupiter.api.Test;
 
 import java.sql.SQLException;
@@ -21,8 +22,12 @@ import java.util.Optional;
 import static io.airlift.slice.Slices.utf8Slice;
 import static io.trino.spi.expression.StandardFunctions.ADD_FUNCTION_NAME;
 import static io.trino.spi.expression.StandardFunctions.DIVIDE_FUNCTION_NAME;
+import static io.trino.spi.expression.StandardFunctions.LESS_THAN_OPERATOR_FUNCTION_NAME;
+import static io.trino.spi.expression.StandardFunctions.MODULO_FUNCTION_NAME;
 import static io.trino.spi.expression.StandardFunctions.NULLIF_FUNCTION_NAME;
 import static io.trino.spi.type.BigintType.BIGINT;
+import static io.trino.spi.type.BooleanType.BOOLEAN;
+import static io.trino.spi.type.TimestampType.TIMESTAMP_MICROS;
 import static io.trino.spi.type.VarcharType.VARCHAR;
 import static io.trino.testing.TestingConnectorSession.SESSION;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -68,6 +73,23 @@ public class TestYdbExpressionRewrites {
                 new RemoteTableName(Optional.empty(), Optional.empty(), "test"), Optional.empty());
         assertThat(client.convertProjection(SESSION, table,
                 new Call(VARCHAR, new FunctionName("trim"), List.of(new Variable("v", VARCHAR))), Map.of("v", column))).isEmpty();
+    }
+
+    @Test
+    public void testSignedMinimumModuloFallsBack() {
+        assertThat(BigintOperators.modulo(Long.MIN_VALUE, -1)).isZero();
+        JdbcColumnHandle column = new JdbcColumnHandle("value", YdbTypeUtils.toTypeHandle(BIGINT).orElseThrow(), BIGINT);
+        assertThat(client.convertPredicate(SESSION, new Call(BIGINT, MODULO_FUNCTION_NAME, List.of(
+                new Variable("v", BIGINT), new Constant(-1L, BIGINT))), Map.of("v", column))).isEmpty();
+    }
+
+    @Test
+    public void testTimestamp64ExpressionBounds() {
+        JdbcColumnHandle column = new JdbcColumnHandle("value", YdbTypeUtils.toTypeHandle(TIMESTAMP_MICROS).orElseThrow(), TIMESTAMP_MICROS);
+        for (long bound : List.of(-4611669897600000001L, 4611669811200000000L)) {
+            assertThat(client.convertPredicate(SESSION, new Call(BOOLEAN, LESS_THAN_OPERATOR_FUNCTION_NAME, List.of(
+                    new Variable("v", TIMESTAMP_MICROS), new Constant(bound, TIMESTAMP_MICROS))), Map.of("v", column))).isEmpty();
+        }
     }
 
     @Test

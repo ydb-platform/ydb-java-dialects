@@ -70,6 +70,9 @@ The separate local Trino checkout preserves follow-up commits:
   Prone findings. Both implementations now require explicitly
   non-transactional MERGE; the engine fixes are preserved separately, not
   treated as prerequisites for this batch contract.
+- `81f4a2b47eb50396f5176cca15a1ed3b215b39d1`: correct modulo and extended
+  timestamp boundaries found by the independent gate; fresh source archives
+  and all 21 local unit/API tests were rebuilt successfully.
 
 Its affected core planner/operator group passed 21 tests. Those engine changes
 are not part of Trino 483 and are not silently assumed here. The current
@@ -83,7 +86,7 @@ no replacement upstream PR is created by this work.
 
 ## Validation
 
-With Temurin 25.0.2, the following standalone command passed 20 tests, with
+With Temurin 25.0.2, the following standalone command passed 24 tests, with
 zero failures, errors or skips, and built the module:
 
 ```bash
@@ -125,11 +128,11 @@ passed on `2cd8bbede0242ef1a08844e8477f9f5ca02d47e1`: **359 tests,
 | Unit and public plugin-bootstrap tests | 20 | 0 |
 
 The synchronized local Trino 484 prototype passed a fresh build, style checks,
-Error Prone compilation and 14 unit tests:
+Error Prone compilation and 21 unit/API tests:
 
 ```bash
 ./mvnw -B -ntp -pl plugin/trino-ydb -P errorprone-compiler \
-  -Dtest=TestYdbClient,TestYdbColumnMappings,TestYdbMergeSink,TestYdbPushdownSemantics \
+  -Dtest=TestYdbClient,TestYdbColumnMappings,TestYdbMergeSink,TestYdbPushdownSemantics,TestYdbJoinCondition,TestYdbPlugin \
   clean verify
 ```
 
@@ -139,6 +142,15 @@ none are suppressed. Docker-backed tests on Trino 484 and its full upstream
 CI matrix remain unverified for this local commit. The green standalone
 Trino 483 run does not replace those checks. Upstream CLA and publication
 are also left to the designated author.
+
+The independent gate of `f90737f` / `c70d350cf6` then found two additional
+semantic boundaries not covered by those green runs: signed-minimum modulo
+`-1` produces YQL NULL instead of Trino zero, and Timestamp64 predicates
+could bind values outside the native range. Both implementations now keep
+modulo by `-1` in Trino and guard Timestamp64 domains, expression constants,
+and writes. Regressions cover filter retention, projection/JOIN results,
+native endpoints, just-outside bounds, NULL and unbounded predicates.
+The subsequent exact-head CI and delta review must cover these additions.
 
 The current PR's exact-head CI and independent review, not the historical
 prototype or earlier PRs, determine whether this branch is ready to merge.

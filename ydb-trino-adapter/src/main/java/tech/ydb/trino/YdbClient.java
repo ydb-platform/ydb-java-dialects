@@ -56,6 +56,7 @@ import io.trino.spi.expression.ConnectorExpression;
 import io.trino.spi.expression.Constant;
 import io.trino.spi.expression.Variable;
 import io.trino.spi.type.DecimalType;
+import io.trino.spi.type.TimestampType;
 import io.trino.spi.type.Type;
 import io.trino.spi.type.VarcharType;
 
@@ -243,7 +244,9 @@ public class YdbClient extends BaseJdbcClient {
 
     private boolean supportsExpression(ConnectorExpression expression, Map<String, ColumnHandle> assignments) {
         if (expression instanceof Constant constant) {
-            return YdbTypeUtils.toTypeHandle(constant.getType()).isPresent();
+            return YdbTypeUtils.toTypeHandle(constant.getType()).isPresent() &&
+                    (!(constant.getType() instanceof TimestampType) || constant.getValue() == null ||
+                            YdbColumnMappings.isTimestamp64ValueSupported((long) constant.getValue()));
         }
         if (expression instanceof Variable variable) {
             JdbcColumnHandle column = (JdbcColumnHandle) assignments.get(variable.getName());

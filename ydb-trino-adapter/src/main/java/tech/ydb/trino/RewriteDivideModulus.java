@@ -23,10 +23,11 @@ import static java.lang.String.format;
 
 /**
  * Rewrite <code>$divide(a, b)</code>, <code>$modulus(a, b)</code> as <code>a / b</code>, <code>a % b</code>,
- * for integral operands with a non-zero constant divisor, excluding division by -1.
+ * for integral operands with a non-zero constant divisor other than -1.
  * <br /> <br />
  * This is because YDB, unlike Trino, suppresses arithmetic errors (including division by zero), and any
  * non-constant expression <i>may</i> evaluate to zero and cause a different result if pushed down to YDB.
+ * YQL also returns NULL for signed-minimum modulo -1, while Trino returns zero.
  */
 public class RewriteDivideModulus implements ConnectorExpressionRule<Call, ParameterizedExpression> {
     private final Pattern<Call> PATTERN;
@@ -55,7 +56,7 @@ public class RewriteDivideModulus implements ConnectorExpressionRule<Call, Param
                 () -> call.getArguments().get(1) instanceof Constant rightConstant &&
                         rightConstant.getValue() instanceof Number number &&
                         number.longValue() != 0 &&
-                        (!call.getFunctionName().equals(DIVIDE_FUNCTION_NAME) || number.longValue() != -1),
+                        number.longValue() != -1,
                 (left, right) -> format("(%s) %s (%s)", left, operator, right)
         );
     }
