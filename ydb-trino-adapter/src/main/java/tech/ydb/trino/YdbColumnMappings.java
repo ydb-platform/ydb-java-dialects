@@ -8,13 +8,15 @@ import io.trino.spi.TrinoException;
 import io.trino.spi.type.DecimalType;
 import io.trino.spi.type.Int128;
 import io.trino.spi.type.Type;
+import tech.ydb.proto.ValueProtos;
+import tech.ydb.table.values.PrimitiveType;
+import tech.ydb.table.values.PrimitiveValue;
 
 import java.math.BigDecimal;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLDataException;
 import java.sql.SQLException;
-import java.sql.Types;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -191,35 +193,41 @@ final class YdbColumnMappings {
     }
 
     static LongWriteFunction timestampWriteFunction(int sqlType) {
-        if (sqlType == YDB_TIMESTAMP64_SQL_TYPE) {
-            // SDK 2.4.10 incorrectly rejects the inclusive maximum in newTimestamp64.
-            return new LongWriteFunction() {
-                @Override
-                public String getBindExpression() {
-                    return "CAST(? AS Timestamp64)";
-                }
-
-                @Override
-                public void set(PreparedStatement statement, int index, long value) throws SQLException {
-                    if (!isTimestamp64ValueSupported(value)) {
-                        throw new SQLDataException("Value is outside the YDB Timestamp64 range");
-                    }
-                    statement.setLong(index, value);
-                }
-
-                @Override
-                public void setNull(PreparedStatement statement, int index) throws SQLException {
-                    statement.setNull(index, Types.BIGINT);
-                }
-            };
-        }
         return LongWriteFunction.of(
                 sqlType,
                 (statement, index, value) -> {
                     if (sqlType == YDB_TIMESTAMP_SQL_TYPE && value < 0) {
                         throw new SQLDataException("Value is outside the YDB Timestamp storage range");
                     }
-                    statement.setObject(index, fromTrinoTimestamp(value).toInstant(UTC), sqlType);
+                    if (sqlType != YDB_TIMESTAMP64_SQL_TYPE) {
+                        statement.setObject(index, fromTrinoTimestamp(value).toInstant(UTC), sqlType);
+                        return;
+                    }
+                    if (!isTimestamp64ValueSupported(value)) {
+                        throw new SQLDataException("Value is outside the YDB Timestamp64 range");
+                    }
+                    if (value != 4611669811199999999L) {
+                        statement.setObject(index, PrimitiveValue.newTimestamp64(value), sqlType);
+                        return;
+                    }
+                    // SDK 2.4.10 rejects this inclusive endpoint. Preserve the native type;
+                    // SQL CAST would introduce Optional<Timestamp64> and break NOT NULL writes.
+                    statement.setObject(index, new PrimitiveValue() {
+                        @Override
+                        public PrimitiveType getType() {
+                            return PrimitiveType.Timestamp64;
+                        }
+
+                        @Override
+                        public Instant getTimestamp64() {
+                            return fromTrinoTimestamp(value).toInstant(UTC);
+                        }
+
+                        @Override
+                        public ValueProtos.Value toPb() {
+                            return PrimitiveValue.newInt64(value).toPb();
+                        }
+                    }, sqlType);
                 });
     }
 }

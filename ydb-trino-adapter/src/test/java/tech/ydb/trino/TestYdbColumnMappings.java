@@ -17,6 +17,11 @@ import io.trino.spi.predicate.ValueSet;
 import io.trino.spi.type.Int128;
 import io.trino.testing.TestingConnectorSession;
 import org.junit.jupiter.api.Test;
+import tech.ydb.jdbc.common.YdbTypes;
+import tech.ydb.jdbc.query.params.ValueFactory;
+import tech.ydb.table.values.DecimalType;
+import tech.ydb.table.values.PrimitiveType;
+import tech.ydb.table.values.PrimitiveValue;
 
 import java.lang.reflect.Proxy;
 import java.math.BigDecimal;
@@ -176,16 +181,28 @@ public class TestYdbColumnMappings {
     @Test
     public void testTimestamp64WriterBounds() throws Exception {
         LongWriteFunction writer = YdbColumnMappings.timestampWriteFunction(SQL_KIND_PRIMITIVE + 27);
-        assertThat(writer.getBindExpression()).isEqualTo("CAST(? AS Timestamp64)");
+        assertThat(writer.getBindExpression()).isEqualTo("?");
         List<List<Object>> calls = new ArrayList<>();
         PreparedStatement statement = statement(calls);
         writer.set(statement, 1, -4611669897600000000L);
         writer.set(statement, 2, 4611669811199999999L);
         writer.setNull(statement, 3);
-        assertThat(calls).containsExactly(
-                List.of(1, -4611669897600000000L),
-                List.of(2, 4611669811199999999L),
-                List.of(3, Types.BIGINT));
+        assertThat(calls).hasSize(3);
+        YdbTypes types = new YdbTypes(false, DecimalType.getDefault());
+        long[] boundaries = {-4611669897600000000L, 4611669811199999999L};
+        for (int index = 0; index < boundaries.length; index++) {
+            assertThat(calls.get(index).get(0)).isEqualTo(index + 1);
+            assertThat(calls.get(index).get(2)).isEqualTo(SQL_KIND_PRIMITIVE + 27);
+            PrimitiveValue value = (PrimitiveValue) calls.get(index).get(1);
+            var required = ValueFactory.readValue("$timestamp", value, types.find(PrimitiveType.Timestamp64));
+            var optional = ValueFactory.readValue("$timestamp", value, types.find(PrimitiveType.Timestamp64.makeOptional()));
+            assertThat(required.getType()).isEqualTo(PrimitiveType.Timestamp64);
+            assertThat(required.toPb().getInt64Value()).isEqualTo(boundaries[index]);
+            assertThat(optional.asOptional().get().toPb().getInt64Value()).isEqualTo(boundaries[index]);
+        }
+        assertThat(calls.get(2)).containsExactly(3, SQL_KIND_PRIMITIVE + 27);
+        assertThat(ValueFactory.readValue("$timestamp", null, types.find(PrimitiveType.Timestamp64.makeOptional()))
+                .asOptional().isPresent()).isFalse();
         assertThatThrownBy(() -> writer.set(statement, 1, -4611669897600000001L)).isInstanceOf(SQLDataException.class);
         assertThatThrownBy(() -> writer.set(statement, 1, 4611669811200000000L)).isInstanceOf(SQLDataException.class);
     }
@@ -201,7 +218,7 @@ public class TestYdbColumnMappings {
     private static PreparedStatement statement(List<List<Object>> calls) {
         return (PreparedStatement) Proxy.newProxyInstance(PreparedStatement.class.getClassLoader(), new Class<?>[]{PreparedStatement.class},
                 (_, method, args) -> {
-                    assertThat(method.getName()).isIn("setObject", "setLong", "setNull");
+                    assertThat(method.getName()).isIn("setObject", "setNull");
                     calls.add(Arrays.asList(args));
                     return null;
                 });
