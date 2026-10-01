@@ -3,13 +3,8 @@ package tech.ydb.trino;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.inject.Module;
-import io.trino.Session;
 import io.trino.testing.DistributedQueryRunner;
-import io.trino.testing.MaterializedResult;
-import io.trino.testing.QueryRunner;
-import io.trino.tpch.TpchColumn;
 import io.trino.tpch.TpchTable;
-import org.intellij.lang.annotations.Language;
 import tech.ydb.test.junit5.YdbHelperExtension;
 
 import java.util.HashMap;
@@ -28,7 +23,7 @@ public final class YdbQueryRunner {
     public static Builder builder(YdbHelperExtension ydb) {
         String jdbcUrl = buildJdbcUrl(ydb);
         return new Builder()
-                // Avoid temporary-table CTAS during INSERT; YDB does not support CREATE TABLE AS SELECT.
+                // Transactional INSERT staging has dedicated coverage in TestYdbCreateTable.
                 .addConnectorProperty("insert.non-transactional-insert.enabled", "true")
                 .addConnectorProperty("merge.non-transactional-merge.enabled", "true")
                 .addConnectorProperty("connection-url", jdbcUrl);

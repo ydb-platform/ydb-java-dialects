@@ -47,6 +47,24 @@ public class TestYdbConnectorTest extends BaseConnectorTest {
     }
 
     @Test
+    public void testPrimaryKeyNamedColumn() {
+        try (TestTable table = newTrinoTable("primary_key_named_column_", "(\"primary_key\" bigint)")) {
+            assertUpdate("INSERT INTO " + table.getName() + " VALUES 7", 1);
+            assertQuery("SELECT \"primary_key\" FROM " + table.getName(), "VALUES 7");
+            // Quoting does not bypass YDB's column naming restrictions:
+            // https://ydb.tech/docs/en/concepts/datamodel/table#column-naming-rules
+            String invalidTable = table.getName() + "_invalid";
+            try {
+                assertQueryFails("CREATE TABLE " + invalidTable + " (\"primary key\" bigint)",
+                        "(?s).*Invalid name for user column 'primary key'.*");
+            }
+            finally {
+                assertUpdate("DROP TABLE IF EXISTS " + invalidTable);
+            }
+        }
+    }
+
+    @Test
     public void testJoinPushdown() {
         Session session = Session.builder(getSession())
                 .setCatalogSessionProperty(getSession().getCatalog().orElseThrow(), "join_pushdown_enabled", "true")

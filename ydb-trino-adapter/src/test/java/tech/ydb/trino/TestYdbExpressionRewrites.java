@@ -45,34 +45,49 @@ public class TestYdbExpressionRewrites {
     @Test
     public void testNullIfParameterOrder() {
         Call expression = new Call(BIGINT, NULLIF_FUNCTION_NAME, List.of(
-                new Constant(11L, BIGINT), new Variable("v", BIGINT)));
-        JdbcColumnHandle column = new JdbcColumnHandle("value", YdbTypeUtils.toTypeHandle(BIGINT).orElseThrow(), BIGINT);
-        var result = client.convertPredicate(SESSION, expression, Map.of("v", column)).orElseThrow();
+                new Constant(11L, BIGINT), new Constant(22L, BIGINT)));
+        var result = client.convertPredicate(SESSION, expression, Map.of()).orElseThrow();
         assertThat(result.parameters()).extracting(parameter -> parameter.getValue().orElseThrow())
-                .containsExactly(11L, 11L);
+                .containsExactly(11L, 22L, 11L);
     }
 
     @Test
     public void testStringPositionParameterOrder() {
         Call expression = new Call(BIGINT, new FunctionName("strpos"), List.of(
-                new Constant(utf8Slice("hello"), VARCHAR), new Variable("v", VARCHAR)));
-        JdbcColumnHandle column = new JdbcColumnHandle("value", YdbTypeUtils.toTypeHandle(VARCHAR).orElseThrow(), VARCHAR);
+                new Constant(utf8Slice("hello"), VARCHAR), new Constant(utf8Slice("ll"), VARCHAR)));
         JdbcTableHandle table = new JdbcTableHandle(
                 new SchemaTableName("default", "test"),
                 new RemoteTableName(Optional.empty(), Optional.empty(), "test"),
                 Optional.empty());
-        var result = client.convertProjection(SESSION, table, expression, Map.of("v", column)).orElseThrow();
+        var result = client.convertProjection(SESSION, table, expression, Map.of()).orElseThrow();
         assertThat(result.getParameters()).extracting(parameter -> parameter.getValue().orElseThrow())
-                .containsExactly(utf8Slice("hello"), utf8Slice("hello"));
+                .containsExactly(utf8Slice("hello"), utf8Slice("ll"), utf8Slice("hello"), utf8Slice("ll"));
     }
 
     @Test
-    public void testUnicodeTrimIsNotPushedDown() {
+    public void testUnicodeCaseRewritesAndTrimFallback() {
         JdbcColumnHandle column = new JdbcColumnHandle("value", YdbTypeUtils.toTypeHandle(VARCHAR).orElseThrow(), VARCHAR);
         JdbcTableHandle table = new JdbcTableHandle(new SchemaTableName("default", "test"),
                 new RemoteTableName(Optional.empty(), Optional.empty(), "test"), Optional.empty());
+        for (String function : List.of("upper", "lower")) {
+            assertThat(client.convertProjection(SESSION, table,
+                    new Call(VARCHAR, new FunctionName(function), List.of(new Variable("v", VARCHAR))), Map.of("v", column))).isPresent();
+        }
         assertThat(client.convertProjection(SESSION, table,
                 new Call(VARCHAR, new FunctionName("trim"), List.of(new Variable("v", VARCHAR))), Map.of("v", column))).isEmpty();
+    }
+
+    @Test
+    public void testIntegralDivisionAndModulusPushdown() {
+        for (var entry : Map.of(DIVIDE_FUNCTION_NAME, "(?) / (?)", MODULO_FUNCTION_NAME, "(?) % (?)").entrySet()) {
+            var result = client.convertPredicate(SESSION, new Call(BIGINT, entry.getKey(), List.of(
+                    new Constant(11L, BIGINT), new Constant(2L, BIGINT))), Map.of()).orElseThrow();
+            assertThat(result.expression()).isEqualTo(entry.getValue());
+            assertThat(result.parameters()).extracting(parameter -> parameter.getValue().orElseThrow())
+                    .containsExactly(11L, 2L);
+            assertThat(client.convertPredicate(SESSION, new Call(BIGINT, entry.getKey(), List.of(
+                    new Constant(11L, BIGINT), new Constant(0L, BIGINT))), Map.of())).isEmpty();
+        }
     }
 
     @Test
@@ -84,9 +99,10 @@ public class TestYdbExpressionRewrites {
     }
 
     @Test
-    public void testTimestamp64ExpressionBounds() {
+    public void testTimestampLiteralPredicatesAreNotRewritten() {
+        // Literal rewriting is unsupported even in range; domain and writer bounds have separate tests.
         JdbcColumnHandle column = new JdbcColumnHandle("value", YdbTypeUtils.toTypeHandle(TIMESTAMP_MICROS).orElseThrow(), TIMESTAMP_MICROS);
-        for (long bound : List.of(-4611669897600000001L, 4611669811200000000L)) {
+        for (long bound : List.of(-4611669897600000001L, 0L, 4611669811200000000L)) {
             assertThat(client.convertPredicate(SESSION, new Call(BOOLEAN, LESS_THAN_OPERATOR_FUNCTION_NAME, List.of(
                     new Variable("v", TIMESTAMP_MICROS), new Constant(bound, TIMESTAMP_MICROS))), Map.of("v", column))).isEmpty();
         }

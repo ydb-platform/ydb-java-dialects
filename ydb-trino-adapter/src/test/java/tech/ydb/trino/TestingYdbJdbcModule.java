@@ -1,64 +1,33 @@
 package tech.ydb.trino;
 
-import com.google.inject.Binder;
-import com.google.inject.Module;
+import com.google.inject.AbstractModule;
 import com.google.inject.Provides;
-import com.google.inject.Scopes;
 import com.google.inject.Singleton;
+import com.google.inject.util.Modules;
 import io.trino.plugin.base.mapping.IdentifierMapping;
 import io.trino.plugin.jdbc.BaseJdbcConfig;
 import io.trino.plugin.jdbc.ConnectionFactory;
 import io.trino.plugin.jdbc.ForBaseJdbc;
 import io.trino.plugin.jdbc.JdbcClient;
-import io.trino.plugin.jdbc.JdbcMetadataFactory;
 import io.trino.plugin.jdbc.QueryBuilder;
-import io.trino.plugin.jdbc.credential.CredentialProvider;
 import io.trino.plugin.jdbc.logging.RemoteQueryModifier;
-import io.trino.spi.connector.ConnectorPageSinkProvider;
 
-import static com.google.inject.multibindings.OptionalBinder.newOptionalBinder;
-import static io.trino.plugin.jdbc.JdbcModule.bindTablePropertiesProvider;
-
-public class TestingYdbJdbcModule implements Module {
+public class TestingYdbJdbcModule extends AbstractModule {
 
     @Override
-    public void configure(Binder binder) {
-        newOptionalBinder(binder, QueryBuilder.class)
-                .setBinding()
-                .to(YdbQueryBuilder.class)
-                .in(Scopes.SINGLETON);
-
-        newOptionalBinder(binder, JdbcMetadataFactory.class)
-                .setBinding()
-                .to(YdbMetadataFactory.class)
-                .in(Scopes.SINGLETON);
-
-        bindTablePropertiesProvider(binder, YdbTableProperties.class);
-        newOptionalBinder(binder, ConnectorPageSinkProvider.class)
-                .setBinding()
-                .to(YdbPageSinkProvider.class)
-                .in(Scopes.SINGLETON);
-        binder.bind(YdbConnector.class).in(Scopes.SINGLETON);
-    }
-
-    @Provides
-    @Singleton
-    @ForBaseJdbc
-    public JdbcClient provideJdbcClient(
-            BaseJdbcConfig config,
-            ConnectionFactory connectionFactory,
-            QueryBuilder queryBuilder,
-            IdentifierMapping identifierMapping,
-            RemoteQueryModifier remoteQueryModifier) {
-        return new TestingYdbJdbcClient(config, connectionFactory, queryBuilder, identifierMapping, remoteQueryModifier);
-    }
-
-    @Provides
-    @Singleton
-    @ForBaseJdbc
-    public static ConnectionFactory createConnectionFactory(
-            BaseJdbcConfig config,
-            CredentialProvider credentialProvider) {
-        return YdbClientModule.createConnectionFactory(config, credentialProvider);
+    protected void configure() {
+        install(Modules.override(new YdbClientModule()).with(new AbstractModule() {
+            @Provides
+            @Singleton
+            @ForBaseJdbc
+            public JdbcClient provideJdbcClient(
+                    BaseJdbcConfig config,
+                    ConnectionFactory connectionFactory,
+                    QueryBuilder queryBuilder,
+                    IdentifierMapping identifierMapping,
+                    RemoteQueryModifier remoteQueryModifier) {
+                return new TestingYdbJdbcClient(config, connectionFactory, queryBuilder, identifierMapping, remoteQueryModifier);
+            }
+        }));
     }
 }

@@ -1,8 +1,10 @@
 package tech.ydb.trino;
 
+import com.google.common.collect.ImmutableList;
 import io.trino.matching.Captures;
 import io.trino.matching.Pattern;
 import io.trino.plugin.base.expression.ConnectorExpressionRule;
+import io.trino.plugin.jdbc.QueryParameter;
 import io.trino.plugin.jdbc.expression.ParameterizedExpression;
 import io.trino.spi.expression.Call;
 import io.trino.spi.expression.Constant;
@@ -49,16 +51,26 @@ public class RewriteDivideModulus implements ConnectorExpressionRule<Call, Param
 
     @Override
     public Optional<ParameterizedExpression> rewrite(Call call, Captures captures, RewriteContext<ParameterizedExpression> context) {
+        if (!(call.getArguments().get(1) instanceof Constant rightConstant) ||
+                !(rightConstant.getValue() instanceof Number number) ||
+                number.longValue() == 0 || number.longValue() == -1) {
+            return Optional.empty();
+        }
+        Optional<ParameterizedExpression> left = context.defaultRewrite(call.getArguments().getFirst());
+        if (left.isEmpty()) {
+            return Optional.empty();
+        }
+        Optional<ParameterizedExpression> right = context.defaultRewrite(call.getArguments().get(1));
+        if (right.isEmpty()) {
+            return Optional.empty();
+        }
         String operator = call.getFunctionName().equals(DIVIDE_FUNCTION_NAME) ? "/" : "%";
-        return RewriteUtils.rewriteBinaryExpression(
-                call,
-                context,
-                () -> call.getArguments().get(1) instanceof Constant rightConstant &&
-                        rightConstant.getValue() instanceof Number number &&
-                        number.longValue() != 0 &&
-                        number.longValue() != -1,
-                (left, right) -> format("(%s) %s (%s)", left, operator, right)
-        );
+        return Optional.of(new ParameterizedExpression(
+                format("(%s) %s (%s)", left.get().expression(), operator, right.get().expression()),
+                ImmutableList.<QueryParameter>builder()
+                        .addAll(left.get().parameters())
+                        .addAll(right.get().parameters())
+                        .build()));
     }
 
 }
