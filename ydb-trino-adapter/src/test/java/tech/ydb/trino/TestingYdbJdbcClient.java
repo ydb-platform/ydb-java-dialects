@@ -66,14 +66,11 @@ public class TestingYdbJdbcClient extends YdbClient {
         String tableName = quoted(remoteTableName);
         String columnsDeclaration = String.join(", ", columns);
 
-        boolean hasPrimaryKey = columnsDeclaration.toUpperCase().contains("PRIMARY KEY");
         boolean hasHiddenPkColumn = columns.stream()
                 .anyMatch(col -> col.startsWith(quoted(YDB_HIDDEN_PK_COLUMN)) || col.startsWith(YDB_HIDDEN_PK_COLUMN));
 
         String sql;
-        if (hasPrimaryKey) {
-            sql = String.format("CREATE TABLE %s (%s)", tableName, columnsDeclaration);
-        } else if (hasHiddenPkColumn) {
+        if (hasHiddenPkColumn) {
             sql = String.format("CREATE TABLE %s (%s, PRIMARY KEY (%s))", tableName, columnsDeclaration, quoted(YDB_HIDDEN_PK_COLUMN));
         } else {
             String hiddenPkColumn = quoted(YDB_HIDDEN_PK_COLUMN) + " Serial";

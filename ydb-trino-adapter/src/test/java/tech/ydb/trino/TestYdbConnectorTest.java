@@ -47,6 +47,14 @@ public class TestYdbConnectorTest extends BaseConnectorTest {
     }
 
     @Test
+    public void testPrimaryKeyNamedColumn() {
+        try (TestTable table = newTrinoTable("primary_key_named_column_", "(\"primary key\" bigint)")) {
+            assertUpdate("INSERT INTO " + table.getName() + " VALUES 7", 1);
+            assertQuery("SELECT \"primary key\" FROM " + table.getName(), "VALUES 7");
+        }
+    }
+
+    @Test
     public void testJoinPushdown() {
         Session session = Session.builder(getSession())
                 .setCatalogSessionProperty(getSession().getCatalog().orElseThrow(), "join_pushdown_enabled", "true")

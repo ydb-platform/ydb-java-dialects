@@ -2,25 +2,47 @@ package tech.ydb.trino;
 
 import io.trino.plugin.base.mapping.DefaultIdentifierMapping;
 import io.trino.plugin.jdbc.BaseJdbcConfig;
+import io.trino.plugin.jdbc.RemoteTableName;
 import io.trino.plugin.jdbc.logging.RemoteQueryModifier;
+import io.trino.spi.connector.ColumnMetadata;
+import io.trino.spi.connector.ConnectorTableMetadata;
+import io.trino.spi.connector.SchemaTableName;
 import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.Proxy;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Types;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Supplier;
 
+import static io.trino.spi.type.BigintType.BIGINT;
 import static io.trino.testing.TestingConnectorSession.SESSION;
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class TestYdbWriteMetadata {
+    @Test
+    public void testHiddenKeyWithPrimaryKeyNamedColumn() {
+        TestingYdbJdbcClient client = new TestingYdbJdbcClient(new BaseJdbcConfig(),
+                _ -> {
+                    throw new SQLException("This test must not open a connection");
+                },
+                new YdbQueryBuilder(RemoteQueryModifier.NONE), new DefaultIdentifierMapping(), RemoteQueryModifier.NONE);
+        ConnectorTableMetadata metadata = new ConnectorTableMetadata(
+                new SchemaTableName("default", "fixture"), List.of(new ColumnMetadata("primary key", BIGINT)));
+        assertThat(client.createTableSqls(
+                new RemoteTableName(Optional.empty(), Optional.empty(), "fixture"),
+                List.of("`primary key` Int64"), metadata))
+                .containsExactly("CREATE TABLE `fixture` (`primary key` Int64, `_ydb_trino_test_pk` Serial, PRIMARY KEY (`_ydb_trino_test_pk`))");
+    }
+
     @Test
     public void testStagingUsesDriverTableIdentity() throws Exception {
         Map<String, Object> row = Map.of(
