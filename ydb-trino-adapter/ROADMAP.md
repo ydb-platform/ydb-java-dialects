@@ -1,9 +1,42 @@
 # YDB Trino Adapter — roadmap
 
-This roadmap tracks the connector against Trino 483
-`BaseConnectorTest`/`BaseConnectorSmokeTest`. A green test is meaningful only
+This roadmap tracks the connector's inherited
+`BaseConnectorTest`/`BaseConnectorSmokeTest` contracts. A green test is meaningful only
 when it exercises the advertised behavior. Empty overrides and false capability
 flags are test debt, not support.
+
+## Trino 484 upgrade draft
+
+The POM and example target release 484, which is not published as of
+2026-10-01. Release dependency resolution and the full release test suite
+remain gates before this draft can be merged.
+
+The preliminary API reference is `484-SNAPSHOT` at upstream commit
+`8d58343762f56a7d0f13b799f5521ddca6fbcfff`. Its JDBC page-sink provider adds
+a trailing `MemoryContext` to `createMergeSink`; the YDB override follows
+that signature. The sink continues to process owned bounded batches without
+retaining pages between calls. The legacy equality JOIN path remains available
+in this snapshot, so this upgrade does not add the prototype's expression
+parser or change JOIN capability declarations.
+
+Local checks may explicitly override `-Dtrino.version=484-SNAPSHOT` using
+the prebuilt dependencies. Those results do not establish compatibility with
+the eventual 484 release. The 483 results below are historical, not upgrade
+validation.
+
+Preliminary standalone checks with Temurin 25.0.2 and the local snapshot:
+
+- The unchanged 483 provider failed compilation at its `createMergeSink`
+  override. Adding the 484 memory-context parameter resolves that failure.
+- All production and test sources compile; package/verify and the six unit/API
+  classes pass 24 tests, with zero failures, errors or skips.
+- A full test attempt reports 28 entries: 24 pass and four integration-class
+  setups fail with `Ydb helper is not available`; no integration test completes.
+  The Colima socket is unavailable and Docker/Colima was not changed.
+- The example passes `docker-compose ... config --quiet`; its existing
+  obsolete `version` attribute warning remains.
+
+These are snapshot checks, not a successful release-484 CI run.
 
 ## Trino 483 dependency migration
 
