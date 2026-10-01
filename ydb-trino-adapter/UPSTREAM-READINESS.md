@@ -1,8 +1,10 @@
 # Connector review and upstream handoff
 
 This change is delivered to `ydb-platform/ydb-java-dialects`, not to Trino.
-The standalone module remains pinned to Trino 483. The upstream comparison
-and prototype used Trino `484-SNAPSHOT` at
+This document records the completed Trino 483 connector review. The separate
+484 upgrade is a draft awaiting the release; see [README.md](README.md) and
+[ROADMAP.md](ROADMAP.md) for its verification boundary.
+The upstream comparison and prototype used Trino `484-SNAPSHOT` at
 `8d58343762f56a7d0f13b799f5521ddca6fbcfff`, with Java 25.
 Binary or source compatibility between these versions is not assumed.
 
