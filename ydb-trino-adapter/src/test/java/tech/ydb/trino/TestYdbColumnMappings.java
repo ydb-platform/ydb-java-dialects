@@ -99,9 +99,13 @@ public class TestYdbColumnMappings {
     public void testDecimalWriterPreservesPrecisionAndScale() throws Exception {
         List<List<Object>> calls = new ArrayList<>();
         PreparedStatement statement = statement(calls);
-        LongWriteFunction shortWriter = (LongWriteFunction) YdbColumnMappings.decimalColumnMapping(createDecimalType(10, 3)).getWriteFunction();
+        JdbcTypeHandle shortType = new JdbcTypeHandle(Types.DECIMAL, Optional.of("Decimal(10,3)"),
+                Optional.of(22), Optional.of(9), Optional.empty(), Optional.empty());
+        LongWriteFunction shortWriter = (LongWriteFunction) client.toColumnMapping(SESSION, null, shortType).orElseThrow().getWriteFunction();
         shortWriter.set(statement, 1, 12345);
-        ObjectWriteFunction longWriter = (ObjectWriteFunction) YdbColumnMappings.decimalColumnMapping(createDecimalType(35, 10)).getWriteFunction();
+        JdbcTypeHandle longType = new JdbcTypeHandle(Types.DECIMAL, Optional.of("Decimal"),
+                Optional.of(35), Optional.of(10), Optional.empty(), Optional.empty());
+        ObjectWriteFunction longWriter = (ObjectWriteFunction) client.toColumnMapping(SESSION, null, longType).orElseThrow().getWriteFunction();
         longWriter.set(statement, 2, Int128.valueOf(new BigInteger("123456789012345678901234567890")));
         longWriter.setNull(statement, 3);
         assertThat(calls).containsExactly(

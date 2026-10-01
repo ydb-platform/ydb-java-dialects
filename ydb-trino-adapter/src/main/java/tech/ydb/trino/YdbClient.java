@@ -30,7 +30,6 @@ import io.trino.plugin.jdbc.PreparedQuery;
 import io.trino.plugin.jdbc.QueryBuilder;
 import io.trino.plugin.jdbc.RemoteTableName;
 import io.trino.plugin.jdbc.WriteMapping;
-import io.trino.plugin.jdbc.aggregation.ImplementAvgDecimal;
 import io.trino.plugin.jdbc.aggregation.ImplementAvgFloatingPoint;
 import io.trino.plugin.jdbc.aggregation.ImplementCount;
 import io.trino.plugin.jdbc.aggregation.ImplementCountAll;
@@ -96,17 +95,14 @@ import static io.trino.plugin.jdbc.StandardColumnMappings.doubleColumnMapping;
 import static io.trino.plugin.jdbc.StandardColumnMappings.doubleWriteFunction;
 import static io.trino.plugin.jdbc.StandardColumnMappings.integerColumnMapping;
 import static io.trino.plugin.jdbc.StandardColumnMappings.integerWriteFunction;
-import static io.trino.plugin.jdbc.StandardColumnMappings.longDecimalWriteFunction;
 import static io.trino.plugin.jdbc.StandardColumnMappings.realColumnMapping;
 import static io.trino.plugin.jdbc.StandardColumnMappings.realWriteFunction;
-import static io.trino.plugin.jdbc.StandardColumnMappings.shortDecimalWriteFunction;
 import static io.trino.plugin.jdbc.StandardColumnMappings.smallintColumnMapping;
 import static io.trino.plugin.jdbc.StandardColumnMappings.smallintWriteFunction;
 import static io.trino.plugin.jdbc.StandardColumnMappings.tinyintWriteFunction;
 import static io.trino.plugin.jdbc.StandardColumnMappings.tinyintColumnMapping;
 import static io.trino.plugin.jdbc.StandardColumnMappings.varbinaryColumnMapping;
 import static io.trino.plugin.jdbc.StandardColumnMappings.varbinaryWriteFunction;
-import static io.trino.plugin.jdbc.StandardColumnMappings.varcharColumnMapping;
 import static io.trino.plugin.jdbc.StandardColumnMappings.varcharReadFunction;
 import static io.trino.plugin.jdbc.StandardColumnMappings.varcharWriteFunction;
 import static io.trino.plugin.jdbc.TypeHandlingJdbcSessionProperties.getUnsupportedTypeHandling;
@@ -127,7 +123,6 @@ import static io.trino.spi.type.TimestampType.TIMESTAMP_MICROS;
 import static io.trino.spi.type.TinyintType.TINYINT;
 import static io.trino.spi.type.VarbinaryType.VARBINARY;
 import static io.trino.spi.type.VarcharType.createUnboundedVarcharType;
-import static io.trino.spi.type.VarcharType.createVarcharType;
 import static java.lang.Math.max;
 import static java.lang.String.format;
 import static java.util.stream.Collectors.joining;
@@ -174,8 +169,6 @@ public class YdbClient extends BaseJdbcClient {
                 .add(new RewriteIn())
                 .add(new RewriteDivideModulus())
                 .add(new RewriteNullIf())
-                .withTypeClass("integer_type", ImmutableSet.of("tinyint", "smallint", "integer", "bigint"))
-                .withTypeClass("numeric_type", ImmutableSet.of("tinyint", "smallint", "integer", "bigint", "decimal", "real", "double"))
                 .withTypeClass("comparable_type", ImmutableSet.of(
                         "tinyint", "smallint", "integer", "bigint", "decimal", "real", "double", "varchar", "char", "date", "timestamp"))
                 .map("$equal(left, right)").to("left = right")
@@ -206,7 +199,6 @@ public class YdbClient extends BaseJdbcClient {
                         .add(new ImplementCountDistinct(bigintTypeHandle, true))
                         .add(new ImplementSum(YdbTypeUtils::toTypeHandle))
                         .add(new ImplementAvgFloatingPoint())
-                        .add(new ImplementAvgDecimal())
                         .build());
     }
 
@@ -426,79 +418,34 @@ public class YdbClient extends BaseJdbcClient {
             return getUnsupportedTypeHandling(session) == CONVERT_TO_VARCHAR ? mapToUnboundedVarchar(typeHandle) : Optional.empty();
         }
 
-        Optional<ColumnMapping> columnMapping = switch (typeHandle.jdbcType()) {
-            case Types.BIT, Types.BOOLEAN -> Optional.of(booleanColumnMapping());
-            case Types.TINYINT, Types.SMALLINT -> Optional.of(smallintColumnMapping());
-            case Types.INTEGER -> Optional.of(integerColumnMapping());
-            case Types.BIGINT -> Optional.of(bigintColumnMapping());
-            case Types.REAL -> Optional.of(realColumnMapping());
-            case Types.FLOAT -> Optional.of(jdbcTypeName.equals("float") ? realColumnMapping() : doubleColumnMapping());
-            case Types.DOUBLE -> Optional.of(doubleColumnMapping());
-            case Types.DECIMAL -> {
-                String typeName = typeHandle.jdbcTypeName().orElse("Decimal");
-                int precision = typeHandle.columnSize().orElse(YDB_DEFAULT_DECIMAL_PRECISION);
-                int scale = typeHandle.decimalDigits().orElse(YDB_DEFAULT_DECIMAL_SCALE);
-                int start = typeName.indexOf('(');
-                int end = typeName.indexOf(')');
-                if (start >= 0 && end > start) {
-                    String[] parts = typeName.substring(start + 1, end).split(",");
-                    if (parts.length == 2) {
-                        Integer typeNamePrecision = Ints.tryParse(parts[0].trim());
-                        Integer typeNameScale = Ints.tryParse(parts[1].trim());
-                        if (typeNamePrecision != null && typeNameScale != null) {
-                            precision = typeNamePrecision;
-                            scale = typeNameScale;
-                        }
-                    }
+        String typeName = typeHandle.jdbcTypeName().orElse("Decimal");
+        int precision = typeHandle.columnSize().orElse(YDB_DEFAULT_DECIMAL_PRECISION);
+        int scale = typeHandle.decimalDigits().orElse(YDB_DEFAULT_DECIMAL_SCALE);
+        int start = typeName.indexOf('(');
+        int end = typeName.indexOf(')');
+        if (start >= 0 && end > start) {
+            String[] parts = typeName.substring(start + 1, end).split(",");
+            if (parts.length == 2) {
+                Integer typeNamePrecision = Ints.tryParse(parts[0].trim());
+                Integer typeNameScale = Ints.tryParse(parts[1].trim());
+                if (typeNamePrecision != null && typeNameScale != null) {
+                    precision = typeNamePrecision;
+                    scale = typeNameScale;
                 }
-
-                DecimalType decimalType = createDecimalType(precision, max(scale, 0));
-                ColumnMapping decimalMapping = decimalColumnMapping(decimalType);
-                yield Optional.of(ColumnMapping.mapping(
-                        decimalType,
-                        decimalMapping.getReadFunction(),
-                        decimalMapping.getWriteFunction(),
-                        DISABLE_PUSHDOWN));
             }
-            case Types.CHAR, Types.NCHAR -> {
-                String typeName = typeHandle.jdbcTypeName().orElseThrow();
-                int length = typeName.toLowerCase().startsWith("char(")
-                        ? Integer.parseInt(typeName.substring(5, typeName.length() - 1))
-                        : typeHandle.columnSize().orElse(VarcharType.MAX_LENGTH);
-                yield Optional.of(varcharColumnMapping(length));
-            }
-            case Types.VARCHAR, Types.LONGVARCHAR, Types.NVARCHAR -> {
-                String typeName = typeHandle.jdbcTypeName().orElseThrow();
-                int length = typeName.toLowerCase().startsWith("varchar(")
-                        ? Integer.parseInt(typeName.substring(8, typeName.length() - 1))
-                        : typeHandle.columnSize().orElse(VarcharType.MAX_LENGTH);
-                yield Optional.of(varcharColumnMapping(length));
-            }
-            case Types.DATE -> Optional.of(dateColumnMapping(typeHandle));
-            case Types.TIMESTAMP -> Optional.of(timestampColumnMapping(typeHandle));
-            default -> Optional.empty();
-        };
-
-        if (columnMapping.isPresent()) {
-            return columnMapping;
         }
 
-        return mapToUnboundedVarchar(typeHandle);
+        DecimalType decimalType = createDecimalType(precision, max(scale, 0));
+        ColumnMapping decimalMapping = decimalColumnMapping(decimalType);
+        return Optional.of(ColumnMapping.mapping(
+                decimalType,
+                decimalMapping.getReadFunction(),
+                decimalMapping.getWriteFunction(),
+                DISABLE_PUSHDOWN));
     }
 
     private static ColumnMapping unboundedVarcharColumnMapping() {
         VarcharType varcharType = createUnboundedVarcharType();
-        return ColumnMapping.sliceMapping(
-                varcharType,
-                varcharReadFunction(varcharType),
-                varcharWriteFunction(),
-                FULL_PUSHDOWN);
-    }
-
-    private static ColumnMapping varcharColumnMapping(int varcharLength) {
-        VarcharType varcharType = varcharLength <= VarcharType.MAX_LENGTH
-                ? createVarcharType(varcharLength)
-                : createUnboundedVarcharType();
         return ColumnMapping.sliceMapping(
                 varcharType,
                 varcharReadFunction(varcharType),
