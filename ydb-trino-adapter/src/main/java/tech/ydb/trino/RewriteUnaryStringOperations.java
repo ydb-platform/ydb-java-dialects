@@ -14,7 +14,6 @@ import io.trino.spi.expression.ConnectorExpression;
 import io.trino.spi.expression.FunctionName;
 import io.trino.spi.type.VarcharType;
 
-import java.util.Objects;
 import java.util.Optional;
 
 import static io.trino.matching.Capture.newCapture;
@@ -42,21 +41,9 @@ public class RewriteUnaryStringOperations implements ProjectFunctionRule<JdbcExp
 
     @Override
     public Optional<JdbcExpression> rewrite(ConnectorTableHandle handle, ConnectorExpression projectionExpression, Captures captures, RewriteContext<ParameterizedExpression> context) {
-        JdbcTypeHandle varcharTypeHandle = YdbTypeUtils.toTypeHandle(VarcharType.VARCHAR).orElse(null);
-        if (Objects.isNull(varcharTypeHandle)) {
-            return Optional.empty();
-        }
-
+        JdbcTypeHandle varcharTypeHandle = YdbTypeUtils.toTypeHandle(VarcharType.VARCHAR).orElseThrow();
         Call call = (Call) projectionExpression;
-
-        ConnectorExpression valueExpr;
-        if (call.getArguments().size() == 1) {
-            valueExpr = call.getArguments().getFirst();
-        }  else {
-            return Optional.empty();
-        }
-
-        Optional<ParameterizedExpression> rewrittenValue = context.rewriteExpression(valueExpr);
+        Optional<ParameterizedExpression> rewrittenValue = context.rewriteExpression(captures.get(VALUE));
         if (rewrittenValue.isEmpty()) {
             return Optional.empty();
         }

@@ -65,12 +65,29 @@ public class TestYdbExpressionRewrites {
     }
 
     @Test
-    public void testUnicodeTrimIsNotPushedDown() {
+    public void testUnicodeCaseRewritesAndTrimFallback() {
         JdbcColumnHandle column = new JdbcColumnHandle("value", YdbTypeUtils.toTypeHandle(VARCHAR).orElseThrow(), VARCHAR);
         JdbcTableHandle table = new JdbcTableHandle(new SchemaTableName("default", "test"),
                 new RemoteTableName(Optional.empty(), Optional.empty(), "test"), Optional.empty());
+        for (String function : List.of("upper", "lower")) {
+            assertThat(client.convertProjection(SESSION, table,
+                    new Call(VARCHAR, new FunctionName(function), List.of(new Variable("v", VARCHAR))), Map.of("v", column))).isPresent();
+        }
         assertThat(client.convertProjection(SESSION, table,
                 new Call(VARCHAR, new FunctionName("trim"), List.of(new Variable("v", VARCHAR))), Map.of("v", column))).isEmpty();
+    }
+
+    @Test
+    public void testIntegralDivisionAndModulusPushdown() {
+        for (var entry : Map.of(DIVIDE_FUNCTION_NAME, "(?) / (?)", MODULO_FUNCTION_NAME, "(?) % (?)").entrySet()) {
+            var result = client.convertPredicate(SESSION, new Call(BIGINT, entry.getKey(), List.of(
+                    new Constant(11L, BIGINT), new Constant(2L, BIGINT))), Map.of()).orElseThrow();
+            assertThat(result.expression()).isEqualTo(entry.getValue());
+            assertThat(result.parameters()).extracting(parameter -> parameter.getValue().orElseThrow())
+                    .containsExactly(11L, 2L);
+            assertThat(client.convertPredicate(SESSION, new Call(BIGINT, entry.getKey(), List.of(
+                    new Constant(11L, BIGINT), new Constant(0L, BIGINT))), Map.of())).isEmpty();
+        }
     }
 
     @Test
