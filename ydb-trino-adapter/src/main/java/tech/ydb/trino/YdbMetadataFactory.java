@@ -2,6 +2,7 @@ package tech.ydb.trino;
 
 import com.google.inject.Inject;
 import io.trino.plugin.base.cache.identity.IdentityCacheMapping;
+import io.trino.plugin.jdbc.DefaultJdbcMetadata;
 import io.trino.plugin.jdbc.DefaultJdbcMetadataFactory;
 import io.trino.plugin.jdbc.JdbcClient;
 import io.trino.plugin.jdbc.JdbcMetadata;
@@ -28,6 +29,6 @@ public class YdbMetadataFactory extends DefaultJdbcMetadataFactory {
 
     @Override
     protected JdbcMetadata create(JdbcClient transactionCachingJdbcClient) {
-        return new YdbMetadata(transactionCachingJdbcClient, timestampTimeZoneDomain, jdbcQueryEventListeners);
+        return new DefaultJdbcMetadata(transactionCachingJdbcClient, timestampTimeZoneDomain, false, jdbcQueryEventListeners);
     }
 }

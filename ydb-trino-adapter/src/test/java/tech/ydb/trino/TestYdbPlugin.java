@@ -2,7 +2,8 @@ package tech.ydb.trino;
 
 import io.trino.spi.connector.Connector;
 import io.trino.testing.TestingConnectorContext;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import java.util.Map;
 
@@ -11,9 +12,11 @@ import static io.trino.spi.connector.ConnectorCapabilities.NOT_NULL_COLUMN_CONST
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class TestYdbPlugin {
-    @Test
-    public void testProductionConnectorBootstrap() {
-        Connector connector = getOnlyElement(new YdbPlugin().getConnectorFactories())
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
+    public void testConnectorBootstrap(boolean testingClient) {
+        YdbPlugin plugin = new YdbPlugin(testingClient ? new TestingYdbJdbcModule() : new YdbClientModule());
+        Connector connector = getOnlyElement(plugin.getConnectorFactories())
                 .create("ydb_bootstrap", Map.of("connection-url", "jdbc:ydb:grpc://127.0.0.1:2136/local"),
                         new TestingConnectorContext());
         try {
