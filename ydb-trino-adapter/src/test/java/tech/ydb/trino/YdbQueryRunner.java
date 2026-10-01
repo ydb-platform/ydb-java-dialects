@@ -2,6 +2,7 @@ package tech.ydb.trino;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.inject.Module;
 import io.trino.Session;
 import io.trino.testing.DistributedQueryRunner;
 import io.trino.testing.MaterializedResult;
@@ -29,6 +30,7 @@ public final class YdbQueryRunner {
         return new Builder()
                 // Avoid temporary-table CTAS during INSERT; YDB does not support CREATE TABLE AS SELECT.
                 .addConnectorProperty("insert.non-transactional-insert.enabled", "true")
+                .addConnectorProperty("merge.non-transactional-merge.enabled", "true")
                 .addConnectorProperty("connection-url", jdbcUrl);
     }
 
@@ -48,6 +50,7 @@ public final class YdbQueryRunner {
         private final Map<String, String> connectorProperties = new HashMap<>();
         private List<TpchTable<?>> initialTables = ImmutableList.of();
         private boolean useTestingClient = true;
+        private Module clientModule;
 
         private Builder() {
             super(testSessionBuilder()
@@ -71,6 +74,11 @@ public final class YdbQueryRunner {
             return this;
         }
 
+        public Builder setClientModule(Module clientModule) {
+            this.clientModule = clientModule;
+            return this;
+        }
+
         @Override
         public DistributedQueryRunner build() throws Exception {
             DistributedQueryRunner queryRunner = super.build();
@@ -78,7 +86,8 @@ public final class YdbQueryRunner {
                 queryRunner.installPlugin(new io.trino.plugin.tpch.TpchPlugin());
                 queryRunner.createCatalog("tpch", "tpch");
 
-                queryRunner.installPlugin(new YdbPlugin(useTestingClient ? new TestingYdbJdbcModule() : new YdbClientModule()));
+                queryRunner.installPlugin(new YdbPlugin(clientModule != null
+                        ? clientModule : useTestingClient ? new TestingYdbJdbcModule() : new YdbClientModule()));
                 queryRunner.createCatalog("local", "ydb", ImmutableMap.copyOf(connectorProperties));
 
                 for (TpchTable<?> table : initialTables) {

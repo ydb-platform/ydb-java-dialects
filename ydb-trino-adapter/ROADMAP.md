@@ -44,14 +44,14 @@ capability. Trino 483 removes the inherited `testDropTableIfExists`,
 `testSymbolAliasing` methods, plus the duplicate smoke-test information-schema
 method.
 
-Validation completed in this checkout with Temurin 25.0.2:
+Historical 479-to-483 migration validation with Temurin 25.0.2:
 
 - clean test compilation: 16 production sources and 5 test sources compiled;
 - package with tests skipped: successful;
 - dependency audit: every Trino release-coupled artifact resolves to 483;
 - Docker-backed tests: 0 completed. The existing Colima default profile is
-  broken, so focused and full-suite counts are not yet available and no upgrade
-  PR may be created.
+  unavailable during that run. These historical counts do not validate the
+  subsequent changes below.
 
 ## Pre-upgrade DML baseline (Trino 479)
 
@@ -74,33 +74,40 @@ within the CI budget. An isolated local Colima run previously exceeded 11
 minutes, so MERGE scalability remains a production concern rather than a CI
 failure.
 
-## P0 — harden standard MERGE execution
+## MERGE contract after connector review
 
-1. Keep MERGE on Trino's `JdbcMergeSink`; YDB-specific code should only build
-   the handle and supply primary-key metadata.
-2. The standard sink may commit INSERT, DELETE, and UPDATE batches through
-   separate JDBC connections. Keep one writer task and reject Trino query/task
-   retries, but do not claim that this makes MERGE atomic across operation sinks.
-3. YQL `UPDATE` cannot change a primary-key value. Implement physical-key
-   changes as atomic delete+insert row changes, or reject that statement with a
-   documented `NOT_SUPPORTED` error. See the
-   [YQL UPDATE contract](https://ydb.tech/docs/en/yql/reference/syntax/update).
-4. Add focused tests for composite primary keys, a non-unique first visible
-   column, physical-key updates, partial sink failures, and abort cleanup.
+`JdbcMergeSink` discards native metadata in its operation-specific handles and
+retains connections until finish/abort. Trino 483 does not call merge-sink abort
+from operator close and does not enforce the connector's writer limit for MERGE.
+A single-writer setting cannot establish statement atomicity.
 
-**Exit criterion:** retain the current green inherited `testMerge*` suite and
-cover partial failures between operation sinks. If atomic MERGE becomes a
-requirement, implement staging plus one finalize transaction instead of
-wrapping the standard sink in replay logic.
+The connector therefore requires explicit `non_transactional_merge=true` for
+row-level writes. `YdbMergeSink` uses native mappings and bounded, owned batch
+transactions, preserves operation and composite-key order, handles NULL keys,
+and closes all resources before returning. Earlier successful batches remain
+committed on failure; no replay is attempted. Physical-key changes fail with
+`NOT_SUPPORTED` before execution, as required by the
+[YQL UPDATE contract](https://ydb.tech/docs/en/yql/reference/syntax/update).
+
+Unit tests cover order, nullable keys, rollback, partial batch failure and
+resource closure; production-client tests cover composite-key MERGE and default
+INSERT staging. Full inherited tests must also pass before a release claim.
+Statement-atomic MERGE remains future work, requiring coordinator finalization
+or verified upstream planner and cancellation changes, not an implicit promise.
 
 ## P1 — retry and transaction hardening
 
-- Do not wrap `JdbcMergeSink` in connector-owned replay after any driver or YDB
+- Do not wrap a merge sink in connector-owned replay after any driver or YDB
   failure. A future retry design requires staging or an operation ID that proves
   replay safety. See
   [YDB SDK error handling](https://ydb.tech/docs/en/reference/ydb-sdk/error_handling).
-- The connector uses the YDB JDBC 2.4.1 default
-  `cacheConnectionsInDriver=true`; an explicit JDBC URL option can override it.
+- The connector defaults `cacheConnectionsInDriver=false` for JDBC 2.4.1.
+  `YdbDriver.connect` obtains a cached context before connection registration,
+  while the last connection close can remove and shut down that same context.
+  CI exposed a terminated session-pool executor during a concurrent UPDATE.
+  Per-connection context ownership avoids this race without replay. URL options
+  override Properties; explicitly re-enabling this cache is not supported.
+  See the [pinned driver lifecycle](https://github.com/ydb-platform/ydb-jdbc-driver/blob/v2.4.1/jdbc/src/main/java/tech/ydb/jdbc/YdbDriver.java).
 - Do not replay buffered INSERT pages after `JdbcPageSink` may already have
   committed an internal batch.
 - Add tests for partial sink failures and abort cleanup.
@@ -123,8 +130,9 @@ unsupported behavior, record:
 2. an authoritative documentation link or tracked upstream issue;
 3. a focused negative test that proves the connector fails clearly.
 
-The existing negative-date overrides need this treatment.
-YDB `Date` starts at the Unix epoch; see
+New Trino date columns use signed `Date32`; the connector tests no longer
+exclude negative dates. Legacy YDB `Date` starts at the Unix epoch and is
+handled separately; see
 [primitive types](https://ydb.tech/docs/en/yql/reference/types/primitive).
 CHAR is rejected with the focused inherited contract
 (`Unsupported column type: char(3)`) because YDB has no fixed-width string
@@ -156,7 +164,7 @@ that inherit from this behavior and also remain false. See YDB
 - List/Dict/Struct mappings for Trino ARRAY/MAP/ROW;
 - views, comments, rename column, and type changes after checking current YQL
   semantics;
-- transactional INSERT/staging instead of direct non-transactional writes;
+- complete real-YDB validation of default transactional INSERT staging;
 - complete the Trino 483 default-column behavior group before advertising it.
 
 ## Validation ladder

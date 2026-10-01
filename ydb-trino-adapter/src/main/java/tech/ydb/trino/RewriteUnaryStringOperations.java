@@ -29,8 +29,7 @@ public class RewriteUnaryStringOperations implements ProjectFunctionRule<JdbcExp
     private static final Capture<ConnectorExpression> VALUE = newCapture();
 
     private static final Pattern<Call> PATTERN = call()
-            .with(functionName().matching(name -> name.equals(new FunctionName("trim")) ||
-                    name.equals(new FunctionName("upper")) ||
+            .with(functionName().matching(name -> name.equals(new FunctionName("upper")) ||
                     name.equals(new FunctionName("lower"))))
             .with(type().matching(type -> type instanceof VarcharType))
             .with(argumentCount().equalTo(1))
@@ -75,7 +74,6 @@ public class RewriteUnaryStringOperations implements ProjectFunctionRule<JdbcExp
         return switch (functionName) {
             case "upper" -> "Unicode::ToUpper(%s)";
             case "lower" -> "Unicode::ToLower(%s)";
-            case "trim" -> "String::Strip(%s)";
             default -> throw new IllegalArgumentException("Unexpected function name: " + functionName);
         };
     }

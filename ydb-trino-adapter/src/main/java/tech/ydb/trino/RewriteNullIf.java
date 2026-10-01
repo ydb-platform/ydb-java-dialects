@@ -1,8 +1,10 @@
 package tech.ydb.trino;
 
+import com.google.common.collect.ImmutableList;
 import io.trino.matching.Captures;
 import io.trino.matching.Pattern;
 import io.trino.plugin.base.expression.ConnectorExpressionRule;
+import io.trino.plugin.jdbc.QueryParameter;
 import io.trino.plugin.jdbc.expression.ParameterizedExpression;
 import io.trino.spi.expression.Call;
 import io.trino.spi.expression.StandardFunctions;
@@ -35,11 +37,18 @@ public class RewriteNullIf implements ConnectorExpressionRule<Call, Parameterize
 
     @Override
     public Optional<ParameterizedExpression> rewrite(Call call, Captures captures, RewriteContext<ParameterizedExpression> context) {
-        return RewriteUtils.rewriteBinaryExpression(
-                call,
-                context,
-                () -> true,
-                (left, right) -> format("CASE WHEN %s = %s THEN NULL ELSE %s END", left, right, left)
-        );
+        Optional<ParameterizedExpression> left = context.defaultRewrite(call.getArguments().getFirst());
+        Optional<ParameterizedExpression> right = context.defaultRewrite(call.getArguments().get(1));
+        if (left.isEmpty() || right.isEmpty()) {
+            return Optional.empty();
+        }
+        return Optional.of(new ParameterizedExpression(
+                format("CASE WHEN %s = %s THEN NULL ELSE %s END",
+                        left.get().expression(), right.get().expression(), left.get().expression()),
+                ImmutableList.<QueryParameter>builder()
+                        .addAll(left.get().parameters())
+                        .addAll(right.get().parameters())
+                        .addAll(left.get().parameters())
+                        .build()));
     }
 }

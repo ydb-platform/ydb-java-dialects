@@ -27,9 +27,9 @@ import static java.lang.String.format;
 /**
  * Rewrite <code>strpos(str, sub)</code>, as:
  * <br />
- * <code>CASE WHEN Find(str, sub) IS NULL THEN 0 ELSE Find(str, sub) + 1 END</code>.
+ * <code>Unicode::Find(str, sub) + 1</code>, with SQL null and missing-substring handling.
  * <br /><br />
- * The <code>+ 1</code> is due to the fact that Trino uses 0-based indexing while YDB uses 1-based indexing.
+ * YQL positions are zero-based; Trino positions are one-based Unicode code points.
  */
 public class RewriteStringPosition implements ProjectFunctionRule<JdbcExpression, ParameterizedExpression> {
     private static final Capture<ConnectorExpression> STRING = newCapture();
@@ -69,12 +69,14 @@ public class RewriteStringPosition implements ProjectFunctionRule<JdbcExpression
 
         ImmutableList.Builder<@NonNull QueryParameter> parameters = ImmutableList.builder();
         parameters.addAll(rewrittenString.get().parameters());
-        // Add substring parameters twice - for both occurrences in CASE expression
         parameters.addAll(rewrittenSubstring.get().parameters());
+        parameters.addAll(rewrittenString.get().parameters());
         parameters.addAll(rewrittenSubstring.get().parameters());
 
-        String findExpr = format("Find(%s, %s)", strSql, subSql);
-        String expression = format("CASE WHEN (%s) IS NULL THEN 0 ELSE (%s) + 1 END", findExpr, findExpr);
+        String expression = format(
+                "CASE WHEN (%s) IS NULL OR (%s) IS NULL THEN CAST(NULL AS Int64) " +
+                        "ELSE COALESCE(CAST(Unicode::Find(Unwrap(%s), Unwrap(%s)) AS Int64) + 1, 0) END",
+                strSql, subSql, strSql, subSql);
 
         JdbcExpression result = new JdbcExpression(
                 expression,

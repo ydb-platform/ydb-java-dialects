@@ -12,6 +12,8 @@ import io.trino.spi.connector.ConnectorFactory;
 import java.util.Map;
 import java.util.function.Supplier;
 
+import static io.trino.plugin.base.Versions.checkStrictSpiVersionMatch;
+
 public record YdbConnectorFactory(String name, Supplier<Module> module) implements ConnectorFactory {
 
     @Override
@@ -21,6 +23,7 @@ public record YdbConnectorFactory(String name, Supplier<Module> module) implemen
 
     @Override
     public Connector create(String catalogName, Map<String, String> requiredConfig, ConnectorContext context) {
+        checkStrictSpiVersionMatch(context, this);
         Bootstrap app = new Bootstrap(
                 "io.trino.bootstrap.catalog." + catalogName,
                 new ConnectorContextModule(catalogName, context),
