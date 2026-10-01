@@ -796,7 +796,8 @@ public class YdbClient extends BaseJdbcClient {
                     handle.getRequiredNamedRelation(),
                     handle.getConstraint(),
                     getAdditionalPredicate(handle.getConstraintExpressions(), Optional.empty()));
-            return OptionalLong.of(executeReturningDml(session, connection, handle, preparedQuery));
+            List<JdbcColumnHandle> primaryKeys = getPrimaryKeys(session, handle.getRequiredNamedRelation().getRemoteTableName());
+            return OptionalLong.of(executeReturningDml(session, connection, primaryKeys, preparedQuery));
         }
         catch (SQLException e) {
             throw new TrinoException(JDBC_ERROR, e);
@@ -805,8 +806,9 @@ public class YdbClient extends BaseJdbcClient {
 
     @Override
     public OptionalLong update(ConnectorSession session, JdbcTableHandle handle) {
+        List<JdbcColumnHandle> primaryKeys = getPrimaryKeys(session, handle.getRequiredNamedRelation().getRemoteTableName());
         verifyNoPrimaryKeyUpdate(
-                getPrimaryKeys(session, handle.getRequiredNamedRelation().getRemoteTableName()),
+                primaryKeys,
                 handle.getUpdateAssignments().stream().map(assignment -> (ColumnHandle) assignment.column()).toList());
         try (Connection connection = connectionFactory.openConnection(session)) {
             PreparedQuery preparedQuery = queryBuilder.prepareUpdateQuery(
@@ -817,7 +819,7 @@ public class YdbClient extends BaseJdbcClient {
                     handle.getConstraint(),
                     getAdditionalPredicate(handle.getConstraintExpressions(), Optional.empty()),
                     handle.getUpdateAssignments());
-            return OptionalLong.of(executeReturningDml(session, connection, handle, preparedQuery));
+            return OptionalLong.of(executeReturningDml(session, connection, primaryKeys, preparedQuery));
         }
         catch (SQLException e) {
             throw new TrinoException(JDBC_ERROR, e);
@@ -834,11 +836,8 @@ public class YdbClient extends BaseJdbcClient {
     private long executeReturningDml(
             ConnectorSession session,
             Connection connection,
-            JdbcTableHandle handle,
+            List<JdbcColumnHandle> primaryKeys,
             PreparedQuery preparedQuery) throws SQLException {
-        List<JdbcColumnHandle> primaryKeys = getPrimaryKeys(
-                session,
-                handle.getRequiredNamedRelation().getRemoteTableName());
         if (primaryKeys.isEmpty()) {
             throw new TrinoException(NOT_SUPPORTED, "YDB DML requires a table primary key");
         }
