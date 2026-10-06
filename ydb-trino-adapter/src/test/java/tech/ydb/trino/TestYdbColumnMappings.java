@@ -4,6 +4,7 @@ import io.trino.plugin.base.mapping.DefaultIdentifierMapping;
 import io.trino.plugin.jdbc.BaseJdbcConfig;
 import io.trino.plugin.jdbc.ColumnMapping;
 import io.trino.plugin.jdbc.JdbcTypeHandle;
+import io.trino.plugin.jdbc.JdbcStatisticsConfig;
 import io.trino.plugin.jdbc.JdbcMetadataConfig;
 import io.trino.plugin.jdbc.JdbcMetadataSessionProperties;
 import io.trino.plugin.jdbc.LongReadFunction;
@@ -52,6 +53,7 @@ import static tech.ydb.jdbc.YdbConst.SQL_KIND_PRIMITIVE;
 public class TestYdbColumnMappings {
     private final YdbClient client = new YdbClient(
             new BaseJdbcConfig(),
+            new JdbcStatisticsConfig(),
             _ -> {
                 throw new SQLException("This test must not open a connection");
             },

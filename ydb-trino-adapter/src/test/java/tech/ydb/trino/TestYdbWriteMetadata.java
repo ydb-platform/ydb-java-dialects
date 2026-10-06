@@ -2,6 +2,7 @@ package tech.ydb.trino;
 
 import io.trino.plugin.base.mapping.DefaultIdentifierMapping;
 import io.trino.plugin.jdbc.BaseJdbcConfig;
+import io.trino.plugin.jdbc.JdbcStatisticsConfig;
 import io.trino.plugin.jdbc.RemoteTableName;
 import io.trino.plugin.jdbc.logging.RemoteQueryModifier;
 import io.trino.spi.connector.ColumnMetadata;
@@ -30,7 +31,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 public class TestYdbWriteMetadata {
     @Test
     public void testHiddenKeyWithPrimaryKeyNamedColumn() {
-        TestingYdbJdbcClient client = new TestingYdbJdbcClient(new BaseJdbcConfig(),
+        TestingYdbJdbcClient client = new TestingYdbJdbcClient(new BaseJdbcConfig(), new JdbcStatisticsConfig(),
                 _ -> {
                     throw new SQLException("This test must not open a connection");
                 },
@@ -85,7 +86,7 @@ public class TestYdbWriteMetadata {
                     case "close" -> null;
                     default -> throw new UnsupportedOperationException(method.getName());
                 });
-        YdbClient client = new YdbClient(new BaseJdbcConfig(), _ -> connection.get(),
+        YdbClient client = new YdbClient(new BaseJdbcConfig(), new JdbcStatisticsConfig(), _ -> connection.get(),
                 new YdbQueryBuilder(RemoteQueryModifier.NONE), new DefaultIdentifierMapping(), RemoteQueryModifier.NONE);
         try (Connection target = connection.get()) {
             client.copyTableSchema(SESSION, target, null, "default", "source", "staging", List.of("payload"));

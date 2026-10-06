@@ -10,6 +10,7 @@ import tech.ydb.test.junit5.YdbHelperExtension;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import static io.trino.testing.TestingSession.testSessionBuilder;
@@ -45,7 +46,7 @@ public final class YdbQueryRunner {
         private final Map<String, String> connectorProperties = new HashMap<>();
         private List<TpchTable<?>> initialTables = ImmutableList.of();
         private boolean useTestingClient = true;
-        private Module clientModule;
+        private Supplier<Module> clientModule;
 
         private Builder() {
             super(testSessionBuilder()
@@ -69,7 +70,7 @@ public final class YdbQueryRunner {
             return this;
         }
 
-        public Builder setClientModule(Module clientModule) {
+        public Builder setClientModule(Supplier<Module> clientModule) {
             this.clientModule = clientModule;
             return this;
         }
@@ -82,7 +83,7 @@ public final class YdbQueryRunner {
                 queryRunner.createCatalog("tpch", "tpch");
 
                 queryRunner.installPlugin(new YdbPlugin(clientModule != null
-                        ? clientModule : useTestingClient ? new TestingYdbJdbcModule() : new YdbClientModule()));
+                        ? clientModule : useTestingClient ? TestingYdbJdbcModule::new : YdbClientModule::new));
                 queryRunner.createCatalog("local", "ydb", ImmutableMap.copyOf(connectorProperties));
 
                 for (TpchTable<?> table : initialTables) {

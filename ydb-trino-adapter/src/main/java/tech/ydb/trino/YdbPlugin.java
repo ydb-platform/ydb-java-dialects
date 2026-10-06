@@ -7,14 +7,16 @@ import io.trino.plugin.jdbc.credential.CredentialProviderModule;
 import io.trino.spi.Plugin;
 import io.trino.spi.connector.ConnectorFactory;
 
+import java.util.function.Supplier;
+
 import static io.airlift.configuration.ConfigurationAwareModule.combine;
 import static io.airlift.configuration.ConfigBinder.configBinder;
 
-public record YdbPlugin(Module module) implements Plugin {
+public record YdbPlugin(Supplier<Module> module) implements Plugin {
     private static final String NAME = "ydb";
 
     public YdbPlugin() {
-        this(new YdbClientModule());
+        this(YdbClientModule::new);
     }
 
     @Override
@@ -25,7 +27,7 @@ public record YdbPlugin(Module module) implements Plugin {
                         new CredentialProviderModule(),
                         binder -> configBinder(binder).bindConfigDefaults(
                                 JdbcMetadataConfig.class, config -> config.setComplexJoinPushdownEnabled(false)),
-                        module
+                        module.get()
                 )
         ));
     }

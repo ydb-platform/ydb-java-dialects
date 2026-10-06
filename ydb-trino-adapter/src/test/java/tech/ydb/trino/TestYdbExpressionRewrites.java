@@ -3,6 +3,7 @@ package tech.ydb.trino;
 import io.trino.plugin.base.mapping.DefaultIdentifierMapping;
 import io.trino.plugin.jdbc.BaseJdbcConfig;
 import io.trino.plugin.jdbc.JdbcColumnHandle;
+import io.trino.plugin.jdbc.JdbcStatisticsConfig;
 import io.trino.plugin.jdbc.JdbcTableHandle;
 import io.trino.plugin.jdbc.RemoteTableName;
 import io.trino.plugin.jdbc.logging.RemoteQueryModifier;
@@ -35,6 +36,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 public class TestYdbExpressionRewrites {
     private final YdbClient client = new YdbClient(
             new BaseJdbcConfig(),
+            new JdbcStatisticsConfig(),
             _ -> {
                 throw new SQLException("This test must not open a connection");
             },

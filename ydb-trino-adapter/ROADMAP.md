@@ -5,6 +5,34 @@ This roadmap tracks the connector against Trino 483
 when it exercises the advertised behavior. Empty overrides and false capability
 flags are test debt, not support.
 
+## Cost-aware JOIN pushdown
+
+JOIN pushdown is enabled by default with Trino's `AUTOMATIC` strategy and the
+same cost gate used by its PostgreSQL connector. Missing estimates or an
+estimated result at least 1.25 times the combined input size keep the JOIN in
+Trino. The adapter reads native row estimates using SDK
+`DescribeTable(include_table_stats)`, without scanning rows. Statistics are
+enabled by default and can be disabled with `statistics.enabled=false`.
+A single NOT NULL non-floating primary key supplies NDV from its uniqueness
+and the native row estimate; non-null fixed-width columns supply logical
+Trino byte estimates. Nullable and composite-key NDV, variable-width sizes
+and value ranges remain unknown. Missing or zero native row estimates remain
+unknown rather than declaring a newly populated table empty.
+`EAGER` bypasses the cost gate, not the existing structured equality-key and
+native-type checks. Native integration coverage includes default AUTOMATIC
+JOINs on non-null keys, disabled statistics, cost rejection and nullable-key
+fallback; the broader native-type JOIN matrix uses `EAGER` to isolate semantic
+correctness. Unit tests cover default configuration, native statistics
+conversion, eligible costs, missing estimates, expansion boundaries,
+table-size limits, and unsupported keys. Native estimates can lag writes:
+SchemeShard receives asynchronous data-shard reports. The fixtures observe the
+native row-count state before INSERT and await the populated count with a
+bounded future, without fixed sleeps or polling delays.
+[`ANALYZE`](https://ydb.tech/docs/en/yql/reference/syntax/analyze) uses a separate
+YDB optimizer-statistics aggregator and is not a DescribeTable refresh barrier.
+The adapter does not require that aggregator. General native column statistics
+and broader AUTOMATIC coverage remain future work.
+
 ## Trino 483 dependency migration
 
 Trino 483 is the latest stable release published by both the

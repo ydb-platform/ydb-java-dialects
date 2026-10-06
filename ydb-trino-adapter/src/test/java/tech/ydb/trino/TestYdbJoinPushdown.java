@@ -11,18 +11,25 @@ import org.junit.jupiter.api.parallel.ResourceLock;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import tech.ydb.jdbc.YdbConnection;
+import tech.ydb.table.settings.DescribeTableSettings;
 import tech.ydb.test.junit5.YdbHelperExtension;
 
+import java.sql.Connection;
+import java.sql.DriverManager;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 import static io.trino.spi.StandardErrorCode.NUMERIC_VALUE_OUT_OF_RANGE;
 import static io.trino.type.DateTimes.parseTimestamp;
 import static java.time.ZoneOffset.UTC;
+import static java.util.concurrent.TimeUnit.SECONDS;
 import static java.util.stream.Collectors.joining;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
@@ -34,7 +41,94 @@ public class TestYdbJoinPushdown extends AbstractTestQueryFramework {
 
     @Override
     protected QueryRunner createQueryRunner() throws Exception {
-        return YdbQueryRunner.builder(ydb).useProductionClient().build();
+        var queryRunner = YdbQueryRunner.builder(ydb).useProductionClient().build();
+        queryRunner.createCatalog("without_stats", "ydb", Map.of(
+                "connection-url", YdbQueryRunner.buildJdbcUrl(ydb),
+                "statistics.enabled", "false"));
+        return queryRunner;
+    }
+
+    @Test
+    public void testAutomaticJoinWithNativeStatistics() throws Exception {
+        JdbcSqlExecutor executor = new JdbcSqlExecutor(YdbQueryRunner.buildJdbcUrl(ydb));
+        List<String> values = IntStream.rangeClosed(1, 16).mapToObj(value -> value + "l").toList();
+        try (TestTable left = new TestTable(executor, "automatic_left_", "(id Int64 NOT NULL, PRIMARY KEY (id))");
+                TestTable right = new TestTable(executor, "automatic_right_", "(id Int64 NOT NULL, PRIMARY KEY (id))")) {
+            populateWithNativeStatistics(executor, values, left, right);
+
+            var statistics = computeActual("SHOW STATS FOR " + left.getName()).getMaterializedRows();
+            var tableStatistics = statistics.stream().filter(row -> row.getField(0) == null).findFirst().orElseThrow();
+            var keyStatistics = statistics.stream().filter(row -> "id".equals(row.getField(0))).findFirst().orElseThrow();
+            double rows = ((Number) tableStatistics.getField(4)).doubleValue();
+            assertThat(rows).isPositive();
+            assertThat(((Number) keyStatistics.getField(2)).doubleValue()).isEqualTo(rows);
+            assertThat(((Number) keyStatistics.getField(3)).doubleValue()).isZero();
+
+            String join = "SELECT l.id, r.id FROM " + left.getName() + " l JOIN " + right.getName() + " r ON l.id = r.id";
+            String expected = "SELECT id, id FROM " + left.getName();
+            assertThat(query(join)).isFullyPushedDown().matches(expected);
+            Session noStatistics = Session.builder(getSession()).setCatalog("without_stats").build();
+            assertThat(query(noStatistics, join)).joinIsNotFullyPushedDown().matches(expected);
+            Session rejectCosts = Session.builder(getSession())
+                    .setCatalogSessionProperty("local", "join_pushdown_automatic_max_join_to_tables_ratio", "0")
+                    .build();
+            assertThat(query(rejectCosts, join)).joinIsNotFullyPushedDown().matches(expected);
+        }
+    }
+
+    @Test
+    public void testAutomaticJoinWithUnknownKeyStatistics() throws Exception {
+        JdbcSqlExecutor executor = new JdbcSqlExecutor(YdbQueryRunner.buildJdbcUrl(ydb));
+        try (TestTable left = new TestTable(executor, "automatic_nullable_left_", "(id Int64, PRIMARY KEY (id))");
+                TestTable right = new TestTable(executor, "automatic_nullable_right_", "(id Int64, PRIMARY KEY (id))")) {
+            populateWithNativeStatistics(executor, List.of("1l", "NULL"), left, right);
+            String join = "SELECT l.id, r.id FROM " + left.getName() + " l JOIN " + right.getName() + " r ON l.id = r.id";
+            assertThat(query(join)).joinIsNotFullyPushedDown().matches("VALUES (BIGINT '1', BIGINT '1')");
+            assertThat(query(joinSession(), join)).isFullyPushedDown().matches("VALUES (BIGINT '1', BIGINT '1')");
+        }
+    }
+
+    private static void populateWithNativeStatistics(JdbcSqlExecutor executor, List<String> rows, TestTable... tables) throws Exception {
+        try (Connection connection = DriverManager.getConnection(YdbQueryRunner.buildJdbcUrl(ydb))) {
+            var context = connection.unwrap(YdbConnection.class).getCtx();
+            try (tech.ydb.table.Session session = context.getTableClient().createSession(context.getOperationProperties().getSessionTimeout())
+                    .get(30, SECONDS).getValue()) {
+                for (TestTable table : tables) {
+                    String path = context.getPrefixPath() + "/" + table.getName();
+                    CompletableFuture<Void> ready = new CompletableFuture<Void>().orTimeout(60, SECONDS);
+                    observeNativeStatistics(session, path, rows.size(), ready);
+                    executor.execute("INSERT INTO " + table.getName() + " (id) VALUES " +
+                            rows.stream().map(row -> "(" + row + ")").collect(joining(", ")));
+                    ready.get(60, SECONDS);
+                }
+            }
+        }
+    }
+
+    private static void observeNativeStatistics(tech.ydb.table.Session session, String path, long rows, CompletableFuture<Void> ready) {
+        if (ready.isDone()) {
+            return;
+        }
+        DescribeTableSettings settings = new DescribeTableSettings();
+        settings.setIncludeTableStats(true);
+        session.describeTable(path, settings).whenComplete((result, failure) -> {
+            if (failure != null) {
+                ready.completeExceptionally(failure);
+                return;
+            }
+            try {
+                var statistics = result.getValue().getTableStats();
+                if (statistics != null && statistics.getRowsEstimate() == rows) {
+                    ready.complete(null);
+                }
+                else {
+                    observeNativeStatistics(session, path, rows, ready);
+                }
+            }
+            catch (RuntimeException e) {
+                ready.completeExceptionally(e);
+            }
+        });
     }
 
     @ParameterizedTest
@@ -195,7 +289,7 @@ public class TestYdbJoinPushdown extends AbstractTestQueryFramework {
     }
 
     private Session joinSession() {
-        return Session.builder(getSession()).setCatalogSessionProperty("local", "join_pushdown_enabled", "true").build();
+        return Session.builder(getSession()).setCatalogSessionProperty("local", "join_pushdown_strategy", "EAGER").build();
     }
 
     private static TestTable nativeTable(JdbcSqlExecutor executor, String prefix, String definition, String columns, List<String> rows) {

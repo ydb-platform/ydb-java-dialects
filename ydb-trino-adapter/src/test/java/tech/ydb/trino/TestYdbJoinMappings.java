@@ -4,18 +4,31 @@ import io.trino.plugin.base.mapping.DefaultIdentifierMapping;
 import io.trino.plugin.jdbc.BaseJdbcConfig;
 import io.trino.plugin.jdbc.JdbcColumnHandle;
 import io.trino.plugin.jdbc.JdbcJoinCondition;
+import io.trino.plugin.jdbc.JdbcJoinPushdownConfig;
+import io.trino.plugin.jdbc.JdbcJoinPushdownSessionProperties;
 import io.trino.plugin.jdbc.JdbcSortItem;
+import io.trino.plugin.jdbc.JdbcStatisticsConfig;
 import io.trino.plugin.jdbc.JdbcTypeHandle;
+import io.trino.plugin.jdbc.PreparedQuery;
+import io.trino.plugin.jdbc.QueryParameter;
 import io.trino.plugin.jdbc.logging.RemoteQueryModifier;
+import io.trino.spi.connector.BasicRelationStatistics;
+import io.trino.spi.connector.ConnectorSession;
+import io.trino.spi.connector.JoinStatistics;
+import io.trino.spi.connector.JoinType;
 import io.trino.spi.connector.SortOrder;
 import io.trino.spi.type.ArrayType;
 import io.trino.spi.type.Type;
 import io.trino.spi.type.TypeOperators;
+import io.trino.testing.TestingConnectorSession;
 import org.junit.jupiter.api.Test;
 
+import java.lang.reflect.Proxy;
+import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Types;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import static io.trino.spi.connector.JoinCondition.Operator.EQUAL;
@@ -35,6 +48,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 public class TestYdbJoinMappings {
     private final YdbClient client = new YdbClient(
             new BaseJdbcConfig(),
+            new JdbcStatisticsConfig(),
             _ -> {
                 throw new SQLException("This test must not open a connection");
             },
@@ -100,6 +114,93 @@ public class TestYdbJoinMappings {
     public void testUnsupportedProjectionTypesHaveNoMapping() {
         assertThat(YdbTypeUtils.toTypeHandle(new ArrayType(BIGINT))).isEmpty();
         assertThat(YdbTypeUtils.toTypeHandle(createTimestampType(12))).isEmpty();
+    }
+
+    @Test
+    public void testAutomaticJoinCosts() {
+        YdbClient costAwareClient = costAwareClient();
+        ConnectorSession session = joinSession(Map.of());
+        JdbcColumnHandle key = new JdbcColumnHandle("key", typeHandle("Int64"), BIGINT);
+        JdbcJoinCondition condition = new JdbcJoinCondition(key, EQUAL, key);
+        for (JoinType type : JoinType.values()) {
+            PreparedQuery query = legacyJoin(costAwareClient, session, type, condition, statistics(100L, 100L, 249L)).orElseThrow();
+            assertThat(query.query()).contains("JOIN", "l.`key` = r.`key`");
+            assertThat(query.parameters()).containsExactly(
+                    new QueryParameter(BIGINT, Optional.of(1L)),
+                    new QueryParameter(BIGINT, Optional.of(2L)));
+            assertThat(legacyJoin(costAwareClient, session, type, condition, statistics(100L, 100L, 250L))).isEmpty();
+        }
+        for (JoinStatistics statistics : List.of(
+                statistics(null, 100L, 10L),
+                statistics(100L, null, 10L),
+                statistics(100L, 100L, null))) {
+            assertThat(legacyJoin(costAwareClient, session, JoinType.INNER, condition, statistics)).isEmpty();
+        }
+        ConnectorSession limited = joinSession(Map.of("join_pushdown_automatic_max_table_size", "100B"));
+        assertThat(legacyJoin(costAwareClient, limited, JoinType.INNER, condition, statistics(101L, 100L, 10L))).isEmpty();
+        assertThat(legacyJoin(costAwareClient, limited, JoinType.INNER, condition, statistics(100L, 101L, 10L))).isEmpty();
+        assertThat(legacyJoin(costAwareClient, limited, JoinType.INNER, condition, statistics(100L, 100L, 10L))).isPresent();
+        ConnectorSession ratio = joinSession(Map.of("join_pushdown_automatic_max_join_to_tables_ratio", 0.5));
+        assertThat(legacyJoin(costAwareClient, ratio, JoinType.INNER, condition, statistics(100L, 100L, 100L))).isEmpty();
+    }
+
+    @Test
+    public void testEagerJoinPreservesKeyRestrictions() {
+        ConnectorSession eager = joinSession(Map.of("join_pushdown_strategy", "EAGER"));
+        JdbcColumnHandle key = new JdbcColumnHandle("key", typeHandle("Int64"), BIGINT);
+        assertThat(legacyJoin(costAwareClient(), eager, JoinType.INNER,
+                new JdbcJoinCondition(key, EQUAL, key), statistics(null, null, null))).isPresent();
+        for (var operator : List.of(LESS_THAN, IDENTICAL)) {
+            assertThat(legacyJoin(client, eager, JoinType.INNER,
+                    new JdbcJoinCondition(key, operator, key), statistics(null, null, null))).isEmpty();
+        }
+        JdbcColumnHandle decimal = new JdbcColumnHandle("key", typeHandle("Decimal(20,0)"), createDecimalType(20, 0));
+        assertThat(legacyJoin(client, eager, JoinType.INNER,
+                new JdbcJoinCondition(decimal, EQUAL, decimal), statistics(null, null, null))).isEmpty();
+    }
+
+    private static YdbClient costAwareClient() {
+        return new YdbClient(new BaseJdbcConfig(), new JdbcStatisticsConfig(),
+                _ -> (Connection) Proxy.newProxyInstance(Connection.class.getClassLoader(), new Class<?>[]{Connection.class},
+                        (_, method, _) -> {
+                            assertThat(method.getName()).isEqualTo("close");
+                            return null;
+                        }),
+                new YdbQueryBuilder(RemoteQueryModifier.NONE), new DefaultIdentifierMapping(), RemoteQueryModifier.NONE);
+    }
+
+    private static ConnectorSession joinSession(Map<String, Object> properties) {
+        return TestingConnectorSession.builder()
+                .setPropertyMetadata(new JdbcJoinPushdownSessionProperties(new JdbcJoinPushdownConfig()).getSessionProperties())
+                .setPropertyValues(properties)
+                .build();
+    }
+
+    private static Optional<PreparedQuery> legacyJoin(YdbClient client, ConnectorSession session, JoinType type,
+            JdbcJoinCondition condition, JoinStatistics statistics) {
+        return client.legacyImplementJoin(session, type,
+                new PreparedQuery("SELECT `key` FROM `left_table` WHERE `key` > ?", List.of(new QueryParameter(BIGINT, Optional.of(1L)))),
+                new PreparedQuery("SELECT `key` FROM `right_table` WHERE `key` > ?", List.of(new QueryParameter(BIGINT, Optional.of(2L)))),
+                List.of(condition), Map.of(condition.getRightColumn(), "right_key"), Map.of(condition.getLeftColumn(), "left_key"), statistics);
+    }
+
+    private static JoinStatistics statistics(Long leftSize, Long rightSize, Long joinSize) {
+        return new JoinStatistics() {
+            @Override
+            public Optional<BasicRelationStatistics> getLeftStatistics() {
+                return Optional.ofNullable(leftSize).map(size -> new BasicRelationStatistics(1, size));
+            }
+
+            @Override
+            public Optional<BasicRelationStatistics> getRightStatistics() {
+                return Optional.ofNullable(rightSize).map(size -> new BasicRelationStatistics(1, size));
+            }
+
+            @Override
+            public Optional<BasicRelationStatistics> getJoinStatistics() {
+                return Optional.ofNullable(joinSize).map(size -> new BasicRelationStatistics(1, size));
+            }
+        };
     }
 
     private static JdbcTypeHandle typeHandle(String name) {
