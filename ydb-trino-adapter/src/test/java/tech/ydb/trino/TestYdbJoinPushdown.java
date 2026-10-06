@@ -195,7 +195,7 @@ public class TestYdbJoinPushdown extends AbstractTestQueryFramework {
     }
 
     private Session joinSession() {
-        return Session.builder(getSession()).setCatalogSessionProperty("local", "join_pushdown_enabled", "true").build();
+        return Session.builder(getSession()).setCatalogSessionProperty("local", "join_pushdown_strategy", "EAGER").build();
     }
 
     private static TestTable nativeTable(JdbcSqlExecutor executor, String prefix, String definition, String columns, List<String> rows) {

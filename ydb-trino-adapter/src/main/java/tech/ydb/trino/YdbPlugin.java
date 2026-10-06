@@ -2,6 +2,7 @@ package tech.ydb.trino;
 
 import com.google.common.collect.ImmutableList;
 import com.google.inject.Module;
+import io.trino.plugin.jdbc.JdbcJoinPushdownSupportModule;
 import io.trino.plugin.jdbc.JdbcMetadataConfig;
 import io.trino.plugin.jdbc.credential.CredentialProviderModule;
 import io.trino.spi.Plugin;
@@ -23,6 +24,7 @@ public record YdbPlugin(Module module) implements Plugin {
                 NAME,
                 () -> combine(
                         new CredentialProviderModule(),
+                        new JdbcJoinPushdownSupportModule(),
                         binder -> configBinder(binder).bindConfigDefaults(
                                 JdbcMetadataConfig.class, config -> config.setComplexJoinPushdownEnabled(false)),
                         module

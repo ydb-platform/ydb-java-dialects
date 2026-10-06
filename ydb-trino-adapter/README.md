@@ -82,8 +82,28 @@ merge.non-transactional-merge.enabled=true
 
 ## JOIN pushdown
 
-По умолчанию JOIN выполняет Trino. Для пробного pushdown задайте
-`join_pushdown_enabled=true` в сессии каталога. Адаптер передаёт YDB
+JOIN pushdown включён по умолчанию (`join-pushdown.enabled=true`).
+Как в PostgreSQL-коннекторе Trino, стратегия по умолчанию —
+`join-pushdown.strategy=AUTOMATIC`: JOIN передаётся YDB только при наличии
+оценок размеров обеих сторон и результата, если оценка результата меньше
+`1.25 * (размер левой стороны + размер правой стороны)`.
+Без достаточной статистики JOIN выполняет Trino. Адаптер пока не публикует
+собственную статистику YDB-таблиц, поэтому включённый флаг сам по себе
+не означает перенос обычного JOIN в режиме `AUTOMATIC`.
+
+Для принудительного переноса поддерживаемых JOIN без оценки стоимости:
+
+```sql
+SET SESSION local.join_pushdown_strategy = 'EAGER';
+```
+
+Либо задайте `join-pushdown.strategy=EAGER` в конфигурации каталога.
+Этот режим может увеличить объём передаваемых данных; он не отменяет
+проверки корректности. Отключить перенос можно через
+`join-pushdown.enabled=false` или `SET SESSION local.join_pushdown_enabled = false`.
+Имя `local` замените на имя своего каталога.
+
+Адаптер передаёт YDB
 `INNER`, `LEFT`, `RIGHT` и `FULL JOIN` только по равенству исходных столбцов
 с совместимыми отображениями: `Bool`, знаковые и беззнаковые целые,
 `Float`/`Double`, текст, байты, даты и timestamps. Поддерживается составной ключ.

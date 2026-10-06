@@ -85,6 +85,7 @@ import java.util.stream.Stream;
 
 import static io.trino.plugin.jdbc.DefaultJdbcMetadata.MERGE_ROW_ID;
 import static io.trino.plugin.jdbc.JdbcErrorCode.JDBC_ERROR;
+import static io.trino.plugin.jdbc.JdbcJoinPushdownUtil.implementJoinCostAware;
 import static io.trino.plugin.jdbc.JdbcWriteSessionProperties.isNonTransactionalMerge;
 import static io.trino.plugin.jdbc.PredicatePushdownController.DISABLE_PUSHDOWN;
 import static io.trino.plugin.jdbc.PredicatePushdownController.FULL_PUSHDOWN;
@@ -208,6 +209,26 @@ public class YdbClient extends BaseJdbcClient {
                 && condition.getLeftColumn().getColumnType().equals(condition.getRightColumn().getColumnType())
                 && hasSupportedValueMapping(condition.getLeftColumn())
                 && hasSupportedValueMapping(condition.getRightColumn());
+    }
+
+    @Override
+    public Optional<PreparedQuery> legacyImplementJoin(
+            ConnectorSession session,
+            JoinType joinType,
+            PreparedQuery leftSource,
+            PreparedQuery rightSource,
+            List<JdbcJoinCondition> joinConditions,
+            Map<JdbcColumnHandle, String> rightAssignments,
+            Map<JdbcColumnHandle, String> leftAssignments,
+            JoinStatistics statistics) {
+        return implementJoinCostAware(
+                session,
+                joinType,
+                leftSource,
+                rightSource,
+                statistics,
+                () -> super.legacyImplementJoin(session, joinType, leftSource, rightSource,
+                        joinConditions, rightAssignments, leftAssignments, statistics));
     }
 
     private boolean hasSupportedValueMapping(JdbcColumnHandle column) {

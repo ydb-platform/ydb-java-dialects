@@ -67,7 +67,7 @@ public class TestYdbConnectorTest extends BaseConnectorTest {
     @Test
     public void testJoinPushdown() {
         Session session = Session.builder(getSession())
-                .setCatalogSessionProperty(getSession().getCatalog().orElseThrow(), "join_pushdown_enabled", "true")
+                .setCatalogSessionProperty(getSession().getCatalog().orElseThrow(), "join_pushdown_strategy", "EAGER")
                 .build();
         try (TestTable left = newTrinoTable("join_int64_left_", "(id bigint, k bigint, second_key bigint, d double, s varchar)",
                 List.of("1, 7, 1, 1.0, 'a'", "2, 7, 2, 2.0, 'b'", "3, NULL, 1, 3.0, 'c'", "4, 8, 1, 4.0, 'd'"));
@@ -95,6 +95,10 @@ public class TestYdbConnectorTest extends BaseConnectorTest {
                     .matches("VALUES (BIGINT '2', BIGINT '11')");
 
             assertThat(query(getSession(), join.formatted("JOIN", "l.k = r.k"))).joinIsNotFullyPushedDown();
+            Session disabled = Session.builder(session)
+                    .setCatalogSessionProperty(getSession().getCatalog().orElseThrow(), "join_pushdown_enabled", "false")
+                    .build();
+            assertThat(query(disabled, join.formatted("JOIN", "l.k = r.k"))).joinIsNotFullyPushedDown().matches(matches);
             assertThat(query(session, join.formatted("JOIN", "l.k < r.k")))
                     .joinIsNotFullyPushedDown();
             assertThat(query(session, join.formatted("JOIN", "l.s = r.s")))

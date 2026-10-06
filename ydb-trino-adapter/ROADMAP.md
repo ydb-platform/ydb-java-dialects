@@ -5,6 +5,18 @@ This roadmap tracks the connector against Trino 483
 when it exercises the advertised behavior. Empty overrides and false capability
 flags are test debt, not support.
 
+## Cost-aware JOIN pushdown
+
+JOIN pushdown is enabled by default with Trino's `AUTOMATIC` strategy and the
+same cost gate used by its PostgreSQL connector. Missing estimates or an
+estimated result at least 1.25 times the combined input size keep the JOIN in
+Trino. The adapter does not currently publish native YDB table statistics;
+ordinary table joins without sufficient estimates therefore remain in Trino.
+`EAGER` bypasses the cost gate, not the existing structured equality-key and
+native-type checks. The native JOIN test matrix uses `EAGER`; unit tests cover
+default configuration, eligible costs, missing estimates, expansion boundaries,
+table-size limits, and unsupported keys.
+
 ## Trino 483 dependency migration
 
 Trino 483 is the latest stable release published by both the

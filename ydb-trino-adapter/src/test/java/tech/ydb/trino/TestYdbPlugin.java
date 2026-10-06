@@ -8,6 +8,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 import java.util.Map;
 
 import static com.google.common.collect.Iterables.getOnlyElement;
+import static io.trino.plugin.jdbc.JoinPushdownStrategy.AUTOMATIC;
 import static io.trino.spi.connector.ConnectorCapabilities.NOT_NULL_COLUMN_CONSTRAINT;
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -22,6 +23,18 @@ public class TestYdbPlugin {
         try {
             assertThat(connector.getPageSinkProvider()).isInstanceOf(YdbPageSinkProvider.class);
             assertThat(connector.getCapabilities()).contains(NOT_NULL_COLUMN_CONSTRAINT);
+            assertThat(connector.getSessionProperties())
+                    .filteredOn(property -> property.getName().equals("join_pushdown_enabled"))
+                    .extracting(property -> (Object) property.getDefaultValue())
+                    .containsExactly(true);
+            assertThat(connector.getSessionProperties())
+                    .filteredOn(property -> property.getName().equals("join_pushdown_strategy"))
+                    .extracting(property -> (Object) property.getDefaultValue())
+                    .containsExactly(AUTOMATIC);
+            assertThat(connector.getSessionProperties())
+                    .filteredOn(property -> property.getName().equals("complex_join_pushdown_enabled"))
+                    .extracting(property -> (Object) property.getDefaultValue())
+                    .containsExactly(false);
         }
         finally {
             connector.shutdown();
