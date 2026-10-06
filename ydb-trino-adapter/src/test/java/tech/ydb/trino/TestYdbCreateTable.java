@@ -1,9 +1,9 @@
 package tech.ydb.trino;
 
 import com.google.inject.AbstractModule;
+import com.google.inject.Binder;
 import com.google.inject.Provides;
 import com.google.inject.Singleton;
-import com.google.inject.util.Modules;
 import io.trino.Session;
 import io.trino.plugin.base.mapping.IdentifierMapping;
 import io.trino.plugin.jdbc.BaseJdbcConfig;
@@ -40,32 +40,37 @@ public class TestYdbCreateTable extends AbstractTestQueryFramework {
         return YdbQueryRunner.builder(ydb)
                 .addConnectorProperty("insert.non-transactional-insert.enabled", "false")
                 .addConnectorProperty("merge.non-transactional-merge.enabled", "false")
-                .setClientModule(Modules.override(new YdbClientModule()).with(new AbstractModule() {
-                    @Provides
-                    @Singleton
-                    @ForBaseJdbc
-                    public JdbcClient client(BaseJdbcConfig config, ConnectionFactory connectionFactory,
-                            QueryBuilder queryBuilder, IdentifierMapping identifierMapping, RemoteQueryModifier modifier) {
-                        return new YdbClient(config, connectionFactory, queryBuilder, identifierMapping, modifier) {
-                            @Override
-                            public void rollbackTemporaryTableCreation(ConnectorSession session, JdbcOutputTableHandle handle) {
-                                CompletableFuture<Void> completion = rollbacks.get(handle.getRemoteTableName().getTableName());
-                                try {
-                                    super.rollbackTemporaryTableCreation(session, handle);
-                                    if (completion != null) {
-                                        completion.complete(null);
+                .setClientModule(new YdbClientModule() {
+                    @Override
+                    protected void bindJdbcClient(Binder binder) {
+                        binder.install(new AbstractModule() {
+                            @Provides
+                            @Singleton
+                            @ForBaseJdbc
+                            public JdbcClient client(BaseJdbcConfig config, ConnectionFactory connectionFactory,
+                                    QueryBuilder queryBuilder, IdentifierMapping identifierMapping, RemoteQueryModifier modifier) {
+                                return new YdbClient(config, connectionFactory, queryBuilder, identifierMapping, modifier) {
+                                    @Override
+                                    public void rollbackTemporaryTableCreation(ConnectorSession session, JdbcOutputTableHandle handle) {
+                                        CompletableFuture<Void> completion = rollbacks.get(handle.getRemoteTableName().getTableName());
+                                        try {
+                                            super.rollbackTemporaryTableCreation(session, handle);
+                                            if (completion != null) {
+                                                completion.complete(null);
+                                            }
+                                        }
+                                        catch (RuntimeException e) {
+                                            if (completion != null) {
+                                                completion.completeExceptionally(e);
+                                            }
+                                            throw e;
+                                        }
                                     }
-                                }
-                                catch (RuntimeException e) {
-                                    if (completion != null) {
-                                        completion.completeExceptionally(e);
-                                    }
-                                    throw e;
-                                }
+                                };
                             }
-                        };
+                        });
                     }
-                }))
+                })
                 .build();
     }
 

@@ -1,20 +1,19 @@
 package tech.ydb.trino;
 
 import com.google.inject.Binder;
-import com.google.inject.Module;
 import com.google.inject.Provides;
 import com.google.inject.Scopes;
 import com.google.inject.Singleton;
-import io.trino.plugin.base.mapping.IdentifierMapping;
+import io.airlift.configuration.AbstractConfigurationAwareModule;
 import io.trino.plugin.jdbc.BaseJdbcConfig;
 import io.trino.plugin.jdbc.ConnectionFactory;
 import io.trino.plugin.jdbc.DriverConnectionFactory;
 import io.trino.plugin.jdbc.ForBaseJdbc;
 import io.trino.plugin.jdbc.JdbcClient;
+import io.trino.plugin.jdbc.JdbcJoinPushdownSupportModule;
 import io.trino.plugin.jdbc.JdbcMetadataFactory;
 import io.trino.plugin.jdbc.QueryBuilder;
 import io.trino.plugin.jdbc.credential.CredentialProvider;
-import io.trino.plugin.jdbc.logging.RemoteQueryModifier;
 import io.trino.spi.connector.ConnectorPageSinkProvider;
 import tech.ydb.jdbc.YdbDriver;
 
@@ -23,10 +22,13 @@ import java.util.Properties;
 import static com.google.inject.multibindings.OptionalBinder.newOptionalBinder;
 import static io.trino.plugin.jdbc.JdbcModule.bindTablePropertiesProvider;
 
-public class YdbClientModule implements Module {
+public class YdbClientModule extends AbstractConfigurationAwareModule {
 
     @Override
-    public void configure(Binder binder) {
+    public void setup(Binder binder) {
+        install(new JdbcJoinPushdownSupportModule());
+        bindJdbcClient(binder);
+
         newOptionalBinder(binder, QueryBuilder.class)
                 .setBinding()
                 .to(YdbQueryBuilder.class)
@@ -45,16 +47,8 @@ public class YdbClientModule implements Module {
         binder.bind(YdbConnector.class).in(Scopes.SINGLETON);
     }
 
-    @Provides
-    @Singleton
-    @ForBaseJdbc
-    public JdbcClient provideJdbcClient(
-            BaseJdbcConfig config,
-            ConnectionFactory connectionFactory,
-            QueryBuilder queryBuilder,
-            IdentifierMapping identifierMapping,
-            RemoteQueryModifier remoteQueryModifier) {
-        return new YdbClient(config, connectionFactory, queryBuilder, identifierMapping, remoteQueryModifier);
+    protected void bindJdbcClient(Binder binder) {
+        binder.bind(JdbcClient.class).annotatedWith(ForBaseJdbc.class).to(YdbClient.class).in(Scopes.SINGLETON);
     }
 
     @Provides

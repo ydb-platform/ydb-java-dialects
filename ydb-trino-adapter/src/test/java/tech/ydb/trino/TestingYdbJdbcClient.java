@@ -1,5 +1,6 @@
 package tech.ydb.trino;
 
+import com.google.inject.Inject;
 import io.trino.plugin.base.mapping.IdentifierMapping;
 import io.trino.plugin.jdbc.BaseJdbcConfig;
 import io.trino.plugin.jdbc.ConnectionFactory;
@@ -21,6 +22,7 @@ import static io.trino.spi.StandardErrorCode.NOT_SUPPORTED;
 public class TestingYdbJdbcClient extends YdbClient {
     static final String YDB_HIDDEN_PK_COLUMN = "_ydb_trino_test_pk";
 
+    @Inject
     public TestingYdbJdbcClient(
             BaseJdbcConfig config,
             ConnectionFactory connectionFactory,
