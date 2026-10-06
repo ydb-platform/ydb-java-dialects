@@ -41,7 +41,7 @@ public class TestYdbCreateTable extends AbstractTestQueryFramework {
         return YdbQueryRunner.builder(ydb)
                 .addConnectorProperty("insert.non-transactional-insert.enabled", "false")
                 .addConnectorProperty("merge.non-transactional-merge.enabled", "false")
-                .setClientModule(new YdbClientModule() {
+                .setClientModule(() -> new YdbClientModule() {
                     @Override
                     protected void bindJdbcClient(Binder binder) {
                         binder.install(new AbstractModule() {
