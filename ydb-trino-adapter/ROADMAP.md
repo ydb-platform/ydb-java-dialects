@@ -24,9 +24,13 @@ JOINs on non-null keys, disabled statistics, cost rejection and nullable-key
 fallback; the broader native-type JOIN matrix uses `EAGER` to isolate semantic
 correctness. Unit tests cover default configuration, native statistics
 conversion, eligible costs, missing estimates, expansion boundaries,
-table-size limits, and unsupported keys. Native estimates can lag writes;
-[`ANALYZE`](https://ydb.tech/docs/en/yql/reference/syntax/analyze) collects
-YDB optimizer statistics directly in YDB. General native column statistics
+table-size limits, and unsupported keys. Native estimates can lag writes:
+SchemeShard receives asynchronous data-shard reports. The fixtures observe the
+native row-count state before INSERT and await the populated count with a
+bounded future, without fixed sleeps or polling delays.
+[`ANALYZE`](https://ydb.tech/docs/en/yql/reference/syntax/analyze) uses a separate
+YDB optimizer-statistics aggregator and is not a DescribeTable refresh barrier.
+The adapter does not require that aggregator. General native column statistics
 and broader AUTOMATIC coverage remain future work.
 
 ## Trino 483 dependency migration

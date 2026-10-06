@@ -11,19 +11,18 @@ import org.junit.jupiter.api.parallel.ResourceLock;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
-import tech.ydb.common.transaction.TxMode;
 import tech.ydb.jdbc.YdbConnection;
-import tech.ydb.query.QuerySession;
+import tech.ydb.table.settings.DescribeTableSettings;
 import tech.ydb.test.junit5.YdbHelperExtension;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
-import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
@@ -53,9 +52,9 @@ public class TestYdbJoinPushdown extends AbstractTestQueryFramework {
     public void testAutomaticJoinWithNativeStatistics() throws Exception {
         JdbcSqlExecutor executor = new JdbcSqlExecutor(YdbQueryRunner.buildJdbcUrl(ydb));
         List<String> values = IntStream.rangeClosed(1, 16).mapToObj(value -> value + "l").toList();
-        try (TestTable left = nativeTable(executor, "automatic_left_", "(id Int64 NOT NULL, PRIMARY KEY (id))", "id", values);
-                TestTable right = nativeTable(executor, "automatic_right_", "(id Int64 NOT NULL, PRIMARY KEY (id))", "id", values)) {
-            analyzeTables(left, right);
+        try (TestTable left = new TestTable(executor, "automatic_left_", "(id Int64 NOT NULL, PRIMARY KEY (id))");
+                TestTable right = new TestTable(executor, "automatic_right_", "(id Int64 NOT NULL, PRIMARY KEY (id))")) {
+            populateWithNativeStatistics(executor, values, left, right);
 
             var statistics = computeActual("SHOW STATS FOR " + left.getName()).getMaterializedRows();
             var tableStatistics = statistics.stream().filter(row -> row.getField(0) == null).findFirst().orElseThrow();
@@ -80,27 +79,56 @@ public class TestYdbJoinPushdown extends AbstractTestQueryFramework {
     @Test
     public void testAutomaticJoinWithUnknownKeyStatistics() throws Exception {
         JdbcSqlExecutor executor = new JdbcSqlExecutor(YdbQueryRunner.buildJdbcUrl(ydb));
-        try (TestTable left = nativeTable(executor, "automatic_nullable_left_", "(id Int64, PRIMARY KEY (id))", "id", List.of("1l", "NULL"));
-                TestTable right = nativeTable(executor, "automatic_nullable_right_", "(id Int64, PRIMARY KEY (id))", "id", List.of("1l", "NULL"))) {
-            analyzeTables(left, right);
+        try (TestTable left = new TestTable(executor, "automatic_nullable_left_", "(id Int64, PRIMARY KEY (id))");
+                TestTable right = new TestTable(executor, "automatic_nullable_right_", "(id Int64, PRIMARY KEY (id))")) {
+            populateWithNativeStatistics(executor, List.of("1l", "NULL"), left, right);
             String join = "SELECT l.id, r.id FROM " + left.getName() + " l JOIN " + right.getName() + " r ON l.id = r.id";
             assertThat(query(join)).joinIsNotFullyPushedDown().matches("VALUES (BIGINT '1', BIGINT '1')");
             assertThat(query(joinSession(), join)).isFullyPushedDown().matches("VALUES (BIGINT '1', BIGINT '1')");
         }
     }
 
-    private static void analyzeTables(TestTable... tables) throws Exception {
+    private static void populateWithNativeStatistics(JdbcSqlExecutor executor, List<String> rows, TestTable... tables) throws Exception {
         try (Connection connection = DriverManager.getConnection(YdbQueryRunner.buildJdbcUrl(ydb))) {
             var context = connection.unwrap(YdbConnection.class).getCtx();
-            try (QuerySession session = context.getQueryClient().createSession(Duration.ofSeconds(30))
+            try (tech.ydb.table.Session session = context.getTableClient().createSession(context.getOperationProperties().getSessionTimeout())
                     .get(30, SECONDS).getValue()) {
                 for (TestTable table : tables) {
                     String path = context.getPrefixPath() + "/" + table.getName();
-                    session.createQuery("ANALYZE `" + path + "`", TxMode.NONE)
-                            .execute().get(60, SECONDS).getValue();
+                    CompletableFuture<Void> ready = new CompletableFuture<Void>().orTimeout(60, SECONDS);
+                    observeNativeStatistics(session, path, rows.size(), ready);
+                    executor.execute("INSERT INTO " + table.getName() + " (id) VALUES " +
+                            rows.stream().map(row -> "(" + row + ")").collect(joining(", ")));
+                    ready.get(60, SECONDS);
                 }
             }
         }
+    }
+
+    private static void observeNativeStatistics(tech.ydb.table.Session session, String path, long rows, CompletableFuture<Void> ready) {
+        if (ready.isDone()) {
+            return;
+        }
+        DescribeTableSettings settings = new DescribeTableSettings();
+        settings.setIncludeTableStats(true);
+        session.describeTable(path, settings).whenComplete((result, failure) -> {
+            if (failure != null) {
+                ready.completeExceptionally(failure);
+                return;
+            }
+            try {
+                var statistics = result.getValue().getTableStats();
+                if (statistics != null && statistics.getRowsEstimate() == rows) {
+                    ready.complete(null);
+                }
+                else {
+                    observeNativeStatistics(session, path, rows, ready);
+                }
+            }
+            catch (RuntimeException e) {
+                ready.completeExceptionally(e);
+            }
+        });
     }
 
     @ParameterizedTest
