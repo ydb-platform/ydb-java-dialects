@@ -5,6 +5,7 @@ import io.trino.plugin.base.mapping.IdentifierMapping;
 import io.trino.plugin.jdbc.BaseJdbcConfig;
 import io.trino.plugin.jdbc.ConnectionFactory;
 import io.trino.plugin.jdbc.JdbcColumnHandle;
+import io.trino.plugin.jdbc.JdbcStatisticsConfig;
 import io.trino.plugin.jdbc.JdbcTableHandle;
 import io.trino.plugin.jdbc.QueryBuilder;
 import io.trino.plugin.jdbc.RemoteTableName;
@@ -25,11 +26,12 @@ public class TestingYdbJdbcClient extends YdbClient {
     @Inject
     public TestingYdbJdbcClient(
             BaseJdbcConfig config,
+            JdbcStatisticsConfig statisticsConfig,
             ConnectionFactory connectionFactory,
             QueryBuilder queryBuilder,
             IdentifierMapping identifierMapping,
             RemoteQueryModifier remoteQueryModifier) {
-        super(config, connectionFactory, queryBuilder, identifierMapping, remoteQueryModifier);
+        super(config, statisticsConfig, connectionFactory, queryBuilder, identifierMapping, remoteQueryModifier);
     }
 
     @Override

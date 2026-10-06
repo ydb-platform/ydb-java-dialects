@@ -11,6 +11,7 @@ import io.trino.plugin.jdbc.ConnectionFactory;
 import io.trino.plugin.jdbc.ForBaseJdbc;
 import io.trino.plugin.jdbc.JdbcClient;
 import io.trino.plugin.jdbc.JdbcOutputTableHandle;
+import io.trino.plugin.jdbc.JdbcStatisticsConfig;
 import io.trino.plugin.jdbc.QueryBuilder;
 import io.trino.plugin.jdbc.logging.RemoteQueryModifier;
 import io.trino.spi.connector.ConnectorSession;
@@ -47,9 +48,9 @@ public class TestYdbCreateTable extends AbstractTestQueryFramework {
                             @Provides
                             @Singleton
                             @ForBaseJdbc
-                            public JdbcClient client(BaseJdbcConfig config, ConnectionFactory connectionFactory,
+                            public JdbcClient client(BaseJdbcConfig config, JdbcStatisticsConfig statisticsConfig, ConnectionFactory connectionFactory,
                                     QueryBuilder queryBuilder, IdentifierMapping identifierMapping, RemoteQueryModifier modifier) {
-                                return new YdbClient(config, connectionFactory, queryBuilder, identifierMapping, modifier) {
+                                return new YdbClient(config, statisticsConfig, connectionFactory, queryBuilder, identifierMapping, modifier) {
                                     @Override
                                     public void rollbackTemporaryTableCreation(ConnectorSession session, JdbcOutputTableHandle handle) {
                                         CompletableFuture<Void> completion = rollbacks.get(handle.getRemoteTableName().getTableName());

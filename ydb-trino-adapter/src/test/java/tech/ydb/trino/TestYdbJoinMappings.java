@@ -7,6 +7,7 @@ import io.trino.plugin.jdbc.JdbcJoinCondition;
 import io.trino.plugin.jdbc.JdbcJoinPushdownConfig;
 import io.trino.plugin.jdbc.JdbcJoinPushdownSessionProperties;
 import io.trino.plugin.jdbc.JdbcSortItem;
+import io.trino.plugin.jdbc.JdbcStatisticsConfig;
 import io.trino.plugin.jdbc.JdbcTypeHandle;
 import io.trino.plugin.jdbc.PreparedQuery;
 import io.trino.plugin.jdbc.QueryParameter;
@@ -47,6 +48,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 public class TestYdbJoinMappings {
     private final YdbClient client = new YdbClient(
             new BaseJdbcConfig(),
+            new JdbcStatisticsConfig(),
             _ -> {
                 throw new SQLException("This test must not open a connection");
             },
@@ -158,7 +160,7 @@ public class TestYdbJoinMappings {
     }
 
     private static YdbClient costAwareClient() {
-        return new YdbClient(new BaseJdbcConfig(),
+        return new YdbClient(new BaseJdbcConfig(), new JdbcStatisticsConfig(),
                 _ -> (Connection) Proxy.newProxyInstance(Connection.class.getClassLoader(), new Class<?>[]{Connection.class},
                         (_, method, _) -> {
                             assertThat(method.getName()).isEqualTo("close");

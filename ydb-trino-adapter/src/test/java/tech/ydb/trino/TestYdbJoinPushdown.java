@@ -17,6 +17,7 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
@@ -34,7 +35,53 @@ public class TestYdbJoinPushdown extends AbstractTestQueryFramework {
 
     @Override
     protected QueryRunner createQueryRunner() throws Exception {
-        return YdbQueryRunner.builder(ydb).useProductionClient().build();
+        var queryRunner = YdbQueryRunner.builder(ydb).useProductionClient().build();
+        queryRunner.createCatalog("without_stats", "ydb", Map.of(
+                "connection-url", YdbQueryRunner.buildJdbcUrl(ydb),
+                "statistics.enabled", "false"));
+        return queryRunner;
+    }
+
+    @Test
+    public void testAutomaticJoinWithNativeStatistics() {
+        JdbcSqlExecutor executor = new JdbcSqlExecutor(YdbQueryRunner.buildJdbcUrl(ydb));
+        List<String> values = IntStream.rangeClosed(1, 16).mapToObj(value -> value + "l").toList();
+        try (TestTable left = nativeTable(executor, "automatic_left_", "(id Int64 NOT NULL, PRIMARY KEY (id))", "id", values);
+                TestTable right = nativeTable(executor, "automatic_right_", "(id Int64 NOT NULL, PRIMARY KEY (id))", "id", values)) {
+            executor.execute("ANALYZE " + left.getName());
+            executor.execute("ANALYZE " + right.getName());
+
+            var statistics = computeActual("SHOW STATS FOR " + left.getName()).getMaterializedRows();
+            var tableStatistics = statistics.stream().filter(row -> row.getField(0) == null).findFirst().orElseThrow();
+            var keyStatistics = statistics.stream().filter(row -> "id".equals(row.getField(0))).findFirst().orElseThrow();
+            double rows = ((Number) tableStatistics.getField(4)).doubleValue();
+            assertThat(rows).isPositive();
+            assertThat(((Number) keyStatistics.getField(2)).doubleValue()).isEqualTo(rows);
+            assertThat(((Number) keyStatistics.getField(3)).doubleValue()).isZero();
+
+            String join = "SELECT l.id, r.id FROM " + left.getName() + " l JOIN " + right.getName() + " r ON l.id = r.id";
+            String expected = "SELECT id, id FROM " + left.getName();
+            assertThat(query(join)).isFullyPushedDown().matches(expected);
+            Session noStatistics = Session.builder(getSession()).setCatalog("without_stats").build();
+            assertThat(query(noStatistics, join)).joinIsNotFullyPushedDown().matches(expected);
+            Session rejectCosts = Session.builder(getSession())
+                    .setCatalogSessionProperty("local", "join_pushdown_automatic_max_join_to_tables_ratio", "0")
+                    .build();
+            assertThat(query(rejectCosts, join)).joinIsNotFullyPushedDown().matches(expected);
+        }
+    }
+
+    @Test
+    public void testAutomaticJoinWithUnknownKeyStatistics() {
+        JdbcSqlExecutor executor = new JdbcSqlExecutor(YdbQueryRunner.buildJdbcUrl(ydb));
+        try (TestTable left = nativeTable(executor, "automatic_nullable_left_", "(id Int64, PRIMARY KEY (id))", "id", List.of("1l", "NULL"));
+                TestTable right = nativeTable(executor, "automatic_nullable_right_", "(id Int64, PRIMARY KEY (id))", "id", List.of("1l", "NULL"))) {
+            executor.execute("ANALYZE " + left.getName());
+            executor.execute("ANALYZE " + right.getName());
+            String join = "SELECT l.id, r.id FROM " + left.getName() + " l JOIN " + right.getName() + " r ON l.id = r.id";
+            assertThat(query(join)).joinIsNotFullyPushedDown().matches("VALUES (BIGINT '1', BIGINT '1')");
+            assertThat(query(joinSession(), join)).isFullyPushedDown().matches("VALUES (BIGINT '1', BIGINT '1')");
+        }
     }
 
     @ParameterizedTest

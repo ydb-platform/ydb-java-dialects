@@ -12,6 +12,7 @@ import io.trino.plugin.jdbc.ForBaseJdbc;
 import io.trino.plugin.jdbc.JdbcClient;
 import io.trino.plugin.jdbc.JdbcJoinPushdownSupportModule;
 import io.trino.plugin.jdbc.JdbcMetadataFactory;
+import io.trino.plugin.jdbc.JdbcStatisticsConfig;
 import io.trino.plugin.jdbc.QueryBuilder;
 import io.trino.plugin.jdbc.credential.CredentialProvider;
 import io.trino.spi.connector.ConnectorPageSinkProvider;
@@ -20,6 +21,7 @@ import tech.ydb.jdbc.YdbDriver;
 import java.util.Properties;
 
 import static com.google.inject.multibindings.OptionalBinder.newOptionalBinder;
+import static io.airlift.configuration.ConfigBinder.configBinder;
 import static io.trino.plugin.jdbc.JdbcModule.bindTablePropertiesProvider;
 
 public class YdbClientModule extends AbstractConfigurationAwareModule {
@@ -27,6 +29,7 @@ public class YdbClientModule extends AbstractConfigurationAwareModule {
     @Override
     public void setup(Binder binder) {
         install(new JdbcJoinPushdownSupportModule());
+        configBinder(binder).bindConfig(JdbcStatisticsConfig.class);
         bindJdbcClient(binder);
 
         newOptionalBinder(binder, QueryBuilder.class)

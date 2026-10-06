@@ -164,6 +164,7 @@
                     <systemPropertyVariables>
                         <YDB_DOCKER_IMAGE>ydbplatform/local-ydb@sha256:9e46fd45875551a75bcf34d0bb9ca0baa1d8763a4ccf2070af45f4467c4b7402</YDB_DOCKER_IMAGE>
                         <YDB_DOCKER_REUSE>false</YDB_DOCKER_REUSE>
+                        <YDB_DOCKER_FEATURE_FLAGS>EnableStatistics,EnableColumnStatistics</YDB_DOCKER_FEATURE_FLAGS>
                     </systemPropertyVariables>
                 </configuration>
             </plugin>

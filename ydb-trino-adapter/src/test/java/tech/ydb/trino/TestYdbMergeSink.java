@@ -5,6 +5,7 @@ import io.trino.plugin.jdbc.BaseJdbcConfig;
 import io.trino.plugin.jdbc.JdbcColumnHandle;
 import io.trino.plugin.jdbc.JdbcMergeTableHandle;
 import io.trino.plugin.jdbc.JdbcOutputTableHandle;
+import io.trino.plugin.jdbc.JdbcStatisticsConfig;
 import io.trino.plugin.jdbc.JdbcTableHandle;
 import io.trino.plugin.jdbc.RemoteTableName;
 import io.trino.plugin.jdbc.logging.RemoteQueryModifier;
@@ -97,7 +98,7 @@ public class TestYdbMergeSink {
     }
 
     private static YdbMergeSink sink(RecordingJdbc jdbc, int batchSize) {
-        YdbClient client = new YdbClient(new BaseJdbcConfig(), _ -> jdbc.connection(),
+        YdbClient client = new YdbClient(new BaseJdbcConfig(), new JdbcStatisticsConfig(), _ -> jdbc.connection(),
                 new YdbQueryBuilder(RemoteQueryModifier.NONE), new DefaultIdentifierMapping(), RemoteQueryModifier.NONE);
         List<JdbcColumnHandle> columns = List.of("payload", "tenant", "id").stream()
                 .map(name -> new JdbcColumnHandle(name, YdbTypeUtils.toTypeHandle(BIGINT).orElseThrow(), BIGINT))

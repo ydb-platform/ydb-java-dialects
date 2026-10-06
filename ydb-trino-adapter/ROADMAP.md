@@ -10,12 +10,24 @@ flags are test debt, not support.
 JOIN pushdown is enabled by default with Trino's `AUTOMATIC` strategy and the
 same cost gate used by its PostgreSQL connector. Missing estimates or an
 estimated result at least 1.25 times the combined input size keep the JOIN in
-Trino. The adapter does not currently publish native YDB table statistics;
-ordinary table joins without sufficient estimates therefore remain in Trino.
+Trino. The adapter reads native row estimates using SDK
+`DescribeTable(include_table_stats)`, without scanning rows. Statistics are
+enabled by default and can be disabled with `statistics.enabled=false`.
+A single NOT NULL non-floating primary key supplies NDV from its uniqueness
+and the native row estimate; non-null fixed-width columns supply logical
+Trino byte estimates. Nullable and composite-key NDV, variable-width sizes
+and value ranges remain unknown. Missing or zero native row estimates remain
+unknown rather than declaring a newly populated table empty.
 `EAGER` bypasses the cost gate, not the existing structured equality-key and
-native-type checks. The native JOIN test matrix uses `EAGER`; unit tests cover
-default configuration, eligible costs, missing estimates, expansion boundaries,
-table-size limits, and unsupported keys.
+native-type checks. Native integration coverage includes default AUTOMATIC
+JOINs on non-null keys, disabled statistics, cost rejection and nullable-key
+fallback; the broader native-type JOIN matrix uses `EAGER` to isolate semantic
+correctness. Unit tests cover default configuration, native statistics
+conversion, eligible costs, missing estimates, expansion boundaries,
+table-size limits, and unsupported keys. Native estimates can lag writes;
+[`ANALYZE`](https://ydb.tech/docs/en/yql/reference/syntax/analyze) collects
+YDB optimizer statistics directly in YDB. General native column statistics
+and broader AUTOMATIC coverage remain future work.
 
 ## Trino 483 dependency migration
 

@@ -21,9 +21,11 @@ import io.trino.plugin.jdbc.ConnectionFactory;
 import io.trino.plugin.jdbc.JdbcColumnHandle;
 import io.trino.plugin.jdbc.JdbcExpression;
 import io.trino.plugin.jdbc.JdbcJoinCondition;
+import io.trino.plugin.jdbc.JdbcMetadata;
 import io.trino.plugin.jdbc.JdbcMergeTableHandle;
 import io.trino.plugin.jdbc.JdbcOutputTableHandle;
 import io.trino.plugin.jdbc.JdbcSortItem;
+import io.trino.plugin.jdbc.JdbcStatisticsConfig;
 import io.trino.plugin.jdbc.JdbcTableHandle;
 import io.trino.plugin.jdbc.JdbcTypeHandle;
 import io.trino.plugin.jdbc.PreparedQuery;
@@ -54,12 +56,16 @@ import io.trino.spi.connector.SortOrder;
 import io.trino.spi.expression.ConnectorExpression;
 import io.trino.spi.expression.Constant;
 import io.trino.spi.expression.Variable;
+import io.trino.spi.statistics.TableStatistics;
 import io.trino.spi.type.DecimalType;
 import io.trino.spi.type.TimestampType;
 import io.trino.spi.type.Type;
 import io.trino.spi.type.VarcharType;
 
 import jakarta.annotation.Nullable;
+import tech.ydb.jdbc.YdbConnection;
+import tech.ydb.table.description.TableDescription;
+import tech.ydb.table.settings.DescribeTableSettings;
 
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
@@ -77,6 +83,8 @@ import java.util.OptionalInt;
 import java.util.OptionalLong;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeoutException;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -126,6 +134,7 @@ import static io.trino.spi.type.VarbinaryType.VARBINARY;
 import static io.trino.spi.type.VarcharType.createUnboundedVarcharType;
 import static java.lang.Math.max;
 import static java.lang.String.format;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.stream.Collectors.joining;
 import static tech.ydb.trino.YdbColumnMappings.YDB_DATE32_SQL_TYPE;
 import static tech.ydb.trino.YdbColumnMappings.YDB_TIMESTAMP64_SQL_TYPE;
@@ -146,10 +155,12 @@ public class YdbClient extends BaseJdbcClient {
     private final ConnectorExpressionRewriter<ParameterizedExpression> connectorExpressionRewriter;
     private final AggregateFunctionRewriter<JdbcExpression, ParameterizedExpression> aggregateFunctionRewriter;
     private final ProjectFunctionRewriter<JdbcExpression, ParameterizedExpression> projectFunctionRewriter;
+    private final boolean statisticsEnabled;
 
     @Inject
     public YdbClient(
             BaseJdbcConfig config,
+            JdbcStatisticsConfig statisticsConfig,
             ConnectionFactory connectionFactory,
             QueryBuilder queryBuilder,
             IdentifierMapping identifierMapping,
@@ -165,6 +176,7 @@ public class YdbClient extends BaseJdbcClient {
                 true
         );
 
+        this.statisticsEnabled = statisticsConfig.isEnabled();
         this.connectorExpressionRewriter = JdbcConnectorExpressionRewriterBuilder.newBuilder()
                 .addStandardRules(this::quoted)
                 .add(new RewriteIn())
@@ -201,6 +213,40 @@ public class YdbClient extends BaseJdbcClient {
                         .add(new ImplementSum(YdbTypeUtils::toTypeHandle))
                         .add(new ImplementAvgFloatingPoint())
                         .build());
+    }
+
+    @Override
+    public TableStatistics getTableStatistics(ConnectorSession session, JdbcTableHandle handle) {
+        if (!statisticsEnabled || !handle.isNamedRelation()) {
+            return TableStatistics.empty();
+        }
+        String tableName = handle.getRequiredNamedRelation().getRemoteTableName().getTableName();
+        try (Connection connection = connectionFactory.openConnection(session)) {
+            var context = connection.unwrap(YdbConnection.class).getCtx();
+            String prefix = context.getPrefixPath();
+            String path = prefix + (prefix.endsWith("/") ? "" : "/") + tableName;
+            DescribeTableSettings settings = context.withDefaultTimeout(new DescribeTableSettings());
+            settings.setIncludeTableStats(true);
+            long timeoutMillis = context.getOperationProperties().getJoinDuration().toMillis();
+            try (tech.ydb.table.Session tableSession = context.getTableClient()
+                    .createSession(context.getOperationProperties().getSessionTimeout()).get(timeoutMillis, MILLISECONDS).getValue()) {
+                TableDescription description = tableSession.describeTable(path, settings).get(timeoutMillis, MILLISECONDS).getValue();
+                List<JdbcColumnHandle> columns = JdbcMetadata.getColumns(session, this, handle).stream()
+                        .filter(this::hasSupportedValueMapping)
+                        .toList();
+                return YdbTableStatistics.fromDescription(description, columns);
+            }
+        }
+        catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new TrinoException(JDBC_ERROR, "Interrupted fetching YDB statistics for table " + tableName, e);
+        }
+        catch (SQLException | ExecutionException | TimeoutException | RuntimeException e) {
+            if (e instanceof TrinoException trinoException) {
+                throw trinoException;
+            }
+            throw new TrinoException(JDBC_ERROR, "Failed fetching YDB statistics for table " + tableName, e);
+        }
     }
 
     @Override
