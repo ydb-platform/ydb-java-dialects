@@ -11,8 +11,14 @@ import org.junit.jupiter.api.parallel.ResourceLock;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import tech.ydb.common.transaction.TxMode;
+import tech.ydb.jdbc.YdbConnection;
+import tech.ydb.query.QuerySession;
 import tech.ydb.test.junit5.YdbHelperExtension;
 
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
@@ -24,6 +30,7 @@ import java.util.stream.Stream;
 import static io.trino.spi.StandardErrorCode.NUMERIC_VALUE_OUT_OF_RANGE;
 import static io.trino.type.DateTimes.parseTimestamp;
 import static java.time.ZoneOffset.UTC;
+import static java.util.concurrent.TimeUnit.SECONDS;
 import static java.util.stream.Collectors.joining;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
@@ -43,13 +50,12 @@ public class TestYdbJoinPushdown extends AbstractTestQueryFramework {
     }
 
     @Test
-    public void testAutomaticJoinWithNativeStatistics() {
+    public void testAutomaticJoinWithNativeStatistics() throws Exception {
         JdbcSqlExecutor executor = new JdbcSqlExecutor(YdbQueryRunner.buildJdbcUrl(ydb));
         List<String> values = IntStream.rangeClosed(1, 16).mapToObj(value -> value + "l").toList();
         try (TestTable left = nativeTable(executor, "automatic_left_", "(id Int64 NOT NULL, PRIMARY KEY (id))", "id", values);
                 TestTable right = nativeTable(executor, "automatic_right_", "(id Int64 NOT NULL, PRIMARY KEY (id))", "id", values)) {
-            executor.execute("ANALYZE " + left.getName());
-            executor.execute("ANALYZE " + right.getName());
+            analyzeTables(left, right);
 
             var statistics = computeActual("SHOW STATS FOR " + left.getName()).getMaterializedRows();
             var tableStatistics = statistics.stream().filter(row -> row.getField(0) == null).findFirst().orElseThrow();
@@ -72,15 +78,28 @@ public class TestYdbJoinPushdown extends AbstractTestQueryFramework {
     }
 
     @Test
-    public void testAutomaticJoinWithUnknownKeyStatistics() {
+    public void testAutomaticJoinWithUnknownKeyStatistics() throws Exception {
         JdbcSqlExecutor executor = new JdbcSqlExecutor(YdbQueryRunner.buildJdbcUrl(ydb));
         try (TestTable left = nativeTable(executor, "automatic_nullable_left_", "(id Int64, PRIMARY KEY (id))", "id", List.of("1l", "NULL"));
                 TestTable right = nativeTable(executor, "automatic_nullable_right_", "(id Int64, PRIMARY KEY (id))", "id", List.of("1l", "NULL"))) {
-            executor.execute("ANALYZE " + left.getName());
-            executor.execute("ANALYZE " + right.getName());
+            analyzeTables(left, right);
             String join = "SELECT l.id, r.id FROM " + left.getName() + " l JOIN " + right.getName() + " r ON l.id = r.id";
             assertThat(query(join)).joinIsNotFullyPushedDown().matches("VALUES (BIGINT '1', BIGINT '1')");
             assertThat(query(joinSession(), join)).isFullyPushedDown().matches("VALUES (BIGINT '1', BIGINT '1')");
+        }
+    }
+
+    private static void analyzeTables(TestTable... tables) throws Exception {
+        try (Connection connection = DriverManager.getConnection(YdbQueryRunner.buildJdbcUrl(ydb))) {
+            var context = connection.unwrap(YdbConnection.class).getCtx();
+            try (QuerySession session = context.getQueryClient().createSession(Duration.ofSeconds(30))
+                    .get(30, SECONDS).getValue()) {
+                for (TestTable table : tables) {
+                    String path = context.getPrefixPath() + "/" + table.getName();
+                    session.createQuery("ANALYZE `" + path + "`", TxMode.NONE)
+                            .execute().get(60, SECONDS).getValue();
+                }
+            }
         }
     }
 
