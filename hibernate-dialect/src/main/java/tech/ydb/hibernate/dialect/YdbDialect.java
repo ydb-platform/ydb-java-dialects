@@ -200,6 +200,8 @@ public class YdbDialect extends Dialect {
         typeContributions.contributeJdbcType(new YdbJdbcType(YdbJdbcCode.INTERVAL, Duration.class));
 
         typeContributions.contributeJavaType(BigDecimalJavaType.INSTANCE_22_9);
+        typeContributions.contributeJdbcType(new DecimalJdbcType(NUMERIC));
+        typeContributions.contributeJdbcType(new DecimalJdbcType(DECIMAL));
         typeContributions.contributeJdbcType(new DecimalJdbcType(YdbJdbcCode.DECIMAL_22_9));
         typeContributions.contributeJdbcType(new DecimalJdbcType(YdbJdbcCode.DECIMAL_31_9));
         typeContributions.contributeJdbcType(new DecimalJdbcType(YdbJdbcCode.DECIMAL_35_0));
@@ -255,7 +257,7 @@ public class YdbDialect extends Dialect {
             int scale,
             JdbcTypeRegistry jdbcTypeRegistry) {
         if ((jdbcTypeCode == NUMERIC || jdbcTypeCode == DECIMAL) && (precision != 0 || scale != 0)) {
-            int sqlCode = ydbDecimal(precision, scale);
+            int sqlCode = DecimalJdbcType.jdbcTypeCode(precision, scale);
 
             return DECIMAL_JDBC_TYPE_CACHE.computeIfAbsent(sqlCode, DecimalJdbcType::new);
         }
@@ -529,9 +531,5 @@ public class YdbDialect extends Dialect {
             }
             return null;
         };
-    }
-
-    private static int ydbDecimal(int precision, int scale) {
-        return 1 << 14 + (precision << 6) + (scale & 0x111111);
     }
 }

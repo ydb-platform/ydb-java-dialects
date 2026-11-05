@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                      http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.8.xsd">
+
+    <changeSet id="create-decimals" author="test">
+        <createTable tableName="decimal_values">
+            <column name="id" type="Int32">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="amount" type="Decimal(35, 10)"/>
+            <column name="whole_amount" type="java.sql.Types.DECIMAL(35, 0)"/>
+            <column name="fraction" type="java.math.BigDecimal(35, 35)"/>
+            <column name="default_amount" type="decimal"/>
+        </createTable>
+        <addColumn tableName="decimal_values">
+            <column name="small_amount" type="Decimal(1, 0)"/>
+        </addColumn>
+    </changeSet>
+
+    <changeSet id="insert-decimals" author="test">
+        <insert tableName="decimal_values">
+            <column name="id" valueNumeric="1"/>
+            <column name="amount" valueNumeric="1234567890123456789012345.1234567890"/>
+            <column name="whole_amount" valueNumeric="12345678901234567890123456789012345"/>
+            <column name="fraction" valueNumeric="0.12345678901234567890123456789012345"/>
+            <column name="default_amount" valueNumeric="1234567890123.123456789"/>
+            <column name="small_amount" valueNumeric="9"/>
+        </insert>
+        <insert tableName="decimal_values">
+            <column name="id" value="2"/>
+            <column name="amount" value="-1234567890123456789012345.1234567890"/>
+            <column name="whole_amount" value="-12345678901234567890123456789012345"/>
+            <column name="fraction" value="-0.12345678901234567890123456789012345"/>
+            <column name="default_amount" value="-1234567890123.123456789"/>
+            <column name="small_amount" value="-9"/>
+        </insert>
+    </changeSet>
+
+    <changeSet id="load-decimals" author="test">
+        <loadData tableName="decimal_values" file="csv/decimal-insert.csv" relativeToChangelogFile="true"/>
+    </changeSet>
+
+    <changeSet id="upsert-decimals" author="test">
+        <loadUpdateData tableName="decimal_values" primaryKey="id"
+                        file="csv/decimal-upsert.csv" relativeToChangelogFile="true"/>
+    </changeSet>
+</databaseChangeLog>
