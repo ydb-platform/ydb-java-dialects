@@ -21,7 +21,7 @@ public class DecimalJdbcType extends org.hibernate.type.descriptor.jdbc.DecimalJ
     private final int defaultSqlCode;
 
     public DecimalJdbcType(int sqlCode) {
-        this(sqlCode, sqlCode);
+        this(sqlCode, sqlCode == Types.NUMERIC ? Types.NUMERIC : Types.DECIMAL);
     }
 
     private DecimalJdbcType(int sqlCode, int defaultSqlCode) {

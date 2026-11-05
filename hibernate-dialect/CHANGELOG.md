@@ -1,8 +1,3 @@
-## Unreleased ##
-
-- Support arbitrary YDB Decimal precision and scale through `@Column(precision = ..., scale = ...)`, including JDBC parameter binding.
-- Fix Decimal JDBC type codes resolved from native query result metadata.
-
 ## 1.7.1 ##
 
 - Fixed default type mapping fop UInt32/Int64/UInt64

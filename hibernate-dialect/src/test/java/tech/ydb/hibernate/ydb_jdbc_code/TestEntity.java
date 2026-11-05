@@ -28,15 +28,12 @@ public class TestEntity {
     @Column
     private BigDecimal default_bigDecimal;
 
-    @Column
-    @JdbcTypeCode(YdbJdbcCode.DECIMAL_31_9)
+    @Column(precision = 31, scale = 9)
     private BigDecimal bigDecimal31_9;
 
-    @Column
-    @JdbcTypeCode(YdbJdbcCode.DECIMAL_35_0)
+    @Column(precision = 35, scale = 0)
     private BigDecimal bigDecimal35_0;
 
-    @Column
-    @JdbcTypeCode(YdbJdbcCode.DECIMAL_35_9)
+    @Column(precision = 35, scale = 9)
     private BigDecimal bigDecimal35_9;
 }

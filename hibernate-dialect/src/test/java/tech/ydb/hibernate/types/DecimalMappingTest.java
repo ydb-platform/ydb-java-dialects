@@ -10,7 +10,6 @@ import java.sql.PreparedStatement;
 import java.sql.Types;
 import java.util.concurrent.atomic.AtomicReference;
 import org.hibernate.MappingException;
-import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.boot.Metadata;
 import org.hibernate.boot.MetadataSources;
 import org.hibernate.boot.registry.StandardServiceRegistry;
@@ -25,7 +24,6 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import tech.ydb.hibernate.dialect.YdbDialect;
-import tech.ydb.hibernate.dialect.code.YdbJdbcCode;
 
 public class DecimalMappingTest {
     private static StandardServiceRegistry registry;
@@ -61,16 +59,16 @@ public class DecimalMappingTest {
         assertMapping("largeAmount", 35, 10, Types.NUMERIC);
         assertMapping("fraction", 35, 35, Types.NUMERIC);
         assertMapping("integerAmount", 35, 0, Types.NUMERIC);
+        assertMapping("decimal22_9", 22, 9, Types.NUMERIC);
+        assertMapping("decimal31_9", 31, 9, Types.NUMERIC);
+        assertMapping("decimal35_0", 35, 0, Types.NUMERIC);
+        assertMapping("decimal35_9", 35, 9, Types.NUMERIC);
     }
 
     @Test
-    void preservesDefaultAndFixedMappings() throws Exception {
+    void preservesDefaults() throws Exception {
         assertMapping("defaultDecimal", 22, 9, Types.NUMERIC);
         assertMapping("defaultInteger", 22, 0, Types.NUMERIC);
-        assertMapping("fixed22_9", 22, 9, YdbJdbcCode.DECIMAL_22_9);
-        assertMapping("fixed31_9", 31, 9, YdbJdbcCode.DECIMAL_31_9);
-        assertMapping("fixed35_0", 35, 0, YdbJdbcCode.DECIMAL_35_0);
-        assertMapping("fixed35_9", 35, 9, YdbJdbcCode.DECIMAL_35_9);
     }
 
     @Test
@@ -87,6 +85,8 @@ public class DecimalMappingTest {
             JdbcType type = dialect.resolveSqlTypeDescriptor("Decimal(35, 10)", jdbcCode, 35, 10,
                     ((MetadataImplementor) metadata).getTypeConfiguration().getJdbcTypeRegistry());
             assertEquals(18634, type.getJdbcTypeCode());
+            assertEquals(Types.DECIMAL, type.getDefaultSqlTypeCode());
+            assertEquals(Types.DECIMAL, type.getDdlTypeCode());
         }
     }
 
@@ -137,15 +137,14 @@ public class DecimalMappingTest {
         private BigDecimal integerAmount;
         private BigDecimal defaultDecimal;
         private BigInteger defaultInteger;
-        @JdbcTypeCode(YdbJdbcCode.DECIMAL_22_9)
-        private BigDecimal fixed22_9;
-        @Column(precision = 18, scale = 2)
-        @JdbcTypeCode(YdbJdbcCode.DECIMAL_31_9)
-        private BigDecimal fixed31_9;
-        @JdbcTypeCode(YdbJdbcCode.DECIMAL_35_0)
-        private BigDecimal fixed35_0;
-        @JdbcTypeCode(YdbJdbcCode.DECIMAL_35_9)
-        private BigDecimal fixed35_9;
+        @Column(precision = 22, scale = 9)
+        private BigDecimal decimal22_9;
+        @Column(precision = 31, scale = 9)
+        private BigDecimal decimal31_9;
+        @Column(precision = 35, scale = 0)
+        private BigDecimal decimal35_0;
+        @Column(precision = 35, scale = 9)
+        private BigDecimal decimal35_9;
     }
 
     @Entity

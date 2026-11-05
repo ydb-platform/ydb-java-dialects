@@ -132,18 +132,4 @@ public final class YdbJdbcCode {
     public static final int TIMESTAMP_64 = YdbConst.SQL_KIND_PRIMITIVE + 27;
 
     public static final int INTERVAL_64 = YdbConst.SQL_KIND_PRIMITIVE + 28;
-
-
-    // WARN! Attribute value must be constant!
-
-    /**
-     * <a href="https://github.com/ydb-platform/ydb-jdbc-driver/blob/v2.3.3/jdbc/src/main/java/tech/ydb/jdbc/impl/YdbTypes.java#L37-L66">link</a>
-     */
-    public static final int DECIMAL_22_9 = YdbConst.SQL_KIND_DECIMAL + (22 << 6) + 9;
-
-    public static final int DECIMAL_31_9 = YdbConst.SQL_KIND_DECIMAL + (31 << 6) + 9;
-
-    public static final int DECIMAL_35_0 = YdbConst.SQL_KIND_DECIMAL + (35 << 6);
-
-    public static final int DECIMAL_35_9 = YdbConst.SQL_KIND_DECIMAL + (35 << 6) + 9;
 }
