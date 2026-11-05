@@ -1,3 +1,9 @@
+## 1.7.2 ##
+
+- Support arbitrary YDB Decimal precision and scale through `@Column(precision = ..., scale = ...)` for schema generation and JDBC parameter binding.
+- **Breaking change:** removed `YdbJdbcCode.DECIMAL_22_9`, `DECIMAL_31_9`, `DECIMAL_35_0`, and `DECIMAL_35_9`. Replace their `@JdbcTypeCode` annotations with `@Column(precision = ..., scale = ...)` using the same parameters. Default mappings remain `BigDecimal` to `Decimal(22,9)` and `BigInteger` to `Decimal(22,0)`.
+- Fix Decimal JDBC type codes resolved from native query result metadata.
+
 ## 1.7.1 ##
 
 - Fixed default type mapping fop UInt32/Int64/UInt64

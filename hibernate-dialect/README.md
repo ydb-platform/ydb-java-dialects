@@ -74,29 +74,6 @@ Use this custom dialect just like any other Hibernate dialect.
 Map your entity classes to database tables and use Hibernate's
 session factory to perform database operations.
 
-### Decimal precision and scale
-
-Use `@Column` to select the precision and scale of a `BigDecimal` field:
-
-```java
-@Column(precision = 35, scale = 10)
-private BigDecimal amount;
-```
-
-The dialect uses `Decimal(35,10)` for both schema generation and JDBC parameter
-binding. Precision must be between 1 and 35, and scale between 0 and precision.
-Without explicit parameters, `BigDecimal` defaults to `Decimal(22,9)` and
-`BigInteger` to `Decimal(22,0)`.
-
-The `YdbJdbcCode.DECIMAL_22_9`, `DECIMAL_31_9`, `DECIMAL_35_0`, and `DECIMAL_35_9`
-constants have been removed. Replace their `@JdbcTypeCode` annotations with
-`@Column(precision = ..., scale = ...)` using the same precision and scale.
-For example, migrate `@JdbcTypeCode(YdbJdbcCode.DECIMAL_31_9)` to
-`@Column(precision = 31, scale = 9)`. Remove the old annotation; an explicit
-`@JdbcTypeCode` overrides automatic type selection from `@Column`.
-`columnDefinition` alone changes DDL without configuring the JDBC parameter
-type; use `precision` and `scale` when mapping an existing Decimal column too.
-
 ## Integration with Spring Data JPA
 
 Configure Spring Data JPA with Hibernate to use custom YDB dialect

@@ -21,20 +21,13 @@ public class DecimalJdbcType extends org.hibernate.type.descriptor.jdbc.DecimalJ
     private final int defaultSqlCode;
 
     public DecimalJdbcType(int sqlCode) {
-        this(sqlCode, sqlCode == Types.NUMERIC ? Types.NUMERIC : Types.DECIMAL);
-    }
-
-    private DecimalJdbcType(int sqlCode, int defaultSqlCode) {
         this.sqlCode = sqlCode;
-        this.defaultSqlCode = defaultSqlCode;
+        this.defaultSqlCode = sqlCode;
     }
 
-    public static int jdbcTypeCode(int precision, int scale) {
-        if (precision < 1 || precision > 35 || scale < 0 || scale > precision) {
-            throw new MappingException("Invalid YDB Decimal(" + precision + ", " + scale
-                    + "): precision must be between 1 and 35 and scale between 0 and precision");
-        }
-        return (1 << 14) + (precision << 6) + scale;
+    public DecimalJdbcType(int defaultSqlCode, int precision, int scale) {
+        this.sqlCode = jdbcTypeCode(precision, scale);
+        this.defaultSqlCode = defaultSqlCode;
     }
 
     @Override
@@ -61,7 +54,7 @@ public class DecimalJdbcType extends org.hibernate.type.descriptor.jdbc.DecimalJ
         if (scale == JdbcTypeIndicators.NO_COLUMN_SCALE) {
             scale = javaType.getDefaultSqlScale(indicators.getDialect(), this);
         }
-        return new DecimalJdbcType(jdbcTypeCode(precision, scale), defaultSqlCode);
+        return new DecimalJdbcType(defaultSqlCode, precision, scale);
     }
 
     @Override
@@ -77,5 +70,13 @@ public class DecimalJdbcType extends org.hibernate.type.descriptor.jdbc.DecimalJ
                 st.setObject(name, javaType.unwrap(value, BigDecimal.class, options), sqlCode);
             }
         };
+    }
+
+    private static int jdbcTypeCode(int precision, int scale) {
+        if (precision < 1 || precision > 35 || scale < 0 || scale > precision) {
+            throw new MappingException("Invalid YDB Decimal(" + precision + ", " + scale
+                    + "): precision must be between 1 and 35 and scale between 0 and precision");
+        }
+        return (1 << 14) + (precision << 6) + scale;
     }
 }

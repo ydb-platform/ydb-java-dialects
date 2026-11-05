@@ -6,6 +6,9 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.sql.ResultSet;
+import java.util.HashMap;
+import java.util.Map;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -41,6 +44,27 @@ public class DecimalPrecisionScaleTest {
         if (sessionFactory != null) {
             sessionFactory.close();
         }
+    }
+
+    @Test
+    void createsColumnsWithDeclaredPrecisionAndScale() {
+        sessionFactory.inTransaction(session -> session.doWork(connection -> {
+            Map<String, String> types = new HashMap<>();
+            try (ResultSet columns = connection.getMetaData()
+                    .getColumns(null, null, "decimal_precision_scale", null)) {
+                while (columns.next()) {
+                    types.put(columns.getString("COLUMN_NAME"), columns.getString("TYPE_NAME"));
+                }
+            }
+            assertEquals(Map.of(
+                    "id", "Int64",
+                    "amount", "Decimal(18, 2)",
+                    "largeAmount", "Decimal(35, 10)",
+                    "fraction", "Decimal(35, 35)",
+                    "integerAmount", "Decimal(35, 0)",
+                    "defaultDecimal", "Decimal(22, 9)",
+                    "defaultInteger", "Decimal(22, 0)"), types);
+        }));
     }
 
     @Test

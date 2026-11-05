@@ -79,20 +79,6 @@ cp ydb-jdbc-driver-shaded-${version-jdbc}.jar /usr/local/opt/liquibase/internal/
 
 Use this custom dialect just like any other Liquibase dialect.
 
-### Decimal precision and scale
-
-Specify both precision and scale to use a parameterized YDB decimal:
-
-```xml
-<column name="amount" type="Decimal(35,10)"/>
-```
-
-YDB supports precision from 1 to 35 and scale from 0 to precision. The aliases
-`java.sql.Types.DECIMAL` and `java.math.BigDecimal` accept the same parameters.
-Without parameters, `decimal` retains the default `Decimal(22,9)`.
-The declared parameters are preserved when creating or adding columns, generating
-changelogs, inserting values, and loading or updating data from CSV files.
-
 ## Integration with Spring Boot
 
 ```properties

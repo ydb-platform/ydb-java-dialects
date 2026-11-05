@@ -1,3 +1,8 @@
+## 1.1.3 ##
+
+* Support parameterized `Decimal(precision,scale)` in table creation, column addition, inserts, CSV load/upsert, and changelog generation/replay.
+* **Breaking change:** explicit Decimal precision and scale are now preserved instead of being replaced with `(22,9)`. Specify both integer parameters with `1 <= precision <= 35` and `0 <= scale <= precision`; invalid or incomplete parameters are rejected. Parameterless `decimal` still defaults to `Decimal(22,9)`.
+
 ## 1.1.2 ##
 
 * Fixed the `liquibase tag` command failing on YDB due to an unsupported generic `UPDATE` query ([#236](https://github.com/ydb-platform/ydb-java-dialects/issues/236)).

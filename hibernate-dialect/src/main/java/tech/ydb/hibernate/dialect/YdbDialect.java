@@ -7,7 +7,6 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.concurrent.ConcurrentHashMap;
 import org.hibernate.boot.model.FunctionContributions;
 import org.hibernate.boot.model.TypeContributions;
 import org.hibernate.dialect.Dialect;
@@ -92,7 +91,6 @@ import tech.ydb.hibernate.dialect.types.YdbJdbcType;
 public class YdbDialect extends Dialect {
     @SuppressWarnings({"rawtypes"})
     private static final Exporter EMPTY_EXPORTER = new EmptyExporter<>();
-    private static final ConcurrentHashMap<Integer, DecimalJdbcType> DECIMAL_JDBC_TYPE_CACHE = new ConcurrentHashMap<>();
 
     public YdbDialect(DialectResolutionInfo dialectResolutionInfo) {
         super(dialectResolutionInfo);
@@ -249,9 +247,9 @@ public class YdbDialect extends Dialect {
             int scale,
             JdbcTypeRegistry jdbcTypeRegistry) {
         if ((jdbcTypeCode == NUMERIC || jdbcTypeCode == DECIMAL) && (precision != 0 || scale != 0)) {
-            int sqlCode = DecimalJdbcType.jdbcTypeCode(precision, scale);
-
-            return DECIMAL_JDBC_TYPE_CACHE.computeIfAbsent(sqlCode, DecimalJdbcType::new);
+            DecimalJdbcType type = new DecimalJdbcType(DECIMAL, precision, scale);
+            jdbcTypeRegistry.addDescriptorIfAbsent(type.getJdbcTypeCode(), type);
+            return jdbcTypeRegistry.getDescriptor(type.getJdbcTypeCode());
         }
 
         return super.resolveSqlTypeDescriptor(columnTypeName, jdbcTypeCode, precision, scale, jdbcTypeRegistry);
