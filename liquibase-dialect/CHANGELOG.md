@@ -1,3 +1,8 @@
+## 1.1.3 ##
+
+* Support explicit `Decimal(p, s)` (1 <= p <= 35, 0 <= s <= p) in schema changes, inserts, `loadData`/`loadUpdateData` and changelog generation. Previously explicit parameters were replaced with `(22, 9)`.
+* `decimal(p)` is created as `Decimal(p, 0)`; `decimal` without parameters stays `Decimal(22, 9)`.
+
 ## 1.1.2 ##
 
 * Fixed the `liquibase tag` command failing on YDB due to an unsupported generic `UPDATE` query ([#236](https://github.com/ydb-platform/ydb-java-dialects/issues/236)).

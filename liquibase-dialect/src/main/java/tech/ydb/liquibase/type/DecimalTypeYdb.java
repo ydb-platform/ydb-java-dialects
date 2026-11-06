@@ -4,6 +4,7 @@ import liquibase.database.Database;
 import liquibase.datatype.DataTypeInfo;
 import liquibase.datatype.DatabaseDataType;
 import liquibase.datatype.LiquibaseDataType;
+import liquibase.exception.UnexpectedLiquibaseException;
 
 /**
  * @author Kirill Kurdyukov
@@ -11,7 +12,7 @@ import liquibase.datatype.LiquibaseDataType;
 @DataTypeInfo(
         name = "Decimal",
         aliases = {"java.sql.Types.DECIMAL", "java.math.BigDecimal"},
-        minParameters = 2,
+        minParameters = 0,
         maxParameters = 2,
         priority = LiquibaseDataType.PRIORITY_DATABASE
 )
@@ -19,17 +20,41 @@ public class DecimalTypeYdb extends BaseTypeYdb {
 
     @Override
     public boolean validate(Database database) {
-        return super.validate(database) &&
-                getParameters()[0].equals(22) && getParameters()[1].equals(9); // Fixed Decimal(22,9)
+        decimalType();
+        return true;
     }
 
     @Override
     public DatabaseDataType toDatabaseDataType(Database database) {
-        return new DatabaseDataType("DECIMAL(22,9)");
+        return new DatabaseDataType(decimalType());
     }
 
     @Override
     protected String objectToSql(Object value) {
-        return "CAST('" + value + "' AS DECIMAL(22,9))";
+        return "CAST('" + value + "' AS " + decimalType() + ")";
+    }
+
+    private String decimalType() {
+        Object[] parameters = getParameters();
+        if (parameters.length == 0) {
+            return "DECIMAL(22,9)";
+        }
+        if (parameters.length > 2) {
+            throw new UnexpectedLiquibaseException("YDB Decimal accepts at most precision and scale");
+        }
+
+        int precision;
+        int scale;
+        try {
+            precision = Integer.parseInt(parameters[0].toString());
+            scale = parameters.length == 2 ? Integer.parseInt(parameters[1].toString()) : 0;
+        } catch (NumberFormatException e) {
+            throw new UnexpectedLiquibaseException("YDB Decimal precision and scale must be integers", e);
+        }
+        if (precision < 1 || precision > 35 || scale < 0 || scale > precision) {
+            throw new UnexpectedLiquibaseException(
+                    "YDB Decimal requires 1 <= precision <= 35 and 0 <= scale <= precision");
+        }
+        return "DECIMAL(" + precision + "," + scale + ")";
     }
 }
