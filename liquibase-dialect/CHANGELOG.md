@@ -1,7 +1,7 @@
 ## 1.1.3 ##
 
-* Support parameterized `Decimal(precision,scale)` in table creation, column addition, inserts, CSV load/upsert, and changelog generation/replay.
-* **Breaking change:** explicit Decimal precision and scale are now preserved instead of being replaced with `(22,9)`. Specify both integer parameters with `1 <= precision <= 35` and `0 <= scale <= precision`; invalid or incomplete parameters are rejected. Parameterless `decimal` still defaults to `Decimal(22,9)`.
+* Support explicit `Decimal(p, s)` (1 <= p <= 35, 0 <= s <= p) in schema changes, inserts, `loadData`/`loadUpdateData` and changelog generation. Previously explicit parameters were replaced with `(22, 9)`.
+* `decimal(p)` is created as `Decimal(p, 0)`; `decimal` without parameters stays `Decimal(22, 9)`.
 
 ## 1.1.2 ##
 

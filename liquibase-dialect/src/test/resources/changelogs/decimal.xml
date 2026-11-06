@@ -17,6 +17,7 @@
         </createTable>
         <addColumn tableName="decimal_values">
             <column name="small_amount" type="Decimal(1, 0)"/>
+            <column name="precision_only" type="decimal(10)"/>
         </addColumn>
     </changeSet>
 
@@ -28,6 +29,7 @@
             <column name="fraction" valueNumeric="0.12345678901234567890123456789012345"/>
             <column name="default_amount" valueNumeric="1234567890123.123456789"/>
             <column name="small_amount" valueNumeric="9"/>
+            <column name="precision_only" valueNumeric="1234567890"/>
         </insert>
         <insert tableName="decimal_values">
             <column name="id" value="2"/>
@@ -36,6 +38,7 @@
             <column name="fraction" value="-0.12345678901234567890123456789012345"/>
             <column name="default_amount" value="-1234567890123.123456789"/>
             <column name="small_amount" value="-9"/>
+            <column name="precision_only" value="-1234567890"/>
         </insert>
     </changeSet>
 

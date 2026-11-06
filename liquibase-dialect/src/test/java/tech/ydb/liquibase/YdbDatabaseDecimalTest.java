@@ -42,6 +42,7 @@ class YdbDatabaseDecimalTest extends BaseTest {
                         assertNull(rows.getBigDecimal("fraction"));
                         assertNull(rows.getBigDecimal("default_amount"));
                         assertNull(rows.getBigDecimal("small_amount"));
+                        assertNull(rows.getBigDecimal("precision_only"));
                     } else {
                         String sign = id == 2 || id == 3 ? "-" : "";
                         assertEquals(new BigDecimal(sign + "1234567890123456789012345.1234567890"),
@@ -53,6 +54,7 @@ class YdbDatabaseDecimalTest extends BaseTest {
                         assertEquals(new BigDecimal(sign + "1234567890123.123456789"),
                                 rows.getBigDecimal("default_amount"));
                         assertEquals(new BigDecimal(sign + "9"), rows.getBigDecimal("small_amount"));
+                        assertEquals(new BigDecimal(sign + "1234567890"), rows.getBigDecimal("precision_only"));
                     }
                 }
                 assertFalse(rows.next());
@@ -71,6 +73,7 @@ class YdbDatabaseDecimalTest extends BaseTest {
         assertTrue(changelog.contains("type=\"DECIMAL(35,35)\""));
         assertTrue(changelog.contains("type=\"DECIMAL(22,9)\""));
         assertTrue(changelog.contains("type=\"DECIMAL(1,0)\""));
+        assertTrue(changelog.contains("type=\"DECIMAL(10,0)\""));
 
         try (Connection connection = DriverManager.getConnection(jdbcUrl());
                 Statement statement = connection.createStatement()) {
@@ -97,5 +100,6 @@ class YdbDatabaseDecimalTest extends BaseTest {
         assertEquals("Decimal(35, 35)", types.get("fraction"));
         assertEquals("Decimal(22, 9)", types.get("default_amount"));
         assertEquals("Decimal(1, 0)", types.get("small_amount"));
+        assertEquals("Decimal(10, 0)", types.get("precision_only"));
     }
 }

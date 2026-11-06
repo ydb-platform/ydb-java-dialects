@@ -39,15 +39,15 @@ public class DecimalTypeYdb extends BaseTypeYdb {
         if (parameters.length == 0) {
             return "DECIMAL(22,9)";
         }
-        if (parameters.length != 2) {
-            throw new UnexpectedLiquibaseException("YDB Decimal requires both precision and scale, or no parameters");
+        if (parameters.length > 2) {
+            throw new UnexpectedLiquibaseException("YDB Decimal accepts at most precision and scale");
         }
 
         int precision;
         int scale;
         try {
             precision = Integer.parseInt(parameters[0].toString());
-            scale = Integer.parseInt(parameters[1].toString());
+            scale = parameters.length == 2 ? Integer.parseInt(parameters[1].toString()) : 0;
         } catch (NumberFormatException e) {
             throw new UnexpectedLiquibaseException("YDB Decimal precision and scale must be integers", e);
         }
