@@ -110,7 +110,7 @@ public class DecimalPrecisionScaleTest {
     }
 
     @Test
-    void readsDecimalNativeQueryMetadata() {
+    void readsDecimalValuesFromNativeQuery() {
         DecimalEntity entity = largeValues(20);
         sessionFactory.inTransaction(session -> session.persist(entity));
         sessionFactory.inTransaction(session -> {

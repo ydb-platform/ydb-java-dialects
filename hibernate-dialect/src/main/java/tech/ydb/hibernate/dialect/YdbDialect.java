@@ -63,9 +63,7 @@ import static org.hibernate.type.SqlTypes.VARBINARY;
 import static org.hibernate.type.SqlTypes.VARCHAR;
 import org.hibernate.type.StandardBasicTypes;
 import org.hibernate.type.descriptor.java.UUIDJavaType;
-import org.hibernate.type.descriptor.jdbc.JdbcType;
 import org.hibernate.type.descriptor.jdbc.UUIDJdbcType;
-import org.hibernate.type.descriptor.jdbc.spi.JdbcTypeRegistry;
 import org.hibernate.type.descriptor.sql.internal.DdlTypeImpl;
 import org.hibernate.type.descriptor.sql.spi.DdlTypeRegistry;
 import org.hibernate.type.spi.TypeConfiguration;
@@ -237,22 +235,6 @@ public class YdbDialect extends Dialect {
         ddlTypeRegistry.addDescriptor(new DdlTypeImpl(YdbJdbcCode.DATETIME, "Datetime", "Datetime", this));
         ddlTypeRegistry.addDescriptor(new DdlTypeImpl(YdbJdbcCode.TIMESTAMP, "Timestamp", "Timestamp", this));
         ddlTypeRegistry.addDescriptor(new DdlTypeImpl(YdbJdbcCode.INTERVAL, "Interval", "Interval", this));
-    }
-
-    @Override
-    public JdbcType resolveSqlTypeDescriptor(
-            String columnTypeName,
-            int jdbcTypeCode,
-            int precision,
-            int scale,
-            JdbcTypeRegistry jdbcTypeRegistry) {
-        if ((jdbcTypeCode == NUMERIC || jdbcTypeCode == DECIMAL) && (precision != 0 || scale != 0)) {
-            DecimalJdbcType type = new DecimalJdbcType(DECIMAL, precision, scale);
-            jdbcTypeRegistry.addDescriptorIfAbsent(type.getJdbcTypeCode(), type);
-            return jdbcTypeRegistry.getDescriptor(type.getJdbcTypeCode());
-        }
-
-        return super.resolveSqlTypeDescriptor(columnTypeName, jdbcTypeCode, precision, scale, jdbcTypeRegistry);
     }
 
     @Override
