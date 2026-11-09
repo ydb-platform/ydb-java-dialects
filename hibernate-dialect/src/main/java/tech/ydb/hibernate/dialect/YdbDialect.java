@@ -7,7 +7,6 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.concurrent.ConcurrentHashMap;
 import org.hibernate.boot.model.FunctionContributions;
 import org.hibernate.boot.model.TypeContributions;
 import org.hibernate.dialect.Dialect;
@@ -64,9 +63,7 @@ import static org.hibernate.type.SqlTypes.VARBINARY;
 import static org.hibernate.type.SqlTypes.VARCHAR;
 import org.hibernate.type.StandardBasicTypes;
 import org.hibernate.type.descriptor.java.UUIDJavaType;
-import org.hibernate.type.descriptor.jdbc.JdbcType;
 import org.hibernate.type.descriptor.jdbc.UUIDJdbcType;
-import org.hibernate.type.descriptor.jdbc.spi.JdbcTypeRegistry;
 import org.hibernate.type.descriptor.sql.internal.DdlTypeImpl;
 import org.hibernate.type.descriptor.sql.spi.DdlTypeRegistry;
 import org.hibernate.type.spi.TypeConfiguration;
@@ -92,7 +89,6 @@ import tech.ydb.hibernate.dialect.types.YdbJdbcType;
 public class YdbDialect extends Dialect {
     @SuppressWarnings({"rawtypes"})
     private static final Exporter EMPTY_EXPORTER = new EmptyExporter<>();
-    private static final ConcurrentHashMap<Integer, DecimalJdbcType> DECIMAL_JDBC_TYPE_CACHE = new ConcurrentHashMap<>();
 
     public YdbDialect(DialectResolutionInfo dialectResolutionInfo) {
         super(dialectResolutionInfo);
@@ -200,10 +196,8 @@ public class YdbDialect extends Dialect {
         typeContributions.contributeJdbcType(new YdbJdbcType(YdbJdbcCode.INTERVAL, Duration.class));
 
         typeContributions.contributeJavaType(BigDecimalJavaType.INSTANCE_22_9);
-        typeContributions.contributeJdbcType(new DecimalJdbcType(YdbJdbcCode.DECIMAL_22_9));
-        typeContributions.contributeJdbcType(new DecimalJdbcType(YdbJdbcCode.DECIMAL_31_9));
-        typeContributions.contributeJdbcType(new DecimalJdbcType(YdbJdbcCode.DECIMAL_35_0));
-        typeContributions.contributeJdbcType(new DecimalJdbcType(YdbJdbcCode.DECIMAL_35_9));
+        typeContributions.contributeJdbcType(new DecimalJdbcType(NUMERIC));
+        typeContributions.contributeJdbcType(new DecimalJdbcType(DECIMAL));
     }
 
     @Override
@@ -221,10 +215,6 @@ public class YdbDialect extends Dialect {
         ddlTypeRegistry.addDescriptor(new DdlTypeImpl(YdbJdbcCode.DATETIME_64, "Datetime64", "Datetime64", this));
         ddlTypeRegistry.addDescriptor(new DdlTypeImpl(YdbJdbcCode.TIMESTAMP_64, "Timestamp64", "Timestamp64", this));
         ddlTypeRegistry.addDescriptor(new DdlTypeImpl(YdbJdbcCode.INTERVAL_64, "Interval64", "Interval64", this));
-        ddlTypeRegistry.addDescriptor(new DdlTypeImpl(YdbJdbcCode.DECIMAL_22_9, "Decimal(22, 9)", "Decimal(22, 9)", this));
-        ddlTypeRegistry.addDescriptor(new DdlTypeImpl(YdbJdbcCode.DECIMAL_31_9, "Decimal(31, 9)", "Decimal(31, 9)", this));
-        ddlTypeRegistry.addDescriptor(new DdlTypeImpl(YdbJdbcCode.DECIMAL_35_0, "Decimal(35, 0)", "Decimal(35, 0)", this));
-        ddlTypeRegistry.addDescriptor(new DdlTypeImpl(YdbJdbcCode.DECIMAL_35_9, "Decimal(35, 9)", "Decimal(35, 9)", this));
         ddlTypeRegistry.addDescriptor(new DdlTypeImpl(YdbJdbcCode.JSON, "Json", "Json", this));
         ddlTypeRegistry.addDescriptor(new DdlTypeImpl(YdbJdbcCode.JSON_DOCUMENT, "JsonDocument", "JsonDocument", this));
         ddlTypeRegistry.addDescriptor(new DdlTypeImpl(YdbJdbcCode.BOOL, "Bool", "Bool", this));
@@ -245,22 +235,6 @@ public class YdbDialect extends Dialect {
         ddlTypeRegistry.addDescriptor(new DdlTypeImpl(YdbJdbcCode.DATETIME, "Datetime", "Datetime", this));
         ddlTypeRegistry.addDescriptor(new DdlTypeImpl(YdbJdbcCode.TIMESTAMP, "Timestamp", "Timestamp", this));
         ddlTypeRegistry.addDescriptor(new DdlTypeImpl(YdbJdbcCode.INTERVAL, "Interval", "Interval", this));
-    }
-
-    @Override
-    public JdbcType resolveSqlTypeDescriptor(
-            String columnTypeName,
-            int jdbcTypeCode,
-            int precision,
-            int scale,
-            JdbcTypeRegistry jdbcTypeRegistry) {
-        if ((jdbcTypeCode == NUMERIC || jdbcTypeCode == DECIMAL) && (precision != 0 || scale != 0)) {
-            int sqlCode = ydbDecimal(precision, scale);
-
-            return DECIMAL_JDBC_TYPE_CACHE.computeIfAbsent(sqlCode, DecimalJdbcType::new);
-        }
-
-        return super.resolveSqlTypeDescriptor(columnTypeName, jdbcTypeCode, precision, scale, jdbcTypeRegistry);
     }
 
     @Override
@@ -529,9 +503,5 @@ public class YdbDialect extends Dialect {
             }
             return null;
         };
-    }
-
-    private static int ydbDecimal(int precision, int scale) {
-        return 1 << 14 + (precision << 6) + (scale & 0x111111);
     }
 }
