@@ -1,4 +1,4 @@
-## 1.7.2 ##
+## 1.8.0 ##
 
 - Support any YDB `Decimal(p, s)` through `@Column(precision = ..., scale = ...)`: values are bound with the column type. Defaults stay `Decimal(22, 9)` for `BigDecimal` and `Decimal(22, 0)` for `BigInteger`.
 - **Breaking change:** removed `YdbJdbcCode.DECIMAL_22_9`, `DECIMAL_31_9`, `DECIMAL_35_0` and `DECIMAL_35_9`. Use `@Column(precision = ..., scale = ...)` instead.
