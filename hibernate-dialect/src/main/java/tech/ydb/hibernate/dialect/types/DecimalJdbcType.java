@@ -12,6 +12,7 @@ import org.hibernate.type.descriptor.java.JavaType;
 import org.hibernate.type.descriptor.jdbc.AdjustableJdbcType;
 import org.hibernate.type.descriptor.jdbc.JdbcType;
 import org.hibernate.type.descriptor.jdbc.JdbcTypeIndicators;
+import tech.ydb.hibernate.dialect.code.YdbConst;
 
 /**
  * @author Kirill Kurdyukov
@@ -77,6 +78,6 @@ public class DecimalJdbcType extends org.hibernate.type.descriptor.jdbc.DecimalJ
             throw new MappingException("Invalid YDB Decimal(" + precision + ", " + scale
                     + "): precision must be between 1 and 35 and scale between 0 and precision");
         }
-        return (1 << 14) + (precision << 6) + scale;
+        return YdbConst.decimalJdbcTypeCode(precision, scale);
     }
 }
